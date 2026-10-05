@@ -37,8 +37,21 @@
     into the host's folder, beside the host's own copies of the same assemblies.
     RemoveProperties keeps the host's own global properties (a RuntimeIdentifier, a publish's
     SelfContained, ...) from being forced onto projects that were never meant to take them.
+
+    The helpers are not in the host's restore graph (they are deliberately not references), so they
+    are restored here first. The restore runs under an extra global property so it is a separate
+    evaluation from the build that follows - otherwise the build would reuse an evaluation made
+    before restore had written the files it imports, and fail on a fresh clone with
+    "project.assets.json not found".
   -->
   <Target Name="WrsBuildHelpers" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="$(WrsAampReaderProject)" Targets="Restore"
+             Properties="Configuration=$(Configuration);_WrsRestoreEvaluation=true"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing" />
+    <MSBuild Projects="$(WrsPreparationProject)" Targets="Restore" Condition="'$(WrsOutOfProcessPreparer)' == 'true'"
+             Properties="Configuration=$(Configuration);_WrsRestoreEvaluation=true"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing" />
+
     <MSBuild Projects="$(WrsAampReaderProject)" Targets="Build"
              Properties="Configuration=$(Configuration)"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing">
