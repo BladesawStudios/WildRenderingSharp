@@ -34,6 +34,8 @@ public sealed class ShadowCache
 {
     internal Vector3? SunWorld;
     internal Vector4[][]? ModelRowsPerActor;
+    /// <summary>A copy of each actor's posed bones the map was drawn with (null entries: bind pose).</summary>
+    internal Matrix4x4[]?[]? BonesPerActor;
     internal Vector3 RotatedLo, RotatedHi;
     internal ShadowPass.LightMatrices LightMatrices;
 }
@@ -355,10 +357,12 @@ public sealed class DeferredPipeline : IDisposable
         Resources.BindUbo("ctx_true", 1); // every later pass uses the true (unflipped) projection
 
         // ---- shadow map (skipped when the camera is the only thing that moved - see ShadowCache's own remarks) ----
-        // Any actor with an applied skeletal clip forces a cache miss every frame it's applied
-        // (even paused mid-animation it can be sitting on a non-bind pose the cache never
-        // accounted for) - the same per-actor generalisation of the single-model rule already
-        // established this session.
+        // A posed actor misses the cache only when its pose actually CHANGED since the map was
+        // drawn - compared bone for bone against a copy kept with the cache. This used to miss on
+        // any posed actor at all, which a paused clip, helper bones or a host's external pose (every
+        // rigged actor in Prism) all are, so a plain camera orbit around one redrew every shape
+        // into the 4096x4096 map every frame for nothing. Comparing a couple of hundred matrices
+        // is far cheaper than that.
         //
         // A frame-skipping throttle was tried here (only refresh every Nth animated frame, to cut
         // the sustained per-frame cost cloth/helper bones now force on this - the single most
@@ -369,9 +373,9 @@ public sealed class DeferredPipeline : IDisposable
         // after landing it. Reverted. Any real fix for the GPU-cost side of this has to make the
         // shadow pass itself cheaper, not skip drawing it while something is genuinely moving.
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
-        bool anyAnimated = request.Actors.Any(a => a.BoneWorldMatrices is not null);
         bool shadowCacheHit = shadowMapOverride is null && shadowCache.ModelRowsPerActor is not null && shadowCache.SunWorld == sunWorld
-            && !anyAnimated && ActorRowsEqual(shadowCache.ModelRowsPerActor, modelRowsPerActor);
+            && ActorRowsEqual(shadowCache.ModelRowsPerActor, modelRowsPerActor)
+            && PosesEqual(shadowCache.BonesPerActor, request.Actors);
         Vector3 rotatedLo, rotatedHi;
         ShadowPass.LightMatrices lightMatrices;
         if (shadowCacheHit)
@@ -395,6 +399,8 @@ public sealed class DeferredPipeline : IDisposable
 
                 shadowCache.SunWorld = sunWorld;
                 shadowCache.ModelRowsPerActor = modelRowsPerActor;
+                // Copied: a host may well reuse and rewrite the same array next frame.
+                shadowCache.BonesPerActor = request.Actors.Select(a => (Matrix4x4[]?)a.BoneWorldMatrices?.Clone()).ToArray();
                 shadowCache.RotatedLo = rotatedLo;
                 shadowCache.RotatedHi = rotatedHi;
                 shadowCache.LightMatrices = lightMatrices;
@@ -706,6 +712,27 @@ public sealed class DeferredPipeline : IDisposable
         for (int i = 0; i < a.Length; i++)
         {
             if (!RowsEqual(a[i], b[i]))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>True when every actor's pose is the one the cached shadow map was drawn with.</summary>
+    static bool PosesEqual(Matrix4x4[]?[]? cached, IReadOnlyList<ActorRenderInput> actors)
+    {
+        if (cached is null || cached.Length != actors.Count)
+            return false;
+        for (int i = 0; i < cached.Length; i++)
+        {
+            var before = cached[i];
+            var now = actors[i].BoneWorldMatrices;
+            if (before is null || now is null)
+            {
+                if (before is not null || now is not null)
+                    return false;
+                continue;
+            }
+            if (!before.AsSpan().SequenceEqual(now))
                 return false;
         }
         return true;
