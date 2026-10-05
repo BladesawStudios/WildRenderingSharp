@@ -151,6 +151,10 @@ public sealed class DeferredPipeline : IDisposable
         string systemTexturesDir = systemTexturesDirectory
             ?? Path.Combine(Path.GetDirectoryName(decompiledDirectory) ?? decompiledDirectory, "_system_textures");
 
+        // Before any pass builds its programs, so they come from the binary cache too.
+        GLProgramBuilder.BinaryCacheDirectory ??=
+            Path.Combine(Path.GetDirectoryName(decompiledDirectory) ?? decompiledDirectory, "_glprograms");
+
         Resources = new GLResourceCache(gl);
         Targets = new RenderTargets(gl, width, height);
         Programs = new ShaderProgramCache(gl, decompiledDirectory);
