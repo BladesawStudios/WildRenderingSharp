@@ -63,6 +63,46 @@ every projection here without it. The world is Z-up; a Y-up host converts at the
 **The cache** (`CacheLayout`): `%AppData%\WildRenderingSharp\cache` by default; Marrow keeps its own
 at `%AppData%\Marrow\cache`. Below, `<cache>` means whichever root the host uses.
 
+## Hosts - what integrating the renderer into another tool taught
+
+The two hosts today are Marrow (`Marrow.UI`, in-process preparation, Z-up, owns every actor's
+animation and physics through `RenderActor`) and Prism's Actors workspace
+(`NinTerrainViewer/Rendering/GameRendererHost.cs`, out-of-process preparation, Y-up, poses and
+simulates the actor itself and hands the result over). Things that bit, in the order they did:
+
+- **Ask for a 4.5 context explicitly.** The decompiled programs are GLSL 4.50. A driver hands back
+  exactly the version requested - Prism asked for 4.3 core and got 4.3, not the 4.6 the hardware
+  had - so a host that asks for less silently cannot link any game shader. Prism now asks for 4.5
+  and falls back to 4.3 with the renderer off and the reason shown.
+- **Restore the helper projects explicitly.** `aampreader` and `wrs-prepare` are built by the
+  targets file, not referenced, so a host's restore never covers them; on a fresh clone they failed
+  with "project.assets.json not found" until the targets restored them in a separate evaluation.
+- **A self-contained host needs a self-contained preparer.** The targets publish one for the host's
+  runtime identifier; a framework-dependent preparer beside a self-contained host will not start on
+  a machine without .NET.
+- **ShaderLibrary finds `meshcodec_cli.exe` relative to its own SOURCE file.** That only exists on
+  the machine that compiled it. The preparer ships the decoder beside itself and sets
+  `MESHCODEC_CLI`; without it, every `.bfres.mc` (including `SystemModel.DeferredMain`) fails to
+  unpack on any other machine.
+- **A host that poses the skeleton itself** sets `RenderActor.ExternalPose` (object-space bone
+  matrices, row-vector, the shape `SkeletonPose.BindPoseWorldMatrices` returns - Prism's own
+  `SkeletonPose` is a port of this one, so its `World` array is exactly that) and turns the actor's
+  own cloth/helper bones off. Map bones by name; both come from the same BFRES skeleton and agree
+  in order in practice.
+- **Pattern clips need the preparer to have exported them**, because the textures they select are
+  bound by no material and only exist in the cache if `ExportTexturePatternAnim` pulled them out. It
+  only walks the archives the actor's pack names (plus the model file); Prism also reads the
+  model's own `<Project>.anim.bfres`, so a clip only Prism lists (a horse's coat variants, a Boss
+  Bokoblin's colour) cannot be drawn by the renderer yet. Material clips have no such limit - a
+  host's own clip data converts straight into `MaterialAnimManifest`.
+- **Prepare cancellation.** A host abandons a preparation when the user moves on; out of process
+  that means killing it. `Prepare` deletes the manifest and source stamp first, so a killed run is
+  never taken for a finished one.
+- **Drawing over the frame.** Prism blits `SceneView.OutputFramebuffer` into its own target and then
+  draws its overlays (grid, skeleton, colliders, outline, gizmo) with its own copy of the actor drawn
+  depth-only, which is what keeps them occluded correctly. Depth from the renderer cannot be shared
+  directly - the conventions differ (standard `[-1, 1]` here, reversed float in Prism).
+
 ## Everything happens twice: offline, then live
 
 This is the single most important thing to understand before touching anything.
