@@ -70,7 +70,163 @@ public sealed class OutOfProcessPreparer : IModelPreparer
         return result ?? throw new InvalidOperationException($"The preparer finished without naming the model it prepared for '{request.ActorOrModelName}'.");
     }
 
-    async Task<string?> RunAsync(IReadOnlyList<string> arguments, Action<string>? log, CancellationToken cancellationToken)
+    /// <remarks>
+    /// One worker process prepares the batch, several models at a time, sharing one parsed shader
+    /// archive between them - far cheaper than a process per model, which re-parsed it every time.
+    /// A native decoder can still abort the whole worker. When that happens every name it had
+    /// already finished stays finished; the names it had begun but not finished are retried one at
+    /// a time in their own worker, which pins the crash on the one actually responsible, and
+    /// everything not yet begun goes to a fresh worker.
+    /// </remarks>
+    public async Task<IReadOnlyList<PrepareOutcome>> PrepareManyAsync(PrepareBatchRequest request, Action<PrepareOutcome>? onOutcome = null,
+        Action<string>? log = null, CancellationToken cancellationToken = default)
+    {
+        var outcomes = new Dictionary<string, PrepareOutcome>(StringComparer.Ordinal);
+        void Finish(PrepareOutcome outcome)
+        {
+            lock (outcomes)
+            {
+                if (!outcomes.TryAdd(outcome.ActorOrModelName, outcome))
+                    return;
+            }
+            onOutcome?.Invoke(outcome);
+        }
+
+        var pending = new Queue<(List<string> Names, int Jobs)>();
+        pending.Enqueue((request.ActorOrModelNames.Distinct(StringComparer.Ordinal).ToList(), request.EffectiveParallelism));
+
+        while (pending.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var (names, jobs) = pending.Dequeue();
+            names = names.Where(n => { lock (outcomes) return !outcomes.ContainsKey(n); }).ToList();
+            if (names.Count == 0)
+                continue;
+
+            var begun = new HashSet<string>(StringComparer.Ordinal);
+            var tail = new Queue<string>();
+            string listFile = Path.Combine(Path.GetTempPath(), $"wrs-batch-{Environment.ProcessId}-{Guid.NewGuid():N}.txt");
+            await File.WriteAllLinesAsync(listFile, names, cancellationToken).ConfigureAwait(false);
+            int exitCode;
+            try
+            {
+                var args = new List<string>
+                {
+                    "prepare-batch", "--romfs", request.RomfsRoot, "--cache", request.Cache.Root,
+                    "--list", listFile, "--jobs", jobs.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                };
+                foreach (string mod in request.ModRomfsLayers ?? [])
+                {
+                    args.Add("--mod");
+                    args.Add(mod);
+                }
+                if (!request.ImportAnimations)
+                    args.Add("--no-anims");
+                if (request.Force)
+                    args.Add("--force");
+
+                exitCode = await RunProcessAsync(args, line =>
+                {
+                    if (line.StartsWith("WRS_BEGIN ", StringComparison.Ordinal))
+                    {
+                        lock (begun)
+                            begun.Add(line["WRS_BEGIN ".Length..]);
+                    }
+                    else if (TrySplit(line, "WRS_DONE ", out string name, out string model))
+                        Finish(new PrepareOutcome(name, model, null));
+                    else if (TrySplit(line, "WRS_FAIL ", out name, out string error))
+                        Finish(new PrepareOutcome(name, null, error));
+                    else
+                    {
+                        lock (tail)
+                        {
+                            tail.Enqueue(line);
+                            while (tail.Count > 20)
+                                tail.Dequeue();
+                        }
+                        log?.Invoke(line);
+                    }
+                }, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                try { File.Delete(listFile); } catch { /* temp file */ }
+            }
+
+            var unfinished = names.Where(n => { lock (outcomes) return !outcomes.ContainsKey(n); }).ToList();
+            if (unfinished.Count == 0)
+                continue;
+
+            List<string> inFlight;
+            lock (begun)
+                inFlight = unfinished.Where(begun.Contains).ToList();
+            var notBegun = unfinished.Except(inFlight, StringComparer.Ordinal).ToList();
+
+            if (inFlight.Count == 0)
+            {
+                // It died before starting on any of what is left - the romfs, the cache or the
+                // system assets, not a model - so running it again would only do the same.
+                string detail;
+                lock (tail)
+                    detail = tail.LastOrDefault(l => l.Trim().Length > 0)?.Trim() ?? "";
+                foreach (string name in notBegun)
+                    Finish(new PrepareOutcome(name, null, $"the preparer exited with code {exitCode} before reaching it. {detail}".Trim()));
+                continue;
+            }
+
+            if (jobs == 1 && names.Count == 1)
+            {
+                // Alone in its own worker, so the crash was its own.
+                Finish(new PrepareOutcome(names[0], null, $"the preparer crashed on it (exit code {exitCode})"));
+                continue;
+            }
+            foreach (string suspect in inFlight)
+                pending.Enqueue(([suspect], 1));
+            if (notBegun.Count > 0)
+                pending.Enqueue((notBegun, jobs));
+        }
+
+        lock (outcomes)
+            return [.. request.ActorOrModelNames.Distinct(StringComparer.Ordinal).Select(n => outcomes[n])];
+    }
+
+    static bool TrySplit(string line, string prefix, out string name, out string value)
+    {
+        name = value = "";
+        if (!line.StartsWith(prefix, StringComparison.Ordinal))
+            return false;
+        string rest = line[prefix.Length..];
+        int tab = rest.IndexOf('\t');
+        if (tab < 0)
+            return false;
+        name = rest[..tab];
+        value = rest[(tab + 1)..];
+        return true;
+    }
+
+    /// <summary>Runs the preparer with <paramref name="arguments"/>, handing every output line to <paramref name="onLine"/>; returns its exit code.</summary>
+    async Task<int> RunProcessAsync(IReadOnlyList<string> arguments, Action<string> onLine, CancellationToken cancellationToken)
+    {
+        using var process = new Process { StartInfo = StartInfo(arguments), EnableRaisingEvents = true };
+        process.OutputDataReceived += (_, e) => { if (e.Data is { } line) onLine(line); };
+        process.ErrorDataReceived += (_, e) => { if (e.Data is { } line) onLine(line); };
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            try { process.Kill(entireProcessTree: true); } catch { /* already gone */ }
+            throw;
+        }
+        process.WaitForExit();
+        return process.ExitCode;
+    }
+
+    ProcessStartInfo StartInfo(IReadOnlyList<string> arguments)
     {
         if (!IsAvailable)
             throw new FileNotFoundException(
@@ -98,7 +254,12 @@ public sealed class OutOfProcessPreparer : IModelPreparer
         }
         foreach (string a in arguments)
             info.ArgumentList.Add(a);
+        return info;
+    }
 
+    async Task<string?> RunAsync(IReadOnlyList<string> arguments, Action<string>? log, CancellationToken cancellationToken)
+    {
+        var info = StartInfo(arguments);
         using var process = new Process { StartInfo = info, EnableRaisingEvents = true };
         string? result = null;
         var tail = new Queue<string>();

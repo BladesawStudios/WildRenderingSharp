@@ -174,6 +174,41 @@ short (~150-250 lines), fully expanded (no macros/branches left unresolved - the
 baked in every static option), and is the only thing that can't be wrong about what the game itself
 does.
 
+## Preparing many models at once (`prepare-batch`, `PrepareManyAsync`)
+
+A map section is ~750 distinct models. `IModelPreparer.PrepareManyAsync` / the preparer's
+`prepare-batch` command prepare them in ONE process, `PrepareBatchRequest.Parallelism` at a time
+(default: cores - 1, at most 12, since memory per in-flight model runs out before cores do). A
+whole MainField section, with no programs decompiled beforehand, takes ~2.5 minutes; the old
+process-per-model path was an estimated 30-40.
+
+Most of that win is not the threads. Preparing a model parsed `material.*.bfsha` twice at ~450 ms
+each, which was ~90% of a world object's time; `SharedBfsha` parses it once per process.
+Decompiled programs already in `_shaders` are reused (each file ends with a
+`// wrs-decompiler N` marker; bump it in `ExportManifest` when the decompiler's output changes).
+
+**Running preparation on threads exposed three real races. All are fixed; know them before
+adding shared state:**
+- BfresLibrary kept a file's buffer offset in a STATIC (`BufferInfo.BufferOffset`), so two BFRES
+  loading at once read each other's vertex data ("Unable to read beyond the end of the stream"
+  on ~1% of models, fine alone). ShaderLibrary's bundled `BfresLibrary.dll` is built from
+  BfresLibrary's `shaderlibrary-legacy` branch (`ce6eae7` + the per-thread fix), NOT `master`:
+  master reads V10 render-info/shader-param names as hashes, which ShaderLibrary's Harmony patches
+  and string table do not expect, and material parameters silently lose their types and values.
+  Swapping in a master build "works" and is wrong.
+- `BnshFile.ShaderVariation.BinaryProgram` is lazy and every variation seeks one shared file, so
+  concurrent loads read each other's bytes. `ExportManifest` swallows that exception into program
+  `-1`, so the symptom is a shape quietly losing its forward program, not an error.
+- Two models needing one program decompiled it at once and raced on the rename.
+
+**How to verify a change here**: prepare a fixed list (`--jobs 1`) as a reference, prepare it again
+in parallel, and diff the two cache directories. Only `romfs_sources.json` may differ.
+
+A native decoder panic still aborts the whole worker. `OutOfProcessPreparer.PrepareManyAsync`
+keeps everything already finished, retries each name that was in flight on its own (which pins
+the crash on the right one), and starts a fresh worker for the rest. The protocol is
+`WRS_BEGIN` / `WRS_DONE` / `WRS_FAIL` lines on stdout; see `Program.cs`.
+
 ## Mods (`RomfsOverlay`) - per-file layering over the base romfs
 
 `ShaderLibrary.CompileTool.RomfsOverlay` layers mod romfs folders over the base dump file by file

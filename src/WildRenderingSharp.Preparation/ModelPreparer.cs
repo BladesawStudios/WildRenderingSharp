@@ -1,4 +1,5 @@
 using ShaderLibrary.CompileTool;
+using WildRenderingSharp.Hosting;
 
 namespace WildRenderingSharp.Preparation;
 
@@ -346,6 +347,49 @@ public static class ModelPreparer
         }
         return Prepare(romfsRoot, actorOrModelName, cache.Root, cache.Shaders, log, importAnims);
     }
+
+    /// <summary>
+    /// Prepares many actors at once, <paramref name="parallelism"/> models at a time, sharing one
+    /// parsed shader archive (<see cref="SharedBfsha"/>) and the decompiled programs between them.
+    /// The caller has already called <see cref="EnsureSystemAssets"/> and set the mod layers.
+    /// </summary>
+    /// <param name="onBegin">Called as each name starts - lets a supervising process work out which name was in flight if a native crash takes the process down.</param>
+    /// <param name="onOutcome">Called as each name finishes, successfully or not.</param>
+    /// <remarks>
+    /// Names that resolve to the same model are serialised on that model, so its directory never
+    /// has two writers; the second normally finds it up to date and returns at once. An exception
+    /// fails only its own name.
+    /// </remarks>
+    public static void PrepareMany(string romfsRoot, IReadOnlyList<string> actorOrModelNames, CacheLayout cache, int parallelism,
+        Action<string>? onBegin, Action<PrepareOutcome> onOutcome, bool importAnims = true, bool force = false,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureBfresReady(romfsRoot);
+        var modelGates = new System.Collections.Concurrent.ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        var options = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, parallelism), CancellationToken = cancellationToken };
+
+        Parallel.ForEach(actorOrModelNames, options, name =>
+        {
+            onBegin?.Invoke(name);
+            try
+            {
+                string model = ResolveModelName(romfsRoot, name);
+                lock (modelGates.GetOrAdd(model, _ => new object()))
+                    model = PrepareIfNeeded(romfsRoot, name, cache, null, importAnims, force);
+                onOutcome(new PrepareOutcome(name, model, null));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                onOutcome(new PrepareOutcome(name, null, OneLine(ex.GetBaseException().Message)));
+            }
+        });
+    }
+
+    static string OneLine(string message) => string.Join(' ', message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)).Trim();
 
     /// <param name="cacheRoot">The cache root (e.g. <see cref="CacheLayout.Root"/>) - the resolved model's own files land in <c>&lt;cacheRoot&gt;/&lt;resolvedModelName&gt;/</c>, never directly in this directory.</param>
     /// <param name="actorOrModelName">

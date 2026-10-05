@@ -29,6 +29,31 @@ public sealed class InProcessPreparer : IModelPreparer
         }
     }
 
+    public async Task<IReadOnlyList<PrepareOutcome>> PrepareManyAsync(PrepareBatchRequest request, Action<PrepareOutcome>? onOutcome = null,
+        Action<string>? log = null, CancellationToken cancellationToken = default)
+    {
+        await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await Task.Run(() =>
+            {
+                if (request.ModRomfsLayers is { } mods)
+                    ModelPreparer.SetModRomfsLayers(mods);
+                ModelPreparer.EnsureSystemAssets(request.RomfsRoot, request.Cache, log);
+
+                var outcomes = new System.Collections.Concurrent.ConcurrentBag<PrepareOutcome>();
+                ModelPreparer.PrepareMany(request.RomfsRoot, request.ActorOrModelNames, request.Cache, request.EffectiveParallelism,
+                    null, outcome => { outcomes.Add(outcome); onOutcome?.Invoke(outcome); },
+                    request.ImportAnimations, request.Force, cancellationToken);
+                return (IReadOnlyList<PrepareOutcome>)outcomes.ToList();
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
     public async Task<string> PrepareAsync(PrepareRequest request, Action<string>? log = null, CancellationToken cancellationToken = default)
     {
         await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);

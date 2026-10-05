@@ -7,6 +7,8 @@ using WildRenderingSharp.Preparation;
 //   WildRenderingSharp.Preparation ensure-system --romfs <dir> [--cache <dir>]
 //   WildRenderingSharp.Preparation prepare --romfs <dir> --actor <name> [--cache <dir>]
 //                                  [--mod <romfs dir>]... [--no-anims] [--force]
+//   WildRenderingSharp.Preparation prepare-batch --romfs <dir> --list <file> [--cache <dir>]
+//                                  [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]
 //
 // --cache defaults to CacheLayout.DefaultRoot. --mod is a mod's romfs folder, repeated, highest
 // priority first. `prepare` also builds the system assets, so a fresh cache needs nothing else.
@@ -14,6 +16,14 @@ using WildRenderingSharp.Preparation;
 // Progress goes to stdout as it happens. On success the last stdout line is
 // "WRS_RESULT <resolved model name>" (prepare only) and the exit code is 0; on failure the error
 // goes to stderr and the exit code is 1 (2 for a bad command line).
+//
+// prepare-batch prepares every name in --list (one per line), --jobs at a time. Its stdout is a
+// line protocol rather than progress - the per-model chatter is dropped unless --verbose:
+//   WRS_BEGIN <name>                 a name has started
+//   WRS_DONE  <name>	<model>        it is prepared (or was already up to date)
+//   WRS_FAIL  <name>	<message>      it failed; the batch carries on
+// A batch that exits non-zero was killed partway - a native decoder can abort the whole process -
+// and the names begun but not finished are the suspects (OutOfProcessPreparer retries the rest).
 
 return Cli.Run(args);
 
@@ -28,9 +38,10 @@ static class Cli
         }
 
         string command = args[0];
-        string? romfs = null, actor = null, cacheRoot = null;
+        string? romfs = null, actor = null, cacheRoot = null, list = null;
         var mods = new List<string>();
-        bool importAnims = true, force = false;
+        bool importAnims = true, force = false, verbose = false;
+        int jobs = 0;
 
         for (int i = 1; i < args.Length; i++)
         {
@@ -46,6 +57,9 @@ static class Cli
                     case "--mod": mods.Add(Next()); break;
                     case "--no-anims": importAnims = false; break;
                     case "--force": force = true; break;
+                    case "--list": list = Next(); break;
+                    case "--jobs": jobs = int.TryParse(Next(), out int j) ? j : throw new ArgumentException("--jobs needs a number"); break;
+                    case "--verbose": verbose = true; break;
                     default:
                         Console.Error.WriteLine($"Unknown argument '{a}'.");
                         PrintUsage();
@@ -87,6 +101,14 @@ static class Cli
                     Console.WriteLine(OutOfProcessPreparer.ResultPrefix + model);
                     return 0;
 
+                case "prepare-batch":
+                    if (string.IsNullOrEmpty(list) || !File.Exists(list))
+                    {
+                        Console.Error.WriteLine($"prepare-batch needs --list <file> naming an existing file (got '{list}').");
+                        return 2;
+                    }
+                    return PrepareBatch(romfs, cache, File.ReadAllLines(list), mods, jobs, importAnims, force, verbose);
+
                 default:
                     Console.Error.WriteLine($"Unknown command '{command}'.");
                     PrintUsage();
@@ -100,12 +122,44 @@ static class Cli
         }
     }
 
+    static int PrepareBatch(string romfs, CacheLayout cache, string[] lines, List<string> mods, int jobs,
+        bool importAnims, bool force, bool verbose)
+    {
+        var names = lines.Select(l => l.Trim()).Where(l => l.Length > 0).Distinct(StringComparer.Ordinal).ToList();
+        int parallelism = jobs > 0 ? jobs : PrepareBatchRequest.DefaultParallelism;
+
+        TextWriter protocol = Console.Out;
+        var gate = new object();
+        void Say(string line)
+        {
+            lock (gate)
+            {
+                protocol.WriteLine(line);
+                protocol.Flush();
+            }
+        }
+
+        ModelPreparer.SetModRomfsLayers(mods);
+        ModelPreparer.EnsureSystemAssets(romfs, cache, verbose ? Console.WriteLine : null);
+        if (!verbose)
+            Console.SetOut(TextWriter.Null);
+
+        ModelPreparer.PrepareMany(romfs, names, cache, parallelism,
+            name => Say($"WRS_BEGIN {name}"),
+            outcome => Say(outcome.Succeeded
+                ? $"WRS_DONE {outcome.ActorOrModelName}	{outcome.ModelName}"
+                : $"WRS_FAIL {outcome.ActorOrModelName}	{outcome.Error}"),
+            importAnims, force);
+        return 0;
+    }
+
     static void PrintUsage()
     {
         Console.WriteLine("WildRenderingSharp.Preparation - prepares actors from a romfs into a WildRenderingSharp cache.");
         Console.WriteLine();
         Console.WriteLine("  ensure-system --romfs <dir> [--cache <dir>]");
         Console.WriteLine("  prepare --romfs <dir> --actor <name> [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]");
+        Console.WriteLine("  prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]");
         Console.WriteLine();
         Console.WriteLine($"  --cache defaults to {CacheLayout.DefaultRoot}");
     }
