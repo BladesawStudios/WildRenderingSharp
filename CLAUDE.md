@@ -155,6 +155,13 @@ parsing anywhere in this half - `MaterialUbo`/`TotkShaderProfile.CreateMaterialU
 `WildRenderingSharp.Shaders` are vestigial for this reason; `ModelLoader.cs` reads material bytes itself instead
 of going through them.
 
+Linking is the expensive part of a live load (1-2s for a character's programs, on the GL thread),
+so `GLProgramBuilder` keeps every linked program's driver binary in `<cache>\_glprograms\`, keyed
+by both GLSL sources and the driver's vendor/renderer/version, and loads that instead of compiling.
+A binary the driver rejects is compiled again and replaced. Deleting the folder only costs one slow
+load per program. If a decompiled shader looks unaffected by a change you made to its GLSL, the key
+is the sanitised source, so it cannot be serving a stale binary - look elsewhere.
+
 **Practical consequence for debugging:** the hand-written reference shader at
 `vendor/ShaderLibrary/ShaderLibrary.CompileTool/Shaders/TOTK/Pixel.frag` (and its `Vertex.vert`
 siblings) is **not what renders** - it's a hand-authored, admittedly-incomplete reconstruction kept
