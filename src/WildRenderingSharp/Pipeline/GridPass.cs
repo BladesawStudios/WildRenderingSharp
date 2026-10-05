@@ -1,0 +1,156 @@
+using System.Numerics;
+using Silk.NET.OpenGL;
+
+namespace WildRenderingSharp.Pipeline;
+
+/// <summary>
+/// Blender-style ground reference grid - WildRenderingSharp's own small utility shader (like
+/// <see cref="FxaaPass"/>/<see cref="PresentPass"/>, not a decompiled game shader), a single large
+/// quad at world Z=0 (TotK's own up axis) with a procedural, distance-faded, anti-aliased grid
+/// pattern in the fragment shader. Drawn into <see cref="RenderTargets.Scene"/>, depth-tested
+/// against <see cref="RenderTargets.GBufferDepth"/> so opaque geometry correctly occludes it, in
+/// the SAME Y-flipped space <c>ForwardPass</c>/<c>KnownMaterialFixes</c> already draw into - see
+/// this pipeline's own remarks on the Y-flip bug those two hit before this pass existed; using
+/// <c>viewProjFlipped</c> here (not the "true" unflipped camera) is what avoids repeating it.
+/// Runs BEFORE the forward pass so blended materials still draw over the grid, and drawn with no
+/// depth WRITE of its own so it never occludes anything drawn after it.
+/// </summary>
+public sealed class GridPass : IDisposable
+{
+    readonly GL _gl;
+    readonly uint _program;
+    readonly uint _vao, _vbo;
+
+    const string VertexSource = """
+        #version 450 core
+        layout (location = 0) in vec2 aPos; // [-1,1] quad corner, scaled/positioned in the shader
+        uniform mat4 uViewProj;
+        uniform float uExtent;
+        out vec2 vWorldXY;
+        void main()
+        {
+            vWorldXY = aPos * uExtent;
+            gl_Position = uViewProj * vec4(vWorldXY, 0.0, 1.0);
+        }
+        """;
+
+    const string FragmentSource = """
+        #version 450 core
+        in vec2 vWorldXY;
+        uniform vec3 uCameraPos;
+        uniform vec4 uLineColor;
+        uniform float uExtent;
+        uniform float uMinorCell;
+        layout (location = 0) out vec4 fragColor;
+
+        // One anti-aliased line set at the given world-space cell size, using screen-space
+        // derivatives so line thickness stays ~1px regardless of distance (the standard analytic
+        // "shader grid" technique - no geometry, no texture).
+        //
+        // `vis` is the anti-aliasing guard, and it is not optional. `deriv` is measured in CELLS
+        // per pixel, so once it reaches 1 an entire cell fits inside one pixel and the line test
+        // below stops meaning anything: the numerator is bounded by 0.5 while the denominator keeps
+        // growing, so `grid` collapses toward 0 and `line` saturates to 1 for EVERY fragment - the
+        // grid stops being lines and becomes a solid sheet of uLineColor. That is not hypothetical:
+        // with cells fixed at 1/10 units and a 13,880-unit quad (Enemy_Dragon_Darkness, radius 694,
+        // extent = radius * 20) there were ~14,000 cells across the plane, and because that model's
+        // BoundsCenter.Z is -654 the framing camera sits BELOW the ground plane - so the sheet
+        // covered the upper half of the screen and alpha-blended light blue-grey over the sky,
+        // which read as the top half of the sky having its colour inverted. Fading a level out as
+        // its cells approach pixel size is what makes that structurally impossible.
+        float gridLines(vec2 p, float cell, out float vis)
+        {
+            vec2 coord = p / cell;
+            vec2 deriv = fwidth(coord);
+            vis = clamp(1.0 - max(deriv.x, deriv.y), 0.0, 1.0);
+            vec2 grid = abs(fract(coord - 0.5) - 0.5) / max(deriv, 1e-6);
+            return 1.0 - clamp(min(grid.x, grid.y), 0.0, 1.0);
+        }
+
+        void main()
+        {
+            float dist = distance(vWorldXY, uCameraPos.xy);
+            float fade = clamp(1.0 - dist / uExtent, 0.0, 1.0);
+            fade *= fade;
+
+            // Cell size comes from the caller now (scaled to the scene) rather than being fixed at
+            // 1/10 world units - see Run.
+            float minorVis, majorVis;
+            float minor = gridLines(vWorldXY, uMinorCell, minorVis) * minorVis;
+            float major = gridLines(vWorldXY, uMinorCell * 10.0, majorVis) * majorVis;
+            float line = max(minor * 0.35, major * 0.8);
+
+            if (line * fade < 0.01) discard;
+            fragColor = vec4(uLineColor.rgb, uLineColor.a * line * fade);
+        }
+        """;
+
+    public unsafe GridPass(GL gl)
+    {
+        _gl = gl;
+        _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "grid");
+
+        // A single [-1,1] quad, two triangles - the shader scales it to world size.
+        float[] verts = [-1f, -1f, 1f, -1f, 1f, 1f, -1f, -1f, 1f, 1f, -1f, 1f];
+        _vao = gl.GenVertexArray();
+        _vbo = gl.GenBuffer();
+        gl.BindVertexArray(_vao);
+        gl.BindBuffer(BufferTargetARB.ArrayBuffer, _vbo);
+        fixed (float* p = verts)
+            gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(verts.Length * sizeof(float)), p, BufferUsageARB.StaticDraw);
+        gl.EnableVertexAttribArray(0);
+        gl.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 2 * sizeof(float), (void*)0);
+        gl.BindVertexArray(0);
+    }
+
+    /// <param name="viewProjRows"><c>proj @ [view;0,0,0,1]</c> in the SAME Y-flipped space <see cref="RenderTargets.Scene"/> is in - pass the pipeline's own <c>viewProjFlipped</c>, not a "true" unflipped camera matrix.</param>
+    /// <param name="cameraPos">World-space eye position, for the distance fade.</param>
+    /// <param name="extent">Half-width of the ground quad and the fade's falloff distance.</param>
+    public unsafe void Run(RenderTargets targets, ReadOnlySpan<Vector4> viewProjRows, Vector3 cameraPos, float extent)
+    {
+        targets.BindColorAndDepthTarget(targets.Scene, targets.GBufferDepth);
+        _gl.Enable(EnableCap.DepthTest);
+        _gl.DepthFunc(DepthFunction.Less);
+        _gl.DepthMask(false);
+        _gl.Disable(EnableCap.CullFace);
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFuncSeparate(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha, GLEnum.One, GLEnum.Zero);
+        _gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);
+
+        _gl.UseProgram(_program);
+        _gl.SetMat4(_program, "uViewProj", viewProjRows);
+        _gl.Uniform1(_gl.GetUniformLocation(_program, "uExtent"), extent);
+        _gl.Uniform1(_gl.GetUniformLocation(_program, "uMinorCell"), MinorCellFor(extent));
+        _gl.Uniform3(_gl.GetUniformLocation(_program, "uCameraPos"), cameraPos.X, cameraPos.Y, cameraPos.Z);
+        _gl.SetVec4(_program, "uLineColor", new Vector4(0.55f, 0.58f, 0.63f, 0.6f));
+
+        _gl.BindVertexArray(_vao);
+        _gl.DrawArrays(PrimitiveType.Triangles, 0, 6);
+
+        _gl.DepthMask(true);
+        _gl.Disable(EnableCap.Blend);
+    }
+
+    /// <summary>
+    /// The minor grid cell's world size for a given quad extent - a power of ten chosen to keep the
+    /// number of cells across the plane roughly constant whatever the model's scale.
+    /// </summary>
+    /// <remarks>
+    /// Every other world-unit constant in the viewer is already re-derived per model radius by
+    /// <c>SceneFramingCalculator</c> (near/far, AO radius, shadow bias, dolly clamps); the grid's
+    /// cell size was the one that was left hardcoded, which is what let it alias into a solid sheet
+    /// on a large model. The divisor is chosen so every small model - the Master Sword's 0.74
+    /// radius through Bokoblin's 2.5, i.e. everything that clamps to the 20-unit minimum extent or
+    /// just above it - still resolves to exactly 1.0 and looks identical to before this change;
+    /// only scenes big enough to have been broken anyway get a coarser grid.
+    /// </remarks>
+    internal static float MinorCellFor(float extent) =>
+        MathF.Max(1e-3f, MathF.Pow(10f, MathF.Floor(MathF.Log10(MathF.Max(extent, 1e-3f) / 20f))));
+
+    public void Dispose()
+    {
+        _gl.DeleteBuffer(_vbo);
+        _gl.DeleteVertexArray(_vao);
+        _gl.DeleteProgram(_program);
+    }
+}

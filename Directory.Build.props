@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Shared by every project in this repository. Hosts that pull the library in as a submodule do
+    not see this file unless their own project sits under this directory, so nothing here may be
+    something a host's build depends on - see build/WildRenderingSharp.targets for that.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Authors>BladesawStudios</Authors>
+    <Product>WildRenderingSharp</Product>
+    <RepositoryUrl>https://github.com/BladesawStudios/WildRenderingSharp</RepositoryUrl>
+  </PropertyGroup>
+</Project>

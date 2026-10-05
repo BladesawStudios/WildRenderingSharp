@@ -1,0 +1,321 @@
+using System.Numerics;
+using WildRenderingSharp.Rendering;
+using Silk.NET.OpenGL;
+
+namespace WildRenderingSharp.Pipeline;
+
+/// <summary>
+/// The game's real lens flare - <c>agl::pfx::Glare</c>'s own <c>flare_filter_flare</c> program,
+/// decompiled out of <c>agl_technique_pfx.sharcb</c> and driven directly.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This is a REAL decompiled program, not a reconstruction. Its whole interface is one sampler
+/// (<c>cSrc</c>) and one 192-byte <c>RegisterUBO</c>, which made the block recoverable by reading
+/// the decompiled math rather than needing a capture:
+/// </para>
+/// <code>
+/// vertex:    ghost = (0.5 - uv) * C[0].x          a step from this pixel toward screen centre
+///            gl_Position.xy = in_attr0.xy * 2.0   half-unit quad, same convention as the sky pass
+/// fragment:  sum  = src(uv) + src(uv + g*2) + src(uv + g*4) + src(uv + g*6)
+///            halo = src(uv + normalize(g) * C[1].w * 2)
+///            out  = (sum + halo * C[1].xyz) * C[3].xyz
+/// </code>
+/// <para>
+/// So <c>C[0].x</c> is the ghost spacing, <c>C[1].xyz</c>/<c>.w</c> the halo's tint and radius, and
+/// <c>C[3].xyz</c> the overall intensity. The ghost count is the <c>GHOST_NUM</c> macro baked in at
+/// extraction (4 here), which is why the four taps are unrolled with literal 2/4/6 multipliers
+/// rather than looped.
+/// </para>
+/// <para>
+/// <b>The mirrored-sampling trick is the whole effect.</b> Stepping toward the screen centre and
+/// continuing past it lands on the light's own reflection through the centre, which is exactly
+/// where a real lens puts its ghosts. That is also why <c>cSrc</c> must be a BRIGHT-PASS of the
+/// scene and not the scene itself: sampling the raw image would drag ordinary geometry into the
+/// ghosts. This pass owns that threshold rather than borrowing <see cref="BloomPass"/>'s
+/// intermediates, so bloom's own tuning and the flare's cannot pull against each other.
+/// </para>
+/// <para>
+/// <b>Not implemented: the glare streak chain.</b> <c>glare_filter_blur</c> is extracted too
+/// (<c>agl_glare_filter_blur0</c>/<c>1</c>) but is a 2-tap separable blur meant to run ping-pong
+/// with offsets growing per iteration (<c>BLUR_LV</c>), driven from <c>glare_filter_seed</c>'s own
+/// <c>Seed</c> block. That is a multi-pass chain with its own state, and none of it is decoded yet
+/// - it is the anamorphic streaks, not the ghosts, so the flare stands on its own without it.
+/// </para>
+/// </remarks>
+public sealed class LensFlarePass : IDisposable
+{
+    /// <summary>Clear of every binding the real program declares.</summary>
+    const uint RegisterBinding = 24;
+
+    readonly GL _gl;
+    readonly uint _program;
+    readonly uint _brightProgram;
+    readonly uint _blurProgram;
+    readonly uint _vao, _vbo;
+    // Ping-pong pair at quarter resolution: [0] receives the bright-pass, the blur bounces
+    // between the two and always ends back in [0], which is what the flare samples.
+    readonly uint[] _srcTex = new uint[2], _srcFbo = new uint[2];
+    int _brightW, _brightH;
+
+    /// <summary>Separable blur iterations (each = one horizontal + one vertical pass).</summary>
+    const int BlurIterations = 3;
+
+    public bool Available => _program != 0;
+    bool _logged;
+
+    // The bright-pass. Deliberately WildRenderingSharp's own trivial shader and marked as such - only the FLARE
+    // itself is the game's program. Squaring the excess above the threshold keeps a merely-bright
+    // sky from producing ghosts while a genuine sun disc still does.
+    const string BrightVert = """
+        #version 330 core
+        out vec2 vUV;
+        void main()
+        {
+            vUV = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+            gl_Position = vec4(vUV * 2.0 - 1.0, 0.0, 1.0);
+        }
+        """;
+
+    const string BrightFrag = """
+        #version 330 core
+        in vec2 vUV;
+        uniform sampler2D tSrc;
+        uniform float uThreshold;
+        uniform float uExposure;
+        uniform vec2 uSrcTexel;
+        uniform sampler2D tDepth;
+        uniform int uSkyOnly;
+        out vec4 oCol;
+        vec3 bright(vec2 uv)
+        {
+            // Sky-only source. The real game's flare is a SUN effect (gated on
+            // effect_sun_occlusion_cs), so geometry never throws one there - here an emissive
+            // weapon past any sane threshold did. GBufferDepth is in the G-buffer's Y-flipped
+            // orientation relative to this (Final-space) uv, hence 1 - v. Far-plane depth = sky.
+            if (uSkyOnly != 0 && texture(tDepth, vec2(uv.x, 1.0 - uv.y)).r < 0.99999)
+                return vec3(0.0);
+            // Thresholded in DISPLAY space (after exposure), and the excess compressed to below 1
+            // on its brightest channel (hue kept). Unbounded excess - the old e*e - let one
+            // emissive object throw ghosts that buried the whole frame; a capped source keeps a
+            // flare a flare however bright the thing casting it is.
+            vec3 e = max(texture(tSrc, uv).rgb * uExposure - uThreshold, 0.0);
+            float m = max(e.r, max(e.g, e.b));
+            return m > 0.0 ? e * (1.0 / (1.0 + m)) : vec3(0.0);
+        }
+        void main()
+        {
+            // Four bilinear taps one source texel off-centre cover the whole 4x4 footprint a
+            // quarter-res texel owns, so a thin bright edge cannot slip between samples and
+            // shimmer in and out of the ghosts as the camera moves.
+            oCol = vec4(0.25 * (bright(vUV + uSrcTexel * vec2(-1.0, -1.0))
+                              + bright(vUV + uSrcTexel * vec2( 1.0, -1.0))
+                              + bright(vUV + uSrcTexel * vec2(-1.0,  1.0))
+                              + bright(vUV + uSrcTexel * vec2( 1.0,  1.0))), 1.0);
+        }
+        """;
+
+    // 9-tap Gaussian folded into 5 bilinear fetches (the standard linear-sampling offsets).
+    const string BlurFrag = """
+        #version 330 core
+        in vec2 vUV;
+        uniform sampler2D tSrc;
+        uniform vec2 uStep;
+        out vec4 oCol;
+        void main()
+        {
+            vec3 c = texture(tSrc, vUV).rgb * 0.2270270270;
+            c += texture(tSrc, vUV + uStep * 1.3846153846).rgb * 0.3162162162;
+            c += texture(tSrc, vUV - uStep * 1.3846153846).rgb * 0.3162162162;
+            c += texture(tSrc, vUV + uStep * 3.2307692308).rgb * 0.0702702703;
+            c += texture(tSrc, vUV - uStep * 3.2307692308).rgb * 0.0702702703;
+            oCol = vec4(c, 1.0);
+        }
+        """;
+
+    public unsafe LensFlarePass(GL gl, ShaderProgramCache programs)
+    {
+        _gl = gl;
+        if (!programs.Exists("agl_flare_filter_flare"))
+        {
+            Console.WriteLine("[LensFlarePass] agl_flare_filter_flare not in the shader cache - disabled.");
+            return;
+        }
+
+        _program = programs.Load("agl_flare_filter_flare");
+        // RegisterUBO is at location 0 in BOTH stages, so it decompiles to vp_c3 and fp_c3 - the
+        // same logical block under two names once linked, exactly the collision CloudDomePass and
+        // SkyPostFxPass already have to correct for.
+        BindBlock("_vp_c3", RegisterBinding);
+        BindBlock("_fp_c3", RegisterBinding);
+        _gl.UseProgram(_program);
+        int loc = _gl.GetUniformLocation(_program, "fp_t_tcb_8"); // cSrc
+        if (loc >= 0) _gl.Uniform1(loc, 0);
+
+        _brightProgram = GLProgramBuilder.Build(gl, BrightVert, BrightFrag, "lens_flare_bright");
+        _blurProgram = GLProgramBuilder.Build(gl, BrightVert, BlurFrag, "lens_flare_blur");
+
+        // in_attr0 = half-unit position (the vertex does gl_Position.xy = in_attr0.xy * 2.0),
+        // in_attr1 = uv in [0,1]. Two attributes, unlike the sky pass's position-only quad.
+        Span<float> quad =
+        [
+            -0.5f, -0.5f, 0f, 0f,
+             0.5f, -0.5f, 1f, 0f,
+            -0.5f,  0.5f, 0f, 1f,
+             0.5f,  0.5f, 1f, 1f,
+        ];
+        _vao = gl.GenVertexArray();
+        _vbo = gl.GenBuffer();
+        gl.BindVertexArray(_vao);
+        gl.BindBuffer(BufferTargetARB.ArrayBuffer, _vbo);
+        fixed (float* p = quad)
+            gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(quad.Length * sizeof(float)), p, BufferUsageARB.StaticDraw);
+        gl.EnableVertexAttribArray(0);
+        gl.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), (void*)0);
+        gl.EnableVertexAttribArray(1);
+        gl.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+        gl.BindVertexArray(0);
+
+        Console.WriteLine("[LensFlarePass] real agl_flare_filter_flare linked (4 ghosts + halo).");
+    }
+
+    void BindBlock(string name, uint binding)
+    {
+        uint idx = _gl.GetUniformBlockIndex(_program, name);
+        if (idx != 0xFFFFFFFFu)
+            _gl.UniformBlockBinding(_program, idx, binding);
+    }
+
+    /// <summary>The 192-byte <c>RegisterUBO</c>, filled at the offsets the decompiled program reads.</summary>
+    internal static byte[] BuildRegisterUbo(float ghostSpacing, Vector3 haloTint, float haloRadius, Vector3 intensity)
+    {
+        var buf = new byte[192];
+        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).CopyTo(buf, slot * 16 + comp * 4);
+        F(0, 0, ghostSpacing);
+        F(1, 0, haloTint.X); F(1, 1, haloTint.Y); F(1, 2, haloTint.Z); F(1, 3, haloRadius);
+        F(3, 0, intensity.X); F(3, 1, intensity.Y); F(3, 2, intensity.Z);
+        return buf;
+    }
+
+    public readonly record struct Params(
+        float Threshold, float GhostSpacing, Vector3 HaloTint, float HaloRadius, Vector3 Intensity, float Exposure, bool SkyOnly);
+
+    /// <summary>Adds the flare to <paramref name="hdr"/>, reading it as its own source.</summary>
+    public unsafe void Run(GLResourceCache resources, RenderTargets targets, GpuTexture hdr, Params p)
+    {
+        if (!Available)
+            return;
+
+        // Quarter resolution and BLURRED. The ghost taps sample toward/through screen centre at
+        // a fraction of the pixel's distance, i.e. each ghost is the source MAGNIFIED (~3x at the
+        // default spacing). Fed an unblurred source, that magnification turns any bright object
+        // into giant hard-edged copies of itself instead of soft lens blobs. The real
+        // agl::pfx::Glare likewise runs its flare on a small, already-blurred buffer, never on the
+        // full-res frame.
+        EnsureSource(Math.Max(1, hdr.Width / 4), Math.Max(1, hdr.Height / 4));
+
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _srcFbo[0]);
+        _gl.Viewport(0, 0, (uint)_brightW, (uint)_brightH);
+        _gl.Disable(EnableCap.DepthTest);
+        _gl.Disable(EnableCap.Blend);
+        _gl.UseProgram(_brightProgram);
+        _gl.BindTextureUniform(_brightProgram, "tSrc", 0, hdr.Handle);
+        _gl.SetFloat(_brightProgram, "uThreshold", p.Threshold);
+        _gl.SetFloat(_brightProgram, "uExposure", MathF.Max(p.Exposure, 1e-4f));
+        _gl.BindTextureUniform(_brightProgram, "tDepth", 1, targets.GBufferDepth.Handle);
+        _gl.Uniform1(_gl.GetUniformLocation(_brightProgram, "uSkyOnly"), p.SkyOnly ? 1 : 0);
+        _gl.SetVec2(_brightProgram, "uSrcTexel", new Vector2(1f / hdr.Width, 1f / hdr.Height));
+        resources.DrawFullscreenTriangle();
+
+        _gl.UseProgram(_blurProgram);
+        var texel = new Vector2(1f / _brightW, 1f / _brightH);
+        for (int i = 0; i < BlurIterations; i++)
+        {
+            // Widen each iteration so a few cheap passes reach a large radius.
+            float spread = 1f + i;
+            BlurInto(resources, 1, _srcTex[0], new Vector2(texel.X * spread, 0f));
+            BlurInto(resources, 0, _srcTex[1], new Vector2(0f, texel.Y * spread));
+        }
+
+        if (!_logged)
+        {
+            _logged = true;
+            Console.WriteLine($"[LensFlarePass] first draw: threshold={p.Threshold:G4} spacing={p.GhostSpacing:G4} " +
+                $"haloRadius={p.HaloRadius:G4} intensity={p.Intensity}");
+        }
+
+        // The source is in display units but the flare is added to the HDR buffer BEFORE
+        // exposure, so divide exposure back out of the intensity - otherwise the exposure that
+        // follows multiplies the flare a second time (the same divide-back DeferredResolvePass
+        // applies to emission).
+        resources.Ubo("flare_register",
+            BuildRegisterUbo(p.GhostSpacing, p.HaloTint, p.HaloRadius,
+                p.Intensity / MathF.Max(p.Exposure, 1e-4f)), RegisterBinding);
+
+        // Additive over the HDR buffer, before exposure/tonemap - a flare is light ADDED by the
+        // lens, so it belongs in the same linear space as everything else rather than painted on
+        // after grading.
+        targets.BindColorTarget(hdr);
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFuncSeparate(GLEnum.One, GLEnum.One, GLEnum.Zero, GLEnum.One);
+        _gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);
+        _gl.UseProgram(_program);
+        _gl.ActiveTexture(TextureUnit.Texture0);
+        _gl.BindTexture(TextureTarget.Texture2D, _srcTex[0]);
+        _gl.BindVertexArray(_vao);
+        _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+        _gl.BindVertexArray(0);
+        _gl.Disable(EnableCap.Blend);
+    }
+
+    void BlurInto(GLResourceCache resources, int target, uint source, Vector2 step)
+    {
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _srcFbo[target]);
+        _gl.BindTextureUniform(_blurProgram, "tSrc", 0, source);
+        _gl.SetVec2(_blurProgram, "uStep", step);
+        resources.DrawFullscreenTriangle();
+    }
+
+    unsafe void EnsureSource(int width, int height)
+    {
+        if (width == _brightW && height == _brightH && _srcTex[0] != 0)
+            return;
+        _brightW = width;
+        _brightH = height;
+        for (int i = 0; i < 2; i++)
+        {
+            if (_srcTex[i] != 0) _gl.DeleteTexture(_srcTex[i]);
+            if (_srcFbo[i] == 0) _srcFbo[i] = _gl.GenFramebuffer();
+            _srcTex[i] = _gl.GenTexture();
+            _gl.BindTexture(TextureTarget.Texture2D, _srcTex[i]);
+            _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, (uint)width, (uint)height, 0,
+                PixelFormat.Rgba, PixelType.Float, null);
+            _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+            _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+            // Clamped to a BLACK border, not to edge: the ghost taps deliberately walk past the far
+            // side of the screen, and clamp-to-edge would smear the border pixel into a ghost there.
+            _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToBorder);
+            _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToBorder);
+            Span<float> border = [0f, 0f, 0f, 0f];
+            fixed (float* b = border)
+                _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, b);
+            _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _srcFbo[i]);
+            _gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0,
+                TextureTarget.Texture2D, _srcTex[i], 0);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_program != 0) _gl.DeleteProgram(_program);
+        if (_brightProgram != 0) _gl.DeleteProgram(_brightProgram);
+        if (_blurProgram != 0) _gl.DeleteProgram(_blurProgram);
+        for (int i = 0; i < 2; i++)
+        {
+            if (_srcTex[i] != 0) _gl.DeleteTexture(_srcTex[i]);
+            if (_srcFbo[i] != 0) _gl.DeleteFramebuffer(_srcFbo[i]);
+        }
+        if (_vbo != 0) _gl.DeleteBuffer(_vbo);
+        if (_vao != 0) _gl.DeleteVertexArray(_vao);
+    }
+}

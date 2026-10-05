@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Havok Cloth (.bphcl) and Phive Helper Bone (.bphhb) reading and simulation. Part of the
+    renderer because an actor's pose - and so what is drawn - depends on it, but it has no GL or
+    renderer dependency of its own and can be used alone.
+  -->
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Havok Cloth and Phive Helper Bone parsing and simulation for Breath of the Wild / Tears of the Kingdom actors.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BymlLibrary" Version="2.1.18" />
+  </ItemGroup>
+
+</Project>

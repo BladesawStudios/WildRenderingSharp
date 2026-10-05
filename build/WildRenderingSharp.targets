@@ -1,0 +1,71 @@
+<Project>
+
+  <!--
+    Import this from a host project that references src/WildRenderingSharp/WildRenderingSharp.csproj:
+
+      <Import Project="path\to\WildRenderingSharp\build\WildRenderingSharp.targets" />
+
+    The renderer needs two helpers that it deliberately does NOT reference, because each would pull
+    an assembly into the host's process that clashes with one the host very likely has already:
+
+      aampreader\   WildRenderingSharp.AampReader - AAMP parsing through AampLibrary, which needs
+                    Syroot.* 5.x while anything reading BFRES needs Syroot.* 2.x. Loaded at runtime
+                    into its own AssemblyLoadContext (WildRenderingSharp.Cloth.Format.IsolatedAamp).
+                    Always built.
+
+      wrs-prepare\  WildRenderingSharp.Preparation - the offline model preparer, run as a child
+                    process by WildRenderingSharp.Hosting.OutOfProcessPreparer. It carries
+                    ShaderLibrary's own vendored BfresLibrary build, which is not the one a host
+                    building BfresLibrary from source has. Built when WrsOutOfProcessPreparer is
+                    true (the default). A host that references WildRenderingSharp.Preparation
+                    directly and prepares in-process can set it to false.
+
+    Both land beside the host's executable on build, and beside the published executable on publish.
+  -->
+
+  <PropertyGroup>
+    <WrsRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</WrsRoot>
+    <WrsAampReaderProject>$(WrsRoot)\src\WildRenderingSharp.AampReader\WildRenderingSharp.AampReader.csproj</WrsAampReaderProject>
+    <WrsPreparationProject>$(WrsRoot)\src\WildRenderingSharp.Preparation\WildRenderingSharp.Preparation.csproj</WrsPreparationProject>
+    <WrsOutOfProcessPreparer Condition="'$(WrsOutOfProcessPreparer)' == ''">true</WrsOutOfProcessPreparer>
+  </PropertyGroup>
+
+  <!--
+    Built normally (into the helper project's own bin/), then copied - rather than built straight
+    into the host's folder with an OutputPath override. An override is a global property, so it
+    would flow on to every project the helper references and rebuild each of them a second time,
+    into the host's folder, beside the host's own copies of the same assemblies.
+    RemoveProperties keeps the host's own global properties (a RuntimeIdentifier, a publish's
+    SelfContained, ...) from being forced onto projects that were never meant to take them.
+  -->
+  <Target Name="WrsBuildHelpers" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="$(WrsAampReaderProject)" Targets="Build"
+             Properties="Configuration=$(Configuration)"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing">
+      <Output TaskParameter="TargetOutputs" ItemName="_WrsAampReaderOutput" />
+    </MSBuild>
+    <MSBuild Projects="$(WrsPreparationProject)" Targets="Build" Condition="'$(WrsOutOfProcessPreparer)' == 'true'"
+             Properties="Configuration=$(Configuration)"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing">
+      <Output TaskParameter="TargetOutputs" ItemName="_WrsPreparationOutput" />
+    </MSBuild>
+
+    <PropertyGroup>
+      <_WrsAampReaderDir>@(_WrsAampReaderOutput->'%(RootDir)%(Directory)')</_WrsAampReaderDir>
+      <_WrsPreparationDir Condition="'@(_WrsPreparationOutput)' != ''">@(_WrsPreparationOutput->'%(RootDir)%(Directory)')</_WrsPreparationDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_WrsAampReaderFiles Include="$(_WrsAampReaderDir)**\*" />
+      <_WrsPreparationFiles Include="$(_WrsPreparationDir)**\*" Condition="'$(_WrsPreparationDir)' != ''" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_WrsAampReaderFiles)" DestinationFiles="@(_WrsAampReaderFiles->'$(TargetDir)aampreader\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_WrsPreparationFiles)" DestinationFiles="@(_WrsPreparationFiles->'$(TargetDir)wrs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="WrsPublishHelpers" AfterTargets="Publish" DependsOnTargets="WrsBuildHelpers">
+    <Copy SourceFiles="@(_WrsAampReaderFiles)" DestinationFiles="@(_WrsAampReaderFiles->'$(PublishDir)aampreader\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_WrsPreparationFiles)" DestinationFiles="@(_WrsPreparationFiles->'$(PublishDir)wrs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

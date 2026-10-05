@@ -1,0 +1,9 @@
+* text=auto
+*.cs text diff=csharp
+*.csproj text
+*.slnx text
+*.targets text
+*.props text
+*.md text
+*.exe binary
+*.bc4 binary

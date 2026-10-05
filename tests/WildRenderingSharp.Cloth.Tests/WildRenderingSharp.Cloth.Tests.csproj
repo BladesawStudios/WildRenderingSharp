@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WildRenderingSharp.Cloth\WildRenderingSharp.Cloth.csproj" />
+    <ProjectReference Include="..\..\src\WildRenderingSharp\WildRenderingSharp.csproj" />
+  </ItemGroup>
+
+  <!-- The same helper-process layout a host gets (aampreader/ beside the executable). -->
+  <Import Project="..\..\build\WildRenderingSharp.targets" />
+
+</Project>

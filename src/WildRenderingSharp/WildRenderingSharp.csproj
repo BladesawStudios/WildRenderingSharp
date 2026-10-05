@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The renderer: model/texture/material loading from a prepared cache, the deferred pipeline that
+    drives the game's own decompiled shaders, the sky/cloud/post-processing passes, per-actor
+    animation and physics evaluation, and an offscreen view a host can display however it likes.
+
+    Parses no BFRES/BFSHA of its own. Everything it draws comes from a cache written by
+    WildRenderingSharp.Preparation (in-process, or out-of-process through OutOfProcessPreparer for
+    hosts whose own BfresLibrary build would clash with ShaderLibrary's - see that class).
+  -->
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Renders Breath of the Wild / Tears of the Kingdom models with the games' own decompiled shaders through a deferred OpenGL pipeline.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WildRenderingSharp.Cloth\WildRenderingSharp.Cloth.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BymlLibrary" Version="2.1.18" />
+    <PackageReference Include="SarcLibrary" Version="3.3.5" />
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.23.0" />
+    <!-- glClipControl as an extension, for hosts that asked for a pre-4.5 context: see GLHostState. -->
+    <PackageReference Include="Silk.NET.OpenGL.Extensions.ARB" Version="2.23.0" />
+    <!-- ASTC has no guaranteed desktop GPU/driver support (GL_KHR_texture_compression_astc_ldr
+         is genuinely optional, and several common desktop cards/drivers lack it) - decoded on
+         the CPU to plain RGBA instead of gambling on hardware support. BC1/3/4/5/7 stay on the
+         GPU-native compressed-upload path, which desktop GL supports universally. -->
+    <PackageReference Include="AstcSharp" Version="3.1.0" />
+    <PackageReference Include="TotkCommon" Version="1.3.3" />
+  </ItemGroup>
+
+</Project>

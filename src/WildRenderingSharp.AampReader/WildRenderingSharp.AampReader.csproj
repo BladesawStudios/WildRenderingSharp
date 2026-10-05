@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Deliberately standalone: NOT referenced by any other project in this repository, and built to
+    its OWN output folder ("aampreader" beside the host's executable - see
+    build/WildRenderingSharp.targets). This project's only job is parsing AAMP (.bagl*, .bphhb)
+    files via the real AampLibrary NuGet package, which needs Syroot.BinaryData/Syroot.Maths 5.x -
+    a binary-incompatible MAJOR version from the 2.x copies BfresLibrary needs, and BfresLibrary
+    is very likely to be in the same process (ShaderLibrary's in-process preparation, or the
+    host's own model reading). Two incompatible versions of the same-named assembly can only
+    coexist in one .NET process across separate AssemblyLoadContexts - so the renderer loads this
+    assembly into an isolated one at runtime (WildRenderingSharp.Cloth.Format.IsolatedAamp)
+    rather than referencing it, and the default load context is never asked to resolve 5.x.
+
+    See SkyPostFxJson.cs's own remarks for why its public API is deliberately byte[]-in/string-out
+    (JSON) rather than typed objects - that is what makes the boundary safe to cross with plain
+    reflection instead of needing shared contract types loaded into both contexts.
+  -->
+
+  <PropertyGroup>
+    <!-- A plain library build does NOT copy its NuGet dependencies (AampLibrary, Syroot.BinaryData
+         5.x, Syroot.Maths, SharpYaml, Newtonsoft.Json) to its own output folder by default - this
+         forces it, so the isolated AssemblyLoadContext finds them as plain files beside
+         WildRenderingSharp.AampReader.dll rather than needing the NuGet cache at runtime. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AampLibrary" Version="1.0.10" />
+  </ItemGroup>
+
+</Project>

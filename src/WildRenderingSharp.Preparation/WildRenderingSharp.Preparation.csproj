@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The OFFLINE half: turns an actor or model in the user's own romfs into the cache the renderer
+    reads (geometry, textures, skeleton/anims, material UBOs, the manifest, and the decompiled
+    shader programs it names), plus the shared system assets every model needs.
+
+    Usable two ways:
+      - referenced as a library, through ModelPreparer / InProcessPreparer;
+      - run as a child process (this is an Exe), through the core library's OutOfProcessPreparer,
+        by a host that cannot load ShaderLibrary's vendored BfresLibrary build beside its own.
+
+    All the real work is ShaderLibrary.CompileTool's - this project only sequences it, records
+    which romfs files each preparation read (so mods invalidate it), and installs the shared assets.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Prepares Breath of the Wild / Tears of the Kingdom actors from a romfs into a WildRenderingSharp cache.</Description>
+    <!-- The vendored ShaderLibrary is the default; point this at another checkout to build against that. -->
+    <WrsShaderLibraryDir Condition="'$(WrsShaderLibraryDir)' == ''">$(MSBuildThisFileDirectory)..\..\vendor\ShaderLibrary</WrsShaderLibraryDir>
+  </PropertyGroup>
+
+  <Target Name="WrsCheckShaderLibrary" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj')">
+    <Error Code="WRS0001" Text="WildRenderingSharp.Preparation builds against the ShaderLibrary submodule, and $(WrsShaderLibraryDir) is empty. Run: git submodule update --init --recursive" />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WildRenderingSharp\WildRenderingSharp.csproj" />
+    <ProjectReference Include="$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
+  </ItemGroup>
+
+  <!--
+    MeshCodec's CLI decoder for the .bfres.mc container (see ShaderLibrary's TestMaterialDump for
+    why it shells out rather than reimplementing the codec). ShaderLibrary finds it relative to its
+    own SOURCE location, which only exists on the machine that built it - so it also ships beside
+    this assembly, and ModelPreparer points ShaderLibrary at that copy (MESHCODEC_CLI).
+  -->
+  <ItemGroup>
+    <Content Include="..\..\vendor\MeshCodec\meshcodec_cli.exe" Link="meshcodec_cli.exe" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The captured cloud masks ship with the preparer; see res/cloud/README.md for why this is the
+       one place game data is checked in rather than extracted, and how to remove it. -->
+  <ItemGroup>
+    <Content Include="..\..\res\cloud\*.bc4" Link="res\cloud\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
