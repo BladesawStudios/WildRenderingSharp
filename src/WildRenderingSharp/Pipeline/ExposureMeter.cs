@@ -6,12 +6,11 @@ namespace WildRenderingSharp.Pipeline;
 /// </summary>
 /// <remarks>
 /// <para>
-/// WildRenderingSharp's <c>Exposure</c> defaults to 9.5 while the real game authors <c>Exposure: 1.0</c> in its
-/// palettes. That factor is a stand-in for lighting WildRenderingSharp was missing, and
-/// <see cref="LightPrePass"/>'s own remarks name the biggest piece: <c>cTex_DeferredLightPrePass</c>
-/// used to be identically zero, so every <c>chara_*</c> resolve shader received literally no main
-/// light. It is not zero any more - but nothing re-derived the exposure afterwards, so 9.5 is
-/// calibrated against a pipeline that no longer exists.
+/// WildRenderingSharp's <c>Exposure</c> defaults to 2.5 while the real game authors <c>Exposure: 1.0</c> in its
+/// palettes. That factor is a stand-in for lighting WildRenderingSharp is missing. It was 9.5 for a
+/// long time, calibrated while <c>cTex_DeferredLightPrePass</c> was identically zero (see
+/// <see cref="LightPrePass"/>), so every <c>chara_*</c> resolve shader received literally no main
+/// light. The default is now 2.5, chosen by hand - still a judgement, not a derivation.
 /// </para>
 /// <para>
 /// This measures rather than guesses. It reads the HDR buffer BEFORE exposure is applied and takes

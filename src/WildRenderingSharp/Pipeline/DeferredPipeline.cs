@@ -90,7 +90,7 @@ public sealed class DeferredPipeline : IDisposable
 
     /// <summary>
     /// Measure what exposure this scene actually needs on the next frame - see
-    /// <see cref="ExposureMeter"/> for why WildRenderingSharp's 9.5 default is a stand-in worth re-deriving.
+    /// <see cref="ExposureMeter"/> for why WildRenderingSharp's default exposure (2.5) is a stand-in worth re-deriving.
     /// </summary>
     public void RequestExposureMeasurement() => _measureExposureRequested = true;
 

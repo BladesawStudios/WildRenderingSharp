@@ -201,7 +201,13 @@ public class LightingContext
     public float SunElevation { get; set; } = 0.6f;
     public float SunAzimuth { get; set; }
 
-    public float Exposure { get; set; } = 9.5f;
+    /// <summary>
+    /// Multiplies the HDR frame before the tonemap. Defaults to 2.5, chosen by hand; it was 9.5,
+    /// calibrated while the light pre-pass was still identically zero. The real game authors 1.0,
+    /// against lighting this renderer still lacks (local lights, probe IBL) - see
+    /// <see cref="Pipeline.ExposureMeter"/>.
+    /// </summary>
+    public float Exposure { get; set; } = 2.5f;
     public float AmbientScale { get; set; } = 1.0f;
     public float MidScale { get; set; } = 1.0f;
     public float HighlightScale { get; set; } = 1.0f;

@@ -729,11 +729,14 @@ blue sky) and then applied to all of them, where it cuts red 14% and boosts blue
 saturated red from 0.79 saturation to 0.68. Compensating for an unexplained residual with a
 constant measured on one sample is how a fudge becomes a bug.
 
-## Exposure 9.5 is a stand-in nobody re-derived
+## The default exposure (2.5) is a stand-in, not a derivation
 
-The real game authors `Exposure: 1.0`. Marrow's 9.5 was calibrated when
-`cTex_DeferredLightPrePass` was **identically zero** - see `LightPrePass`, which names that as the
-likely dominant reason for it. That buffer is no longer zero, and the exposure was never revisited.
+The real game authors `Exposure: 1.0`. The renderer's default was 9.5 for a long time, calibrated
+when `cTex_DeferredLightPrePass` was **identically zero** - see `LightPrePass`, which names that as
+the likely dominant reason for it. That buffer is no longer zero, and the default
+(`LightingContext.Exposure`) is now **2.5**, chosen by hand. Comments elsewhere that say
+"~9.5x" describe the old default, not a constant anything depends on - every pass reads the live
+value.
 
 `ExposureMeter` measures what the scene actually needs rather than guessing: it reads the HDR buffer
 before exposure and takes the GEOMETRIC mean of luminance (the bulk of the image, not its brightest
