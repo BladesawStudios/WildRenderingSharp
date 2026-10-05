@@ -370,8 +370,15 @@ public static class ModelPreparer
 
     const string SourceStampFile = "romfs_sources.json";
 
+    /// <summary>
+    /// Bumped whenever preparation starts producing something a model prepared before could be
+    /// missing, so <see cref="IsUpToDate"/> sends those models through again. 2: the model's own
+    /// <c>&lt;Project&gt;.anim.bfres</c> joins the archives animations are exported from.
+    /// </summary>
+    const int PreparationVersion = 2;
+
     sealed record SourceStampEntry(string? Path, long Size, long MTime);
-    sealed record SourceStamp(string Romfs, List<string> Mods, Dictionary<string, SourceStampEntry> Files);
+    sealed record SourceStamp(string Romfs, List<string> Mods, Dictionary<string, SourceStampEntry> Files, int Version = 0);
 
     static void WriteSourceStamp(string dataDirectory, string romfsRoot, IReadOnlyDictionary<string, string?> files, Action<string>? log)
     {
@@ -388,7 +395,7 @@ public static class ModelPreparer
         foreach (var (rel, e) in fromMods)
             log?.Invoke($"[prepare] mod file: {rel} <- {e.Path}");
 
-        var stamp = new SourceStamp(Path.GetFullPath(romfsRoot), RomfsOverlay.ModRoots.ToList(), entries);
+        var stamp = new SourceStamp(Path.GetFullPath(romfsRoot), RomfsOverlay.ModRoots.ToList(), entries, PreparationVersion);
         File.WriteAllText(Path.Combine(dataDirectory, SourceStampFile),
             System.Text.Json.JsonSerializer.Serialize(stamp, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
     }
@@ -400,7 +407,7 @@ public static class ModelPreparer
     /// re-preparing. Only files the prepare actually looked up are checked, so toggling an
     /// unrelated mod costs nothing.
     /// </summary>
-    /// <remarks>A cache predating this check has no stamp; it is trusted only while no mods are active, since nothing records what it was built from.</remarks>
+    /// <remarks>A cache predating this check has no stamp; it is trusted only while no mods are active, since nothing records what it was built from. A stamp from an older <see cref="PreparationVersion"/> is never up to date.</remarks>
     public static bool IsUpToDate(string romfsRoot, string dataDirectory)
     {
         string stampPath = Path.Combine(dataDirectory, SourceStampFile);
@@ -410,7 +417,7 @@ public static class ModelPreparer
         SourceStamp? stamp;
         try { stamp = System.Text.Json.JsonSerializer.Deserialize<SourceStamp>(File.ReadAllText(stampPath)); }
         catch { return false; }
-        if (stamp is null)
+        if (stamp is null || stamp.Version != PreparationVersion)
             return false;
 
         foreach (var (rel, recorded) in stamp.Files)
@@ -455,7 +462,7 @@ public static class ModelPreparer
         File.Delete(Path.Combine(dataDirectory, SourceStampFile));
 
         log?.Invoke($"[prepare 1/3] geometry + textures + skeleton/anims for {modelName} -> {dataDirectory}");
-        ExportTestBench.ExportModel(romfsRoot, modelName, dataDirectory, importAnims ? actor?.AnimPackNames : []);
+        ExportTestBench.ExportModel(romfsRoot, modelName, dataDirectory, importAnims ? AnimArchives(romfsRoot, actor, modelName) : []);
 
         ExtractPhysics(romfsRoot, actorOrModelName, modelName, dataDirectory, log);
 
@@ -470,8 +477,32 @@ public static class ModelPreparer
     }
 
     /// <summary>
+    /// The animation archives to export from: the ones the actor's pack names, plus the model's own
+    /// <c>&lt;Project&gt;.anim.bfres</c> when it exists and the pack does not name it. The pack lists
+    /// only the animation packs, and the model's own archive is where some actors keep the rest -
+    /// a horse's coat and eye variants, a Boss Bokoblin's colour patterns - so without it those
+    /// texture-pattern clips (and the alternate textures they select) never reach the cache. Prism
+    /// reads the same set. Null - for an actor with no pack - leaves ShaderLibrary to guess by the
+    /// model's prefix, which already includes that archive.
+    /// </summary>
+    static List<string>? AnimArchives(string romfsRoot, ActorInfo.Resolved? actor, string modelName)
+    {
+        if (actor is null)
+            return null;
+        var packs = actor.AnimPackNames.ToList();
+        string project = modelName.Split('.')[0];
+        if (!packs.Contains(project, StringComparer.Ordinal)
+            && RomfsOverlay.Exists(romfsRoot, Path.Combine("Model", $"{project}.anim.bfres.zs")))
+            packs.Add(project);
+        return packs;
+    }
+
+    /// <summary>
     /// Copies the actor's Havok Cloth (<c>.bphcl</c>) and Phive Helper Bone (<c>.bphhb</c>) files
-    /// out of its pack, so the live half can simulate them without opening a pack itself.
+    /// out of its pack into the model's cache directory. The renderer does not simulate them - cloth
+    /// and helper bones are their own libraries (HkxSimSharp, HkxHbSharp) - but a host that does can
+    /// read them from beside the model rather than opening the pack itself; see
+    /// <c>RenderActor.ModifyPose</c> for where their result goes.
     /// </summary>
     private static void ExtractPhysics(string romfsRoot, string actorOrModelName, string modelName, string dataDirectory, Action<string>? log)
     {

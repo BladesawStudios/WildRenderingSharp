@@ -48,7 +48,6 @@ public sealed class WildRenderer : IDisposable
     public string? RomfsRoot { get; }
     public RenderEnvironment Environment { get; }
     public LightingContext Lighting { get; } = new();
-    public SceneWindSystem Wind { get; } = new();
     public DeferredPipeline Pipeline { get; }
 
     /// <summary>The main view <see cref="Render"/> draws into.</summary>
@@ -155,10 +154,10 @@ public sealed class WildRenderer : IDisposable
         Pipeline.InvalidateShadowCache();
     }
 
-    /// <summary>Advances every actor's animation and the wind. True if anything moved, i.e. the next frame will differ.</summary>
+    /// <summary>Advances every actor's animation. True if anything moved, i.e. the next frame will differ.</summary>
     public bool Advance(float deltaSeconds)
     {
-        bool moved = Wind.Advance(deltaSeconds);
+        bool moved = false;
         foreach (var actor in _actors)
             moved |= actor.AdvanceAnimation(deltaSeconds);
         return moved;
@@ -186,7 +185,7 @@ public sealed class WildRenderer : IDisposable
         FrameId++;
         foreach (var actor in _actors)
             actor.ApplyMaterialAnimations(_gl);
-        var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId, Wind.CurrentForce);
+        var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
         return new FrameRequest(camera, Lighting, Environment.Palettes.Get(Lighting.PaletteName), inputs,
             AoRadius, ShadowBias, Highlight, Environment.SkyPostFx, Environment.CloudPostFx, Environment.SkyBin,
             Environment.ColorCorrection);

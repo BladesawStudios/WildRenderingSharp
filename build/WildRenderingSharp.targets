@@ -10,7 +10,7 @@
 
       aampreader\   WildRenderingSharp.AampReader - AAMP parsing through AampLibrary, which needs
                     Syroot.* 5.x while anything reading BFRES needs Syroot.* 2.x. Loaded at runtime
-                    into its own AssemblyLoadContext (WildRenderingSharp.Cloth.Format.IsolatedAamp).
+                    into its own AssemblyLoadContext (WildRenderingSharp.Hosting.IsolatedAamp).
                     Always built.
 
       wrs-prepare\  WildRenderingSharp.Preparation - the offline model preparer, run as a child

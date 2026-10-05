@@ -1,8 +1,5 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Cloth.Model;
-using WildRenderingSharp.Cloth.Model.Animation;
-using WildRenderingSharp.Cloth.Model.HelperBone;
 
 namespace WildRenderingSharp.Assets;
 
@@ -19,16 +16,12 @@ public sealed class LoadedModel : IDisposable
     /// <summary>Null for a model with no skeleton at all (e.g. a static prop) - <see cref="Pipeline.DeferredPipeline"/> falls back to <c>BonePaletteUbo.FillIdentity</c> in that case.</summary>
     public SkeletonManifest? Skeleton { get; init; }
 
-    /// <summary>Null if the model has no Phive HelperBone (.bphhb) file.</summary>
-    public HelperBoneData? HelperBone { get; init; }
-
-    /// <summary>Null if the model has no Havok Cloth (.bphcl) file.</summary>
-    public HclClothContainer? ClothContainer { get; init; }
-
-    /// <summary>Skeletons defined inside the Havok cloth container, if any.</summary>
-    public HkaAnimationContainer? ClothAnimContainer { get; init; }
-
-    public bool HasPhysics => HelperBone != null || ClothContainer != null;
+    /// <summary>
+    /// The prepared model's cache directory. Besides what the renderer loads, the preparer leaves the
+    /// actor's Havok Cloth (<c>*.bphcl</c>) and Phive Helper Bone (<c>*.bphhb</c>) files here, for a
+    /// host that simulates them (the renderer does not - see <see cref="Scene.RenderActor.ModifyPose"/>).
+    /// </summary>
+    public required string DataDirectory { get; init; }
 
     /// <summary>Every embedded anim's name (<c>&lt;modelName&gt;.&lt;AnimName&gt;.anim.json</c>) - load the full curve data with <see cref="SkeletalAnimManifest.Load"/> only once one is actually selected to play.</summary>
     public IReadOnlyList<string> AvailableAnims { get; init; } = [];

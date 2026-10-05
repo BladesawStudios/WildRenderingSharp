@@ -1,10 +1,6 @@
 using System.Linq;
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Cloth.Format;
-using WildRenderingSharp.Cloth.Model;
-using WildRenderingSharp.Cloth.Model.Animation;
-using WildRenderingSharp.Cloth.Model.HelperBone;
 using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Assets;
@@ -149,47 +145,6 @@ public sealed class ModelLoader
         var availableTexturePatternAnims = TexturePatternAnimManifest.ListAvailable(_dataDirectory, modelName).ToList();
         var availableMaterialAnims = MaterialAnimManifest.ListAvailable(_dataDirectory, modelName).ToList();
 
-        // Check for HelperBone (.bphhb)
-        HelperBoneData? helperBone = null;
-        string[] bphhbCandidates = Directory.Exists(_dataDirectory)
-            ? Directory.GetFiles(_dataDirectory, "*.bphhb", SearchOption.AllDirectories)
-            : Array.Empty<string>();
-        bphhbCandidates = RankPhysicsCandidates(bphhbCandidates, modelName);
-        if (bphhbCandidates.Length > 0)
-        {
-            try
-            {
-                helperBone = BphhbFile.FromFile(bphhbCandidates[0]);
-                Console.WriteLine($"[ModelLoader] Loaded HelperBone: {Path.GetFileName(bphhbCandidates[0])} ({helperBone.DriverBones.Count} drivers, {helperBone.DrivenBones.Count} driven)");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ModelLoader] Failed to load HelperBone '{bphhbCandidates[0]}': {ex.Message}");
-            }
-        }
-
-        // Check for Havok Cloth (.bphcl)
-        HclClothContainer? clothContainer = null;
-        HkaAnimationContainer? clothAnimContainer = null;
-        string[] bphclCandidates = Directory.Exists(_dataDirectory)
-            ? Directory.GetFiles(_dataDirectory, "*.bphcl", SearchOption.AllDirectories)
-            : Array.Empty<string>();
-        bphclCandidates = RankPhysicsCandidates(bphclCandidates, modelName);
-        if (bphclCandidates.Length > 0)
-        {
-            try
-            {
-                var bphcl = BphclFile.FromFile(bphclCandidates[0]);
-                var tagFile = TagFile.FromBytes(bphcl.TagfileBytes);
-                (clothContainer, clothAnimContainer) = HavokDeserializer.Deserialize(tagFile);
-                Console.WriteLine($"[ModelLoader] Loaded Havok Cloth: {Path.GetFileName(bphclCandidates[0])} ({clothContainer.ClothDatas.Count} cloth pieces, {clothAnimContainer?.Skeletons.Count ?? 0} skeletons)");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ModelLoader] Failed to load Havok Cloth '{bphclCandidates[0]}': {ex.Message}");
-            }
-        }
-
         return new LoadedModel(_gl, textures)
         {
             Manifest = manifest,
@@ -198,27 +153,12 @@ public sealed class ModelLoader
             BoundsMax = hi,
             VertexPositions = allVertexPositions,
             Skeleton = skeleton,
-            HelperBone = helperBone,
-            ClothContainer = clothContainer,
-            ClothAnimContainer = clothAnimContainer,
+            DataDirectory = _dataDirectory,
             AvailableAnims = availableAnims,
             AvailableTexturePatternAnims = availableTexturePatternAnims,
             AvailableMaterialAnims = availableMaterialAnims,
         };
     }
-
-    /// <summary>
-    /// A prepared actor directory can contain physics for both its actor and its selected model
-    /// variant. Directory enumeration order is undefined; loading element zero made Ganondorf's
-    /// Battle model nondeterministically receive the base model's different 25-piece hair rig.
-    /// The exact model-name sidecar is authoritative, with deterministic fallback for assets that
-    /// only ship a shared actor-level physics file.
-    /// </summary>
-    internal static string[] RankPhysicsCandidates(IEnumerable<string> candidates, string modelName) =>
-        candidates
-            .OrderByDescending(path => string.Equals(Path.GetFileNameWithoutExtension(path), modelName, StringComparison.OrdinalIgnoreCase))
-            .ThenBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
-            .ToArray();
 
     /// <summary>Position is always the vertex's first vec4 (see <c>ExportTestBench</c>'s fixed interleaved layout) regardless of which attributes a given program actually samples.</summary>
     static void AccumulateBounds(byte[] vertexBytes, int stride, ref Vector3 lo, ref Vector3 hi, List<Vector3> allPositions)

@@ -8,8 +8,15 @@ variants the game would feed them, through a deferred pipeline modelled on the g
 the shared deferred-resolve passes (`chara_skin`, `chara_hair`, `chara_eye`, ...), screen-space
 shadow and AO, the forward pass for blended materials, the real `agl` sky (Bruneton precomputed
 scattering), cloud dome, sun/moon sprites, lens flare, bloom, `agl_hdr_compose` and the game's own
-colour grade. Actors animate (skeletal, material, texture-pattern and texture-SRT clips) and simulate
-(Havok Cloth and Phive Helper Bones).
+colour grade. Actors animate (skeletal, material, texture-pattern and texture-SRT clips).
+
+Physics is not part of it. Havok Cloth and Phive Helper Bones are their own libraries
+([HkxSimSharp](https://github.com/BladesawStudios/HkxSimSharp), with
+[HkxSharp](https://github.com/BladesawStudios/HkxSharp) and
+[PhiveSharp](https://github.com/BladesawStudios/PhiveSharp) to read the data, and
+[HkxHbSharp](https://github.com/BladesawStudios/HkxHbSharp)); a host that runs them hands the bones
+they drive to the renderer through `RenderActor.ModifyPose`, or poses the whole skeleton itself and
+passes it as `RenderActor.ExternalPose`.
 
 It renders offscreen into an ordinary texture, so any tool can show it however it likes - an ImGui
 image, a blit into its own framebuffer, or a file.
@@ -21,12 +28,10 @@ image, a blit into its own framebuffer, or a file.
 | Project | What it is |
 | --- | --- |
 | `src/WildRenderingSharp` | The live renderer. Loads prepared models, runs the pipeline, evaluates animation and physics, and hosts it all (`WildRenderer`, `SceneView`, `RenderActor`). Parses no BFRES/BFSHA itself. |
-| `src/WildRenderingSharp.Cloth` | Havok Cloth (`.bphcl`) and Phive Helper Bone (`.bphhb`) reading and simulation. No GL dependency. |
 | `src/WildRenderingSharp.AampReader` | AAMP parsing, loaded into its own `AssemblyLoadContext` at runtime - never referenced. |
-| `src/WildRenderingSharp.Preparation` | The offline half: turns an actor in the user's romfs into the cache the renderer reads. A library *and* an executable. |
+| `src/WildRenderingSharp.Preparation` | The offline half: turns an actor in the user's romfs into the cache the renderer reads (and copies its `.bphcl`/`.bphhb` physics files beside it, for a host that simulates them). A library *and* an executable. |
 | `vendor/ShaderLibrary` | Submodule. BFRES/BFSHA parsing and Tegra shader decompilation, used by the preparer. |
 | `vendor/MeshCodec/meshcodec_cli.exe` | MeshCodec's prebuilt decoder for `.bfres.mc`. |
-| `tests/WildRenderingSharp.Cloth.Tests` | Cloth/helper-bone diagnostics against real exported data. |
 | `docs/` | Reverse-engineering notes: recovered uniform blocks, the sky decode, open questions. |
 
 ## Everything happens twice: offline, then live
@@ -68,9 +73,10 @@ The pieces underneath are public for a tool that wants its own arrangement:
 - `SceneView` - an offscreen view of a pipeline: supersampling, FXAA, the diagnostic view modes
   (albedo, normal, shadow, AO, pass ID, raw HDR), readback for PNG/HDR export. Several views can
   share one pipeline (`ownTargets: true` for a secondary one).
-- `RenderActor` - a placed model with its own animation channels and physics. Not sealed; hang your
-  own editor state off it. `ExternalPose` lets a host that already poses the same skeleton supply
-  its own bone matrices; `TransformOverride` takes a host's own placement matrix.
+- `RenderActor` - a placed model with its own animation channels. Not sealed; hang your own editor
+  state off it, and override `ModifiesPose`/`ModifyPose` to apply your own physics to its pose.
+  `ExternalPose` lets a host that already poses the same skeleton supply its own bone matrices;
+  `TransformOverride` takes a host's own placement matrix.
 - `RenderEnvironment` - palettes, sky/cloud postfx and colour grade from the romfs.
 - `LightingContext` - exposure, palette, sun, background mode, sky/cloud/flare switches.
 - `GLHostState` - see below.
@@ -136,8 +142,6 @@ Environment variables (the older `MARROW_*` names still work):
 | `WRS_SKY_ORDERS=<n>` | Scattering orders the sky precompute bakes (default 6). |
 | `WRS_SKY_DUMP=<file>` | Write the baked inscatter table (raw floats) to a file. |
 | `WRS_CLOUD_DUMP=<file>` | Write the cloud pass's `Common` uniform block to a file. |
-| `WRS_DEBUG_ACTIONS=1`, `WRS_DEBUG_TRANSFERMOTION=1` | Cloth deserializer diagnostics. |
-| `WRS_TEST_CACHE`, `WRS_TEST_CLOTH` | Where the cloth tests find real data. |
 | `MESHCODEC_CLI` | A different `meshcodec_cli.exe`. |
 
 ## History

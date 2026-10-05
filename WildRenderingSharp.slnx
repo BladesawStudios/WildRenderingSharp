@@ -1,11 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/WildRenderingSharp/WildRenderingSharp.csproj" />
-    <Project Path="src/WildRenderingSharp.Cloth/WildRenderingSharp.Cloth.csproj" />
     <Project Path="src/WildRenderingSharp.AampReader/WildRenderingSharp.AampReader.csproj" />
     <Project Path="src/WildRenderingSharp.Preparation/WildRenderingSharp.Preparation.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/WildRenderingSharp.Cloth.Tests/WildRenderingSharp.Cloth.Tests.csproj" />
   </Folder>
 </Solution>

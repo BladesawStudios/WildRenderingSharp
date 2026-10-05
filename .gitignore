@@ -4,5 +4,3 @@ obj/
 .idea/
 *.user
 
-# Local game data for the cloth diagnostics - never committed (see tests/WildRenderingSharp.Cloth.Tests/TestData.cs)
-res/test_cloth/

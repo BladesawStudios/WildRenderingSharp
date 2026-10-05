@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace WildRenderingSharp.Cloth.Format;
+namespace WildRenderingSharp.Hosting;
 
 /// <summary>
 /// Loads <c>WildRenderingSharp.AampReader.dll</c> - a project nothing references at compile time -
@@ -17,9 +17,7 @@ namespace WildRenderingSharp.Cloth.Format;
 /// startup with <c>TypeLoadException: Could not load type 'Syroot.BinaryData.BinaryDataReader'</c>.
 /// </para>
 /// <para>
-/// Both users of the reader - helper bones (<see cref="BphhbFile"/>) and the renderer's sky/cloud
-/// postfx parsing - go through this one context, so the reader and its dependencies load once.
-/// The public entry points are deliberately <c>byte[]</c>-in/<c>string</c>-out (JSON), so no
+/// The renderer's sky/cloud/colour-correction postfx parsing goes through it. The public entry points are deliberately <c>byte[]</c>-in/<c>string</c>-out (JSON), so no
 /// <c>Nintendo.Aamp</c>/<c>Syroot</c> type ever has to be shared between the two contexts.
 /// </para>
 /// <para>
