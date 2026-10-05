@@ -76,9 +76,33 @@
     <Copy SourceFiles="@(_WrsPreparationFiles)" DestinationFiles="@(_WrsPreparationFiles->'$(TargetDir)wrs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
+  <!--
+    On publish. The AAMP reader is loaded into the host's own process, so the build output serves
+    whatever the host is. The preparer is a process of its own: beside a framework-dependent host
+    the build output is right, but beside a SELF-CONTAINED host - one handed to people who have no
+    .NET installed - a framework-dependent preparer would not start. So for those it is published
+    self-contained for the host's runtime identifier (not single-file: ShaderLibrary's native
+    helpers and MeshCodec's decoder have to sit beside it as plain files).
+  -->
   <Target Name="WrsPublishHelpers" AfterTargets="Publish" DependsOnTargets="WrsBuildHelpers">
+    <PropertyGroup>
+      <_WrsSelfContainedPreparer Condition="'$(WrsOutOfProcessPreparer)' == 'true' And '$(SelfContained)' == 'true' And '$(RuntimeIdentifier)' != ''">true</_WrsSelfContainedPreparer>
+      <_WrsPreparationPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)wrs-prepare-publish\$(RuntimeIdentifier)\'))</_WrsPreparationPublishDir>
+    </PropertyGroup>
+
     <Copy SourceFiles="@(_WrsAampReaderFiles)" DestinationFiles="@(_WrsAampReaderFiles->'$(PublishDir)aampreader\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_WrsPreparationFiles)" DestinationFiles="@(_WrsPreparationFiles->'$(PublishDir)wrs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy Condition="'$(_WrsSelfContainedPreparer)' != 'true'" SourceFiles="@(_WrsPreparationFiles)" DestinationFiles="@(_WrsPreparationFiles->'$(PublishDir)wrs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+
+    <MSBuild Condition="'$(_WrsSelfContainedPreparer)' == 'true'" Projects="$(WrsPreparationProject)" Targets="Restore"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;_WrsRestoreEvaluation=true"
+             RemoveProperties="PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing" />
+    <MSBuild Condition="'$(_WrsSelfContainedPreparer)' == 'true'" Projects="$(WrsPreparationProject)" Targets="Publish"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;PublishSingleFile=false;PublishDir=$(_WrsPreparationPublishDir)"
+             RemoveProperties="OutDir;OutputPath;_IsPublishing" />
+    <ItemGroup Condition="'$(_WrsSelfContainedPreparer)' == 'true'">
+      <_WrsPreparationPublished Include="$(_WrsPreparationPublishDir)**\*" />
+    </ItemGroup>
+    <Copy Condition="'$(_WrsSelfContainedPreparer)' == 'true'" SourceFiles="@(_WrsPreparationPublished)" DestinationFiles="@(_WrsPreparationPublished->'$(PublishDir)wrs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

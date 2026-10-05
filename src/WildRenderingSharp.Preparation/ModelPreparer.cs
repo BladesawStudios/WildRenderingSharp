@@ -446,6 +446,14 @@ public static class ModelPreparer
         Directory.CreateDirectory(dataDirectory);
         Directory.CreateDirectory(decompiledDirectory);
 
+        // A preparation can be cut short - a host cancels it when the user moves on to another
+        // actor, which for an out-of-process preparer means the process is killed mid-write. The
+        // manifest and the source stamp are what make a model count as prepared and up to date,
+        // and both are written last, so removing them first means a preparation that never
+        // finished can never be mistaken for one that did.
+        File.Delete(Path.Combine(dataDirectory, $"{modelName}.manifest.json"));
+        File.Delete(Path.Combine(dataDirectory, SourceStampFile));
+
         log?.Invoke($"[prepare 1/3] geometry + textures + skeleton/anims for {modelName} -> {dataDirectory}");
         ExportTestBench.ExportModel(romfsRoot, modelName, dataDirectory, importAnims ? actor?.AnimPackNames : []);
 
