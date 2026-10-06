@@ -43,6 +43,13 @@ public readonly record struct ActorDrawGroup(byte[] BonesBytes, byte[] ShpMtxByt
     /// <summary>What the group draws, for a profile: the model's name.</summary>
     public string Label => Batch is { } b ? Path.GetFileName(b.Model.DataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) : (Shapes.Count > 0 ? Shapes[0].Name : "actor");
 
+    /// <summary>
+    /// For a batch: binds only its instance buffer, when the zero blocks every batch shares are
+    /// already bound - what changes from one batch's draw to the next in a pass sorted by program.
+    /// </summary>
+    public void BindInstanceBuffer(GLResourceCache resources) =>
+        resources.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, InstancedShaderPatch.InstanceBinding, Batch!.Buffer);
+
     public void BindUbos(GLResourceCache resources)
     {
         if (Batch is { } batch)

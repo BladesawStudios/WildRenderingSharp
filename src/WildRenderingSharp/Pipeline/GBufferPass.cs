@@ -142,12 +142,17 @@ public sealed class GBufferPass
         var timer = GpuPassTimer.Current;
         bool detailed = timer?.Detailed == true;
         int bound = -1;
+        bool batchBlocks = false;
         foreach (var (_, g, sh) in _items)
         {
             var group = groups[g];
             if (g != bound)
             {
-                group.BindUbos(resources);
+                if (group.Batch is not null && batchBlocks)
+                    group.BindInstanceBuffer(resources);
+                else
+                    group.BindUbos(resources);
+                batchBlocks = group.Batch is not null;
                 bound = g;
             }
             group.Draw(_gl, programs, sh, which);

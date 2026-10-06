@@ -47,11 +47,18 @@ public sealed class GLResourceCache : IDisposable
     /// <summary>Binds a block of <paramref name="size"/> zero bytes, uploaded once and kept.</summary>
     public void BindZeroUbo(uint bindingIndex, int size = 256)
     {
-        string key = $"zero:{size}";
-        if (!_ubos.ContainsKey(key))
-            Ubo(key, new byte[size]);
-        BindUbo(key, bindingIndex);
+        if (!_zeroUbos.TryGetValue(size, out uint handle))
+        {
+            string key = $"zero:{size}";
+            if (!_ubos.ContainsKey(key))
+                Ubo(key, new byte[size]);
+            handle = _ubos[key];
+            _zeroUbos[size] = handle;
+        }
+        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, bindingIndex, handle);
     }
+
+    readonly Dictionary<int, uint> _zeroUbos = [];
 
     public void BindUbo(string key, uint bindingIndex)
     {
@@ -115,6 +122,7 @@ public sealed class GLResourceCache : IDisposable
         foreach (uint h in _ubos.Values)
             _gl.DeleteBuffer(h);
         _ubos.Clear();
+        _zeroUbos.Clear();
         _gl.DeleteVertexArray(_attributelessVao);
         foreach (uint t in new[] { _windSwell, _lieMap, _thickness })
             if (t != 0)

@@ -46,13 +46,19 @@ public static class ShapeDrawing
         if (vao == 0 || program == 0)
             return;
 
-        var locations = InstancedLocations(gl, program);
+        bool multi = InstancedShaderPatch.BaseInstance;
         if (!_caching || _program != program)
         {
             gl.UseProgram(program);
             _program = program;
+            _locations = InstancedLocations(gl, program);
             _uniformBatch = null;
+            // The first-instance uniform is zero for a multi-draw - gl_BaseInstance carries it - and
+            // a program keeps its uniforms, so once per program is enough.
+            if (multi)
+                gl.Uniform1(_locations.First, 0);
         }
+        var locations = _locations;
         if (!_caching || !ReferenceEquals(_uniformBatch, batch))
         {
             gl.Uniform1(locations.Stride, batch.Stride);
@@ -66,13 +72,33 @@ public static class ShapeDrawing
             gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, shape.MaterialUboBuffer);
             _material = shape.MaterialUboBuffer;
         }
+
+        // Baked lighting (InstanceBatch.SetBake): the per-instance table at binding 0, and each
+        // instance's atlas on the shape's bake0 unit - so a run is drawn in pieces wherever the
+        // atlas changes, with an unbaked instance taking the material's own bake0 back. The
+        // material's own bake0 is bound only where a run needs it, not first and again after.
+        int bakeUnit = -1;
+        LoadedTexture? ownBake = null;
+        int[]? atlasOf = batch.BakeAtlasOfInstance;
         var overrides = shape.SamplerOverrides;
-        foreach (var (unit, key, texture) in samplers)
+        for (int i = 0; i < samplers.Count; i++)
         {
+            var (unit, key, texture) = samplers[i];
+            if (atlasOf is not null && key == "bake0")
+            {
+                bakeUnit = unit;
+                ownBake = texture;
+                continue;
+            }
             var bound = texture;
             if (overrides is not null && overrides.TryGetValue(key, out var replacement))
                 bound = replacement;
             BindTexture(gl, unit, bound.Target, bound.Handle);
+        }
+        if (bakeUnit >= 0 && (!_caching || _bakeTable != batch.BakeTable))
+        {
+            gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, BakeTableBinding, batch.BakeTable);
+            _bakeTable = batch.BakeTable;
         }
 
         if (!_caching || _vao != vao)
@@ -81,44 +107,44 @@ public static class ShapeDrawing
             _vao = vao;
         }
 
-        // Baked lighting (InstanceBatch.SetBake): the per-instance table at binding 0, and each
-        // instance's atlas on the shape's bake0 unit - so a run is drawn in pieces wherever the
-        // atlas changes, with an unbaked instance taking the material's own bake0 back.
-        int bakeUnit = -1;
-        LoadedTexture? ownBake = null;
-        int[]? atlasOf = batch.BakeAtlasOfInstance;
-        if (atlasOf is not null)
-        {
-            foreach (var (unit, key, texture) in samplers)
-                if (key == "bake0")
-                {
-                    bakeUnit = unit;
-                    ownBake = texture;
-                }
-            gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, BakeTableBinding, batch.BakeTable);
-        }
-
         // Every visible run - coalesced where Prism-style cells leave neighbouring runs at one level
         // of detail - goes out as one multi-draw per atlas, each run a command whose base instance
         // says where its instances start. One call per run used to be tens of thousands of draws a
         // frame for a map, and the card sat idle between them.
-        bool multi = InstancedShaderPatch.BaseInstance;
-        if (multi)
-            gl.Uniform1(locations.First, 0);
         Commands.Clear();
         int pendingAtlas = int.MinValue;
+        var list = runs ?? batch.Visible;
+        int openFirst = 0, openCount = 0, openLod = -1;
+        for (int r = 0; r < list.Count; r++)
+        {
+            // Runs merged where one ends exactly where the next begins at the same level of detail.
+            var (f, c, l) = list[r];
+            if (c <= 0)
+                continue;
+            if (openCount > 0 && openFirst + openCount == f && openLod == l)
+            {
+                openCount += c;
+                continue;
+            }
+            if (openCount > 0)
+                EmitRun(openFirst, openCount, openLod);
+            (openFirst, openCount, openLod) = (f, c, l);
+        }
+        if (openCount > 0)
+            EmitRun(openFirst, openCount, openLod);
+        Flush();
 
-        foreach (var (first, count, lod) in Coalesce(runs ?? batch.Visible))
+        void EmitRun(int first, int count, int lod)
         {
             var (firstIndex, indexCount) = shape.Lod(lod);
             if (indexCount <= 0)
-                continue;
-            if (bakeUnit < 0 || atlasOf is null)
+                return;
+            if (bakeUnit < 0)
             {
                 Emit(first, count, firstIndex, indexCount, int.MinValue);
-                continue;
+                return;
             }
-            int end = Math.Min(first + count, atlasOf.Length);
+            int end = Math.Min(first + count, atlasOf!.Length);
             for (int start = first; start < end;)
             {
                 int atlas = atlasOf[start];
@@ -129,7 +155,6 @@ public static class ShapeDrawing
                 start = stop;
             }
         }
-        Flush();
 
         void Emit(int at, int n, int firstIndex, int indexCount, int atlas)
         {
@@ -159,16 +184,56 @@ public static class ShapeDrawing
         {
             if (Commands.Count == 0)
                 return;
-            nint offset = IndirectStream.For(gl).Upload(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(Commands));
+            nint offset = StreamFor(gl).Upload(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(Commands));
             gl.MultiDrawElementsIndirect(PrimitiveType.Triangles, DrawElementsType.UnsignedInt,
                 (void*)offset, (uint)Commands.Count, (uint)sizeof(DrawCommand));
             Commands.Clear();
         }
 
-        if (bakeUnit >= 0)
+        // Outside the cache, leave the material's own bake0 where every other draw expects it.
+        if (bakeUnit >= 0 && !_caching)
             BindTexture(gl, bakeUnit, ownBake!.Target, ownBake.Handle);
         if (!_caching)
             gl.ActiveTexture(TextureUnit.Texture0);
+    }
+
+    static IndirectStream? _stream;
+
+    /// <summary>The context's command ring, remembered for the context last asked about.</summary>
+    static IndirectStream StreamFor(GL gl)
+    {
+        if (_stream is not { } stream || !ReferenceEquals(stream.Gl, gl))
+            _stream = stream = IndirectStream.For(gl);
+        return stream;
+    }
+    static Locations _locations;
+    static uint _bakeTable;
+
+    /// <summary>
+    /// Multi-draws the given runs of the bound program and VAO - for a pass with a program of its own
+    /// (the pass-ID mask), whose instanced variant reads <c>gl_BaseInstance</c> like the game's.
+    /// Returns false when multi-draw is unavailable and the caller must draw run by run.
+    /// </summary>
+    public static unsafe bool MultiDrawRuns(GL gl, LoadedShape shape, IReadOnlyList<(int First, int Count, int Lod)> runs)
+    {
+        if (!InstancedShaderPatch.BaseInstance)
+            return false;
+        Commands.Clear();
+        for (int r = 0; r < runs.Count; r++)
+        {
+            var (first, count, lod) = runs[r];
+            var (firstIndex, indexCount) = shape.Lod(lod);
+            if (count > 0 && indexCount > 0)
+                Commands.Add(new DrawCommand((uint)indexCount, (uint)count, (uint)firstIndex, 0, (uint)first));
+        }
+        if (Commands.Count > 0)
+        {
+            nint offset = StreamFor(gl).Upload(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(Commands));
+            gl.MultiDrawElementsIndirect(PrimitiveType.Triangles, DrawElementsType.UnsignedInt,
+                (void*)offset, (uint)Commands.Count, (uint)sizeof(DrawCommand));
+            Commands.Clear();
+        }
+        return true;
     }
 
     // ---- state cache: redundant binds skipped between BeginStateCache and EndStateCache ----
@@ -200,7 +265,7 @@ public static class ShapeDrawing
 
     static void InvalidateStateCache()
     {
-        _program = _material = _vao = 0;
+        _program = _material = _vao = _bakeTable = 0;
         _uniformBatch = null;
         Array.Clear(_textures);
         _activeUnit = -1;
@@ -240,27 +305,6 @@ public static class ShapeDrawing
 
     static readonly List<DrawCommand> Commands = [];
 
-    /// <summary>Runs merged where one ends exactly where the next begins at the same level of detail.</summary>
-    static IEnumerable<(int First, int Count, int Lod)> Coalesce(IEnumerable<(int First, int Count, int Lod)> runs)
-    {
-        (int First, int Count, int Lod)? open = null;
-        foreach (var run in runs)
-        {
-            if (run.Count <= 0)
-                continue;
-            if (open is { } o && o.First + o.Count == run.First && o.Lod == run.Lod)
-            {
-                open = (o.First, o.Count + run.Count, o.Lod);
-                continue;
-            }
-            if (open is { } done)
-                yield return done;
-            open = run;
-        }
-        if (open is { } last)
-            yield return last;
-    }
-
     /// <summary>
     /// A ring the multi-draw commands are written into, bound as the draw-indirect buffer.
     /// </summary>
@@ -279,6 +323,8 @@ public static class ShapeDrawing
         readonly GL _gl;
         readonly uint _buffer;
         readonly byte* _mapped;
+
+        public GL Gl => _gl;
         readonly nint[] _fences = new nint[Chunks];
         int _offset, _chunk;
 

@@ -261,6 +261,11 @@ public sealed class PassIdMaskPass : IDisposable
                 _gl.Uniform1(id, (index + 1) / 255f);
                 _gl.Uniform1(skin, sh.VertexSkinCount);
                 _gl.BindVertexArray(sh.PassIdVao);
+                // One multi-draw for every visible run, as the G-buffer does; run by run was
+                // thousands of calls a frame.
+                _gl.Uniform1(first, 0);
+                if (ShapeDrawing.MultiDrawRuns(_gl, sh, batch.Visible))
+                    continue;
                 foreach (var (start, count, lod) in batch.Visible)
                 {
                     var (firstIndex, indexCount) = sh.Lod(lod);

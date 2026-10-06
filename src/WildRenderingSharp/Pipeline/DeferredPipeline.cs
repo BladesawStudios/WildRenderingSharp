@@ -183,6 +183,8 @@ public sealed class DeferredPipeline : IDisposable
         string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null)
     {
         _gl = gl;
+        // Before any instanced program is built - the pass-ID mask builds one in its constructor.
+        InstancedShaderPatch.BaseInstance = gl.IsExtensionPresent("GL_ARB_shader_draw_parameters");
         _dataDirectory = dataDirectory;
         _decompiledDirectory = decompiledDirectory;
         // Shared across every model (see DeferredResolvePass.ResolveDeferredPasses's remarks) -
@@ -217,7 +219,6 @@ public sealed class DeferredPipeline : IDisposable
         _resolve = new DeferredResolvePass(gl);
         Timer = new GpuPassTimer(gl);
         Terrain = new TerrainShading(gl, decompiledDirectory);
-        InstancedShaderPatch.BaseInstance = gl.IsExtensionPresent("GL_ARB_shader_draw_parameters");
         _sceneColorShapes = new SceneColorShapePass(gl);
         _knownFixes = new KnownMaterialFixes(gl);
         _forward = new ForwardPass(gl, systemTexturesDir);
