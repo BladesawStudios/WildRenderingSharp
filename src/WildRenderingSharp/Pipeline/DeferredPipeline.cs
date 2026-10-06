@@ -746,6 +746,10 @@ public sealed class DeferredPipeline : IDisposable
             ? allGroups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass).ToHashSet(StringComparer.Ordinal)
             : [];
         _resolve.SetEnvironmentColor(hemiSky);
+        // The pass that also lights the terrain - which no actor stamps - in whichever half of the
+        // frame it runs in. A scene-colour shape lit by the same pass (glass, say) holds it back to
+        // the second half; claiming the terrain only in the first then left it unlit whenever such
+        // a shape was on screen.
         int defaultPass = request.Terrain is not null ? _passNames.IndexOf(DefaultPass) : -1;
         _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
             sceneColorShapes ? name => !sceneColorPasses.Contains(name) : null, defaultPass);
@@ -770,7 +774,7 @@ public sealed class DeferredPipeline : IDisposable
             _lightPrePass.Run(Resources, targets, lightPrePassParams);
             _passIdMask.Run(Resources, targets, allGroups, _passNames, maskViewProj, camera.NearPlane, camera.FarPlane);
             _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
-                sceneColorPasses.Contains);
+                sceneColorPasses.Contains, defaultPass);
             GLDiagnostics.CheckPass(_gl, "scene-colour shapes resolve");
         }
 
