@@ -262,23 +262,39 @@ public static class ShapeDrawing
     }
 
     /// <summary>
-    /// A ring the multi-draw commands are written into, bound as the draw-indirect buffer; it is
-    /// orphaned when it wraps, so a write never waits on the card still reading earlier commands.
+    /// A ring the multi-draw commands are written into, bound as the draw-indirect buffer.
     /// </summary>
+    /// <remarks>
+    /// Persistently mapped where the driver has buffer storage: commands are written straight into
+    /// memory the card reads, in chunks, and a chunk is only waited on when the ring comes back
+    /// round to it - a fence per chunk, a few a second. It used to be <c>glBufferSubData</c> per
+    /// multi-draw into the buffer the very next call reads from, which the driver serialises: every
+    /// draw waited for its own upload. Measured as a near-constant 0.2-0.4 ms of GPU time per draw
+    /// however small - thousands of them, most of a 38 ms G-buffer.
+    /// </remarks>
     sealed unsafe class IndirectStream
     {
-        const int Capacity = 4 << 20;
+        const int Capacity = 8 << 20, Chunks = 8, ChunkSize = Capacity / Chunks;
         static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GL, IndirectStream> Streams = new();
         readonly GL _gl;
         readonly uint _buffer;
-        int _offset;
+        readonly byte* _mapped;
+        readonly nint[] _fences = new nint[Chunks];
+        int _offset, _chunk;
 
         IndirectStream(GL gl)
         {
             _gl = gl;
             _buffer = gl.GenBuffer();
             gl.BindBuffer(BufferTargetARB.DrawIndirectBuffer, _buffer);
-            gl.BufferData(BufferTargetARB.DrawIndirectBuffer, (nuint)Capacity, null, BufferUsageARB.StreamDraw);
+            if (gl.IsExtensionPresent("GL_ARB_buffer_storage"))
+            {
+                const uint flags = (uint)(GLEnum.MapWriteBit | GLEnum.MapPersistentBit | GLEnum.MapCoherentBit);
+                gl.BufferStorage(BufferStorageTarget.DrawIndirectBuffer, (nuint)Capacity, null, (BufferStorageMask)flags);
+                _mapped = (byte*)gl.MapBufferRange(BufferTargetARB.DrawIndirectBuffer, 0, (nuint)Capacity, (MapBufferAccessMask)flags);
+            }
+            if (_mapped is null)
+                gl.BufferData(BufferTargetARB.DrawIndirectBuffer, (nuint)Capacity, null, BufferUsageARB.StreamDraw);
         }
 
         public static IndirectStream For(GL gl) => Streams.GetValue(gl, g => new IndirectStream(g));
@@ -287,13 +303,36 @@ public static class ShapeDrawing
         {
             int bytes = commands.Length * sizeof(DrawCommand);
             _gl.BindBuffer(BufferTargetARB.DrawIndirectBuffer, _buffer);
-            if (_offset + bytes > Capacity)
+            if (_mapped is null)
             {
-                _gl.BufferData(BufferTargetARB.DrawIndirectBuffer, (nuint)Capacity, null, BufferUsageARB.StreamDraw);
-                _offset = 0;
+                if (_offset + bytes > Capacity)
+                {
+                    _gl.BufferData(BufferTargetARB.DrawIndirectBuffer, (nuint)Capacity, null, BufferUsageARB.StreamDraw);
+                    _offset = 0;
+                }
+                fixed (DrawCommand* p = commands)
+                    _gl.BufferSubData(BufferTargetARB.DrawIndirectBuffer, _offset, (nuint)bytes, p);
             }
-            fixed (DrawCommand* p = commands)
-                _gl.BufferSubData(BufferTargetARB.DrawIndirectBuffer, _offset, (nuint)bytes, p);
+            else
+            {
+                if (bytes > ChunkSize)
+                    throw new InvalidOperationException($"{commands.Length} indirect commands in one call");
+                if (_offset + bytes > (_chunk + 1) * ChunkSize)
+                {
+                    // Done with this chunk: fence it, and move on to the next once the card is past
+                    // its last use.
+                    _fences[_chunk] = _gl.FenceSync(SyncCondition.SyncGpuCommandsComplete, SyncBehaviorFlags.None);
+                    _chunk = (_chunk + 1) % Chunks;
+                    if (_fences[_chunk] != 0)
+                    {
+                        _gl.ClientWaitSync(_fences[_chunk], SyncObjectMask.Bit, 1_000_000_000);
+                        _gl.DeleteSync(_fences[_chunk]);
+                        _fences[_chunk] = 0;
+                    }
+                    _offset = _chunk * ChunkSize;
+                }
+                commands.CopyTo(new Span<DrawCommand>(_mapped + _offset, commands.Length));
+            }
             nint at = _offset;
             _offset += (bytes + 15) & ~15;
             return at;
