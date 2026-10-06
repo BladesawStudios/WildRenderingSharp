@@ -82,16 +82,24 @@ public static class ShapeDrawing
             gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, BakeTableBinding, batch.BakeTable);
         }
 
-        foreach (var (first, count, lod) in runs ?? batch.Visible)
+        // Every visible run - coalesced where Prism-style cells leave neighbouring runs at one level
+        // of detail - goes out as one multi-draw per atlas, each run a command whose base instance
+        // says where its instances start. One call per run used to be tens of thousands of draws a
+        // frame for a map, and the card sat idle between them.
+        bool multi = InstancedShaderPatch.BaseInstance;
+        if (multi)
+            gl.Uniform1(locations.First, 0);
+        Commands.Clear();
+        int pendingAtlas = int.MinValue;
+
+        foreach (var (first, count, lod) in Coalesce(runs ?? batch.Visible))
         {
-            if (count <= 0)
-                continue;
             var (firstIndex, indexCount) = shape.Lod(lod);
             if (indexCount <= 0)
                 continue;
             if (bakeUnit < 0 || atlasOf is null)
             {
-                DrawRun(first, count);
+                Emit(first, count, firstIndex, indexCount, int.MinValue);
                 continue;
             }
             int end = Math.Min(first + count, atlasOf.Length);
@@ -101,20 +109,45 @@ public static class ShapeDrawing
                 int stop = start + 1;
                 while (stop < end && atlasOf[stop] == atlas)
                     stop++;
-                var bound = atlas >= 0 ? batch.BakeAtlases[atlas] : ownBake!;
-                gl.ActiveTexture(TextureUnit.Texture0 + bakeUnit);
-                gl.BindTexture(bound.Target, bound.Handle);
-                DrawRun(start, stop - start);
+                Emit(start, stop - start, firstIndex, indexCount, atlas);
                 start = stop;
             }
+        }
+        Flush();
 
-            void DrawRun(int at, int n)
+        void Emit(int at, int n, int firstIndex, int indexCount, int atlas)
+        {
+            if (atlas != pendingAtlas)
+            {
+                Flush();
+                pendingAtlas = atlas;
+                if (atlas != int.MinValue)
+                {
+                    var bound = atlas >= 0 ? batch.BakeAtlases[atlas] : ownBake!;
+                    gl.ActiveTexture(TextureUnit.Texture0 + bakeUnit);
+                    gl.BindTexture(bound.Target, bound.Handle);
+                }
+            }
+            if (!multi)
             {
                 gl.Uniform1(locations.First, at);
                 gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)indexCount, DrawElementsType.UnsignedInt,
                     (void*)((nint)firstIndex * sizeof(uint)), (uint)n);
+                return;
             }
+            Commands.Add(new DrawCommand((uint)indexCount, (uint)n, (uint)firstIndex, 0, (uint)at));
         }
+
+        void Flush()
+        {
+            if (Commands.Count == 0)
+                return;
+            nint offset = IndirectStream.For(gl).Upload(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(Commands));
+            gl.MultiDrawElementsIndirect(PrimitiveType.Triangles, DrawElementsType.UnsignedInt,
+                (void*)offset, (uint)Commands.Count, (uint)sizeof(DrawCommand));
+            Commands.Clear();
+        }
+
         if (bakeUnit >= 0)
         {
             gl.ActiveTexture(TextureUnit.Texture0 + bakeUnit);
@@ -125,6 +158,72 @@ public static class ShapeDrawing
 
     /// <summary>Where the static-object shaders read their per-instance bake table from (<c>vp_s0</c>).</summary>
     public const uint BakeTableBinding = 0;
+
+    /// <summary>One command of a multi-draw: GL's DrawElementsIndirectCommand.</summary>
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    readonly record struct DrawCommand(uint Count, uint InstanceCount, uint FirstIndex, int BaseVertex, uint BaseInstance);
+
+    static readonly List<DrawCommand> Commands = [];
+
+    /// <summary>Runs merged where one ends exactly where the next begins at the same level of detail.</summary>
+    static IEnumerable<(int First, int Count, int Lod)> Coalesce(IEnumerable<(int First, int Count, int Lod)> runs)
+    {
+        (int First, int Count, int Lod)? open = null;
+        foreach (var run in runs)
+        {
+            if (run.Count <= 0)
+                continue;
+            if (open is { } o && o.First + o.Count == run.First && o.Lod == run.Lod)
+            {
+                open = (o.First, o.Count + run.Count, o.Lod);
+                continue;
+            }
+            if (open is { } done)
+                yield return done;
+            open = run;
+        }
+        if (open is { } last)
+            yield return last;
+    }
+
+    /// <summary>
+    /// A ring the multi-draw commands are written into, bound as the draw-indirect buffer; it is
+    /// orphaned when it wraps, so a write never waits on the card still reading earlier commands.
+    /// </summary>
+    sealed unsafe class IndirectStream
+    {
+        const int Capacity = 4 << 20;
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GL, IndirectStream> Streams = new();
+        readonly GL _gl;
+        readonly uint _buffer;
+        int _offset;
+
+        IndirectStream(GL gl)
+        {
+            _gl = gl;
+            _buffer = gl.GenBuffer();
+            gl.BindBuffer(BufferTargetARB.DrawIndirectBuffer, _buffer);
+            gl.BufferData(BufferTargetARB.DrawIndirectBuffer, (nuint)Capacity, null, BufferUsageARB.StreamDraw);
+        }
+
+        public static IndirectStream For(GL gl) => Streams.GetValue(gl, g => new IndirectStream(g));
+
+        public nint Upload(ReadOnlySpan<DrawCommand> commands)
+        {
+            int bytes = commands.Length * sizeof(DrawCommand);
+            _gl.BindBuffer(BufferTargetARB.DrawIndirectBuffer, _buffer);
+            if (_offset + bytes > Capacity)
+            {
+                _gl.BufferData(BufferTargetARB.DrawIndirectBuffer, (nuint)Capacity, null, BufferUsageARB.StreamDraw);
+                _offset = 0;
+            }
+            fixed (DrawCommand* p = commands)
+                _gl.BufferSubData(BufferTargetARB.DrawIndirectBuffer, _offset, (nuint)bytes, p);
+            nint at = _offset;
+            _offset += (bytes + 15) & ~15;
+            return at;
+        }
+    }
 
     /// <summary>Drops every remembered location - the programs they were looked up in are being deleted.</summary>
     internal static void ForgetPrograms(IEnumerable<uint> programs)

@@ -207,6 +207,7 @@ public sealed class DeferredPipeline : IDisposable
         _resolve = new DeferredResolvePass(gl);
         Timer = new GpuPassTimer(gl);
         Terrain = new TerrainShading(gl, decompiledDirectory);
+        InstancedShaderPatch.BaseInstance = gl.IsExtensionPresent("GL_ARB_shader_draw_parameters");
         _sceneColorShapes = new SceneColorShapePass(gl);
         _knownFixes = new KnownMaterialFixes(gl);
         _forward = new ForwardPass(gl, systemTexturesDir);
