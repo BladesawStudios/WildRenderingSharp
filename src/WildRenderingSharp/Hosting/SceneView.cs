@@ -158,6 +158,7 @@ public sealed class SceneView : IDisposable
         _lastPalette = request.Palette;
         _lastBackground = request.Lighting.Background;
         Present();
+        _pipeline.Timer.EndFrame("present");
         return frame;
     }
 

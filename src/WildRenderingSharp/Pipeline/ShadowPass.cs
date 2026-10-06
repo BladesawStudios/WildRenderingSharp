@@ -53,9 +53,13 @@ public sealed class ShadowPass
     }
 
     /// <summary>Draws every placed actor's shapes into the SAME shadow target (every actor casts/receives shadows together, correctly), rebinding each actor's own skinning UBOs (<see cref="ActorDrawGroup"/>) before its own shapes.</summary>
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
+    /// <param name="cascade">The cascade layer to draw into (<see cref="RenderTargets.ShadowCascades"/>), or -1 for the single shadow map.</param>
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs, int cascade = -1)
     {
-        targets.BindShadowTarget();
+        if (cascade >= 0)
+            targets.BindShadowCascadeTarget(cascade);
+        else
+            targets.BindShadowTarget();
         _gl.ClearDepth(1.0);
         _gl.Clear(ClearBufferMask.DepthBufferBit);
         _gl.Enable(EnableCap.DepthTest);

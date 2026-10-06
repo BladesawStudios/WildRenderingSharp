@@ -86,8 +86,30 @@ public sealed class InstanceBatch : IDisposable
         if (_shadowFocus == focus)
             return;
         _shadowFocus = focus;
-        ShadowVisible.Clear();
+        FillRuns(ShadowVisible, focus, ShadowLod);
+    }
 
+    readonly List<(int First, int Count, int Lod)>?[] _cascadeRuns = new List<(int, int, int)>?[RenderTargets.MaxCascades];
+    readonly ShadowFocus?[] _cascadeFocus = new ShadowFocus?[RenderTargets.MaxCascades];
+
+    /// <summary>The runs of instances inside one shadow cascade (see <see cref="UpdateCascadeRuns"/>).</summary>
+    internal List<(int First, int Count, int Lod)> CascadeRuns(int cascade) => _cascadeRuns[cascade] ??= [];
+
+    /// <summary>
+    /// Fills a cascade's runs for its region, if it moved. Further cascades draw coarser levels of
+    /// detail - a caster covering a few texels of a far cascade needs no more triangles than that.
+    /// </summary>
+    internal void UpdateCascadeRuns(int cascade, ShadowFocus focus)
+    {
+        if (_cascadeFocus[cascade] == focus && _cascadeRuns[cascade] is not null)
+            return;
+        _cascadeFocus[cascade] = focus;
+        FillRuns(CascadeRuns(cascade), focus, ShadowLod + cascade);
+    }
+
+    void FillRuns(List<(int First, int Count, int Lod)> runs, ShadowFocus focus, int lod)
+    {
+        runs.Clear();
         float reach = focus.Radius + Model.BoundsRadius;
         int start = -1;
         for (int i = 0; i <= Count; i++)
@@ -104,7 +126,7 @@ public sealed class InstanceBatch : IDisposable
                 start = i;
             else if (!inside && start >= 0)
             {
-                ShadowVisible.Add((start, i - start, ShadowLod));
+                runs.Add((start, i - start, lod));
                 start = -1;
             }
         }

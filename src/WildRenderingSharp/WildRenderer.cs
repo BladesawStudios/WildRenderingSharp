@@ -178,6 +178,9 @@ public sealed class WildRenderer : IDisposable
     /// </summary>
     public ShadowFocus? ShadowFocus { get; set; }
 
+    /// <summary>Nested shadow regions, finest first - see <see cref="FrameRequest.ShadowCascades"/>. Takes the place of <see cref="ShadowFocus"/> when set.</summary>
+    public IReadOnlyList<ShadowFocus>? ShadowCascades { get; set; }
+
     /// <summary>
     /// Places every one of <paramref name="placements"/> as an instance of <paramref name="model"/>,
     /// all drawn instanced through the game's own shaders. Nothing draws until the host fills the
@@ -310,7 +313,7 @@ public sealed class WildRenderer : IDisposable
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
         return new FrameRequest(camera, Lighting, Environment.Palettes.Get(Lighting.PaletteName), inputs,
             AoRadius, ShadowBias, Highlight, Environment.SkyPostFx, Environment.CloudPostFx, Environment.SkyBin,
-            Environment.ColorCorrection, _instances, ShadowFocus);
+            Environment.ColorCorrection, _instances, ShadowFocus, ShadowCascades);
     }
 
     /// <summary>

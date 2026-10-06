@@ -28,7 +28,11 @@ public static class GLDiagnostics
         = (Environment.GetEnvironmentVariable("WRS_GL_TRACE") ?? Environment.GetEnvironmentVariable("MARROW_GL_TRACE")) == "1";
 
     /// <summary>A per-pass check, skipped entirely unless <see cref="VerbosePerPass"/> is set.</summary>
-    public static bool CheckPass(GL gl, string context) => VerbosePerPass && Check(gl, context);
+    public static bool CheckPass(GL gl, string context)
+    {
+        Pipeline.GpuPassTimer.Current?.Mark(context);
+        return VerbosePerPass && Check(gl, context);
+    }
 
     /// <summary>How many errors to pop before giving up - a driver in a bad state can queue them faster than a loop clears them, and hanging is worse than a truncated report.</summary>
     const int MaxDrain = 32;

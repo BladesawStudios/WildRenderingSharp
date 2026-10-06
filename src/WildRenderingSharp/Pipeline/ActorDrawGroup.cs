@@ -28,10 +28,11 @@ public enum ShapeProgram
 /// <see cref="BindUbos"/> and draw with <see cref="Draw"/>.
 /// </remarks>
 public readonly record struct ActorDrawGroup(byte[] BonesBytes, byte[] ShpMtxBytes, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
-    InstanceBatch? Batch = null, bool ShadowRuns = false)
+    InstanceBatch? Batch = null, bool ShadowRuns = false, int Cascade = -1)
 {
-    /// <summary>The batch's runs this group draws: its shadow-focus runs for a shadow group, its camera runs otherwise.</summary>
-    List<(int First, int Count, int Lod)>? Runs => Batch is null ? null : ShadowRuns ? Batch.ShadowVisible : Batch.Visible;
+    /// <summary>The batch's runs this group draws: a cascade's or the shadow focus's runs for a shadow group, its camera runs otherwise.</summary>
+    List<(int First, int Count, int Lod)>? Runs => Batch is null ? null
+        : ShadowRuns ? (Cascade >= 0 ? Batch.CascadeRuns(Cascade) : Batch.ShadowVisible) : Batch.Visible;
 
     /// <summary>
     /// Rebinds THIS actor's own bone-palette/ShpMtx buffers to their shared binding points - call

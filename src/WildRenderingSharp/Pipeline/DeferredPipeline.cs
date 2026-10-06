@@ -16,9 +16,17 @@ public sealed record ActorRenderInput(LoadedModel Model, Vector4[] ModelMatrixRo
 /// </summary>
 /// <param name="Highlight">Which actor/shape to overlay with a flat, translucent highlight this frame (e.g. a hovered row in the Material Inspector), or null for none - see <see cref="HighlightOverlayPass"/>.</param>
 /// <param name="Instances">Batches of placements drawn instanced alongside <paramref name="Actors"/> - a map's worth of static objects (see <see cref="InstanceBatch"/>). Each draws its own <see cref="InstanceBatch.Visible"/> runs.</param>
+/// <param name="ShadowCascades">
+/// Nested shadow regions, finest first, each drawn into its own 2048x2048 layer (at most
+/// <see cref="RenderTargets.MaxCascades"/>): near shadows sharp, far ones coarse but present, as
+/// the game's own cascades are. Each cascade is redrawn only when its region, the sun or its casters
+/// change - a host snapping each region to a grid of its own size makes the far ones nearly free.
+/// Takes the place of <paramref name="ShadowFocus"/> when given.
+/// </param>
 /// <param name="ShadowFocus">The region the shadow map covers, instead of every actor's bounds - for a scene far bigger than one shadow map can resolve, centred on what the camera looks at.</param>
 public sealed record FrameRequest(Camera Camera, LightingContext Lighting, EnvPalette Palette, IReadOnlyList<ActorRenderInput> Actors, float AoRadius, float ShadowBias, (int ActorIndex, int ShapeIndex)? Highlight = null, SkyPostFx? SkyPostFx = null, CloudPostFx? CloudPostFx = null, SkyBinLut? SkyBin = null, ColorCorrectionPostFx? ColorCorrection = null,
-    IReadOnlyList<InstanceBatch>? Instances = null, ShadowFocus? ShadowFocus = null);
+    IReadOnlyList<InstanceBatch>? Instances = null, ShadowFocus? ShadowFocus = null,
+    IReadOnlyList<ShadowFocus>? ShadowCascades = null);
 
 /// <summary>A sphere the shadow map is fitted to - see <see cref="FrameRequest.ShadowFocus"/>.</summary>
 public readonly record struct ShadowFocus(Vector3 Center, float Radius);
@@ -46,6 +54,9 @@ public sealed class ShadowCache
     internal long InstanceSignature;
     internal Vector3 RotatedLo, RotatedHi;
     internal ShadowPass.LightMatrices LightMatrices;
+    internal readonly long[] CascadeSignature = new long[RenderTargets.MaxCascades];
+    internal readonly ShadowPass.LightMatrices[] CascadeLight = new ShadowPass.LightMatrices[RenderTargets.MaxCascades];
+    internal readonly float[] CascadeRadius = new float[RenderTargets.MaxCascades];
 }
 
 /// <summary>
@@ -123,6 +134,9 @@ public sealed class DeferredPipeline : IDisposable
     Vector3 _skyPrecomputeSun = new(0f, 0f, 1f);
     string _skyPrecomputeKey = "\0never";
     readonly DeferredResolvePass _resolve;
+
+    /// <summary>Each pass's GPU time over a recent frame - see <see cref="GpuPassTimer"/>.</summary>
+    public GpuPassTimer Timer { get; }
     readonly SceneColorShapePass _sceneColorShapes;
     readonly KnownMaterialFixes _knownFixes;
     readonly ForwardPass _forward;
@@ -182,6 +196,7 @@ public sealed class DeferredPipeline : IDisposable
         _lensFlare = new LensFlarePass(gl, Programs);
         _colorCorrection = new ColorCorrectionPass(gl);
         _resolve = new DeferredResolvePass(gl);
+        Timer = new GpuPassTimer(gl);
         _sceneColorShapes = new SceneColorShapePass(gl);
         _knownFixes = new KnownMaterialFixes(gl);
         _forward = new ForwardPass(gl, systemTexturesDir);
@@ -304,6 +319,7 @@ public sealed class DeferredPipeline : IDisposable
     public FrameResult RenderFrame(FrameRequest request, RenderTargets? targetsOverride = null, ShadowCache? shadowCacheOverride = null,
         GpuTexture? shadowMapOverride = null)
     {
+        Timer.BeginFrame();
         // Safety net only - the real driver is ViewportPanel calling EnsureSkyPrecomputed right
         // after construction. Kept because it is idempotent and costs one bool test per frame,
         // so any future caller that renders without going through the panel still gets its LUTs.
@@ -409,15 +425,26 @@ public sealed class DeferredPipeline : IDisposable
         if (request.ShadowFocus is { } shadowFocus)
             foreach (var batch in instances)
                 batch.UpdateShadowRuns(shadowFocus);
+        ScreenSpaceShadowAndAoPass.CascadeParams? cascadeParams = request.ShadowCascades is { Count: > 0 } cascades && shadowMapOverride is null
+            ? RenderCascades(request, cascades, allGroups, instances, sunWorld, camera, preTexel, targets, shadowCache)
+            : null;
+
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
-        bool shadowCacheHit = shadowMapOverride is null && shadowCache.ModelRowsPerActor is not null && shadowCache.SunWorld == sunWorld
+        bool shadowCacheHit = cascadeParams is not null || shadowMapOverride is null && shadowCache.ModelRowsPerActor is not null && shadowCache.SunWorld == sunWorld
             && ActorRowsEqual(shadowCache.ModelRowsPerActor, modelRowsPerActor)
             && PosesEqual(shadowCache.BonesPerActor, request.Actors)
             && shadowCache.Focus == request.ShadowFocus
             && shadowCache.InstanceSignature == InstanceSignature(instances, request.ShadowFocus is not null);
         Vector3 rotatedLo, rotatedHi;
         ShadowPass.LightMatrices lightMatrices;
-        if (shadowCacheHit)
+        if (cascadeParams is not null)
+        {
+            float r0 = shadowCache.CascadeRadius[0];
+            rotatedLo = request.ShadowCascades![0].Center - new Vector3(r0);
+            rotatedHi = request.ShadowCascades[0].Center + new Vector3(r0);
+            lightMatrices = shadowCache.CascadeLight[0];
+        }
+        else if (shadowCacheHit)
         {
             rotatedLo = shadowCache.RotatedLo;
             rotatedHi = shadowCache.RotatedHi;
@@ -464,7 +491,8 @@ public sealed class DeferredPipeline : IDisposable
             ShadowBias: request.ShadowBias, ShadowTexel: 1f / RenderTargets.ShadowMapSize,
             ShadowTexelWorld: (2f * lightRadius) / RenderTargets.ShadowMapSize, ShadowDepthRange: lightRadius * 5f - 0.01f,
             AoRadius: request.AoRadius, AoStrength: ScreenSpaceShadowAndAoPass.AoStrength,
-            ShadowTexture: (shadowMapOverride ?? targets.ShadowMap).Handle);
+            ShadowTexture: (shadowMapOverride ?? targets.ShadowMap).Handle,
+            Cascades: cascadeParams);
         _shadowAo.Run(Resources, targets, ssaoParams);
         GLDiagnostics.CheckPass(_gl, "screen-space shadow/AO pass");
 
@@ -721,6 +749,7 @@ public sealed class DeferredPipeline : IDisposable
 
         GLDiagnostics.Check(_gl, "RenderFrame");
 
+        Timer.Mark("post");
         return new FrameResult(targets.Ldr, targets.Final, targets.GBuffer[1], targets.GBuffer[3], targets.PreShadow, targets.PreMisc, targets.PassId);
     }
 
@@ -852,6 +881,91 @@ public sealed class DeferredPipeline : IDisposable
 
     /// <summary>What the batches will draw - which batches, and which runs of each at which level - for the shadow map's reuse check.</summary>
     /// <summary>
+    /// Draws whichever cascades are out of date and returns what the shadow lookup needs to read
+    /// them - see <see cref="FrameRequest.ShadowCascades"/>.
+    /// </summary>
+    ScreenSpaceShadowAndAoPass.CascadeParams RenderCascades(FrameRequest request, IReadOnlyList<ShadowFocus> cascades,
+        List<ActorDrawGroup> allGroups, IReadOnlyList<InstanceBatch> instances, Vector3 sunWorld, Camera camera,
+        Vector2 preTexel, RenderTargets targets, ShadowCache cache)
+    {
+        int n = Math.Min(cascades.Count, RenderTargets.MaxCascades);
+        var viewProj = new Vector4[n][];
+        var texelWorld = new float[n];
+        var bias = new float[n];
+        long actorSignature = ActorShadowSignature(request.Actors);
+        bool drew = false;
+        for (int c = 0; c < n; c++)
+        {
+            var focus = cascades[c];
+            foreach (var batch in instances)
+                batch.UpdateCascadeRuns(c, focus);
+
+            var hash = new HashCode();
+            hash.Add(sunWorld);
+            hash.Add(focus);
+            hash.Add(actorSignature);
+            hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(targets));
+            foreach (var batch in instances)
+            {
+                hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(batch));
+                foreach (var run in batch.CascadeRuns(c))
+                    hash.Add(run);
+            }
+            long signature = hash.ToHashCode() | (1L << 40);
+
+            var lo = focus.Center - new Vector3(focus.Radius);
+            var hi = focus.Center + new Vector3(focus.Radius);
+            float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
+            if (cache.CascadeSignature[c] != signature)
+            {
+                var lm = ShadowPass.BuildLightMatrices(lo, hi, sunWorld);
+                var ctxLight = ContextUbo.BuildForCamera(lm.View3Rows, lm.ViewProj, lm.Proj,
+                    Mat4Math.Invert(Mat4Math.ToMat4(lm.View3Rows))[..3], 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
+                Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);
+
+                static ActorDrawGroup Casting(ActorDrawGroup g) => g with { Shapes = g.Shapes.Where(s => !s.ReadsSceneColor).ToList() };
+                var groups = allGroups.Where(g => g.Batch is null).Select(Casting).ToList();
+                foreach (var batch in instances)
+                {
+                    if (batch.CascadeRuns(c).Count > 0)
+                        groups.Add(new ActorDrawGroup([], [], IdentityRows,
+                            batch.Model.Shapes.Where(s => s.Enabled && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(),
+                            batch, ShadowRuns: true, Cascade: c));
+                }
+                _shadow.Run(Resources, targets, groups, Programs, c);
+                cache.CascadeSignature[c] = signature;
+                cache.CascadeLight[c] = lm;
+                drew = true;
+            }
+            cache.CascadeRadius[c] = focus.Radius;
+            viewProj[c] = cache.CascadeLight[c].ViewProj;
+            texelWorld[c] = 2f * lightRadius / RenderTargets.CascadeSize;
+            bias[c] = request.ShadowBias / (lightRadius * 5f - 0.01f);
+        }
+        if (drew)
+        {
+            GLDiagnostics.CheckPass(_gl, "shadow cascades");
+            Resources.BindUbo("ctx_true", 1);
+        }
+        return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias);
+    }
+
+    /// <summary>A hash of every placed actor's placement and pose - what makes a cascade's actor casters change.</summary>
+    static long ActorShadowSignature(IReadOnlyList<ActorRenderInput> actors)
+    {
+        var hash = new HashCode();
+        foreach (var a in actors)
+        {
+            foreach (var row in a.ModelMatrixRows)
+                hash.Add(row);
+            if (a.BoneWorldMatrices is { } bones)
+                foreach (var m in bones)
+                    hash.Add(m);
+        }
+        return hash.ToHashCode();
+    }
+
+    /// <summary>
     /// What the shadow map draws for this frame. With a focus, batches cast from their own
     /// shadow-focus runs (<see cref="InstanceBatch.ShadowVisible"/>) - including a batch the camera
     /// sees none of - instead of from what is on screen.
@@ -905,6 +1019,7 @@ public sealed class DeferredPipeline : IDisposable
         _lensFlare.Dispose();
         _colorCorrection.Dispose();
         _resolve.Dispose();
+        Timer.Dispose();
         _sceneColorShapes.Dispose();
         _knownFixes.Dispose();
         _forward.Dispose();

@@ -333,6 +333,43 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, (uint)Width, (uint)Height);
     }
 
+    /// <summary>Each shadow cascade's resolution, and how many there can be (see <see cref="FrameRequest.ShadowCascades"/>).</summary>
+    public const int CascadeSize = 2048, MaxCascades = 4;
+
+    GpuTexture? _cascades;
+    uint _cascadeFbo;
+
+    /// <summary>The cascades' depth array, one layer each - made the first time a frame asks for cascades (64 MB).</summary>
+    public GpuTexture ShadowCascades => _cascades ??= CreateCascadeArray();
+
+    unsafe GpuTexture CreateCascadeArray()
+    {
+        uint handle = _gl.GenTexture();
+        _gl.BindTexture(TextureTarget.Texture2DArray, handle);
+        _gl.TexImage3D(TextureTarget.Texture2DArray, 0, InternalFormat.DepthComponent32f, CascadeSize, CascadeSize, MaxCascades, 0,
+            PixelFormat.DepthComponent, PixelType.Float, null);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureCompareMode, (int)GLEnum.CompareRefToTexture);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureCompareFunc, (int)GLEnum.Lequal);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        _ownedFixedSize.Add(handle);
+        _cascadeFbo = _gl.GenFramebuffer();
+        return new GpuTexture(handle, CascadeSize, CascadeSize);
+    }
+
+    /// <summary>Binds one cascade's layer as the depth target.</summary>
+    public void BindShadowCascadeTarget(int cascade)
+    {
+        var array = ShadowCascades;
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _cascadeFbo);
+        _gl.FramebufferTextureLayer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, array.Handle, 0, cascade);
+        _gl.DrawBuffer(DrawBufferMode.None);
+        _gl.ReadBuffer(ReadBufferMode.None);
+        _gl.Viewport(0, 0, CascadeSize, CascadeSize);
+    }
+
     public void BindShadowTarget()
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _shadowFbo);
@@ -417,6 +454,8 @@ public sealed class RenderTargets : IDisposable
         _gl.DeleteFramebuffer(_gbufferFbo);
         _gl.DeleteFramebuffer(_passIdFbo);
         _gl.DeleteFramebuffer(_shadowFbo);
+        if (_cascadeFbo != 0)
+            _gl.DeleteFramebuffer(_cascadeFbo);
         _gl.DeleteFramebuffer(_scratchColorFbo);
         _gl.DeleteFramebuffer(_scratchColorDepthFbo);
     }

@@ -43,6 +43,12 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
         uniform vec2 uTanHalf;          // Context decl 7 = (tanHalfFovX, tanHalfFovY)
         uniform vec3 uSunWorld;         // direction TOWARD the sun, world space
         uniform float uNear, uFar, uBias, uTexel, uTexelWorld, uDepthRange;
+        // Cascades (FrameRequest.ShadowCascades): nested regions, finest first, one layer each.
+        uniform sampler2DArrayShadow tex_cascades;
+        uniform int uCascadeCount;
+        uniform mat4 uCascadeViewProj[4];
+        uniform vec4 uCascadeParams[4];   // x: texel size in metres, y: bias in light depth, z: PCF radius in texels
+        uniform float uCascadeTexel;
         in vec2 vUV; out vec4 fragColor;
 
         vec3 viewPos(vec2 uv) {
@@ -73,6 +79,43 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
             vec3 nWorld = normalize(mat3(uViewInv) * nView);
 
             float ndl = dot(nWorld, uSunWorld);
+
+            if (uCascadeCount > 0) {
+                vec3 nPerpC = nWorld - uSunWorld * ndl;
+                float grazing = 2.8 * pow(1.0 - clamp(abs(ndl), 0.0, 1.0), 2.0);
+                ivec2 ppC = ivec2(mod(gl_FragCoord.xy, 4.0));
+                const float bayerC[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+                float angleC = bayerC[ppC.y * 4 + ppC.x] / 16.0 * 6.28318530718;
+                float caC = cos(angleC), saC = sin(angleC);
+                for (int c = 0; c < uCascadeCount; c++) {
+                    vec4 prm = uCascadeParams[c];
+                    vec3 wb = world.xyz + nWorld * prm.x + nPerpC * (prm.x * grazing);
+                    vec4 lcC = uCascadeViewProj[c] * vec4(wb, 1.0);
+                    vec3 scC = lcC.xyz / lcC.w * 0.5 + 0.5;
+                    // Inside this cascade with room for the filter, or try the next, coarser one.
+                    float margin = uCascadeTexel * (prm.z + 2.0);
+                    if (any(lessThan(scC.xy, vec2(margin))) || any(greaterThan(scC.xy, vec2(1.0 - margin))) || scC.z >= 1.0)
+                        continue;
+                    float refC = clamp(scC.z - prm.y, 0.0, 1.0);
+                    const vec2 discC[8] = vec2[8](
+                        vec2(-0.94201624, -0.39906216), vec2( 0.94558609, -0.76890725),
+                        vec2(-0.09418410, -0.92938870), vec2( 0.34495938,  0.29387760),
+                        vec2(-0.91588581,  0.45771432), vec2(-0.81544232, -0.87912464),
+                        vec2(-0.38277543,  0.27676845), vec2( 0.97484398,  0.75648379));
+                    float visC = 0.0;
+                    float rC = uCascadeTexel * prm.z;
+                    for (int i = 0; i < 8; i++) {
+                        vec2 s = vec2(discC[i].x * caC - discC[i].y * saC, discC[i].x * saC + discC[i].y * caC) * rC;
+                        visC += texture(tex_cascades, vec4(scC.xy + s, float(c), refC));
+                    }
+                    visC *= 0.125;
+                    fragColor = vec4(visC, 0.0, 1.0, visC);
+                    return;
+                }
+                // Past the last cascade: unshadowed, as the game is beyond its own.
+                fragColor = vec4(1.0, 0.0, 1.0, 1.0);
+                return;
+            }
 
             // Normal-offset bias from preshading_chara prog 120:
             // baseOffset = 1.0 * uTexelWorld (prevents self-shadow at all angles)
@@ -312,7 +355,14 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
     public readonly record struct Params(
         Vector4[] ViewInv3Rows, Vector4[] LightViewProj, Vector2 TanHalf, Vector3 SunWorld, Vector3 SunView,
         float Near, float Far, float ShadowBias, float ShadowTexel, float ShadowTexelWorld, float ShadowDepthRange,
-        float AoRadius, float AoStrength, uint ShadowTexture);
+        float AoRadius, float AoStrength, uint ShadowTexture,
+        CascadeParams? Cascades = null);
+
+    /// <summary>The cascades a frame's shadows come from - see <see cref="FrameRequest.ShadowCascades"/>.</summary>
+    /// <param name="ViewProj">Each cascade's light view-projection (row-major 4x4 rows, as <see cref="ShadowPass.LightMatrices.ViewProj"/>).</param>
+    /// <param name="TexelWorld">Each cascade's shadow texel size, in metres.</param>
+    /// <param name="Bias">Each cascade's depth bias, in its own light-depth units.</param>
+    public sealed record CascadeParams(uint Texture, Vector4[][] ViewProj, float[] TexelWorld, float[] Bias);
 
     public void Run(GLResourceCache resources, RenderTargets targets, Params p)
     {
@@ -334,6 +384,24 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
         BindTexture(_preshadowProgram, "tex_nld", 0, targets.LinearDepth.Handle);
         BindTexture(_preshadowProgram, "tex_shadow", 1, p.ShadowTexture);
         BindTexture(_preshadowProgram, "tex_gnrm", 2, targets.GBuffer[3].Handle);
+        int count = p.Cascades?.ViewProj.Length ?? 0;
+        _gl.Uniform1(_gl.GetUniformLocation(_preshadowProgram, "uCascadeCount"), count);
+        _gl.ActiveTexture(TextureUnit.Texture3);
+        _gl.BindTexture(TextureTarget.Texture2DArray, p.Cascades?.Texture ?? 0);
+        _gl.Uniform1(_gl.GetUniformLocation(_preshadowProgram, "tex_cascades"), 3);
+        _gl.ActiveTexture(TextureUnit.Texture0);
+        if (p.Cascades is { } cascades)
+        {
+            _gl.Uniform1(_gl.GetUniformLocation(_preshadowProgram, "uCascadeTexel"), 1f / RenderTargets.CascadeSize);
+            for (int c = 0; c < count; c++)
+            {
+                SetMat4(_preshadowProgram, $"uCascadeViewProj[{c}]", cascades.ViewProj[c]);
+                // A wider filter on the finer cascades keeps their penumbra soft; the coarse ones
+                // are soft by their texel size alone.
+                float radius = c == 0 ? 3f : c == 1 ? 2f : 1.5f;
+                _gl.Uniform4(_gl.GetUniformLocation(_preshadowProgram, $"uCascadeParams[{c}]"), cascades.TexelWorld[c], cascades.Bias[c], radius, 0f);
+            }
+        }
         resources.DrawFullscreenTriangle();
 
         // Authentic Nintendo 2-tier preshading filter: filters PreShadow into smooth penumbra
