@@ -121,7 +121,10 @@ public sealed class BakeLibrary : IDisposable
     /// <summary>Forgets the index and the tiles that were missing, after the preparer has exported more.</summary>
     public void Refresh()
     {
-        _indexLoaded = false;
+        // The index is read once it exists; re-reading its 600,000 entries on every refresh was a
+        // stall of its own.
+        if (_hashes.Length == 0)
+            _indexLoaded = false;
         foreach (var key in _loaded.Where(kv => kv.Value is null).Select(kv => kv.Key).ToList())
             _loaded.Remove(key);
     }

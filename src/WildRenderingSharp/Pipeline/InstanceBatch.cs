@@ -52,6 +52,9 @@ public sealed class InstanceBatch : IDisposable
 
     internal uint Buffer { get; }
 
+    /// <summary>The buffer's contents, kept so a change to some instances is one upload, not one per instance.</summary>
+    readonly Vector4[] _data;
+
     /// <summary>
     /// Runs of instances to draw this frame, and the level of detail each draws at - a level past a
     /// shape's own chain draws its coarsest (<see cref="LoadedShape.Lod"/>).
@@ -168,6 +171,7 @@ public sealed class InstanceBatch : IDisposable
         BoundsMin = Count > 0 ? lo : Vector3.Zero;
         BoundsMax = Count > 0 ? hi : Vector3.Zero;
 
+        _data = data;
         Buffer = gl.GenBuffer();
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, Buffer);
         gl.BufferData<Vector4>(BufferTargetARB.ShaderStorageBuffer, data, BufferUsageARB.StaticDraw);
@@ -204,12 +208,12 @@ public sealed class InstanceBatch : IDisposable
     /// atlas to <c>bake0</c>. Instances with no bake keep row 8 zero and the material's own
     /// <c>bake0</c>, as before.
     /// </summary>
-    public unsafe void SetBake(IReadOnlyList<BakeActor?> perInstance)
+    public void SetBake(IReadOnlyList<BakeActor?> perInstance)
     {
         var atlases = new List<LoadedTexture>();
         var atlasOf = new int[Count];
         var table = new List<Vector4>(new Vector4[BakeTableHead]);
-        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, Buffer);
+        bool changed = false;
         for (int i = 0; i < Count; i++)
         {
             atlasOf[i] = -1;
@@ -226,10 +230,21 @@ public sealed class InstanceBatch : IDisposable
                 row8.Y = BitConverter.Int32BitsToSingle(0x40000000 | (table.Count & 0xFFFFF));
                 table.AddRange(bake.StByMaterial);
             }
-            nint offset = (nint)((i * Stride + Row8Offset) * sizeof(Vector4));
-            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, offset, (nuint)sizeof(Vector4), &row8);
+            int at = i * Stride + Row8Offset;
+            if (_data[at] != row8)
+            {
+                _data[at] = row8;
+                changed = true;
+            }
         }
-        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+        // One upload for the lot: thousands of 16-byte writes into a buffer the GPU may still be
+        // reading each stall on it in turn.
+        if (changed)
+        {
+            _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, Buffer);
+            _gl.BufferSubData<Vector4>(BufferTargetARB.ShaderStorageBuffer, 0, _data);
+            _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+        }
 
         if (BakeTable != 0)
             _gl.DeleteBuffer(BakeTable);

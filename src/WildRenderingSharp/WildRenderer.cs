@@ -193,6 +193,11 @@ public sealed class WildRenderer : IDisposable
     {
         using var _ = GLHostState.Enter(_gl);
         var batch = new InstanceBatch(_gl, model, placements);
+        // Linked now, while the host is loading, rather than lazily on the first frame the batch
+        // is visible - a link that misses the program binary cache costs 100-500 ms, and paid
+        // mid-frame that is a hitch every time a new model comes into view.
+        foreach (var shape in model.Shapes)
+            ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
         _instances.Add(batch);
         if (updateScene)
             SceneChanged();
