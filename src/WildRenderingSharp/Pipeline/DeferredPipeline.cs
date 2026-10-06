@@ -16,6 +16,7 @@ public sealed record ActorRenderInput(LoadedModel Model, Vector4[] ModelMatrixRo
 /// </summary>
 /// <param name="Highlight">Which actor/shape to overlay with a flat, translucent highlight this frame (e.g. a hovered row in the Material Inspector), or null for none - see <see cref="HighlightOverlayPass"/>.</param>
 /// <param name="Instances">Batches of placements drawn instanced alongside <paramref name="Actors"/> - a map's worth of static objects (see <see cref="InstanceBatch"/>). Each draws its own <see cref="InstanceBatch.Visible"/> runs.</param>
+/// <param name="Terrain">A host whose terrain is shaded with the game's terrain programs - see <see cref="TerrainShading"/>.</param>
 /// <param name="ShadowCascades">
 /// Nested shadow regions, finest first, each drawn into its own 2048x2048 layer (at most
 /// <see cref="RenderTargets.MaxCascades"/>): near shadows sharp, far ones coarse but present, as
@@ -26,7 +27,8 @@ public sealed record ActorRenderInput(LoadedModel Model, Vector4[] ModelMatrixRo
 /// <param name="ShadowFocus">The region the shadow map covers, instead of every actor's bounds - for a scene far bigger than one shadow map can resolve, centred on what the camera looks at.</param>
 public sealed record FrameRequest(Camera Camera, LightingContext Lighting, EnvPalette Palette, IReadOnlyList<ActorRenderInput> Actors, float AoRadius, float ShadowBias, (int ActorIndex, int ShapeIndex)? Highlight = null, SkyPostFx? SkyPostFx = null, CloudPostFx? CloudPostFx = null, SkyBinLut? SkyBin = null, ColorCorrectionPostFx? ColorCorrection = null,
     IReadOnlyList<InstanceBatch>? Instances = null, ShadowFocus? ShadowFocus = null,
-    IReadOnlyList<ShadowFocus>? ShadowCascades = null);
+    IReadOnlyList<ShadowFocus>? ShadowCascades = null,
+    ITerrainHost? Terrain = null);
 
 /// <summary>A sphere the shadow map is fitted to - see <see cref="FrameRequest.ShadowFocus"/>.</summary>
 public readonly record struct ShadowFocus(Vector3 Center, float Radius);
@@ -137,6 +139,13 @@ public sealed class DeferredPipeline : IDisposable
 
     /// <summary>Each pass's GPU time over a recent frame - see <see cref="GpuPassTimer"/>.</summary>
     public GpuPassTimer Timer { get; }
+
+    /// <summary>The game's terrain programs, for a host that hands its terrain over (<see cref="FrameRequest.Terrain"/>).</summary>
+    public TerrainShading Terrain { get; }
+
+    /// <summary>The pass that lights geometry no actor stamped - the terrain's, <c>o_material_behave</c> 0.</summary>
+    const string DefaultPass = "chara_nonmetal";
+    bool _wantsDefaultPass;
     readonly SceneColorShapePass _sceneColorShapes;
     readonly KnownMaterialFixes _knownFixes;
     readonly ForwardPass _forward;
@@ -197,6 +206,7 @@ public sealed class DeferredPipeline : IDisposable
         _colorCorrection = new ColorCorrectionPass(gl);
         _resolve = new DeferredResolvePass(gl);
         Timer = new GpuPassTimer(gl);
+        Terrain = new TerrainShading(gl, decompiledDirectory);
         _sceneColorShapes = new SceneColorShapePass(gl);
         _knownFixes = new KnownMaterialFixes(gl);
         _forward = new ForwardPass(gl, systemTexturesDir);
@@ -221,6 +231,8 @@ public sealed class DeferredPipeline : IDisposable
         var allShapes = models.SelectMany(m => m.Shapes).ToList();
         _opaqueShapes = allShapes.Where(s => !s.Blend).ToList();
         var passNames = PassIdMaskPass.DistinctPasses(allShapes);
+        if (_wantsDefaultPass && !passNames.Contains(DefaultPass))
+            passNames = [.. passNames, DefaultPass];
         _cachedNeedsKnownMaterialFixes = _opaqueShapes.Any(KnownMaterialFixes.NeedsEyeVisibilityMaskFix);
         _mainShadowCache.SunWorld = null; // the scene's own bounds changed - invalidate the cached shadow map
 
@@ -235,6 +247,63 @@ public sealed class DeferredPipeline : IDisposable
             _gl.DeleteBuffer(old.MaterialUboBuffer);
         _resolvedPasses = DeferredResolvePass.ResolveDeferredPasses(_gl, Programs, _decompiledDirectory, _deferredMaterialsDirectory, _passNames);
         Console.WriteLine($"  deferred passes: {string.Join(", ", _passNames)}");
+    }
+
+    /// <summary>Makes sure <see cref="DefaultPass"/> is resolved, for terrain no actor's pass covers.</summary>
+    void EnsureDefaultPass()
+    {
+        if (_passNames.Contains(DefaultPass))
+            return;
+        _wantsDefaultPass = true;
+        _passNames = [.. _passNames, DefaultPass];
+        _resolvedPasses = [.. _resolvedPasses, .. DeferredResolvePass.ResolveDeferredPasses(_gl, Programs, _decompiledDirectory, _deferredMaterialsDirectory, [DefaultPass])];
+    }
+
+    /// <summary>
+    /// The terrain's G-buffer half, after the actors', as the game orders it: the linear depth and
+    /// G-buffer under it are copied first, for the soft edge where the ground meets something set
+    /// into it, then the host draws through the game's terrain program with a <c>Context</c> in the
+    /// game's own Y-up world.
+    /// </summary>
+    void DrawTerrainGBuffer(ITerrainHost host, RenderTargets targets, Camera camera, Camera.ViewProjection vp,
+        Vector4[] viewProjFlipped, Vector4[] projFlipped, Vector4[] viewInv4, Vector2 preTexel)
+    {
+        _linearDepth.Run(Resources, targets, camera.NearPlane, camera.FarPlane);
+        var (underAlbedo, underNormal) = targets.TerrainUnderCopies();
+        _gl.CopyImageSubData(targets.GBuffer[1].Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
+            underAlbedo.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)targets.Width, (uint)targets.Height, 1);
+        _gl.CopyImageSubData(targets.GBuffer[3].Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
+            underNormal.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)targets.Width, (uint)targets.Height, 1);
+
+        var ctx = ContextUbo.BuildForCamera(TerrainShading.FromYUp(vp.View), TerrainShading.FromYUp(viewProjFlipped), projFlipped,
+            TerrainShading.InverseToYUp(viewInv4[..3]), vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
+        Resources.Ubo("ctx_terrain", ctx.ToByteArray(), bindingIndex: 1);
+        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, Terrain.MaterialBuffer);
+
+        targets.BindGBuffer();
+        targets.SetGBufferColorMask(true);
+        _gl.Disable(EnableCap.Blend);
+        _gl.Disable(EnableCap.CullFace);
+        _gl.Enable(EnableCap.DepthTest);
+        _gl.DepthFunc(DepthFunction.Less);
+        _gl.DepthMask(true);
+        BindUnit(0, underAlbedo.Handle);
+        BindUnit(1, underNormal.Handle);
+        BindUnit(4, targets.LinearDepth.Handle);
+
+        host.DrawGBuffer(new TerrainDraw(_gl, Hosting.YUpWorld.PointBack(camera.Eye), -1, default));
+
+        _gl.UseProgram(0);
+        _gl.BindVertexArray(0);
+        _gl.ActiveTexture(TextureUnit.Texture0);
+        _gl.Disable(EnableCap.DepthTest);
+        GLDiagnostics.CheckPass(_gl, "terrain");
+    }
+
+    void BindUnit(int unit, uint handle)
+    {
+        _gl.ActiveTexture(TextureUnit.Texture0 + unit);
+        _gl.BindTexture(TextureTarget.Texture2D, handle);
     }
 
     public void Resize(int width, int height) => Targets.Resize(width, height);
@@ -404,6 +473,11 @@ public sealed class DeferredPipeline : IDisposable
         // ---- G-buffer (flipped Context already bound at 1) ----
         _gbuffer.Run(Resources, targets, opaqueGroups, Programs);
         GLDiagnostics.CheckPass(_gl, "G-buffer pass");
+        if (request.Terrain is { } terrainHost && Terrain.Available)
+        {
+            EnsureDefaultPass();
+            DrawTerrainGBuffer(terrainHost, targets, camera, vp, viewProjFlipped, projFlipped, viewInv4, preTexel);
+        }
         Resources.BindUbo("ctx_true", 1); // every later pass uses the true (unflipped) projection
 
         // ---- shadow map (skipped when the camera is the only thing that moved - see ShadowCache's own remarks) ----
@@ -615,8 +689,9 @@ public sealed class DeferredPipeline : IDisposable
             ? allGroups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass).ToHashSet(StringComparer.Ordinal)
             : [];
         _resolve.SetEnvironmentColor(hemiSky);
+        int defaultPass = request.Terrain is not null ? _passNames.IndexOf(DefaultPass) : -1;
         _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
-            sceneColorShapes ? name => !sceneColorPasses.Contains(name) : null);
+            sceneColorShapes ? name => !sceneColorPasses.Contains(name) : null, defaultPass);
         GLDiagnostics.CheckPass(_gl, "deferred resolve");
 
         // ---- shapes that read the lit scene (water): drawn over a copy of it, then their pixels
@@ -904,6 +979,7 @@ public sealed class DeferredPipeline : IDisposable
             hash.Add(sunWorld);
             hash.Add(focus);
             hash.Add(actorSignature);
+            hash.Add(request.Terrain?.ShadowVersion ?? 0);
             hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(targets));
             foreach (var batch in instances)
             {
@@ -933,6 +1009,16 @@ public sealed class DeferredPipeline : IDisposable
                             batch, ShadowRuns: true, Cascade: c));
                 }
                 _shadow.Run(Resources, targets, groups, Programs, c);
+                if (request.Terrain is { } terrainHost && Terrain.Available)
+                {
+                    var ctxTerrain = ContextUbo.BuildForCamera(TerrainShading.FromYUp(lm.View3Rows), TerrainShading.FromYUp(lm.ViewProj), lm.Proj,
+                        TerrainShading.InverseToYUp(Mat4Math.Invert(Mat4Math.ToMat4(lm.View3Rows))[..3]), 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
+                    Resources.Ubo("ctx_light_terrain", ctxTerrain.ToByteArray(), bindingIndex: 1);
+                    terrainHost.DrawShadow(new TerrainDraw(_gl, Hosting.YUpWorld.PointBack(camera.Eye), c,
+                        new Vector4(Hosting.YUpWorld.PointBack(focus.Center), focus.Radius)));
+                    _gl.UseProgram(0);
+                    _gl.BindVertexArray(0);
+                }
                 cache.CascadeSignature[c] = signature;
                 cache.CascadeLight[c] = lm;
                 drew = true;
@@ -1020,6 +1106,7 @@ public sealed class DeferredPipeline : IDisposable
         _colorCorrection.Dispose();
         _resolve.Dispose();
         Timer.Dispose();
+        Terrain.Dispose();
         _sceneColorShapes.Dispose();
         _knownFixes.Dispose();
         _forward.Dispose();

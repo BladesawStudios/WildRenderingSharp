@@ -52,6 +52,8 @@ public sealed class DeferredResolvePass : IDisposable
         uniform sampler2D tex_id;    // the pass-ID buffer
         uniform sampler2D tex_emis;  // cTex_GBuffEmission (G-buffer attachment 5)
         uniform sampler2D tex_alb;   // cTex_GBuffAlbedo   (G-buffer attachment 1)
+        uniform sampler2D tex_gdepth; // the G-buffer's depth
+        uniform int uClaimEmpty;     // this pass also lights geometry no actor stamped (the terrain)
         uniform float uId;
         uniform float uEmission;
         uniform float uEmissionExposureRcp; // see Run's remarks - keeps emission exposure-invariant
@@ -62,10 +64,12 @@ public sealed class DeferredResolvePass : IDisposable
         out vec4 fragColor;
         void main() {
             float id_val = texture(tex_id, vUV).r;
-            if (id_val <= 0.001) discard;
-            if (uAll == 0 && abs(id_val - uId) > 0.6 / 255.0) discard;
-
             vec2 g = uGFlip == 1 ? vec2(vUV.x, 1.0 - vUV.y) : vUV;
+            if (id_val <= 0.001) {
+                if (uClaimEmpty == 0 || texture(tex_gdepth, g).r >= 1.0) discard;
+            }
+            else if (uAll == 0 && abs(id_val - uId) > 0.6 / 255.0) discard;
+
             float enable = float(int(trunc(texture(tex_alb, g).a * 255.0)) & 1);
 
             vec3 lit_col = texture(t, vUV).rgb;
@@ -177,9 +181,10 @@ public sealed class DeferredResolvePass : IDisposable
     /// Dividing it back out here is the same separation <c>LightingContext.SceneGain</c> already
     /// documents for the lit path, applied to the axis that actually needed it.
     /// </param>
+    /// <param name="claimEmptyPass">The pass that also lights geometry the pass-ID mask left unstamped - a host's terrain - or -1.</param>
     /// <param name="include">Which passes to run, by name - all of them when null. A skipped pass keeps its pass-ID, so the mask still names the rest correctly.</param>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ResolvedDeferredPass> passes,
-        float emissionScale, float sceneGain, float exposure, Func<string, bool>? include = null)
+        float emissionScale, float sceneGain, float exposure, Func<string, bool>? include = null, int claimEmptyPass = -1)
     {
         // Final's background content (colour/transparent/sky - see BackgroundPass) is already
         // painted in by the caller, BEFORE this runs - any pixel no resolved pass's mask covers
@@ -218,6 +223,8 @@ public sealed class DeferredResolvePass : IDisposable
             _gl.SetInt(_composeProgram, "uGFlip", 1);
             _gl.SetFloat(_composeProgram, "uId", (i + 1) / 255f);
             _gl.SetInt(_composeProgram, "uAll", 0);
+            _gl.SetInt(_composeProgram, "uClaimEmpty", i == claimEmptyPass ? 1 : 0);
+            _gl.BindTextureUniform(_composeProgram, "tex_gdepth", 22, targets.GBufferDepth.Handle);
             resources.DrawFullscreenTriangle();
         }
     }
