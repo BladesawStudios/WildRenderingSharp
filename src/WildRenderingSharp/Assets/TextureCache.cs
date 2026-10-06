@@ -38,14 +38,17 @@ public sealed class TextureCache : IDisposable
     readonly Dictionary<string, LoadedTexture> _byTextureName = new(StringComparer.Ordinal);
 
     ExternalTextures? _external;
+    readonly SharedTextures? _shared;
     bool _ownsExternal;
 
     /// <param name="external">Where array samplers find a host's textures (see <see cref="ExternalTextures"/>); null binds them white.</param>
-    public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null)
+    /// <param name="shared">Textures shared with other models' caches (see <see cref="SharedTextures"/>); null keeps them to this one.</param>
+    public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null)
     {
         _gl = gl;
         _dataDirectory = dataDirectory;
         _external = external;
+        _shared = shared;
     }
 
     /// <summary>Resolves every texture a shape's sampler list references, skipping unbound units and logging anything it can't load. Returns bindings ready to bind.</summary>
@@ -94,6 +97,14 @@ public sealed class TextureCache : IDisposable
         {
             Console.WriteLine($"[TextureCache] SKIPPED '{s.Texture}': unhandled format '{s.Format}'");
             return null;
+        }
+
+        string? sharedKey = _shared is null ? null
+            : SharedTextures.Key(s, CompressedTextureFormat.IsSrgb(s.Format, s.Key, s.Assigned, s.Texture));
+        if (sharedKey is not null && _shared!.TryAcquire(sharedKey, out var held))
+        {
+            _byTextureName[s.Texture] = held;
+            return held;
         }
 
         string path = Path.Combine(_dataDirectory, s.File);
@@ -172,6 +183,8 @@ public sealed class TextureCache : IDisposable
 
         var loaded = new LoadedTexture { Handle = handle, Width = s.Width, Height = s.Height, Name = s.Texture };
         _byTextureName[s.Texture] = loaded;
+        if (sharedKey is not null)
+            _shared!.Add(sharedKey, loaded);
         return loaded;
     }
 
@@ -321,7 +334,12 @@ public sealed class TextureCache : IDisposable
     public void Dispose()
     {
         foreach (var tex in _byTextureName.Values)
-            _gl.DeleteTexture(tex.Handle);
+        {
+            if (_shared is not null && _shared.Owns(tex))
+                _shared.Release(tex);
+            else
+                _gl.DeleteTexture(tex.Handle);
+        }
         _byTextureName.Clear();
         if (_white is { } white)
             _gl.DeleteTexture(white.Handle);

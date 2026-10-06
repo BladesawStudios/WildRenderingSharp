@@ -20,6 +20,9 @@ public sealed class ModelLoader
 
     readonly ExternalTextures? _external;
 
+    /// <summary>Textures shared with other models (see <see cref="Assets.SharedTextures"/>); null loads this model's own.</summary>
+    public SharedTextures? SharedTextures { get; init; }
+
     /// <param name="external">A host's shared textures - see <see cref="ExternalTextures"/>.</param>
     public ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
     {
@@ -57,7 +60,7 @@ public sealed class ModelLoader
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
     {
         var manifest = ModelManifest.Load(Path.Combine(_dataDirectory, $"{modelName}.manifest.json"));
-        var textures = new TextureCache(_gl, _dataDirectory, _external);
+        var textures = new TextureCache(_gl, _dataDirectory, _external, SharedTextures);
         var shapes = new List<LoadedShape>();
         var lo = new Vector3(float.MaxValue);
         var hi = new Vector3(float.MinValue);

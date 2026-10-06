@@ -56,6 +56,9 @@ public sealed class WildRenderer : IDisposable
     /// <summary>Textures a host supplies by name - the terrain's material arrays (<c>MaterialAlb</c>, <c>MaterialCmb</c>) that ground-blending objects sample. See <see cref="Assets.ExternalTextures"/>.</summary>
     public ExternalTextures ExternalTextures { get; }
 
+    /// <summary>Textures every loaded model shares, one GL texture per distinct texture however many models copy it.</summary>
+    public SharedTextures SharedTextures { get; }
+
     public IReadOnlyList<RenderActor> Actors => _actors;
 
     /// <summary>Incremented once per <see cref="Render"/> - see <see cref="RenderActor.EvaluatePosedSkeleton"/> for why physics needs it.</summary>
@@ -91,6 +94,7 @@ public sealed class WildRenderer : IDisposable
                 cache.DeferredMaterials, cache.SystemTextures);
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
+            SharedTextures = new SharedTextures(gl);
             // The atmosphere bake is scene-independent and ~600 draw calls, so it runs once here
             // against the palette that will actually be used rather than inside the first frame.
             Pipeline.EnsureSkyPrecomputed(Environment.SkyPostFx, Environment.Palettes.Get(Lighting.PaletteName),
@@ -155,6 +159,7 @@ public sealed class WildRenderer : IDisposable
         var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName), ExternalTextures)
         {
             CompactVertices = CompactModelVertices,
+            SharedTextures = SharedTextures,
         };
         return loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Lighting.EnableKnownMaterialFixes);
     }
@@ -354,6 +359,7 @@ public sealed class WildRenderer : IDisposable
         _instances.Clear();
         View.Dispose();
         ExternalTextures.Dispose();
+        SharedTextures.Dispose();
         _bakes?.Dispose();
         Pipeline.Dispose();
     }
