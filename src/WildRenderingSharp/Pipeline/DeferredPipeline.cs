@@ -145,7 +145,11 @@ public sealed class DeferredPipeline : IDisposable
 
     /// <summary>The pass that lights geometry no actor stamped - the terrain's, <c>o_material_behave</c> 0.</summary>
     const string DefaultPass = "chara_nonmetal";
-    bool _wantsDefaultPass;
+    const string WaterPass = "field_water";
+
+    /// <summary>Passes a host's terrain needs that no actor may stamp - kept through <see cref="SetScene"/>.</summary>
+    readonly List<string> _hostPasses = [];
+    bool _terrainDrawn;
     readonly SceneColorShapePass _sceneColorShapes;
     readonly KnownMaterialFixes _knownFixes;
     readonly ForwardPass _forward;
@@ -232,8 +236,9 @@ public sealed class DeferredPipeline : IDisposable
         var allShapes = models.SelectMany(m => m.Shapes).ToList();
         _opaqueShapes = allShapes.Where(s => !s.Blend).ToList();
         var passNames = PassIdMaskPass.DistinctPasses(allShapes);
-        if (_wantsDefaultPass && !passNames.Contains(DefaultPass))
-            passNames = [.. passNames, DefaultPass];
+        foreach (string hostPass in _hostPasses)
+            if (!passNames.Contains(hostPass))
+                passNames = [.. passNames, hostPass];
         _cachedNeedsKnownMaterialFixes = _opaqueShapes.Any(KnownMaterialFixes.NeedsEyeVisibilityMaskFix);
         _mainShadowCache.SunWorld = null; // the scene's own bounds changed - invalidate the cached shadow map
 
@@ -250,16 +255,66 @@ public sealed class DeferredPipeline : IDisposable
         Console.WriteLine($"  deferred passes: {string.Join(", ", _passNames)}");
     }
 
-    /// <summary>Makes sure <see cref="DefaultPass"/> is resolved, for terrain no actor's pass covers.</summary>
-    void EnsureDefaultPass()
+    /// <summary>Makes sure <paramref name="pass"/> is resolved, for terrain no actor's pass covers.</summary>
+    void EnsurePass(string pass)
     {
-        if (_passNames.Contains(DefaultPass))
+        if (!_hostPasses.Contains(pass))
+            _hostPasses.Add(pass);
+        if (_passNames.Contains(pass))
             return;
-        _wantsDefaultPass = true;
-        _passNames = [.. _passNames, DefaultPass];
-        _resolvedPasses = [.. _resolvedPasses, .. DeferredResolvePass.ResolveDeferredPasses(_gl, Programs, _decompiledDirectory, _deferredMaterialsDirectory, [DefaultPass])
+        _passNames = [.. _passNames, pass];
+        _resolvedPasses = [.. _resolvedPasses, .. DeferredResolvePass.ResolveDeferredPasses(_gl, Programs, _decompiledDirectory, _deferredMaterialsDirectory, [pass])
             .Select(p => p with { PassIndex = _passNames.Count - 1 })];
     }
+
+    /// <summary>
+    /// The host's water, through the game's water program (see <see cref="TerrainShading"/>'s water
+    /// remarks) - drawn into the G-buffer over the lit opaque scene, or, when
+    /// <paramref name="stamp"/>, marked in the pass-ID mask for <c>field_water</c>.
+    /// </summary>
+    void DrawTerrainWater(ITerrainHost host, RenderTargets targets, Camera camera, bool stamp)
+    {
+        if (!Terrain.BindWater())
+            return;
+        Resources.BindUbo("ctx_terrain", 1);
+        Resources.BindUbo("env", 6);
+        _gl.Disable(EnableCap.CullFace);
+        _gl.Disable(EnableCap.Blend);
+        var draw = new TerrainDraw(_gl, Hosting.YUpWorld.PointBack(camera.Eye), -1, default);
+        if (!stamp)
+        {
+            targets.BindGBuffer();
+            _gl.Enable(EnableCap.DepthTest);
+            _gl.DepthFunc(DepthFunction.Lequal);
+            _gl.DepthMask(true);
+            BindUnit(SceneColorShapePass.MaterialIdUnit, targets.MaterialIdCopy.Handle);
+            BindUnit(SceneColorShapePass.LinearDepthHalfUnit, targets.LinearDepthHalf.Handle);
+            BindUnit(TerrainWaterColorBufferUnit, targets.Behind.Handle);
+            ClipOrigin.Game(_gl, true);
+            host.DrawWater(draw, stamp: false);
+            ClipOrigin.Game(_gl, false);
+            _gl.DepthFunc(DepthFunction.Less);
+        }
+        else
+        {
+            // Drawn the right way up, as the mask is, against the G-buffer's depth - see PassIdMaskPass.
+            targets.BindPassIdTarget();
+            _gl.Disable(EnableCap.DepthTest);
+            int index = _passNames.IndexOf(WaterPass);
+            var block = new float[8] { (index + 1) / 255f, camera.NearPlane, camera.FarPlane, 0f, 1f / targets.Width, 1f / targets.Height, 0f, 0f };
+            Resources.Ubo("terrain_water_stamp", System.Runtime.InteropServices.MemoryMarshal.AsBytes(block.AsSpan()), bindingIndex: TerrainShading.StampBinding);
+            BindUnit(TerrainShading.StampDepthUnit, targets.GBufferDepth.Handle);
+            host.DrawWater(draw, stamp: true);
+        }
+        _gl.UseProgram(0);
+        _gl.BindVertexArray(0);
+        _gl.ActiveTexture(TextureUnit.Texture0);
+        _gl.Disable(EnableCap.DepthTest);
+        GLDiagnostics.CheckPass(_gl, stamp ? "terrain water stamp" : "terrain water");
+    }
+
+    /// <summary><c>cTex_ColorBuffer</c>'s unit in the terrain water program, its own binding.</summary>
+    const int TerrainWaterColorBufferUnit = 19;
 
     /// <summary>
     /// The terrain's G-buffer half, after the actors', as the game orders it: the linear depth and
@@ -529,9 +584,11 @@ public sealed class DeferredPipeline : IDisposable
         _gbuffer.Run(Resources, targets, opaqueGroups, Programs);
         ClipOrigin.Game(_gl, false);
         GLDiagnostics.CheckPass(_gl, "G-buffer pass");
+        _terrainDrawn = false;
         if (request.Terrain is { } terrainHost && Terrain.Available)
         {
-            EnsureDefaultPass();
+            _terrainDrawn = true;
+            EnsurePass(DefaultPass);
             DrawTerrainGBuffer(terrainHost, targets, camera, vp,
                 gameOrigin ? viewProj : viewProjFlipped, gameOrigin ? vp.Proj : projFlipped, viewInv4, preTexel);
         }
@@ -745,7 +802,15 @@ public sealed class DeferredPipeline : IDisposable
         bool sceneColorShapes = SceneColorShapePass.Any(allGroups);
         var sceneColorPasses = sceneColorShapes
             ? allGroups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass).ToHashSet(StringComparer.Ordinal)
-            : [];
+            : new HashSet<string>(StringComparer.Ordinal);
+        // The host's water reads the lit scene too, and is lit by field_water.
+        var waterHost = _terrainDrawn && request.Terrain is { HasWater: true } && Terrain.WaterAvailable ? request.Terrain : null;
+        if (waterHost is not null)
+        {
+            EnsurePass(WaterPass);
+            sceneColorPasses.Add(WaterPass);
+        }
+        bool secondPhase = sceneColorShapes || waterHost is not null;
         _resolve.SetEnvironmentColor(hemiSky);
         // The pass that also lights the terrain - which no actor stamps - in whichever half of the
         // frame it runs in. A scene-colour shape lit by the same pass (glass, say) holds it back to
@@ -753,20 +818,25 @@ public sealed class DeferredPipeline : IDisposable
         // a shape was on screen.
         int defaultPass = request.Terrain is not null ? _passNames.IndexOf(DefaultPass) : -1;
         _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
-            sceneColorShapes ? name => !sceneColorPasses.Contains(name) : null, defaultPass);
+            secondPhase ? name => !sceneColorPasses.Contains(name) : null, defaultPass);
         GLDiagnostics.CheckPass(_gl, "deferred resolve");
 
         // ---- shapes that read the lit scene (water): drawn over a copy of it, then their pixels
         // lit and composited - see SceneColorShapePass. The screen-space inputs are re-derived
         // because the G-buffer under those pixels just changed.
-        if (sceneColorShapes)
+        if (secondPhase)
         {
             float emissionUnits = lighting.Exposure / MathF.Max(1e-4f, lighting.EmissionScale);
             _sceneColorShapes.CopyInputs(Resources, targets, emissionUnits);
-            Resources.BindUbo("ctx_gbuffer", 1);
-            ClipOrigin.Game(_gl, true);
-            _sceneColorShapes.Run(Resources, targets, allGroups, Programs);
-            ClipOrigin.Game(_gl, false);
+            if (sceneColorShapes)
+            {
+                Resources.BindUbo("ctx_gbuffer", 1);
+                ClipOrigin.Game(_gl, true);
+                _sceneColorShapes.Run(Resources, targets, allGroups, Programs);
+                ClipOrigin.Game(_gl, false);
+            }
+            if (waterHost is not null)
+                DrawTerrainWater(waterHost, targets, camera, stamp: false);
             Resources.BindUbo("ctx_true", 1);
             GLDiagnostics.CheckPass(_gl, "scene-colour shapes");
 
@@ -774,6 +844,11 @@ public sealed class DeferredPipeline : IDisposable
             _shadowAo.Run(Resources, targets, ssaoParams);
             _lightPrePass.Run(Resources, targets, lightPrePassParams);
             _passIdMask.Run(Resources, targets, allGroups, _passNames, maskViewProj, camera.NearPlane, camera.FarPlane);
+            if (waterHost is not null)
+            {
+                DrawTerrainWater(waterHost, targets, camera, stamp: true);
+                Resources.BindUbo("ctx_true", 1);
+            }
             _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
                 sceneColorPasses.Contains, defaultPass);
             GLDiagnostics.CheckPass(_gl, "scene-colour shapes resolve");

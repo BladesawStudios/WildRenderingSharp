@@ -90,6 +90,11 @@ public static class ModelPreparer
         Step(log, "cloud shader", () => EnsureCloudShader(romfsRoot, cache.Shaders));
         Step(log, "cloud noise shader", () => EnsureCloudNoiseShader(romfsRoot, cache.Shaders));
         Step(log, "sky shaders", () => EnsureSkyShaders(romfsRoot, cache.Shaders));
+        Step(log, "terrain water", () =>
+        {
+            if (!ShaderLibrary.CompileTool.ExportTerrainWater.IsExported(cache.Shaders))
+                ShaderLibrary.CompileTool.ExportTerrainWater.Run(romfsRoot, cache.Shaders);
+        });
         Step(log, "terrain shaders", () =>
         {
             if (!ShaderLibrary.CompileTool.ExportTerrainShaders.IsExported(cache.Shaders))
