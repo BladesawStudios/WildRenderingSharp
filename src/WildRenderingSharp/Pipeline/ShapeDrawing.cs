@@ -40,7 +40,7 @@ public static class ShapeDrawing
     /// bound (<see cref="ActorDrawGroup.BindUbos"/>).
     /// </summary>
     public static unsafe void DrawInstanced(GL gl, uint program, uint vao, LoadedShape shape,
-        IReadOnlyList<ShapeSampler> samplers, InstanceBatch batch)
+        IReadOnlyList<ShapeSampler> samplers, InstanceBatch batch, IReadOnlyList<(int First, int Count, int Lod)>? runs = null)
     {
         if (vao == 0 || program == 0)
             return;
@@ -64,7 +64,7 @@ public static class ShapeDrawing
         gl.ActiveTexture(TextureUnit.Texture0);
 
         gl.BindVertexArray(vao);
-        foreach (var (first, count, lod) in batch.Visible)
+        foreach (var (first, count, lod) in runs ?? batch.Visible)
         {
             if (count <= 0)
                 continue;

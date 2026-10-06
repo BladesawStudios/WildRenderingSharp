@@ -362,6 +362,19 @@ public sealed class SceneView : IDisposable
         return texture;
     }
 
+    /// <summary>
+    /// Shrinks the render targets and outputs to almost nothing, returning their memory - the
+    /// G-buffer, HDR and post targets at a large window and 2x supersampling run to well over a
+    /// gigabyte. For a host that keeps the view while not showing it; the next <see cref="Render"/>
+    /// grows them back.
+    /// </summary>
+    public void ReleaseTargets()
+    {
+        Targets.Resize(8, 8);
+        EnsureOutput(8, 8);
+        LastFrame = null;
+    }
+
     public void Dispose()
     {
         _present.Dispose();

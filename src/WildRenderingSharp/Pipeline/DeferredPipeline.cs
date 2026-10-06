@@ -402,12 +402,15 @@ public sealed class DeferredPipeline : IDisposable
         // reads as "flickers every frame" during real animation - confirmed by the user immediately
         // after landing it. Reverted. Any real fix for the GPU-cost side of this has to make the
         // shadow pass itself cheaper, not skip drawing it while something is genuinely moving.
+        if (request.ShadowFocus is { } shadowFocus)
+            foreach (var batch in instances)
+                batch.UpdateShadowRuns(shadowFocus);
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
         bool shadowCacheHit = shadowMapOverride is null && shadowCache.ModelRowsPerActor is not null && shadowCache.SunWorld == sunWorld
             && ActorRowsEqual(shadowCache.ModelRowsPerActor, modelRowsPerActor)
             && PosesEqual(shadowCache.BonesPerActor, request.Actors)
             && shadowCache.Focus == request.ShadowFocus
-            && shadowCache.InstanceSignature == InstanceSignature(instances);
+            && shadowCache.InstanceSignature == InstanceSignature(instances, request.ShadowFocus is not null);
         Vector3 rotatedLo, rotatedHi;
         ShadowPass.LightMatrices lightMatrices;
         if (shadowCacheHit)
@@ -427,7 +430,7 @@ public sealed class DeferredPipeline : IDisposable
                 var ctxLight = ContextUbo.BuildForCamera(lightMatrices.View3Rows, lightMatrices.ViewProj, lightMatrices.Proj,
                     Mat4Math.Invert(Mat4Math.ToMat4(lightMatrices.View3Rows))[..3], 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
                 Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);
-                _shadow.Run(Resources, targets, allGroups, Programs);
+                _shadow.Run(Resources, targets, ShadowGroups(allGroups, instances, request.ShadowFocus), Programs);
                 GLDiagnostics.CheckPass(_gl, "shadow pass");
                 Resources.BindUbo("ctx_true", 1);
 
@@ -436,7 +439,7 @@ public sealed class DeferredPipeline : IDisposable
                 // Copied: a host may well reuse and rewrite the same array next frame.
                 shadowCache.BonesPerActor = request.Actors.Select(a => (Matrix4x4[]?)a.BoneWorldMatrices?.Clone()).ToArray();
                 shadowCache.Focus = request.ShadowFocus;
-                shadowCache.InstanceSignature = InstanceSignature(instances);
+                shadowCache.InstanceSignature = InstanceSignature(instances, request.ShadowFocus is not null);
                 shadowCache.RotatedLo = rotatedLo;
                 shadowCache.RotatedHi = rotatedHi;
                 shadowCache.LightMatrices = lightMatrices;
@@ -817,13 +820,33 @@ public sealed class DeferredPipeline : IDisposable
     static readonly Vector4[] IdentityRows = [new(1, 0, 0, 0), new(0, 1, 0, 0), new(0, 0, 1, 0)];
 
     /// <summary>What the batches will draw - which batches, and which runs of each at which level - for the shadow map's reuse check.</summary>
-    static long InstanceSignature(IReadOnlyList<InstanceBatch> instances)
+    /// <summary>
+    /// What the shadow map draws for this frame. With a focus, batches cast from their own
+    /// shadow-focus runs (<see cref="InstanceBatch.ShadowVisible"/>) - including a batch the camera
+    /// sees none of - instead of from what is on screen.
+    /// </summary>
+    static List<ActorDrawGroup> ShadowGroups(List<ActorDrawGroup> allGroups, IReadOnlyList<InstanceBatch> instances, ShadowFocus? focus)
+    {
+        if (focus is null)
+            return allGroups;
+        var groups = allGroups.Where(g => g.Batch is null).ToList();
+        foreach (var batch in instances)
+        {
+            if (batch.ShadowVisible.Count > 0)
+                groups.Add(new ActorDrawGroup([], [], IdentityRows,
+                    batch.Model.Shapes.Where(s => s.Enabled && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch, ShadowRuns: true));
+        }
+        return groups;
+    }
+
+    /// <param name="shadowRuns">Signs the shadow-focus runs rather than the camera's - see <see cref="ShadowGroups"/>.</param>
+    static long InstanceSignature(IReadOnlyList<InstanceBatch> instances, bool shadowRuns)
     {
         var hash = new HashCode();
         foreach (var batch in instances)
         {
             hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(batch));
-            foreach (var run in batch.Visible)
+            foreach (var run in shadowRuns ? batch.ShadowVisible : batch.Visible)
                 hash.Add(run);
         }
         return hash.ToHashCode();

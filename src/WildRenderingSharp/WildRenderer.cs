@@ -98,11 +98,22 @@ public sealed class WildRenderer : IDisposable
         }
     }
 
+    /// <summary>
+    /// Loads models with only the vertex data their own programs read, and without skin weights
+    /// that cannot matter in the bind pose - for a host drawing static placements only (a map),
+    /// where it saves a large share of vertex memory. See <see cref="ModelLoader.CompactVertices"/>;
+    /// a model loaded this way can not be posed or animated. Affects models loaded after it is set.
+    /// </summary>
+    public bool CompactModelVertices { get; set; }
+
     /// <summary>Loads a prepared model from the cache. Needs the GL context current; compiles the model's shader programs, so it can take a moment for a large model.</summary>
     public LoadedModel LoadModel(string resolvedModelName)
     {
         using var _ = GLHostState.Enter(_gl);
-        var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName), ExternalTextures);
+        var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName), ExternalTextures)
+        {
+            CompactVertices = CompactModelVertices,
+        };
         return loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Lighting.EnableKnownMaterialFixes);
     }
 
@@ -268,6 +279,13 @@ public sealed class WildRenderer : IDisposable
         var request = BuildRequest(camera, deltaSeconds);
         View.Render(request, width, height);
         return View.OutputTexture;
+    }
+
+    /// <summary>Returns the view's render-target memory while it is not being shown - see <see cref="SceneView.ReleaseTargets"/>.</summary>
+    public void ReleaseTargets()
+    {
+        using var _ = GLHostState.Enter(_gl);
+        View.ReleaseTargets();
     }
 
     public void Dispose()

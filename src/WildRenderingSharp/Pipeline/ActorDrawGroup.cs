@@ -28,8 +28,11 @@ public enum ShapeProgram
 /// <see cref="BindUbos"/> and draw with <see cref="Draw"/>.
 /// </remarks>
 public readonly record struct ActorDrawGroup(byte[] BonesBytes, byte[] ShpMtxBytes, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
-    InstanceBatch? Batch = null)
+    InstanceBatch? Batch = null, bool ShadowRuns = false)
 {
+    /// <summary>The batch's runs this group draws: its shadow-focus runs for a shadow group, its camera runs otherwise.</summary>
+    List<(int First, int Count, int Lod)>? Runs => Batch is null ? null : ShadowRuns ? Batch.ShadowVisible : Batch.Visible;
+
     /// <summary>
     /// Rebinds THIS actor's own bone-palette/ShpMtx buffers to their shared binding points - call
     /// immediately before drawing this group's shapes in any pass, and again for the next group
@@ -62,11 +65,12 @@ public readonly record struct ActorDrawGroup(byte[] BonesBytes, byte[] ShpMtxByt
             return;
         }
 
-        if (batch.Visible.Count == 0)
+        var runs = Runs!;
+        if (runs.Count == 0)
             return;
         EnsureInstancedPrograms(programs, shape);
         uint instanced = which switch { ShapeProgram.ZOnly => shape.InstancedZOnlyProgram, ShapeProgram.Forward => shape.InstancedForwardProgram, _ => shape.InstancedGBufferProgram };
-        ShapeDrawing.DrawInstanced(gl, instanced, vao, shape, samplers, batch);
+        ShapeDrawing.DrawInstanced(gl, instanced, vao, shape, samplers, batch, runs);
     }
 
     /// <summary>Links a shape's instanced programs the first time it is drawn instanced.</summary>

@@ -63,6 +63,49 @@ public sealed class InstanceBatch : IDisposable
     /// </summary>
     public bool IncludeBlended { get; set; } = true;
 
+    /// <summary>
+    /// Runs of instances inside the shadow focus, which is what the shadow map draws when a frame
+    /// has one (<see cref="FrameRequest.ShadowFocus"/>) - chosen by the shadow region, not by what
+    /// the camera sees, so turning the view neither redraws the map nor drops a caster just
+    /// off-screen. Recomputed only when the focus moves.
+    /// </summary>
+    public List<(int First, int Count, int Lod)> ShadowVisible { get; } = [];
+
+    ShadowFocus? _shadowFocus;
+
+    /// <summary>The level of detail shadow casters draw at: shapes, not surface detail, decide a shadow.</summary>
+    const int ShadowLod = 1;
+
+    /// <summary>Fills <see cref="ShadowVisible"/> for <paramref name="focus"/>, if it changed.</summary>
+    internal void UpdateShadowRuns(ShadowFocus focus)
+    {
+        if (_shadowFocus == focus)
+            return;
+        _shadowFocus = focus;
+        ShadowVisible.Clear();
+
+        float reach = focus.Radius + Model.BoundsRadius;
+        int start = -1;
+        for (int i = 0; i <= Count; i++)
+        {
+            bool inside = false;
+            if (i < Count)
+            {
+                Vector4[] r = Placements[i];
+                var position = new Vector3(r[0].W, r[1].W, r[2].W);
+                Vector3 d = Vector3.Abs(position - focus.Center);
+                inside = d.X <= reach && d.Y <= reach && d.Z <= reach;
+            }
+            if (inside && start < 0)
+                start = i;
+            else if (!inside && start >= 0)
+            {
+                ShadowVisible.Add((start, i - start, ShadowLod));
+                start = -1;
+            }
+        }
+    }
+
     /// <param name="placements">Each placement's model rows, the convention <see cref="ActorRenderInput.ModelMatrixRows"/> uses.</param>
     public InstanceBatch(GL gl, LoadedModel model, IReadOnlyList<Vector4[]> placements)
     {
@@ -71,7 +114,7 @@ public sealed class InstanceBatch : IDisposable
         Count = placements.Count;
         Placements = placements;
 
-        Matrix4x4[] local = BindPalette(model);
+        Matrix4x4[] local = BindPalette(model.Skeleton);
         PaletteRepeats = local.Length == 0;
         int slots = PaletteRepeats ? 1 : local.Length;
         PaletteVec4s = slots * 3;
@@ -143,9 +186,9 @@ public sealed class InstanceBatch : IDisposable
     /// slots, the bone alone for the rigid ones - BonePaletteUbo.Build's own two loops. Empty for a
     /// model with no skeleton.
     /// </summary>
-    static Matrix4x4[] BindPalette(LoadedModel model)
+    internal static Matrix4x4[] BindPalette(SkeletonManifest? skeleton)
     {
-        if (model.Skeleton is not { } skel)
+        if (skeleton is not { } skel)
             return [];
         Matrix4x4[] boneWorld = SkeletonPose.BindPoseWorldMatrices(skel);
         ReadOnlySpan<int> matrixToBone = CollectionsMarshal.AsSpan(skel.MatrixToBoneList);
