@@ -57,11 +57,20 @@ public sealed class ModelLoader
     /// <remarks>Never for a model that will be posed or animated - its weights are gone.</remarks>
     public bool CompactVertices { get; init; }
 
+    /// <summary>
+    /// Leaves the vertex arrays to <see cref="LoadedModel.FinishOnRenderThread"/>, for a load on a
+    /// worker thread with a context of its own: buffers, textures and programs are shared between
+    /// contexts, vertex arrays are not - one made on the worker's context is nothing on the
+    /// renderer's.
+    /// </summary>
+    public bool DeferVertexArrays { get; init; }
+
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
     {
         var manifest = ModelManifest.Load(Path.Combine(_dataDirectory, $"{modelName}.manifest.json"));
         var textures = new TextureCache(_gl, _dataDirectory, _external, SharedTextures);
         var shapes = new List<LoadedShape>();
+        var pending = new List<Action>();
         var lo = new Vector3(float.MaxValue);
         var hi = new Vector3(float.MinValue);
         var allVertexPositions = new List<Vector3>();
@@ -102,7 +111,11 @@ public sealed class ModelLoader
             uint ibo = GLBuffer.Create(_gl, BufferTargetARB.ElementArrayBuffer,
                 File.ReadAllBytes(Path.Combine(_dataDirectory, sh.IndexFile)));
 
-            uint gbufferVao = BuildVertexArray(gbufferProgram, layout, stride, vbo, ibo, constantSkin);
+            var vaoLayout = layout;
+            int vaoStride = stride;
+            bool vaoConstantSkin = constantSkin;
+            uint MakeVao(uint program) => BuildVertexArray(program, vaoLayout, vaoStride, vbo, ibo, vaoConstantSkin);
+            uint gbufferVao = DeferVertexArrays ? 0 : MakeVao(gbufferProgram);
             var gbufferSamplers = textures.Resolve(sh.Samplers);
 
             // Depth prepass (z-only): many materials carry no inline alpha-test discard in their
@@ -112,7 +125,7 @@ public sealed class ModelLoader
             IReadOnlyList<ShapeSampler> zonlySamplers = [];
             if (zonlyProgram != 0)
             {
-                zonlyVao = BuildVertexArray(zonlyProgram, layout, stride, vbo, ibo, constantSkin);
+                zonlyVao = DeferVertexArrays ? 0 : MakeVao(zonlyProgram);
                 zonlySamplers = textures.Resolve(sh.ZOnlySamplers);
             }
 
@@ -136,14 +149,14 @@ public sealed class ModelLoader
             IReadOnlyList<ShapeSampler> forwardSamplers = [];
             if (forwardProgram != 0)
             {
-                forwardVao = BuildVertexArray(forwardProgram, layout, stride, vbo, ibo, constantSkin);
+                forwardVao = DeferVertexArrays ? 0 : MakeVao(forwardProgram);
                 forwardSamplers = textures.Resolve(sh.MaterialSamplers);
             }
 
             byte[] materialUbo = File.ReadAllBytes(Path.Combine(_dataDirectory, sh.MaterialUbo));
             uint materialUboBuffer = GLBuffer.CreatePaddedUniformBuffer(_gl, materialUbo);
             var materialParams = MaterialParamLayout.TryLoadBeside(_dataDirectory, sh.MaterialUbo);
-            uint passIdVao = BuildPassIdVao(layout, stride, vbo, ibo, constantSkin);
+            uint passIdVao = DeferVertexArrays ? 0 : BuildPassIdVao(layout, stride, vbo, ibo, constantSkin);
 
             // The material's own static options, exported beside its geometry.
             string optionsPath = Path.Combine(_dataDirectory, $"{sh.Name}_options.txt");
@@ -151,7 +164,7 @@ public sealed class ModelLoader
                 .Any(l => l.Trim().Equals("o_enable_hide_normal_pass=True", StringComparison.OrdinalIgnoreCase));
             bool noTextures = sh.Samplers.Count == 0;
 
-            shapes.Add(new LoadedShape
+            var shape = new LoadedShape
             {
                 Hidden = hideNormalPass || noTextures,
                 CastsShadow = !hideNormalPass && sh.RenderState.DepthWriteEnabled,
@@ -185,7 +198,21 @@ public sealed class ModelLoader
                 MaterialUboBytes = materialUbo,
                 MaterialParams = materialParams,
                 PassIdVao = passIdVao,
-            });
+            };
+            shapes.Add(shape);
+            if (DeferVertexArrays)
+            {
+                uint zp = zonlyProgram, fp = forwardProgram, gp = gbufferProgram;
+                pending.Add(() =>
+                {
+                    shape.GBufferVao = MakeVao(gp);
+                    if (zp != 0)
+                        shape.ZOnlyVao = MakeVao(zp);
+                    if (fp != 0)
+                        shape.ForwardVao = MakeVao(fp);
+                    shape.PassIdVao = BuildPassIdVao(vaoLayout, vaoStride, vbo, ibo, vaoConstantSkin);
+                });
+            }
             Console.WriteLine($"  {sh.Name}: {sh.GBufferShader}, {gbufferSamplers.Count} textures, pass={sh.DeferredPass}");
         }
 
@@ -208,6 +235,7 @@ public sealed class ModelLoader
             AvailableAnims = availableAnims,
             AvailableTexturePatternAnims = availableTexturePatternAnims,
             AvailableMaterialAnims = availableMaterialAnims,
+            PendingVertexArrays = pending.Count > 0 ? pending : null,
         };
     }
 

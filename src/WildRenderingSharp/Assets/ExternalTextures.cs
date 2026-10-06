@@ -36,6 +36,12 @@ public sealed class ExternalTextures : IDisposable
     /// <summary>The texture bound for <paramref name="name"/> - the host's, once set, otherwise white.</summary>
     public LoadedTexture Get(string name)
     {
+        lock (_byName)
+            return GetLocked(name);
+    }
+
+    LoadedTexture GetLocked(string name)
+    {
         if (!_byName.TryGetValue(name, out var texture))
         {
             texture = new LoadedTexture { Handle = WhiteArray(), Width = 1, Height = 1, Name = name, Target = TextureTarget.Texture2DArray };
@@ -50,8 +56,11 @@ public sealed class ExternalTextures : IDisposable
     /// </summary>
     public void Set(string name, uint handle)
     {
-        var texture = Get(name);
-        texture.Handle = handle != 0 ? handle : WhiteArray();
+        lock (_byName)
+        {
+            var texture = GetLocked(name);
+            texture.Handle = handle != 0 ? handle : WhiteArray();
+        }
     }
 
     /// <summary>Puts <paramref name="name"/> back to white - the host is about to delete its texture.</summary>

@@ -42,6 +42,16 @@ public sealed class ShaderProgramCache : IDisposable
     public uint Load(string baseName, bool isForwardProgram = false,
         Func<string, string>? patchVertex = null, Func<string, string>? patchFragment = null)
     {
+        lock (_sync)
+            return LoadLocked(baseName, isForwardProgram, patchVertex, patchFragment);
+    }
+
+    /// <summary>Held for any use of the caches: a host may load models on a worker thread with a context of its own.</summary>
+    readonly object _sync = new();
+
+    uint LoadLocked(string baseName, bool isForwardProgram,
+        Func<string, string>? patchVertex, Func<string, string>? patchFragment)
+    {
         bool patched = patchVertex is not null || patchFragment is not null;
         if (!patched && _programs.TryGetValue(baseName, out uint cached))
             return cached;
@@ -65,6 +75,12 @@ public sealed class ShaderProgramCache : IDisposable
     /// nothing to wrap.
     /// </summary>
     public uint LoadInstanced(string baseName, bool isForwardProgram = false)
+    {
+        lock (_sync)
+            return LoadInstancedLocked(baseName, isForwardProgram);
+    }
+
+    uint LoadInstancedLocked(string baseName, bool isForwardProgram)
     {
         string key = (isForwardProgram ? "fwd:" : "") + baseName;
         if (_instancedPrograms.TryGetValue(key, out uint cached))

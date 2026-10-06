@@ -50,6 +50,15 @@ public sealed class BakeLibrary : IDisposable
     /// <summary>The tile a placement's bake is in, or null when it has none (or there is no index yet).</summary>
     public string? TileOf(ulong hash)
     {
+        lock (_sync)
+            return TileOfLocked(hash);
+    }
+
+    /// <summary>Held for any use: a host may look bakes up on a loading thread.</summary>
+    readonly object _sync = new();
+
+    string? TileOfLocked(ulong hash)
+    {
         if (!EnsureIndex())
             return null;
         int at = Array.BinarySearch(_hashes, hash);
@@ -57,14 +66,23 @@ public sealed class BakeLibrary : IDisposable
     }
 
     /// <summary>Of the tiles these placements need, the ones not exported yet.</summary>
-    public IReadOnlyList<string> MissingTiles(IEnumerable<ulong> hashes) =>
-        [.. hashes.Select(TileOf).OfType<string>().Distinct(StringComparer.Ordinal)
-            .Where(t => !File.Exists(Path.Combine(_dir, t + ".json")))];
+    public IReadOnlyList<string> MissingTiles(IEnumerable<ulong> hashes)
+    {
+        lock (_sync)
+            return [.. hashes.Select(TileOfLocked).OfType<string>().Distinct(StringComparer.Ordinal)
+                .Where(t => !File.Exists(Path.Combine(_dir, t + ".json")))];
+    }
 
     /// <summary>A placement's bake, or null when it has none or its tile is not exported yet.</summary>
     public BakeActor? Find(ulong hash)
     {
-        if (TileOf(hash) is not { } tileName || LoadTile(tileName) is not { } tile)
+        lock (_sync)
+            return FindLocked(hash);
+    }
+
+    BakeActor? FindLocked(ulong hash)
+    {
+        if (TileOfLocked(hash) is not { } tileName || LoadTile(tileName) is not { } tile)
             return null;
         if (!tile.Actors.TryGetValue(hash, out var actor))
             return null;
@@ -120,6 +138,12 @@ public sealed class BakeLibrary : IDisposable
 
     /// <summary>Forgets the index and the tiles that were missing, after the preparer has exported more.</summary>
     public void Refresh()
+    {
+        lock (_sync)
+            RefreshLocked();
+    }
+
+    void RefreshLocked()
     {
         // The index is read once it exists; re-reading its 600,000 entries on every refresh was a
         // stall of its own.

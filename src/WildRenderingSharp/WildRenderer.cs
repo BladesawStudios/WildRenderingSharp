@@ -113,7 +113,7 @@ public sealed class WildRenderer : IDisposable
     BakeLibrary? _bakes;
 
     /// <summary>The game's baked lighting for placed actors, from <see cref="CacheLayout.Bake"/>.</summary>
-    public BakeLibrary Bakes => _bakes ??= new BakeLibrary(_gl, Cache.Bake);
+    public BakeLibrary Bakes => _bakes ?? Interlocked.CompareExchange(ref _bakes, new BakeLibrary(_gl, Cache.Bake), null) ?? _bakes!;
 
     /// <summary>
     /// Gives a batch's instances their baked lighting, found by each placement's hash (parallel to
@@ -126,9 +126,15 @@ public sealed class WildRenderer : IDisposable
     public IReadOnlyList<string> AttachBake(InstanceBatch batch, IReadOnlyList<ulong> hashes)
     {
         using var _ = GLHostState.Enter(_gl);
-        var library = Bakes;
-        var missing = library.MissingTiles(hashes);
-        var perInstance = hashes.Select(library.Find).ToArray();
+        var (perInstance, missing) = FindBakes(hashes);
+        ApplyBake(batch, perInstance);
+        return missing;
+    }
+
+    /// <summary>The render-thread half of <see cref="AttachBake"/>: material ids and the batch's bake table.</summary>
+    public void ApplyBake(InstanceBatch batch, BakeActor?[] perInstance)
+    {
+        using var _ = GLHostState.Enter(_gl);
         if (perInstance.FirstOrDefault(b => b is not null) is { } any)
         {
             foreach (var shape in batch.Model.Shapes)
@@ -149,7 +155,40 @@ public sealed class WildRenderer : IDisposable
             }
         }
         batch.SetBake(perInstance);
-        return missing;
+    }
+
+    /// <summary>
+    /// <see cref="LoadModel"/> for a worker thread whose current context shares objects with the
+    /// renderer's: everything a model needs - its buffers, textures, and the plain and instanced
+    /// programs - is made there, leaving only its vertex arrays, which contexts do not share. Call
+    /// <see cref="LoadedModel.FinishOnRenderThread"/> on the renderer's thread before using it.
+    /// Waits for the worker's context to finish, so the objects are complete when handed over.
+    /// </summary>
+    public LoadedModel LoadModelOnWorker(string resolvedModelName)
+    {
+        var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName), ExternalTextures)
+        {
+            CompactVertices = CompactModelVertices,
+            SharedTextures = SharedTextures,
+            DeferVertexArrays = true,
+        };
+        var model = loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Lighting.EnableKnownMaterialFixes);
+        foreach (var shape in model.Shapes)
+            ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
+        _gl.Finish();
+        return model;
+    }
+
+    /// <summary>
+    /// The bake half of <see cref="AttachBake"/> that reads files and loads textures - safe on a
+    /// loading thread with a shared context. Hand the result to <see cref="ApplyBake"/>.
+    /// </summary>
+    public (BakeActor?[] PerInstance, IReadOnlyList<string> Missing) FindBakes(IReadOnlyList<ulong> hashes)
+    {
+        var library = Bakes;
+        var missing = library.MissingTiles(hashes);
+        var perInstance = hashes.Select(library.Find).ToArray();
+        return (perInstance, missing);
     }
 
     /// <summary>Loads a prepared model from the cache. Needs the GL context current; compiles the model's shader programs, so it can take a moment for a large model.</summary>

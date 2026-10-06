@@ -35,6 +35,22 @@ public sealed class LoadedModel : IDisposable
     /// <summary>This model's texture cache - exposed so a texture pattern anim can pull in an alternate texture on demand (see <see cref="WildRenderingSharp.Rendering.TexturePatternPose"/>) and have it cached like any other.</summary>
     public TextureCache Textures { get; }
 
+    /// <summary>Vertex arrays a worker-thread load left for the renderer's thread - see <see cref="FinishOnRenderThread"/>.</summary>
+    internal List<Action>? PendingVertexArrays { get; set; }
+
+    /// <summary>
+    /// Builds what a load on another context could not (<see cref="ModelLoader.DeferVertexArrays"/>):
+    /// its vertex arrays, a few GL calls a shape. Call on the renderer's thread before drawing.
+    /// </summary>
+    public void FinishOnRenderThread()
+    {
+        if (PendingVertexArrays is not { } pending)
+            return;
+        PendingVertexArrays = null;
+        foreach (var build in pending)
+            build();
+    }
+
     /// <summary>Every vertex position across every shape - used for icon-capture's rotated-silhouette camera fit (see <c>IconCapturePreset.Frame</c>), which needs the real mesh shape, not just its axis-aligned box.</summary>
     public required IReadOnlyList<Vector3> VertexPositions { get; init; }
 

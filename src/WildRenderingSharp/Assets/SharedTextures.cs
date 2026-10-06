@@ -30,28 +30,44 @@ public sealed class SharedTextures : IDisposable
     /// <summary>Takes another hold on the texture under <paramref name="key"/>, if there is one.</summary>
     internal bool TryAcquire(string key, out LoadedTexture texture)
     {
-        if (_byKey.TryGetValue(key, out var entry))
+        lock (_byKey)
         {
-            _byKey[key] = (entry.Texture, entry.Refs + 1);
-            texture = entry.Texture;
-            return true;
+            if (_byKey.TryGetValue(key, out var entry))
+            {
+                _byKey[key] = (entry.Texture, entry.Refs + 1);
+                texture = entry.Texture;
+                return true;
+            }
+            texture = null!;
+            return false;
         }
-        texture = null!;
-        return false;
     }
 
     /// <summary>Adds a texture just loaded, held once.</summary>
     internal void Add(string key, LoadedTexture texture)
     {
-        _byKey[key] = (texture, 1);
-        _keyOf[texture] = key;
+        lock (_byKey)
+        {
+            _byKey[key] = (texture, 1);
+            _keyOf[texture] = key;
+        }
     }
 
     /// <summary>Whether <paramref name="texture"/> is one of these.</summary>
-    internal bool Owns(LoadedTexture texture) => _keyOf.ContainsKey(texture);
+    internal bool Owns(LoadedTexture texture)
+    {
+        lock (_byKey)
+            return _keyOf.ContainsKey(texture);
+    }
 
     /// <summary>Lets go of one hold, deleting the texture with the last.</summary>
     internal void Release(LoadedTexture texture)
+    {
+        lock (_byKey)
+            ReleaseLocked(texture);
+    }
+
+    void ReleaseLocked(LoadedTexture texture)
     {
         if (!_keyOf.TryGetValue(texture, out string? key) || !_byKey.TryGetValue(key, out var entry))
             return;

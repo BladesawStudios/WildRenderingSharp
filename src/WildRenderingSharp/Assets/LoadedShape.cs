@@ -41,15 +41,15 @@ public sealed class LoadedShape
         Lods.Count == 0 ? (0, IndexCount) : Lods[Math.Clamp(lod, 0, Lods.Count - 1)];
 
     public required uint GBufferProgram { get; init; }
-    public required uint GBufferVao { get; init; }
+    public uint GBufferVao { get; internal set; }
     public required IReadOnlyList<ShapeSampler> GBufferSamplers { get; init; }
 
     public uint ZOnlyProgram { get; init; }
-    public uint ZOnlyVao { get; init; }
+    public uint ZOnlyVao { get; internal set; }
     public IReadOnlyList<ShapeSampler> ZOnlySamplers { get; init; } = [];
 
     public uint ForwardProgram { get; init; }
-    public uint ForwardVao { get; init; }
+    public uint ForwardVao { get; internal set; }
     public IReadOnlyList<ShapeSampler> ForwardSamplers { get; init; } = [];
 
     /// <summary>Base name of the compiled forward program's <c>.vert</c>/<c>.frag</c> pair (e.g. <c>"material_prog3248"</c>) - empty when <see cref="HasForward"/> is false. Lets <c>Debug.ShaderStepDebugger</c> find and re-instrument the real source text for this exact shape.</summary>
@@ -123,7 +123,7 @@ public sealed class LoadedShape
     public bool MaterialUboIsPatched { get; set; }
 
     /// <summary>Position-only VAO (location 0, matching <c>PassIdMaskPass</c>'s fixed shader ABI) over the same vertex/index buffers - used to stamp this shape's resolved deferred-pass ID.</summary>
-    public required uint PassIdVao { get; init; }
+    public uint PassIdVao { get; internal set; }
 
     public bool HasZOnly => ZOnlyVao != 0;
 
