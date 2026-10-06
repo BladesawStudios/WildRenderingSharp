@@ -471,7 +471,7 @@ public sealed class DeferredPipeline : IDisposable
 
         // ---- pass-ID mask (UNflipped proj - the resolve consumes it in its own true-GL space) ----
         var maskViewProj = Mat4Math.Multiply(vp.Proj, viewMat4);
-        _passIdMask.Run(Resources, targets, allGroups, _passNames, maskViewProj);
+        _passIdMask.Run(Resources, targets, allGroups, _passNames, maskViewProj, camera.NearPlane, camera.FarPlane);
         GLDiagnostics.CheckPass(_gl, "pass-ID mask");
 
         // ---- background (colour/transparent/real Rayleigh+Mie sky - see BackgroundPass) ----

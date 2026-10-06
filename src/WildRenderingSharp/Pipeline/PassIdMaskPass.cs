@@ -33,6 +33,7 @@ public sealed class PassIdMaskPass : IDisposable
     /// instance buffer rather than the per-actor <c>uMVP</c>.
     /// </summary>
     readonly uint _instancedProgram;
+    float _near, _far;
 
     /// <summary>
     /// Mirrors the compiled TotK vertex shader's own skinning (see <c>Shaders/TOTK/Vertex.vert</c>'s
@@ -114,24 +115,41 @@ public sealed class PassIdMaskPass : IDisposable
     ///
     /// Rather than reproduce the cutout (which would mean knowing each material's alpha texture and
     /// threshold, and matching a second program's depth bit-for-bit), read the answer the G-buffer
-    /// already computed: its albedo attachment is cleared to zero and every material writes a
-    /// NON-ZERO alpha there - it carries material flag bits, lowest seen is 5/255 - so alpha == 0
-    /// means "the G-buffer wrote nothing here". Discarding on that inherits the cutout AND the
-    /// occlusion exactly, for free.
+    /// already computed: its DEPTH. A fragment is stamped only where its own depth matches the
+    /// G-buffer's, i.e. where this shape is the surface the G-buffer actually kept - which inherits
+    /// the cutout and the occlusion exactly, and lets whatever shows through a cutout's holes stamp
+    /// its own ID there, since this pass does no depth test of its own.
+    ///
+    /// This used to read the albedo attachment's ALPHA instead, on the belief that every material
+    /// writes a nonzero value there. It is a flag field (bit 0 gates emission, see
+    /// <c>DeferredResolvePass</c>), and 73 of the G-buffer programs a map section uses write 0 -
+    /// over half its static objects - so they got no ID, the resolve never shaded them, and they
+    /// came out black.
     ///
     /// The G-buffer is rasterised through the flipped projection and this pass through the true
     /// one, so the matching G-buffer texel for this fragment is at 1 - y, the same flip
-    /// <c>DeferredResolvePass</c>'s compose already applies for the same reason.
+    /// <c>DeferredResolvePass</c>'s compose already applies for the same reason. The flip changes
+    /// only y, never depth, so the two depths are directly comparable; the tolerance covers this
+    /// pass's own skinning not being the game program's instruction for instruction.
     /// </summary>
     const string FragmentSource = """
         #version 450 core
         uniform float uId;
-        uniform sampler2D tex_gbuf_albedo;
+        uniform sampler2D tex_gbuf_depth;
         uniform vec2 uInvViewport;
+        uniform vec2 uNearFar;
         layout (location = 0) out vec4 fragColor;
+        float viewDepth(float d) {
+            float n = uNearFar.x, f = uNearFar.y;
+            return (2.0 * n * f) / (f + n - (d * 2.0 - 1.0) * (f - n));
+        }
         void main() {
             vec2 g = vec2(gl_FragCoord.x * uInvViewport.x, 1.0 - gl_FragCoord.y * uInvViewport.y);
-            if (texture(tex_gbuf_albedo, g).a == 0.0)
+            float kept = texture(tex_gbuf_depth, g).r;
+            if (kept >= 1.0)
+                discard;
+            float zKept = viewDepth(kept), zThis = viewDepth(gl_FragCoord.z);
+            if (abs(zKept - zThis) > max(0.02, zKept * 0.002))
                 discard;
             fragColor = vec4(uId, 0.0, 0.0, 1.0);
         }
@@ -163,19 +181,22 @@ public sealed class PassIdMaskPass : IDisposable
     /// </summary>
     /// <param name="viewProjRows"><c>proj @ [view;0,0,0,1]</c> - shared across every actor (camera-only); used directly by skinned shapes (whose palette already includes their own actor's model transform) and combined with each actor's OWN model rows for that actor's skin-count-0 shapes.</param>
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, List<string> passes,
-        ReadOnlySpan<Vector4> viewProjRows)
+        ReadOnlySpan<Vector4> viewProjRows, float near, float far)
     {
         targets.BindPassIdTarget();
         _gl.ClearColor(0, 0, 0, 1);
         _gl.ClearDepth(1.0);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        _gl.Enable(EnableCap.DepthTest);
-        _gl.DepthFunc(DepthFunction.Less);
+        // Visibility comes from the G-buffer's depth (see FragmentSource), not a test of this pass's own.
+        _gl.Disable(EnableCap.DepthTest);
+        _near = near;
+        _far = far;
 
         _gl.UseProgram(_program);
         _gl.SetMat4(_program, "uViewProj", viewProjRows);
-        _gl.BindTextureUniform(_program, "tex_gbuf_albedo", 0, targets.GBuffer[1].Handle);
+        _gl.BindTextureUniform(_program, "tex_gbuf_depth", 0, targets.GBufferDepth.Handle);
         _gl.SetVec2(_program, "uInvViewport", new Vector2(1f / targets.Width, 1f / targets.Height));
+        _gl.SetVec2(_program, "uNearFar", new Vector2(near, far));
         int idLocation = _gl.GetUniformLocation(_program, "uId");
         int skinLocation = _gl.GetUniformLocation(_program, "uSkinCount");
 
@@ -211,8 +232,9 @@ public sealed class PassIdMaskPass : IDisposable
         uint program = _instancedProgram;
         _gl.UseProgram(program);
         _gl.SetMat4(program, "uViewProj", viewProjRows);
-        _gl.BindTextureUniform(program, "tex_gbuf_albedo", 0, targets.GBuffer[1].Handle);
+        _gl.BindTextureUniform(program, "tex_gbuf_depth", 0, targets.GBufferDepth.Handle);
         _gl.SetVec2(program, "uInvViewport", new Vector2(1f / targets.Width, 1f / targets.Height));
+        _gl.SetVec2(program, "uNearFar", new Vector2(_near, _far));
         int id = _gl.GetUniformLocation(program, "uId");
         int skin = _gl.GetUniformLocation(program, "uSkinCount");
         int first = _gl.GetUniformLocation(program, InstancedShaderPatch.FirstInstanceUniform);
