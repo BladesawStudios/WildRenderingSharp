@@ -256,7 +256,8 @@ public sealed class DeferredPipeline : IDisposable
             return;
         _wantsDefaultPass = true;
         _passNames = [.. _passNames, DefaultPass];
-        _resolvedPasses = [.. _resolvedPasses, .. DeferredResolvePass.ResolveDeferredPasses(_gl, Programs, _decompiledDirectory, _deferredMaterialsDirectory, [DefaultPass])];
+        _resolvedPasses = [.. _resolvedPasses, .. DeferredResolvePass.ResolveDeferredPasses(_gl, Programs, _decompiledDirectory, _deferredMaterialsDirectory, [DefaultPass])
+            .Select(p => p with { PassIndex = _passNames.Count - 1 })];
     }
 
     /// <summary>

@@ -4,7 +4,12 @@ using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>One deferred resolve pass, pre-resolved to its real compiled program and its own <c>SystemModel.DeferredMain</c> material bytes - see <see cref="DeferredResolvePass.ResolveDeferredPasses"/>.</summary>
-public sealed record ResolvedDeferredPass(string Name, uint Program, uint MaterialUboBuffer);
+/// <param name="PassIndex">
+/// The pass's position in the list it was resolved from - the pass-ID mask's numbering, which is
+/// how its pixels are found. Not its position among the resolved passes: a pass with no program is
+/// skipped, and every pass after it used to be matched to the next one's pixels.
+/// </param>
+public sealed record ResolvedDeferredPass(string Name, uint Program, uint MaterialUboBuffer, int PassIndex);
 
 /// <summary>
 /// Runs each distinct deferred resolve program the loaded model actually needs - a real,
@@ -134,8 +139,10 @@ public sealed class DeferredResolvePass : IDisposable
         GL gl, ShaderProgramCache programs, string decompiledDir, string deferredMaterialsDir, IEnumerable<string> passNames)
     {
         var resolved = new List<ResolvedDeferredPass>();
+        int passIndex = -1;
         foreach (string rawName in passNames)
         {
+            passIndex++;
             string name = rawName;
             if (name.StartsWith("field_", StringComparison.Ordinal) && !RealFieldPasses.Contains(name))
             {
@@ -143,8 +150,17 @@ public sealed class DeferredResolvePass : IDisposable
                 name = FieldFallbackPass;
             }
 
-            string? hit = Directory.EnumerateFiles(decompiledDir, $"deferred_{name}_prog*_extracted.frag")
+            string? hit = name.Length == 0 ? null : Directory.EnumerateFiles(decompiledDir, $"deferred_{name}_prog*_extracted.frag")
                 .OrderBy(f => f, StringComparer.Ordinal).FirstOrDefault();
+            if (hit is null && name != FieldFallbackPass)
+            {
+                // A pass with no program of its own (an o_material_behave value nothing maps, which
+                // exports as an empty name) is lit as the common case rather than left unlit.
+                Console.WriteLine($"  [approx] no extracted deferred shader for pass '{name}'; resolving through {FieldFallbackPass}");
+                name = FieldFallbackPass;
+                hit = Directory.EnumerateFiles(decompiledDir, $"deferred_{name}_prog*_extracted.frag")
+                    .OrderBy(f => f, StringComparer.Ordinal).FirstOrDefault();
+            }
             if (hit is null)
             {
                 Console.WriteLine($"  [skip] no extracted deferred shader for pass '{name}'");
@@ -159,7 +175,7 @@ public sealed class DeferredResolvePass : IDisposable
                 Console.WriteLine($"  [warn] no deferred gsys_material for pass '{name}' at '{matPath}' - resolving with an all-zero Mat block");
             uint matBuffer = GLBuffer.CreatePaddedUniformBuffer(gl, matBytes);
 
-            resolved.Add(new ResolvedDeferredPass(rawName, program, matBuffer));
+            resolved.Add(new ResolvedDeferredPass(rawName, program, matBuffer, passIndex));
         }
         return resolved;
     }
@@ -221,9 +237,9 @@ public sealed class DeferredResolvePass : IDisposable
             _gl.SetFloat(_composeProgram, "uEmissionExposureRcp", exposure > 1e-4f ? 1f / exposure : 1f);
             _gl.SetFloat(_composeProgram, "uSceneGain", sceneGain);
             _gl.SetInt(_composeProgram, "uGFlip", 1);
-            _gl.SetFloat(_composeProgram, "uId", (i + 1) / 255f);
+            _gl.SetFloat(_composeProgram, "uId", (pass.PassIndex + 1) / 255f);
             _gl.SetInt(_composeProgram, "uAll", 0);
-            _gl.SetInt(_composeProgram, "uClaimEmpty", i == claimEmptyPass ? 1 : 0);
+            _gl.SetInt(_composeProgram, "uClaimEmpty", pass.PassIndex == claimEmptyPass ? 1 : 0);
             _gl.BindTextureUniform(_composeProgram, "tex_gdepth", 22, targets.GBufferDepth.Handle);
             resources.DrawFullscreenTriangle();
         }
