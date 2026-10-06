@@ -417,9 +417,10 @@ public static class ModelPreparer
     /// <summary>
     /// Bumped whenever preparation starts producing something a model prepared before could be
     /// missing, so <see cref="IsUpToDate"/> sends those models through again. 2: the model's own
-    /// <c>&lt;Project&gt;.anim.bfres</c> joins the archives animations are exported from.
+    /// <c>&lt;Project&gt;.anim.bfres</c> joins the archives animations are exported from. 3: every level of detail
+    /// is exported (the index file grows, the manifest gains "lods").
     /// </summary>
-    const int PreparationVersion = 2;
+    const int PreparationVersion = 3;
 
     sealed record SourceStampEntry(string? Path, long Size, long MTime);
     sealed record SourceStamp(string Romfs, List<string> Mods, Dictionary<string, SourceStampEntry> Files, int Version = 0);

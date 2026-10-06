@@ -15,7 +15,13 @@ public sealed record ActorRenderInput(LoadedModel Model, Vector4[] ModelMatrixRo
 /// and every placed actor's own transform/pose.
 /// </summary>
 /// <param name="Highlight">Which actor/shape to overlay with a flat, translucent highlight this frame (e.g. a hovered row in the Material Inspector), or null for none - see <see cref="HighlightOverlayPass"/>.</param>
-public sealed record FrameRequest(Camera Camera, LightingContext Lighting, EnvPalette Palette, IReadOnlyList<ActorRenderInput> Actors, float AoRadius, float ShadowBias, (int ActorIndex, int ShapeIndex)? Highlight = null, SkyPostFx? SkyPostFx = null, CloudPostFx? CloudPostFx = null, SkyBinLut? SkyBin = null, ColorCorrectionPostFx? ColorCorrection = null);
+/// <param name="Instances">Batches of placements drawn instanced alongside <paramref name="Actors"/> - a map's worth of static objects (see <see cref="InstanceBatch"/>). Each draws its own <see cref="InstanceBatch.Visible"/> runs.</param>
+/// <param name="ShadowFocus">The region the shadow map covers, instead of every actor's bounds - for a scene far bigger than one shadow map can resolve, centred on what the camera looks at.</param>
+public sealed record FrameRequest(Camera Camera, LightingContext Lighting, EnvPalette Palette, IReadOnlyList<ActorRenderInput> Actors, float AoRadius, float ShadowBias, (int ActorIndex, int ShapeIndex)? Highlight = null, SkyPostFx? SkyPostFx = null, CloudPostFx? CloudPostFx = null, SkyBinLut? SkyBin = null, ColorCorrectionPostFx? ColorCorrection = null,
+    IReadOnlyList<InstanceBatch>? Instances = null, ShadowFocus? ShadowFocus = null);
+
+/// <summary>A sphere the shadow map is fitted to - see <see cref="FrameRequest.ShadowFocus"/>.</summary>
+public readonly record struct ShadowFocus(Vector3 Center, float Radius);
 
 /// <summary>The handful of intermediate targets a viewer might want to display directly, alongside the final tonemapped result - matches <c>viewer.Viewer</c>'s view-mode switch (final/HDR/albedo/normal/shadow/AO), plus the pass-ID mask as a diagnostic for multi-pass models.</summary>
 public readonly record struct FrameResult(GpuTexture Ldr, GpuTexture Final, GpuTexture Albedo, GpuTexture Normal, GpuTexture PreShadow, GpuTexture PreMisc, GpuTexture PassId);
@@ -36,6 +42,8 @@ public sealed class ShadowCache
     internal Vector4[][]? ModelRowsPerActor;
     /// <summary>A copy of each actor's posed bones the map was drawn with (null entries: bind pose).</summary>
     internal Matrix4x4[]?[]? BonesPerActor;
+    internal ShadowFocus? Focus;
+    internal long InstanceSignature;
     internal Vector3 RotatedLo, RotatedHi;
     internal ShadowPass.LightMatrices LightMatrices;
 }
@@ -195,10 +203,20 @@ public sealed class DeferredPipeline : IDisposable
         _models = models;
         var allShapes = models.SelectMany(m => m.Shapes).ToList();
         _opaqueShapes = allShapes.Where(s => !s.Blend).ToList();
-        _passNames = PassIdMaskPass.DistinctPasses(allShapes);
+        var passNames = PassIdMaskPass.DistinctPasses(allShapes);
         _cachedNeedsKnownMaterialFixes = _opaqueShapes.Any(KnownMaterialFixes.NeedsEyeVisibilityMaskFix);
-        _resolvedPasses = DeferredResolvePass.ResolveDeferredPasses(_gl, Programs, _decompiledDirectory, _deferredMaterialsDirectory, _passNames);
         _mainShadowCache.SunWorld = null; // the scene's own bounds changed - invalidate the cached shadow map
+
+        // Resolving reads every pass's material off disk and makes a buffer for it, so it is only
+        // done when the set of passes changes - a host adding a map's models a few a frame calls
+        // this every frame, and the passes settle after the first handful of models. The buffers
+        // of the passes it replaces are freed; they used to be left behind on every call.
+        if (passNames.SequenceEqual(_passNames, StringComparer.Ordinal) && _resolvedPasses.Count == passNames.Count)
+            return;
+        _passNames = passNames;
+        foreach (var old in _resolvedPasses)
+            _gl.DeleteBuffer(old.MaterialUboBuffer);
+        _resolvedPasses = DeferredResolvePass.ResolveDeferredPasses(_gl, Programs, _decompiledDirectory, _deferredMaterialsDirectory, _passNames);
         Console.WriteLine($"  deferred passes: {string.Join(", ", _passNames)}");
     }
 
@@ -290,7 +308,8 @@ public sealed class DeferredPipeline : IDisposable
         EnsureSkyPrecomputed(request.SkyPostFx ?? Rendering.SkyPostFx.Default, request.Palette,
             request.Lighting.PaletteName, request.Lighting.SkyPaletteTint);
 
-        if (_models.Count == 0 || request.Actors.Count == 0)
+        var instances = request.Instances ?? [];
+        if (_models.Count == 0 || (request.Actors.Count == 0 && instances.Count == 0))
             throw new InvalidOperationException("No actors placed - call SetScene first.");
         var targets = targetsOverride ?? Targets;
         var shadowCache = shadowCacheOverride ?? _mainShadowCache;
@@ -340,6 +359,7 @@ public sealed class DeferredPipeline : IDisposable
         Resources.Ubo("env", envUbo.ToByteArray(), bindingIndex: 6);
         Resources.Ubo("scenemat", sceneMatUbo.ToByteArray(), bindingIndex: 10);
         Resources.Ubo("support", SupportBufferUbo.Build(), bindingIndex: SupportBufferUbo.BindingIndex);
+        Resources.BindZeroUbo(GlslSanitizer.OrphanBlockBinding, 65536);
 
         // Every placed actor's own draw group - bones/ShpMtx bytes built fresh this frame from
         // THAT actor's own transform/pose (never a shared/combined buffer - see class remarks),
@@ -351,12 +371,18 @@ public sealed class DeferredPipeline : IDisposable
             ShapeMatrixUbo.BuildFromModelMatrix(a.ModelMatrixRows).ToByteArray(),
             a.ModelMatrixRows,
             a.Model.Shapes.Where(s => s.Enabled).ToList())).ToList();
+        foreach (var batch in instances)
+        {
+            if (batch.Visible.Count > 0)
+                allGroups.Add(new ActorDrawGroup([], [], IdentityRows,
+                    batch.Model.Shapes.Where(s => s.Enabled && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch));
+        }
         var opaqueGroups = allGroups
-            .Select(g => new ActorDrawGroup(g.BonesBytes, g.ShpMtxBytes, g.ModelMatrixRows, g.Shapes.Where(s => !s.Blend).ToList()))
+            .Select(g => g with { Shapes = g.Shapes.Where(s => !s.Blend).ToList() })
             .Where(g => g.Shapes.Count > 0).ToList();
 
         // ---- G-buffer (flipped Context already bound at 1) ----
-        _gbuffer.Run(Resources, targets, opaqueGroups);
+        _gbuffer.Run(Resources, targets, opaqueGroups, Programs);
         GLDiagnostics.CheckPass(_gl, "G-buffer pass");
         Resources.BindUbo("ctx_true", 1); // every later pass uses the true (unflipped) projection
 
@@ -379,7 +405,9 @@ public sealed class DeferredPipeline : IDisposable
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
         bool shadowCacheHit = shadowMapOverride is null && shadowCache.ModelRowsPerActor is not null && shadowCache.SunWorld == sunWorld
             && ActorRowsEqual(shadowCache.ModelRowsPerActor, modelRowsPerActor)
-            && PosesEqual(shadowCache.BonesPerActor, request.Actors);
+            && PosesEqual(shadowCache.BonesPerActor, request.Actors)
+            && shadowCache.Focus == request.ShadowFocus
+            && shadowCache.InstanceSignature == InstanceSignature(instances);
         Vector3 rotatedLo, rotatedHi;
         ShadowPass.LightMatrices lightMatrices;
         if (shadowCacheHit)
@@ -390,14 +418,16 @@ public sealed class DeferredPipeline : IDisposable
         }
         else
         {
-            (rotatedLo, rotatedHi) = CombinedRotatedAabb(request.Actors);
+            (rotatedLo, rotatedHi) = request.ShadowFocus is { } focus
+                ? (focus.Center - new Vector3(focus.Radius), focus.Center + new Vector3(focus.Radius))
+                : CombinedRotatedAabb(request.Actors, instances);
             lightMatrices = ShadowPass.BuildLightMatrices(rotatedLo, rotatedHi, sunWorld);
             if (shadowMapOverride is null)
             {
                 var ctxLight = ContextUbo.BuildForCamera(lightMatrices.View3Rows, lightMatrices.ViewProj, lightMatrices.Proj,
                     Mat4Math.Invert(Mat4Math.ToMat4(lightMatrices.View3Rows))[..3], 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
                 Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);
-                _shadow.Run(Resources, targets, allGroups);
+                _shadow.Run(Resources, targets, allGroups, Programs);
                 GLDiagnostics.CheckPass(_gl, "shadow pass");
                 Resources.BindUbo("ctx_true", 1);
 
@@ -405,6 +435,8 @@ public sealed class DeferredPipeline : IDisposable
                 shadowCache.ModelRowsPerActor = modelRowsPerActor;
                 // Copied: a host may well reuse and rewrite the same array next frame.
                 shadowCache.BonesPerActor = request.Actors.Select(a => (Matrix4x4[]?)a.BoneWorldMatrices?.Clone()).ToArray();
+                shadowCache.Focus = request.ShadowFocus;
+                shadowCache.InstanceSignature = InstanceSignature(instances);
                 shadowCache.RotatedLo = rotatedLo;
                 shadowCache.RotatedHi = rotatedHi;
                 shadowCache.LightMatrices = lightMatrices;
@@ -581,7 +613,7 @@ public sealed class DeferredPipeline : IDisposable
         }
 
         // ---- forward pass: blended materials over the resolved scene ----
-        _forward.Run(Resources, targets, allGroups);
+        _forward.Run(Resources, targets, allGroups, Programs);
         GLDiagnostics.CheckPass(_gl, "forward pass");
         Resources.BindUbo("ctx_true", 1);
 
@@ -760,7 +792,7 @@ public sealed class DeferredPipeline : IDisposable
     }
 
     /// <summary>The union of every placed actor's own rotated bounding box - the shadow frustum has to cover every actor that should cast/receive a shadow, not just one.</summary>
-    static (Vector3 Lo, Vector3 Hi) CombinedRotatedAabb(IReadOnlyList<ActorRenderInput> actors)
+    static (Vector3 Lo, Vector3 Hi) CombinedRotatedAabb(IReadOnlyList<ActorRenderInput> actors, IReadOnlyList<InstanceBatch> instances)
     {
         var lo = new Vector3(float.MaxValue);
         var hi = new Vector3(float.MinValue);
@@ -770,11 +802,36 @@ public sealed class DeferredPipeline : IDisposable
             lo = Vector3.Min(lo, actorLo);
             hi = Vector3.Max(hi, actorHi);
         }
+        foreach (var batch in instances)
+        {
+            if (batch.Count == 0)
+                continue;
+            lo = Vector3.Min(lo, batch.BoundsMin);
+            hi = Vector3.Max(hi, batch.BoundsMax);
+        }
         return (lo, hi);
+    }
+
+    static readonly Vector4[] IdentityRows = [new(1, 0, 0, 0), new(0, 1, 0, 0), new(0, 0, 1, 0)];
+
+    /// <summary>What the batches will draw - which batches, and which runs of each at which level - for the shadow map's reuse check.</summary>
+    static long InstanceSignature(IReadOnlyList<InstanceBatch> instances)
+    {
+        var hash = new HashCode();
+        foreach (var batch in instances)
+        {
+            hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(batch));
+            foreach (var run in batch.Visible)
+                hash.Add(run);
+        }
+        return hash.ToHashCode();
     }
 
     public void Dispose()
     {
+        foreach (var pass in _resolvedPasses)
+            _gl.DeleteBuffer(pass.MaterialUboBuffer);
+        _resolvedPasses = [];
         Programs.Dispose();
         Resources.Dispose();
         Targets.Dispose();

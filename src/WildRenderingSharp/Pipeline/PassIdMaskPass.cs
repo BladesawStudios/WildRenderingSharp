@@ -28,6 +28,13 @@ public sealed class PassIdMaskPass : IDisposable
     readonly uint _program;
 
     /// <summary>
+    /// The same program for a batch of placements: patched like a game shader
+    /// (<see cref="InstancedShaderPatch"/>), with the rigid branch reading the placement out of the
+    /// instance buffer rather than the per-actor <c>uMVP</c>.
+    /// </summary>
+    readonly uint _instancedProgram;
+
+    /// <summary>
     /// Mirrors the compiled TotK vertex shader's own skinning (see <c>Shaders/TOTK/Vertex.vert</c>'s
     /// <c>skin()</c> and any decompiled <c>*_extracted.vert</c>):
     ///   - blend indices arrive as FLOAT attributes carrying an integer bit pattern, unpacked with
@@ -134,6 +141,11 @@ public sealed class PassIdMaskPass : IDisposable
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "pass_id_mask");
+        string instanced = InstancedShaderPatch.Apply(VertexSource.Replace(
+            "gl_Position = uMVP * vec4(p, 1.0);",
+            "vec4 v0 = vec4(p, 1.0); gl_Position = uViewProj * vec4(dot(v0, wrs_shp(0)), dot(v0, wrs_shp(1)), dot(v0, wrs_shp(2)), 1.0);"))
+            ?? throw new InvalidOperationException("pass_id_mask has no main to instance");
+        _instancedProgram = GLProgramBuilder.Build(gl, instanced, FragmentSource, "pass_id_mask_instanced");
     }
 
     /// <summary>Ordered distinct deferred-pass names present in a shape list - pass i owns ID (i + 1) / 255.</summary>
@@ -167,7 +179,7 @@ public sealed class PassIdMaskPass : IDisposable
         int idLocation = _gl.GetUniformLocation(_program, "uId");
         int skinLocation = _gl.GetUniformLocation(_program, "uSkinCount");
 
-        foreach (var group in groups)
+        foreach (var group in groups.Where(g => g.Batch is null))
         {
             group.BindUbos(resources);
             var mvp = Mat4Math.Multiply(viewProjRows, Mat4Math.ToMat4(group.ModelMatrixRows));
@@ -186,8 +198,63 @@ public sealed class PassIdMaskPass : IDisposable
                 _gl.DrawElements(PrimitiveType.Triangles, (uint)sh.IndexCount, DrawElementsType.UnsignedInt, null);
             }
         }
+        RunInstanced(resources, targets, groups, passes, viewProjRows);
         _gl.Disable(EnableCap.DepthTest);
     }
 
-    public void Dispose() => _gl.DeleteProgram(_program);
+    unsafe void RunInstanced(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, List<string> passes,
+        ReadOnlySpan<Vector4> viewProjRows)
+    {
+        if (!groups.Any(g => g.Batch is { Visible.Count: > 0 }))
+            return;
+
+        uint program = _instancedProgram;
+        _gl.UseProgram(program);
+        _gl.SetMat4(program, "uViewProj", viewProjRows);
+        _gl.BindTextureUniform(program, "tex_gbuf_albedo", 0, targets.GBuffer[1].Handle);
+        _gl.SetVec2(program, "uInvViewport", new Vector2(1f / targets.Width, 1f / targets.Height));
+        int id = _gl.GetUniformLocation(program, "uId");
+        int skin = _gl.GetUniformLocation(program, "uSkinCount");
+        int first = _gl.GetUniformLocation(program, InstancedShaderPatch.FirstInstanceUniform);
+        int stride = _gl.GetUniformLocation(program, InstancedShaderPatch.StrideUniform);
+        int palette = _gl.GetUniformLocation(program, InstancedShaderPatch.PaletteVec4sUniform);
+        int repeat = _gl.GetUniformLocation(program, InstancedShaderPatch.PaletteRepeatUniform);
+
+        foreach (var group in groups)
+        {
+            if (group.Batch is not { Visible.Count: > 0 } batch)
+                continue;
+            group.BindUbos(resources);
+            _gl.Uniform1(stride, batch.Stride);
+            _gl.Uniform1(palette, batch.PaletteVec4s);
+            _gl.Uniform1(repeat, batch.PaletteRepeats ? 1 : 0);
+
+            foreach (var sh in group.Shapes)
+            {
+                if (string.IsNullOrEmpty(sh.DeferredPass))
+                    continue;
+                int index = passes.IndexOf(sh.DeferredPass);
+                if (index < 0)
+                    continue;
+                _gl.Uniform1(id, (index + 1) / 255f);
+                _gl.Uniform1(skin, sh.VertexSkinCount);
+                _gl.BindVertexArray(sh.PassIdVao);
+                foreach (var (start, count, lod) in batch.Visible)
+                {
+                    var (firstIndex, indexCount) = sh.Lod(lod);
+                    if (count <= 0 || indexCount <= 0)
+                        continue;
+                    _gl.Uniform1(first, start);
+                    _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)indexCount, DrawElementsType.UnsignedInt,
+                        (void*)((nint)firstIndex * sizeof(uint)), (uint)count);
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        _gl.DeleteProgram(_program);
+        _gl.DeleteProgram(_instancedProgram);
+    }
 }

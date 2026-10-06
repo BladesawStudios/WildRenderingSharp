@@ -154,7 +154,7 @@ public sealed class ForwardPass : IDisposable
     }
 
     /// <summary>Draws every placed actor's blended/force-forward shapes into the same forward-resolved scene, rebinding each actor's own skinning UBOs (<see cref="ActorDrawGroup"/>) before its own shapes.</summary>
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
     {
         var forwardGroups = groups
             .Select(g => (Group: g, Forward: g.Shapes.Where(s => s.HasForward && (s.Blend || s.ForceForward)).ToList()))
@@ -280,6 +280,11 @@ public sealed class ForwardPass : IDisposable
                 _gl.Disable(EnableCap.PolygonOffsetFill);
             }
 
+            if (group.Batch is not null)
+            {
+                group.Draw(_gl, programs, sh, ShapeProgram.Forward);
+                continue;
+            }
             uint program = sh.ForwardProgram;
             if (sh.DebugForwardProgram is { } debugProgram)
             {

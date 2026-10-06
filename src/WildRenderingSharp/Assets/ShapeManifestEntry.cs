@@ -33,6 +33,13 @@ public sealed class ShapeManifestEntry
     [JsonPropertyName("index_file")] public string IndexFile { get; set; } = "";
     [JsonPropertyName("index_count")] public int IndexCount { get; set; }
 
+    /// <summary>
+    /// Every level of detail in <see cref="IndexFile"/>, finest first, as <c>[first index, count]</c>.
+    /// LOD 0 is always <c>[0, IndexCount]</c>, and the coarser ones follow it in the same file. Null
+    /// for a model prepared before levels of detail were exported - it has only LOD 0.
+    /// </summary>
+    [JsonPropertyName("lods")] public List<int[]>? Lods { get; set; }
+
     /// <summary>0 = rigid (bone space, <see cref="BoneIndex"/>), 1 = single-bind (bone space, per-vertex), &gt;=2 = smooth (already model space). <c>ExportTestBench</c> bakes 0 and 1 into the exported positions.</summary>
     [JsonPropertyName("vertex_skin_count")] public int VertexSkinCount { get; set; }
     [JsonPropertyName("bone_index")] public int BoneIndex { get; set; }

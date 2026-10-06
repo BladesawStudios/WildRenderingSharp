@@ -41,6 +41,18 @@ public sealed class GLResourceCache : IDisposable
     }
 
     /// <summary>Binds an already-written named buffer to a binding point without rewriting it - for rebinding <c>Context</c> between its several per-frame variants.</summary>
+    /// <summary>The context these resources belong to.</summary>
+    public GL Gl => _gl;
+
+    /// <summary>Binds a block of <paramref name="size"/> zero bytes, uploaded once and kept.</summary>
+    public void BindZeroUbo(uint bindingIndex, int size = 256)
+    {
+        string key = $"zero:{size}";
+        if (!_ubos.ContainsKey(key))
+            Ubo(key, new byte[size]);
+        BindUbo(key, bindingIndex);
+    }
+
     public void BindUbo(string key, uint bindingIndex)
     {
         if (_ubos.TryGetValue(key, out uint handle))

@@ -1,3 +1,6 @@
+using System.Text;
+using System.Text.RegularExpressions;
+
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
@@ -56,6 +59,78 @@ public static class GlslSanitizer
             }
         }
 
-        return string.Join('\n', output);
+        string cleaned = NegativeBinding.Replace(string.Join('\n', output), $"binding = {OrphanBlockBinding}");
+        return ShadowLodToGrad(cleaned);
+    }
+
+    /// <summary>
+    /// Where a block the decompiler numbered negatively ends up - see <see cref="NegativeBinding"/>.
+    /// <see cref="DeferredPipeline"/> keeps a zeroed buffer bound here, so what such a block reads
+    /// is defined.
+    /// </summary>
+    public const int OrphanBlockBinding = 30;
+
+    /// <summary>
+    /// The decompiler renumbers constant buffer N to binding N - 3, so the driver's own buffer
+    /// (c0) comes out as <c>binding = -3</c>. NVIDIA lets that through; a stricter driver refuses the
+    /// whole shader. Nothing ever supplied that buffer, so its one read has always been of nothing.
+    /// </summary>
+    static readonly Regex NegativeBinding = new(@"binding\s*=\s*-\d+", RegexOptions.Compiled);
+
+    static readonly Regex ShadowSamplerDeclaration = new(
+        @"\buniform\s+(sampler2DArrayShadow|samplerCubeShadow|samplerCubeArrayShadow)\s+(\w+)\s*;", RegexOptions.Compiled);
+
+    /// <summary>
+    /// <c>textureLod</c> on an array-shadow or cube-shadow sampler exists only through
+    /// <c>GL_EXT_texture_shadow_lod</c> - which the decompiler asks for and this class strips above.
+    /// NVIDIA accepts the call regardless; Intel and AMD, integrated graphics included, refuse the
+    /// whole shader ("no matching overloaded function"), and the model fails to load. Core GLSL's
+    /// <c>textureGrad</c> with zero derivatives takes the same coordinate and samples the same base
+    /// level - and a shadow map has nothing but its base level - so the call is rewritten to that.
+    /// </summary>
+    static string ShadowLodToGrad(string source)
+    {
+        foreach (Match decl in ShadowSamplerDeclaration.Matches(source))
+        {
+            string zero = decl.Groups[1].Value == "sampler2DArrayShadow" ? "vec2(0.0)" : "vec3(0.0)";
+            source = RewriteCalls(source, decl.Groups[2].Value, zero);
+        }
+        return source;
+    }
+
+    /// <summary>Every <c>textureLod(name, coord, lod)</c> becomes <c>textureGrad(name, coord, zero, zero)</c>, splitting arguments at top-level commas.</summary>
+    static string RewriteCalls(string source, string sampler, string zero)
+    {
+        var call = new Regex(@"\btextureLod\s*\(\s*" + Regex.Escape(sampler) + @"\s*,");
+        var sb = new StringBuilder(source.Length);
+        int at = 0;
+        for (Match m = call.Match(source); m.Success; m = call.Match(source, at))
+        {
+            int open = source.IndexOf('(', m.Index);
+            var args = new List<string>();
+            int depth = 0, start = open + 1, close = -1;
+            for (int i = open; i < source.Length && close < 0; i++)
+            {
+                char c = source[i];
+                if (c is '(' or '[') depth++;
+                else if (c is ')' or ']')
+                {
+                    if (--depth == 0) { args.Add(source[start..i]); close = i; }
+                }
+                else if (c == ',' && depth == 1) { args.Add(source[start..i]); start = i + 1; }
+            }
+            if (close < 0 || args.Count != 3)
+            {
+                sb.Append(source, at, m.Index + m.Length - at);
+                at = m.Index + m.Length;
+                continue;
+            }
+            sb.Append(source, at, m.Index - at);
+            sb.Append("textureGrad(").Append(args[0].Trim()).Append(", ").Append(args[1].Trim())
+              .Append(", ").Append(zero).Append(", ").Append(zero).Append(')');
+            at = close + 1;
+        }
+        sb.Append(source, at, source.Length - at);
+        return sb.ToString();
     }
 }

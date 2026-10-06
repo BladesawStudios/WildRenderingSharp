@@ -53,7 +53,7 @@ public sealed class ShadowPass
     }
 
     /// <summary>Draws every placed actor's shapes into the SAME shadow target (every actor casts/receives shadows together, correctly), rebinding each actor's own skinning UBOs (<see cref="ActorDrawGroup"/>) before its own shapes.</summary>
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
     {
         targets.BindShadowTarget();
         _gl.ClearDepth(1.0);
@@ -77,10 +77,7 @@ public sealed class ShadowPass
             group.BindUbos(resources);
             foreach (var sh in group.Shapes)
             {
-                if (sh.HasZOnly)
-                    ShapeDrawing.Draw(_gl, sh.ZOnlyProgram, sh.ZOnlyVao, sh.MaterialUboBuffer, sh.ZOnlySamplers, sh.IndexCount, sh.SamplerOverrides);
-                else
-                    ShapeDrawing.Draw(_gl, sh.GBufferProgram, sh.GBufferVao, sh.MaterialUboBuffer, sh.GBufferSamplers, sh.IndexCount, sh.SamplerOverrides);
+                group.Draw(_gl, programs, sh, sh.HasZOnly ? ShapeProgram.ZOnly : ShapeProgram.GBuffer);
             }
         }
     }

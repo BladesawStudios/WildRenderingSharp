@@ -110,6 +110,66 @@ public sealed class WildRenderer : IDisposable
         return actor;
     }
 
+    readonly List<InstanceBatch> _instances = [];
+
+    /// <summary>Batches of placements drawn instanced - a map's static objects. See <see cref="AddInstances"/>.</summary>
+    public IReadOnlyList<InstanceBatch> Instances => _instances;
+
+    /// <summary>
+    /// Where the shadow map is fitted, instead of every actor's bounds - set it, around the camera,
+    /// for a scene far larger than one shadow map can cover. Null fits the actors as before.
+    /// </summary>
+    public ShadowFocus? ShadowFocus { get; set; }
+
+    /// <summary>
+    /// Places every one of <paramref name="placements"/> as an instance of <paramref name="model"/>,
+    /// all drawn instanced through the game's own shaders. Nothing draws until the host fills the
+    /// batch's <see cref="InstanceBatch.Visible"/> runs; <see cref="InstanceBatch.ShowAll"/> shows
+    /// them all.
+    /// </summary>
+    /// <param name="placements">Each placement's model rows, as <see cref="ActorRenderInput.ModelMatrixRows"/> - <see cref="Hosting.YUpWorld.ActorRows"/> makes them from a Y-up host's matrix.</param>
+    /// <param name="updateScene">
+    /// False to skip re-resolving the scene's deferred passes - for adding many batches in a row;
+    /// call <see cref="SceneChanged"/> once after the last.
+    /// </param>
+    public InstanceBatch AddInstances(LoadedModel model, IReadOnlyList<Vector4[]> placements, bool updateScene = true)
+    {
+        using var _ = GLHostState.Enter(_gl);
+        var batch = new InstanceBatch(_gl, model, placements);
+        _instances.Add(batch);
+        if (updateScene)
+            SceneChanged();
+        return batch;
+    }
+
+    /// <summary>Removes a batch, disposing its buffer and, unless told not to, its model.</summary>
+    public void RemoveInstances(InstanceBatch batch, bool disposeModel = true)
+    {
+        if (!_instances.Remove(batch))
+            return;
+        SceneChanged();
+        using var _ = GLHostState.Enter(_gl);
+        batch.Dispose();
+        if (disposeModel && !_instances.Any(b => ReferenceEquals(b.Model, batch.Model)) && !_actors.Any(a => ReferenceEquals(a.Model, batch.Model)))
+            batch.Model.Dispose();
+    }
+
+    /// <summary>Removes every batch, disposing their buffers and models.</summary>
+    public void ClearInstances()
+    {
+        var all = _instances.ToList();
+        _instances.Clear();
+        SceneChanged();
+        using var _ = GLHostState.Enter(_gl);
+        foreach (var batch in all)
+            batch.Dispose();
+        foreach (var model in all.Select(b => b.Model).Distinct())
+        {
+            if (!_actors.Any(a => ReferenceEquals(a.Model, model)))
+                model.Dispose();
+        }
+    }
+
     public void AddActor(RenderActor actor)
     {
         _actors.Add(actor);
@@ -150,7 +210,7 @@ public sealed class WildRenderer : IDisposable
     public void SceneChanged()
     {
         using var _ = GLHostState.Enter(_gl);
-        Pipeline.SetScene(_actors.Select(a => a.Model).ToList());
+        Pipeline.SetScene(_actors.Select(a => a.Model).Concat(_instances.Select(b => b.Model)).Distinct().ToList());
         Pipeline.InvalidateShadowCache();
     }
 
@@ -188,7 +248,7 @@ public sealed class WildRenderer : IDisposable
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
         return new FrameRequest(camera, Lighting, Environment.Palettes.Get(Lighting.PaletteName), inputs,
             AoRadius, ShadowBias, Highlight, Environment.SkyPostFx, Environment.CloudPostFx, Environment.SkyBin,
-            Environment.ColorCorrection);
+            Environment.ColorCorrection, _instances, ShadowFocus);
     }
 
     /// <summary>
@@ -197,7 +257,7 @@ public sealed class WildRenderer : IDisposable
     /// </summary>
     public uint? Render(Camera camera, int width, int height, float deltaSeconds)
     {
-        if (!_actors.Any(a => a.Visible))
+        if (!_actors.Any(a => a.Visible) && !_instances.Any(b => b.Visible.Count > 0))
             return null;
 
         using var _ = GLHostState.Enter(_gl);
@@ -212,6 +272,11 @@ public sealed class WildRenderer : IDisposable
         foreach (var actor in _actors)
             actor.Dispose();
         _actors.Clear();
+        foreach (var batch in _instances)
+            batch.Dispose();
+        foreach (var model in _instances.Select(b => b.Model).Distinct())
+            model.Dispose();
+        _instances.Clear();
         View.Dispose();
         Pipeline.Dispose();
     }

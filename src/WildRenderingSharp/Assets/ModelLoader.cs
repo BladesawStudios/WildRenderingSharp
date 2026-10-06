@@ -116,6 +116,9 @@ public sealed class ModelLoader
                 VertexBuffer = vbo,
                 IndexBuffer = ibo,
                 IndexCount = sh.IndexCount,
+                Lods = sh.Lods is { Count: > 0 } lods
+                    ? [.. lods.Where(l => l.Length == 2).Select(l => (l[0], l[1]))]
+                    : [(0, sh.IndexCount)],
                 VertexSkinCount = sh.VertexSkinCount,
                 GBufferProgram = gbufferProgram,
                 GBufferVao = gbufferVao,
@@ -128,6 +131,7 @@ public sealed class ModelLoader
                 ForwardSamplers = forwardSamplers,
                 ForwardShaderName = forwardProgram != 0 ? sh.MaterialShader : "",
                 GBufferShaderName = sh.GBufferShader,
+                ZOnlyShaderName = zonlyProgram != 0 ? sh.ZOnlyShader : "",
                 MaterialUboBuffer = materialUboBuffer,
                 MaterialUboBytes = materialUbo,
                 MaterialParams = materialParams,

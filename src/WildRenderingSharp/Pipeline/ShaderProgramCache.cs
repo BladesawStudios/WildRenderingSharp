@@ -57,10 +57,40 @@ public sealed class ShaderProgramCache : IDisposable
         return program;
     }
 
+    readonly Dictionary<string, uint> _instancedPrograms = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The same program with its vertex stage patched to draw many placements at once - see
+    /// <see cref="InstancedShaderPatch"/>. Cached apart from the plain one; 0 when the patch finds
+    /// nothing to wrap.
+    /// </summary>
+    public uint LoadInstanced(string baseName, bool isForwardProgram = false)
+    {
+        string key = (isForwardProgram ? "fwd:" : "") + baseName;
+        if (_instancedPrograms.TryGetValue(key, out uint cached))
+            return cached;
+
+        string vertSource = InstancedShaderPatch.Apply(GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")))) ?? "";
+        uint program = 0;
+        if (vertSource.Length > 0)
+        {
+            string rawFragSource = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+            string fragSource = isForwardProgram ? KnownDecompilerCorrections.Apply(rawFragSource) : rawFragSource;
+            program = GLProgramBuilder.Build(_gl, vertSource, fragSource, baseName + "_instanced");
+        }
+        _instancedPrograms[key] = program;
+        return program;
+    }
+
     public void Dispose()
     {
         foreach (uint program in _programs.Values)
             _gl.DeleteProgram(program);
         _programs.Clear();
+        ShapeDrawing.ForgetPrograms(_instancedPrograms.Values);
+        foreach (uint program in _instancedPrograms.Values)
+            if (program != 0)
+                _gl.DeleteProgram(program);
+        _instancedPrograms.Clear();
     }
 }

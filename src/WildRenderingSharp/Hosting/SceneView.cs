@@ -121,6 +121,14 @@ public sealed class SceneView : IDisposable
     /// <summary>The last frame rendered, for re-presenting or probing without re-rendering.</summary>
     public FrameResult? LastFrame { get; private set; }
 
+    /// <summary>
+    /// The last frame's depth, for a host compositing it into a scene of its own: standard GL
+    /// [0, 1] depth through the request camera's own projection, cleared to 1 where nothing was
+    /// drawn, at the render size (<see cref="Supersample"/> times the output) - and stored the
+    /// G-buffer's way up, i.e. upside down relative to <see cref="OutputTexture"/>.
+    /// </summary>
+    public uint DepthTexture => Targets.GBufferDepth.Handle;
+
     /// <summary>True when <see cref="OutputTexture"/> holds its top row first (the raw G-buffer-space modes) - see the class remarks.</summary>
     public bool OutputIsTopDown => Mode is SceneViewMode.Albedo or SceneViewMode.Normal or SceneViewMode.Shadow or SceneViewMode.AmbientOcclusion;
 

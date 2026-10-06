@@ -27,7 +27,7 @@ public sealed class GBufferPass
 
     public GBufferPass(GL gl) => _gl = gl;
 
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
     {
         targets.BindGBuffer();
         _gl.ClearColor(0, 0, 0, 0);
@@ -48,7 +48,7 @@ public sealed class GBufferPass
                     continue;
                 group.BindUbos(resources);
                 foreach (var sh in withZOnly)
-                    ShapeDrawing.Draw(_gl, sh.ZOnlyProgram, sh.ZOnlyVao, sh.MaterialUboBuffer, sh.ZOnlySamplers, sh.IndexCount, sh.SamplerOverrides);
+                    group.Draw(_gl, programs, sh, ShapeProgram.ZOnly);
             }
             targets.SetGBufferColorMask(true);
 
@@ -61,7 +61,7 @@ public sealed class GBufferPass
                     continue;
                 group.BindUbos(resources);
                 foreach (var sh in withZOnly)
-                    ShapeDrawing.Draw(_gl, sh.GBufferProgram, sh.GBufferVao, sh.MaterialUboBuffer, sh.GBufferSamplers, sh.IndexCount, sh.SamplerOverrides);
+                    group.Draw(_gl, programs, sh, ShapeProgram.GBuffer);
             }
             _gl.DepthMask(true);
         }
@@ -74,7 +74,7 @@ public sealed class GBufferPass
                 continue;
             group.BindUbos(resources);
             foreach (var sh in withoutZOnly)
-                ShapeDrawing.Draw(_gl, sh.GBufferProgram, sh.GBufferVao, sh.MaterialUboBuffer, sh.GBufferSamplers, sh.IndexCount, sh.SamplerOverrides);
+                group.Draw(_gl, programs, sh, ShapeProgram.GBuffer);
         }
 
         // Shader step debugger, G-buffer target: an EXTRA draw over just the shape(s) currently
@@ -95,7 +95,7 @@ public sealed class GBufferPass
             foreach (var group in groups)
             {
                 var debugging = group.Shapes.Where(s => s.DebugGBufferProgram is not null);
-                if (!debugging.Any())
+                if (group.Batch is not null || !debugging.Any())
                     continue;
                 group.BindUbos(resources);
                 foreach (var sh in debugging)

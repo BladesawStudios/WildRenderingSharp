@@ -195,6 +195,10 @@ public sealed class KnownMaterialFixes : IDisposable
 
         foreach (var (group, flagged) in flaggedGroups)
         {
+            // A character's eye fix; batches of placed world objects have none to fix and no
+            // single model matrix to draw it with.
+            if (group.Batch is not null)
+                continue;
             group.BindUbos(resources);
             var model = Rendering.Mat4Math.ToMat4(group.ModelMatrixRows);
             var mvp = Rendering.Mat4Math.Multiply(viewProjFlippedRows, model);

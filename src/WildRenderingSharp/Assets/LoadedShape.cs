@@ -29,6 +29,17 @@ public sealed class LoadedShape
     public required uint IndexBuffer { get; init; }
     public required int IndexCount { get; init; }
 
+    /// <summary>
+    /// Every level of detail, finest first, as ranges of <see cref="IndexBuffer"/> - LOD 0 is
+    /// <c>(0, IndexCount)</c>. A level past the end of this list draws the coarsest, which is what
+    /// BFRES means by a shape with a shorter chain than its neighbours.
+    /// </summary>
+    public IReadOnlyList<(int FirstIndex, int Count)> Lods { get; init; } = [];
+
+    /// <summary>The index range for level <paramref name="lod"/>, clamped to the levels this shape has.</summary>
+    public (int FirstIndex, int Count) Lod(int lod) =>
+        Lods.Count == 0 ? (0, IndexCount) : Lods[Math.Clamp(lod, 0, Lods.Count - 1)];
+
     public required uint GBufferProgram { get; init; }
     public required uint GBufferVao { get; init; }
     public required IReadOnlyList<ShapeSampler> GBufferSamplers { get; init; }
@@ -46,6 +57,18 @@ public sealed class LoadedShape
 
     /// <summary>Base name of the compiled G-buffer program's <c>.vert</c>/<c>.frag</c> pair - lets <c>Debug.ShaderStepDebugger</c> find and re-instrument the real source text for this exact shape. Unlike <see cref="ForwardShaderName"/> this is never empty (every loaded shape has a G-buffer program).</summary>
     public string GBufferShaderName { get; init; } = "";
+
+    /// <summary>The Z-only program's base filename, empty when it has none.</summary>
+    public string ZOnlyShaderName { get; init; } = "";
+
+    /// <summary>
+    /// The same three programs patched to draw many placements at once (<see cref="Pipeline.InstancedShaderPatch"/>),
+    /// linked the first time this shape is drawn instanced and 0 until then, or when it has no such variant.
+    /// </summary>
+    public uint InstancedGBufferProgram { get; internal set; }
+    public uint InstancedZOnlyProgram { get; internal set; }
+    public uint InstancedForwardProgram { get; internal set; }
+    internal bool InstancedProgramsLinked { get; set; }
 
     /// <summary>
     /// Set by the Scene panel's shader step debugger while enabled: an instrumented variant of
