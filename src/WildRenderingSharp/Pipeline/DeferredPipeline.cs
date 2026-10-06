@@ -507,14 +507,17 @@ public sealed class DeferredPipeline : IDisposable
             BuildBonePalette(a.Model, GameWorld.PlacementRows(a.ModelMatrixRows), a.BoneWorldMatrices).ToByteArray(),
             ShapeMatrixUbo.BuildFromModelMatrix(GameWorld.PlacementRows(a.ModelMatrixRows)).ToByteArray(),
             GameWorld.PlacementRows(a.ModelMatrixRows),
-            a.Model.Shapes.Where(s => s.Enabled).ToList())).ToList();
+            a.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow)).ToList())).ToList();
         foreach (var batch in instances)
         {
             if (batch.Visible.Count > 0)
                 allGroups.Add(new ActorDrawGroup([], [], IdentityRows,
-                    batch.Model.Shapes.Where(s => s.Enabled && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch));
+                    batch.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow) && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch));
         }
         // Shapes that read the lit scene (water) draw after it is lit - see SceneColorShapePass.
+        // What is seen: everything but shapes only there for their shadow (LoadedShape.Hidden).
+        var castingGroups = allGroups;
+        allGroups = [.. allGroups.Select(g => g with { Shapes = g.Shapes.Where(s => !s.Hidden).ToList() })];
         var opaqueGroups = allGroups
             .Select(g => g with { Shapes = g.Shapes.Where(s => !s.Blend && !s.ReadsSceneColor).ToList() })
             .Where(g => g.Shapes.Count > 0).ToList();
@@ -552,7 +555,7 @@ public sealed class DeferredPipeline : IDisposable
             foreach (var batch in instances)
                 batch.UpdateShadowRuns(shadowFocus);
         ScreenSpaceShadowAndAoPass.CascadeParams? cascadeParams = request.ShadowCascades is { Count: > 0 } cascades && shadowMapOverride is null
-            ? RenderCascades(request, cascades, allGroups, instances, sunWorld, camera, preTexel, targets, shadowCache)
+            ? RenderCascades(request, cascades, castingGroups, instances, sunWorld, camera, preTexel, targets, shadowCache)
             : null;
 
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
@@ -587,7 +590,7 @@ public sealed class DeferredPipeline : IDisposable
                 var ctxLight = ContextUbo.BuildForCamera(GameWorld.Rows(lightMatrices.View3Rows), GameWorld.Rows(lightMatrices.ViewProj), lightMatrices.Proj,
                     GameWorld.InverseRows(Mat4Math.Invert(Mat4Math.ToMat4(lightMatrices.View3Rows))[..3]), 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
                 Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);
-                _shadow.Run(Resources, targets, ShadowGroups(allGroups, instances, request.ShadowFocus), Programs);
+                _shadow.Run(Resources, targets, ShadowGroups(castingGroups, instances, request.ShadowFocus), Programs);
                 GLDiagnostics.CheckPass(_gl, "shadow pass");
                 Resources.BindUbo("ctx_true", 1);
 
@@ -1062,7 +1065,7 @@ public sealed class DeferredPipeline : IDisposable
                 {
                     if (batch.CascadeRuns(c).Count > 0)
                         groups.Add(new ActorDrawGroup([], [], IdentityRows,
-                            batch.Model.Shapes.Where(s => s.Enabled && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(),
+                            batch.Model.Shapes.Where(s => s.Enabled && s.CastsShadow && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(),
                             batch, ShadowRuns: true, Cascade: c));
                 }
                 _shadow.Run(Resources, targets, groups, Programs, c);
@@ -1124,7 +1127,7 @@ public sealed class DeferredPipeline : IDisposable
         {
             if (batch.ShadowVisible.Count > 0)
                 groups.Add(new ActorDrawGroup([], [], IdentityRows,
-                    batch.Model.Shapes.Where(s => s.Enabled && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch, ShadowRuns: true));
+                    batch.Model.Shapes.Where(s => s.Enabled && s.CastsShadow && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch, ShadowRuns: true));
         }
         return groups;
     }

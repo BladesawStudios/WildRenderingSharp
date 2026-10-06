@@ -128,6 +128,19 @@ public sealed class LoadedShape
     public bool HasZOnly => ZOnlyVao != 0;
 
     /// <summary>
+    /// Kept out of everything that draws what is seen - the G-buffer, the pass-ID mask, the forward
+    /// pass. True for a material the game hides from its normal pass (<c>o_enable_hide_normal_pass</c>:
+    /// <c>Mt_SkyOccluder</c>, a plane that blocks the sky behind it and draws nothing) and for one
+    /// that names no texture at all (<c>Mt_ShadowModel</c>, a stand-in that only casts a shadow).
+    /// Drawn, the sky occluders' planes stood over the ground and hid it as soon as they came into
+    /// view.
+    /// </summary>
+    public bool Hidden { get; init; }
+
+    /// <summary>Whether the shape draws into the shadow map: everything but what the game hides from its normal pass.</summary>
+    public bool CastsShadow { get; init; } = true;
+
+    /// <summary>
     /// Whether the G-buffer program samples <c>cTex_ColorBuffer</c> - the lit scene behind it, as
     /// water does. Such a shape draws after the opaque scene is lit (<see cref="Pipeline.SceneColorShapePass"/>).
     /// </summary>

@@ -142,8 +142,16 @@ public sealed class ModelLoader
             var materialParams = MaterialParamLayout.TryLoadBeside(_dataDirectory, sh.MaterialUbo);
             uint passIdVao = BuildPassIdVao(layout, stride, vbo, ibo, constantSkin);
 
+            // The material's own static options, exported beside its geometry.
+            string optionsPath = Path.Combine(_dataDirectory, $"{sh.Name}_options.txt");
+            bool hideNormalPass = File.Exists(optionsPath) && File.ReadLines(optionsPath)
+                .Any(l => l.Trim().Equals("o_enable_hide_normal_pass=True", StringComparison.OrdinalIgnoreCase));
+            bool noTextures = sh.Samplers.Count == 0;
+
             shapes.Add(new LoadedShape
             {
+                Hidden = hideNormalPass || noTextures,
+                CastsShadow = !hideNormalPass,
                 Name = sh.Name,
                 Material = sh.Material,
                 DeferredPass = sh.DeferredPass,
