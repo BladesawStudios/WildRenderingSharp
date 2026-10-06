@@ -215,10 +215,13 @@ public sealed class ModelLoader
     }
 
     /// <summary>
-    /// Binds each attribute the manifest's fixed layout describes at whichever location THIS
-    /// linked program actually assigned it (queried by name), padding over everything the
-    /// program doesn't use - a decompiled/linked program silently drops an input its code never
-    /// reads, and binding a name the program lacks is undefined. Mirrors <c>build_vertex_format</c>.
+    /// Binds each attribute the manifest's fixed layout describes at its location, for every
+    /// location THIS linked program actually reads - a linked program drops an input its code
+    /// never reads. Matched by location, not name: every decompiled program declares its inputs
+    /// at explicit locations that are the exporter's layout, but not always under the layout's
+    /// names. Location 3 is the layout's <c>aU254</c> and 356 programs' <c>aTexCoordBake</c> (the
+    /// baked-lighting UV), location 10 is <c>aTexCoord2</c> to some and <c>aNormal0</c> to others -
+    /// matched by name, those were never bound at all. Mirrors <c>build_vertex_format</c>.
     /// </summary>
     unsafe uint BuildVertexArray(uint program, List<VertexLayoutEntry> layout, int stride, uint vbo, uint ibo, bool constantSkin = false)
     {
@@ -227,13 +230,13 @@ public sealed class ModelLoader
         _gl.BindBuffer(BufferTargetARB.ArrayBuffer, vbo);
         _gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, ibo);
 
+        var active = ActiveLocations(program);
         foreach (var entry in layout.OrderBy(e => e.Offset))
         {
-            int location = _gl.GetAttribLocation(program, entry.Name);
-            if (location < 0)
+            if (!active.Contains(entry.Location))
                 continue;
-            _gl.EnableVertexAttribArray((uint)location);
-            _gl.VertexAttribPointer((uint)location, entry.Components, VertexAttribPointerType.Float,
+            _gl.EnableVertexAttribArray((uint)entry.Location);
+            _gl.VertexAttribPointer((uint)entry.Location, entry.Components, VertexAttribPointerType.Float,
                 false, (uint)stride, (void*)(nint)entry.Offset);
         }
         if (constantSkin)
@@ -245,6 +248,21 @@ public sealed class ModelLoader
 
     static readonly string[] BlendAttributes = ["aBlendWeight0", "aBlendWeight1", "aBlendIndex0", "aBlendIndex1"];
 
+    /// <summary>The locations of every vertex input <paramref name="program"/> actually reads.</summary>
+    HashSet<int> ActiveLocations(uint program)
+    {
+        var locations = new HashSet<int>();
+        _gl.GetProgram(program, ProgramPropertyARB.ActiveAttributes, out int count);
+        for (uint i = 0; i < count; i++)
+        {
+            string name = _gl.GetActiveAttrib(program, i, out _, out _);
+            int location = _gl.GetAttribLocation(program, name);
+            if (location >= 0)
+                locations.Add(location);
+        }
+        return locations;
+    }
+
     /// <summary>The attributes a shape's vertex buffer must carry: whatever any of its programs reads, plus position and, for a skinned shape, the blend attributes the pass-ID stamp skins with - less those, when they are replaced by the shared constant vertex.</summary>
     HashSet<string> UsedAttributes(List<VertexLayoutEntry> layout, int skinCount, bool constantSkin, params uint[] programs)
     {
@@ -253,8 +271,9 @@ public sealed class ModelLoader
         {
             if (program == 0)
                 continue;
+            var active = ActiveLocations(program);
             foreach (var entry in layout)
-                if (_gl.GetAttribLocation(program, entry.Name) >= 0)
+                if (active.Contains(entry.Location))
                     used.Add(entry.Name);
         }
         if (skinCount >= 1)

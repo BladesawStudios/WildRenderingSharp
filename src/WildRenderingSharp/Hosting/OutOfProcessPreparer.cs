@@ -190,6 +190,42 @@ public sealed class OutOfProcessPreparer : IModelPreparer
             return [.. request.ActorOrModelNames.Distinct(StringComparer.Ordinal).Select(n => outcomes[n])];
     }
 
+    /// <summary>
+    /// Exports the baked lighting of <paramref name="tiles"/> into <see cref="CacheLayout.Bake"/>
+    /// (see <see cref="Assets.BakeLibrary"/>), building the hash-to-tile index first if the cache
+    /// has none - pass no tiles to build just that. Returns the tiles that failed.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> PrepareBakeAsync(string romfsRoot, CacheLayout cache, IEnumerable<string> tiles,
+        Action<string>? onTileDone = null, Action<string>? log = null, CancellationToken cancellationToken = default)
+    {
+        var failed = new List<string>();
+        string listFile = Path.Combine(Path.GetTempPath(), $"wrs-bake-{Environment.ProcessId}-{Guid.NewGuid():N}.txt");
+        await File.WriteAllLinesAsync(listFile, tiles.Distinct(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
+        try
+        {
+            int exitCode = await RunProcessAsync(["prepare-bake", "--romfs", romfsRoot, "--cache", cache.Root, "--list", listFile], line =>
+            {
+                if (TrySplit(line, "WRS_DONE ", out string tile, out _))
+                    onTileDone?.Invoke(tile);
+                else if (TrySplit(line, "WRS_FAIL ", out tile, out string error))
+                {
+                    lock (failed)
+                        failed.Add(tile);
+                    log?.Invoke($"bake {tile}: {error}");
+                }
+                else if (!line.StartsWith("WRS_BEGIN ", StringComparison.Ordinal))
+                    log?.Invoke(line);
+            }, cancellationToken).ConfigureAwait(false);
+            if (exitCode != 0)
+                log?.Invoke($"the bake preparer exited with code {exitCode}");
+        }
+        finally
+        {
+            try { File.Delete(listFile); } catch { /* temp file */ }
+        }
+        return failed;
+    }
+
     static bool TrySplit(string line, string prefix, out string name, out string value)
     {
         name = value = "";

@@ -420,8 +420,9 @@ public static class ModelPreparer
     /// <c>&lt;Project&gt;.anim.bfres</c> joins the archives animations are exported from. 3: every level of detail
     /// is exported (the index file grows, the manifest gains "lods"). 4: textures that ship as
     /// .bntx (CmnTex_BakeDefault, the baked-lighting default every static object samples) export.
+    /// 5: textures export their whole mip chain, not mip 0 alone.
     /// </summary>
-    const int PreparationVersion = 4;
+    const int PreparationVersion = 5;
 
     sealed record SourceStampEntry(string? Path, long Size, long MTime);
     sealed record SourceStamp(string Romfs, List<string> Mods, Dictionary<string, SourceStampEntry> Files, int Version = 0);

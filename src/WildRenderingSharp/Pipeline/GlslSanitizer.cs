@@ -60,8 +60,32 @@ public static class GlslSanitizer
         }
 
         string cleaned = NegativeBinding.Replace(string.Join('\n', output), $"binding = {OrphanBlockBinding}");
+        cleaned = EngineVertexTexture.Replace(cleaned, m =>
+            $"layout (binding = {EngineVertexTextureUnit(m.Groups[2].Value)}) uniform sampler2D {m.Groups[1].Value};");
         return ShadowLodToGrad(cleaned);
     }
+
+    /// <summary>
+    /// Textures the engine renders at runtime and foliage vertex shaders sample, which nothing in
+    /// romfs supplies: <c>TexWindSwell</c> (wind gusts travelling over the field), <c>TexLieMap</c>
+    /// (where grass is pressed flat) and <c>TexThickness</c>. Each shader numbers them its own way
+    /// (wind swell is unit 1 in some, 2 in others, where the lie map takes 1), and those units are
+    /// where the resolve leaves G-buffer attachments bound - so foliage was bent by last frame's
+    /// G-buffer, which the leaves' wind droop term cubes into long spikes. Moved to units of their
+    /// own, where <see cref="DeferredPipeline"/> keeps each one's neutral bound.
+    /// </summary>
+    static readonly Regex EngineVertexTexture = new(
+        @"layout\s*\(\s*binding\s*=\s*\d+\s*\)\s*uniform\s+sampler2D\s+(c\d+_(TexWindSwell|TexLieMap|TexThickness))\s*;", RegexOptions.Compiled);
+
+    /// <summary>The units <see cref="EngineVertexTexture"/> moves them to - above every unit a game program numbers itself.</summary>
+    public const int WindSwellUnit = 32, LieMapUnit = 33, ThicknessUnit = 34;
+
+    static int EngineVertexTextureUnit(string name) => name switch
+    {
+        "TexWindSwell" => WindSwellUnit,
+        "TexLieMap" => LieMapUnit,
+        _ => ThicknessUnit,
+    };
 
     /// <summary>
     /// Where a block the decompiler numbered negatively ends up - see <see cref="NegativeBinding"/>.

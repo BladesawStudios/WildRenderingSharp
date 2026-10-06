@@ -362,6 +362,7 @@ public sealed class DeferredPipeline : IDisposable
         Resources.Ubo("scenemat", sceneMatUbo.ToByteArray(), bindingIndex: 10);
         Resources.Ubo("support", SupportBufferUbo.Build(), bindingIndex: SupportBufferUbo.BindingIndex);
         Resources.BindZeroUbo(GlslSanitizer.OrphanBlockBinding, 65536);
+        Resources.BindEngineVertexTextures();
 
         // Every placed actor's own draw group - bones/ShpMtx bytes built fresh this frame from
         // THAT actor's own transform/pose (never a shared/combined buffer - see class remarks),

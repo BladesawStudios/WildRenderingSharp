@@ -64,6 +64,24 @@ public static class ShapeDrawing
         gl.ActiveTexture(TextureUnit.Texture0);
 
         gl.BindVertexArray(vao);
+
+        // Baked lighting (InstanceBatch.SetBake): the per-instance table at binding 0, and each
+        // instance's atlas on the shape's bake0 unit - so a run is drawn in pieces wherever the
+        // atlas changes, with an unbaked instance taking the material's own bake0 back.
+        int bakeUnit = -1;
+        LoadedTexture? ownBake = null;
+        int[]? atlasOf = batch.BakeAtlasOfInstance;
+        if (atlasOf is not null)
+        {
+            foreach (var (unit, key, texture) in samplers)
+                if (key == "bake0")
+                {
+                    bakeUnit = unit;
+                    ownBake = texture;
+                }
+            gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, BakeTableBinding, batch.BakeTable);
+        }
+
         foreach (var (first, count, lod) in runs ?? batch.Visible)
         {
             if (count <= 0)
@@ -71,11 +89,42 @@ public static class ShapeDrawing
             var (firstIndex, indexCount) = shape.Lod(lod);
             if (indexCount <= 0)
                 continue;
-            gl.Uniform1(locations.First, first);
-            gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)indexCount, DrawElementsType.UnsignedInt,
-                (void*)((nint)firstIndex * sizeof(uint)), (uint)count);
+            if (bakeUnit < 0 || atlasOf is null)
+            {
+                DrawRun(first, count);
+                continue;
+            }
+            int end = Math.Min(first + count, atlasOf.Length);
+            for (int start = first; start < end;)
+            {
+                int atlas = atlasOf[start];
+                int stop = start + 1;
+                while (stop < end && atlasOf[stop] == atlas)
+                    stop++;
+                var bound = atlas >= 0 ? batch.BakeAtlases[atlas] : ownBake!;
+                gl.ActiveTexture(TextureUnit.Texture0 + bakeUnit);
+                gl.BindTexture(bound.Target, bound.Handle);
+                DrawRun(start, stop - start);
+                start = stop;
+            }
+
+            void DrawRun(int at, int n)
+            {
+                gl.Uniform1(locations.First, at);
+                gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)indexCount, DrawElementsType.UnsignedInt,
+                    (void*)((nint)firstIndex * sizeof(uint)), (uint)n);
+            }
+        }
+        if (bakeUnit >= 0)
+        {
+            gl.ActiveTexture(TextureUnit.Texture0 + bakeUnit);
+            gl.BindTexture(ownBake!.Target, ownBake.Handle);
+            gl.ActiveTexture(TextureUnit.Texture0);
         }
     }
+
+    /// <summary>Where the static-object shaders read their per-instance bake table from (<c>vp_s0</c>).</summary>
+    public const uint BakeTableBinding = 0;
 
     /// <summary>Drops every remembered location - the programs they were looked up in are being deleted.</summary>
     internal static void ForgetPrograms(IEnumerable<uint> programs)

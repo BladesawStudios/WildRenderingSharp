@@ -14,9 +14,10 @@ namespace WildRenderingSharp.Pipeline;
 /// <para>
 /// Built for static placements in bind pose - a map's trees, rocks and buildings. Each instance
 /// carries exactly the two blocks the per-actor path would bind for it: its <c>ShpMtx</c> rows (its
-/// placement) and its <c>_Mtx</c> bone palette (the model's bind-pose palette with the placement
-/// folded in, as <see cref="Shaders.Profiles.Totk.Ubos.BonePaletteUbo.Build"/> does it), back to back
-/// in one storage buffer.
+/// placement, then row 8 - see <see cref="SetBake"/>) and its <c>_Mtx</c> bone palette (the model's
+/// bind-pose palette with the placement folded in, as
+/// <see cref="Shaders.Profiles.Totk.Ubos.BonePaletteUbo.Build"/> does it), back to back in one
+/// storage buffer.
 /// </para>
 /// <para>
 /// The host decides what is drawn: <see cref="Visible"/> holds runs of instances and the level of
@@ -33,7 +34,7 @@ public sealed class InstanceBatch : IDisposable
     /// <summary>How many placements the buffer holds.</summary>
     public int Count { get; }
 
-    /// <summary>vec4s per instance: three ShpMtx rows, then three per palette slot.</summary>
+    /// <summary>vec4s per instance: three ShpMtx rows, ShpMtx row 8, then three per palette slot.</summary>
     public int Stride { get; }
 
     /// <summary>vec4s of bone palette per instance.</summary>
@@ -118,7 +119,7 @@ public sealed class InstanceBatch : IDisposable
         PaletteRepeats = local.Length == 0;
         int slots = PaletteRepeats ? 1 : local.Length;
         PaletteVec4s = slots * 3;
-        Stride = 3 + PaletteVec4s;
+        Stride = PaletteOffset + PaletteVec4s;
 
         var data = new Vector4[Math.Max(1, Count) * Stride];
         var lo = new Vector3(float.MaxValue);
@@ -133,9 +134,9 @@ public sealed class InstanceBatch : IDisposable
 
             if (PaletteRepeats)
             {
-                data[at + 3] = rows[0];
-                data[at + 4] = rows[1];
-                data[at + 5] = rows[2];
+                data[at + PaletteOffset] = rows[0];
+                data[at + PaletteOffset + 1] = rows[1];
+                data[at + PaletteOffset + 2] = rows[2];
             }
             else
             {
@@ -143,7 +144,7 @@ public sealed class InstanceBatch : IDisposable
                 for (int s = 0; s < local.Length; s++)
                 {
                     Matrix4x4 m = local[s] * placement;
-                    int p = at + 3 + s * 3;
+                    int p = at + PaletteOffset + s * 3;
                     data[p] = new Vector4(m.M11, m.M21, m.M31, m.M41);
                     data[p + 1] = new Vector4(m.M12, m.M22, m.M32, m.M42);
                     data[p + 2] = new Vector4(m.M13, m.M23, m.M33, m.M43);
@@ -171,6 +172,77 @@ public sealed class InstanceBatch : IDisposable
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, Buffer);
         gl.BufferData<Vector4>(BufferTargetARB.ShaderStorageBuffer, data, BufferUsageARB.StaticDraw);
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+    }
+
+    /// <summary>Where in an instance its <c>ShpMtx</c> row 8 is, and where its palette starts.</summary>
+    internal const int Row8Offset = 3, PaletteOffset = 4;
+
+    /// <summary>The bake atlas each instance samples, as an index into <see cref="BakeAtlases"/>; -1 for none (the material's own <c>bake0</c>).</summary>
+    public int[]? BakeAtlasOfInstance { get; private set; }
+
+    /// <summary>The distinct bake atlases this batch's instances use.</summary>
+    public IReadOnlyList<LoadedTexture> BakeAtlases { get; private set; } = [];
+
+    /// <summary>The per-instance bake table, bound at storage binding 0 when drawing (0 for none).</summary>
+    internal uint BakeTable { get; private set; }
+
+    /// <summary>
+    /// Entries left empty at the head of the bake table. Binding 0 is also where a water program
+    /// writes a per-pixel value of its own (into entry 28, with the Context slot that addresses it
+    /// left zero); the table starts past it.
+    /// </summary>
+    const int BakeTableHead = 64;
+
+    /// <summary>
+    /// Gives each instance its baked lighting, the way the game does: the static-object shaders
+    /// read <c>ShpMtx</c> row 8, and when its top two bits are <c>01</c> they take the bake
+    /// texcoord scale/offset from a storage buffer at binding 0 - entry
+    /// <c>(row8.y &amp; 0xFFFFF) + gsys_material_id</c>, 16 bytes each - instead of the material's
+    /// <c>gsys_bake_st0</c>, then sample <c>bake0</c> there. So each baked instance gets a run of
+    /// entries, one per material index, and its base written into row 8; the caller sets each
+    /// shape's <c>gsys_material_id</c> to its material index, and the draw binds the instance's
+    /// atlas to <c>bake0</c>. Instances with no bake keep row 8 zero and the material's own
+    /// <c>bake0</c>, as before.
+    /// </summary>
+    public unsafe void SetBake(IReadOnlyList<BakeActor?> perInstance)
+    {
+        var atlases = new List<LoadedTexture>();
+        var atlasOf = new int[Count];
+        var table = new List<Vector4>(new Vector4[BakeTableHead]);
+        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, Buffer);
+        for (int i = 0; i < Count; i++)
+        {
+            atlasOf[i] = -1;
+            var row8 = Vector4.Zero;
+            if (i < perInstance.Count && perInstance[i] is { } bake && bake.StByMaterial.Length > 0)
+            {
+                int atlas = atlases.IndexOf(bake.Atlas);
+                if (atlas < 0)
+                {
+                    atlas = atlases.Count;
+                    atlases.Add(bake.Atlas);
+                }
+                atlasOf[i] = atlas;
+                row8.Y = BitConverter.Int32BitsToSingle(0x40000000 | (table.Count & 0xFFFFF));
+                table.AddRange(bake.StByMaterial);
+            }
+            nint offset = (nint)((i * Stride + Row8Offset) * sizeof(Vector4));
+            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, offset, (nuint)sizeof(Vector4), &row8);
+        }
+        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+
+        if (BakeTable != 0)
+            _gl.DeleteBuffer(BakeTable);
+        BakeTable = 0;
+        if (atlases.Count > 0)
+        {
+            BakeTable = _gl.GenBuffer();
+            _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, BakeTable);
+            _gl.BufferData<Vector4>(BufferTargetARB.ShaderStorageBuffer, table.ToArray(), BufferUsageARB.StaticDraw);
+            _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+        }
+        BakeAtlasOfInstance = atlases.Count > 0 ? atlasOf : null;
+        BakeAtlases = atlases;
     }
 
     /// <summary>Draws every visible run.</summary>
@@ -212,5 +284,10 @@ public sealed class InstanceBatch : IDisposable
         r[0].Z, r[1].Z, r[2].Z, 0,
         r[0].W, r[1].W, r[2].W, 1);
 
-    public void Dispose() => _gl.DeleteBuffer(Buffer);
+    public void Dispose()
+    {
+        _gl.DeleteBuffer(Buffer);
+        if (BakeTable != 0)
+            _gl.DeleteBuffer(BakeTable);
+    }
 }

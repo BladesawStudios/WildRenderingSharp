@@ -26,7 +26,8 @@ namespace WildRenderingSharp.Pipeline;
 /// </para>
 /// <para>
 /// What a read past the end returns is reproduced too: <c>ShpMtx</c> holds three rows and zeros
-/// after them, and a bone palette is filled past its last bone with identity matrices - or, for a
+/// after them - except row 8, the instance's baked-lighting table entry, which each instance
+/// carries (<see cref="InstanceBatch.SetBake"/>) - and a bone palette is filled past its last bone with identity matrices - or, for a
 /// model with no skeleton, with its placement in every slot (<see cref="Shaders.Profiles.Totk.Ubos.BonePaletteUbo"/>).
 /// Fragment shaders are left alone: the two that declare <c>ShpMtx</c> read only a reserved,
 /// always-zero row, which the zero block bound alongside instanced draws still supplies.
@@ -100,16 +101,18 @@ public static class InstancedShaderPatch
 
         vec4 wrs_shp(int i)
         {
-            return (i >= 0 && i < 3) ? wrs_inst[wrs_base + i] : vec4(0.0);
+            if (i >= 0 && i < 3) return wrs_inst[wrs_base + i];
+            if (i == 8) return wrs_inst[wrs_base + 3];
+            return vec4(0.0);
         }
 
         vec4 wrs_mtx(int i)
         {
             int row = ((i % 3) + 3) % 3;
             if (i >= 0 && i < wrs_palette_vec4s)
-                return wrs_inst[wrs_base + 3 + i];
+                return wrs_inst[wrs_base + 4 + i];
             if (wrs_palette_repeat != 0)
-                return wrs_inst[wrs_base + 3 + row];
+                return wrs_inst[wrs_base + 4 + row];
             return vec4(row == 0 ? 1.0 : 0.0, row == 1 ? 1.0 : 0.0, row == 2 ? 1.0 : 0.0, 0.0);
         }
         // ---- end instancing ----

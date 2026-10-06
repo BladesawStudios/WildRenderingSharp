@@ -41,6 +41,9 @@ public sealed record CacheLayout(string Root)
     /// <summary>The precomputed sky-scattering LUT (<c>res/master_field.skybin</c>).</summary>
     public string SkyData => Path.Combine(Root, "_sky_data");
 
+    /// <summary>The game's baked lighting for placed actors: the hash-to-tile index and each exported tile (see <see cref="Assets.BakeLibrary"/>).</summary>
+    public string Bake => Path.Combine(Root, "_bake");
+
     /// <summary>A prepared model's own directory.</summary>
     public string ModelDirectory(string resolvedModelName) => Path.Combine(Root, resolvedModelName);
 

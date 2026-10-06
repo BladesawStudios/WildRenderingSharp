@@ -78,6 +78,12 @@ public sealed class TextureCache : IDisposable
     /// <summary>Loads (or returns the cached) texture for one binding - public so a texture pattern anim can pull in an alternate texture no material currently binds. Cached by texture NAME, so the first binding to ask for a given texture decides its sRGB interpretation; every real pattern anim drives one sampler slot consistently, so that is the same decision either way.</summary>
     public LoadedTexture? Load(SamplerBinding s) => GetOrLoad(s);
 
+    static bool? _anisotropy;
+
+    /// <summary>Anisotropic filtering is core only from GL 4.6; before that it is an extension nearly every desktop driver has.</summary>
+    static bool SupportsAnisotropy(GL gl) =>
+        _anisotropy ??= gl.IsExtensionPresent("GL_EXT_texture_filter_anisotropic") || gl.IsExtensionPresent("GL_ARB_texture_filter_anisotropic");
+
     LoadedTexture? GetOrLoad(SamplerBinding s)
     {
         if (_byTextureName.TryGetValue(s.Texture, out var cached))
@@ -111,36 +117,55 @@ public sealed class TextureCache : IDisposable
         uint handle = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, handle);
 
-        if (info.Value.AstcFootprint is { } footprint)
+        // The file is the texture's mip chain back to back, as the game ships it - or mip 0 alone
+        // from a cache prepared before chains were exported. Levels are read for as long as the
+        // file holds another whole one.
+        int levels = 0;
+        for (int offset = 0, w = s.Width, h = s.Height; ; w = Math.Max(1, w / 2), h = Math.Max(1, h / 2))
         {
-            // No guaranteed desktop GL/driver support for ASTC - decode to plain RGBA on the CPU
-            // and upload uncompressed rather than risk glCompressedTexImage2D silently failing on
-            // hardware without GL_KHR_texture_compression_astc_ldr.
-            byte[] rgba = CompressedTextureFormat.DecodeAstc(raw, s.Width, s.Height, footprint, srgb);
-            unsafe
+            int length = CompressedTextureFormat.ComputeDataLength(info.Value, w, h);
+            if (offset + length > raw.Length)
+                break;
+            var level = new ReadOnlySpan<byte>(raw, offset, length);
+            if (info.Value.AstcFootprint is { } footprint)
             {
-                fixed (byte* ptr = rgba)
-                    _gl.TexImage2D(TextureTarget.Texture2D, 0, internalFormat, (uint)s.Width, (uint)s.Height, 0,
-                        PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
+                // No guaranteed desktop GL/driver support for ASTC - decode to plain RGBA on the CPU
+                // and upload uncompressed rather than risk glCompressedTexImage2D silently failing on
+                // hardware without GL_KHR_texture_compression_astc_ldr.
+                byte[] rgba = CompressedTextureFormat.DecodeAstc(level.ToArray(), w, h, footprint, srgb);
+                unsafe
+                {
+                    fixed (byte* ptr = rgba)
+                        _gl.TexImage2D(TextureTarget.Texture2D, levels, internalFormat, (uint)w, (uint)h, 0,
+                            PixelFormat.Rgba, PixelType.UnsignedByte, ptr);
+                }
             }
-        }
-        else
-        {
-            _gl.CompressedTexImage2D(TextureTarget.Texture2D, 0, internalFormat,
-                (uint)s.Width, (uint)s.Height, 0, new ReadOnlySpan<byte>(raw));
+            else
+            {
+                _gl.CompressedTexImage2D(TextureTarget.Texture2D, levels, internalFormat, (uint)w, (uint)h, 0, level);
+            }
+            levels++;
+            offset += length;
+            if (w == 1 && h == 1)
+                break;
         }
 
         GLDiagnostics.Check(_gl, $"uploading texture '{s.Texture}' ({s.Format}, {s.Width}x{s.Height}, {raw.Length} bytes)");
 
         ApplySwizzle(s);
 
-        // Only mip 0 is ever exported (ExportTestBench takes tex.Surfaces[0] only), and
-        // glGenerateMipmap has no defined behaviour for block-compressed internal formats - so
-        // this is deliberately a single mip level, filtered as such, rather than a half-built
-        // mip chain.
+        // Exactly the levels uploaded: a chain the exporter cut short (a tail mip it could not
+        // deswizzle) is still complete up to its last level. Without the chain - mip 0 only, as
+        // every texture was until chains were exported - a tiled texture seen at a distance
+        // shimmers into moire: the streaks across water and the striped far-off rocks.
+        // glGenerateMipmap is no substitute, having no defined behaviour for compressed formats.
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, Math.Max(0, levels - 1));
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+            (int)(levels > 1 ? GLEnum.LinearMipmapLinear : GLEnum.Linear));
+        // Surfaces seen edge-on - water, a field of ground - blur to mush under trilinear alone.
+        if (levels > 1 && SupportsAnisotropy(_gl))
+            _gl.TexParameter(TextureTarget.Texture2D, (TextureParameterName)GLEnum.TextureMaxAnisotropy, 8f);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)MapWrapMode(s.WrapU));
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)MapWrapMode(s.WrapV));

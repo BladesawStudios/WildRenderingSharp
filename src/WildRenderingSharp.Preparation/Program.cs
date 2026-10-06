@@ -9,6 +9,7 @@ using WildRenderingSharp.Preparation;
 //                                  [--mod <romfs dir>]... [--no-anims] [--force]
 //   WildRenderingSharp.Preparation prepare-batch --romfs <dir> --list <file> [--cache <dir>]
 //                                  [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]
+//   WildRenderingSharp.Preparation prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]
 //
 // --cache defaults to CacheLayout.DefaultRoot. --mod is a mod's romfs folder, repeated, highest
 // priority first. `prepare` also builds the system assets, so a fresh cache needs nothing else.
@@ -22,6 +23,9 @@ using WildRenderingSharp.Preparation;
 //   WRS_BEGIN <name>                 a name has started
 //   WRS_DONE  <name>	<model>        it is prepared (or was already up to date)
 //   WRS_FAIL  <name>	<message>      it failed; the batch carries on
+// prepare-bake builds the baked-lighting index (<cache>/_bake/index.bin) if it is missing, then
+// exports every bake tile named in --list (one per line), speaking the same protocol with the tile
+// name in place of the model.
 // A batch that exits non-zero was killed partway - a native decoder can abort the whole process -
 // and the names begun but not finished are the suspects (OutOfProcessPreparer retries the rest).
 
@@ -109,6 +113,9 @@ static class Cli
                     }
                     return PrepareBatch(romfs, cache, File.ReadAllLines(list), mods, jobs, importAnims, force, verbose);
 
+                case "prepare-bake":
+                    return PrepareBake(romfs, cache, list is not null && File.Exists(list) ? File.ReadAllLines(list) : [], jobs, force);
+
                 default:
                     Console.Error.WriteLine($"Unknown command '{command}'.");
                     PrintUsage();
@@ -153,6 +160,41 @@ static class Cli
         return 0;
     }
 
+    static int PrepareBake(string romfs, CacheLayout cache, string[] lines, int jobs, bool force)
+    {
+        int parallelism = jobs > 0 ? jobs : PrepareBatchRequest.DefaultParallelism;
+        string dir = cache.Bake;
+        if (force || !File.Exists(Path.Combine(dir, ShaderLibrary.CompileTool.ExportBake.IndexFile)))
+            ShaderLibrary.CompileTool.ExportBake.BuildIndex(romfs, dir, parallelism);
+        Console.Out.Flush();
+
+        var gate = new object();
+        void Say(string line)
+        {
+            lock (gate)
+            {
+                Console.WriteLine(line);
+                Console.Out.Flush();
+            }
+        }
+        var tiles = lines.Select(l => l.Trim()).Where(l => l.Length > 0).Distinct(StringComparer.Ordinal).ToList();
+        Parallel.ForEach(tiles, new ParallelOptions { MaxDegreeOfParallelism = parallelism }, tile =>
+        {
+            Say($"WRS_BEGIN {tile}");
+            try
+            {
+                if (force || !File.Exists(Path.Combine(dir, tile + ".json")))
+                    ShaderLibrary.CompileTool.ExportBake.ExportTile(romfs, tile, dir);
+                Say($"WRS_DONE {tile}	{tile}");
+            }
+            catch (Exception ex)
+            {
+                Say($"WRS_FAIL {tile}	{ex.Message.ReplaceLineEndings(" ")}");
+            }
+        });
+        return 0;
+    }
+
     static void PrintUsage()
     {
         Console.WriteLine("WildRenderingSharp.Preparation - prepares actors from a romfs into a WildRenderingSharp cache.");
@@ -160,6 +202,7 @@ static class Cli
         Console.WriteLine("  ensure-system --romfs <dir> [--cache <dir>]");
         Console.WriteLine("  prepare --romfs <dir> --actor <name> [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]");
         Console.WriteLine("  prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]");
+        Console.WriteLine("  prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]");
         Console.WriteLine();
         Console.WriteLine($"  --cache defaults to {CacheLayout.DefaultRoot}");
     }

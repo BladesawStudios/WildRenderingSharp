@@ -106,6 +106,48 @@ public sealed class WildRenderer : IDisposable
     /// </summary>
     public bool CompactModelVertices { get; set; }
 
+    BakeLibrary? _bakes;
+
+    /// <summary>The game's baked lighting for placed actors, from <see cref="CacheLayout.Bake"/>.</summary>
+    public BakeLibrary Bakes => _bakes ??= new BakeLibrary(_gl, Cache.Bake);
+
+    /// <summary>
+    /// Gives a batch's instances their baked lighting, found by each placement's hash (parallel to
+    /// the placements the batch was made from) - see <see cref="InstanceBatch.SetBake"/>. Also sets
+    /// each of the model's shapes' <c>gsys_material_id</c> to its material index, which is how the
+    /// shader finds the material's entry in an instance's run. Returns the tiles those placements
+    /// need that are not exported yet; prepare them (<see cref="OutOfProcessPreparer.PrepareBakeAsync"/>),
+    /// call <see cref="BakeLibrary.Refresh"/> and attach again.
+    /// </summary>
+    public IReadOnlyList<string> AttachBake(InstanceBatch batch, IReadOnlyList<ulong> hashes)
+    {
+        using var _ = GLHostState.Enter(_gl);
+        var library = Bakes;
+        var missing = library.MissingTiles(hashes);
+        var perInstance = hashes.Select(library.Find).ToArray();
+        if (perInstance.FirstOrDefault(b => b is not null) is { } any)
+        {
+            foreach (var shape in batch.Model.Shapes)
+            {
+                if (!any.MaterialIndexByName.TryGetValue(shape.Material, out int index))
+                    continue;
+                var entry = shape.MaterialParams?.Uniforms.FirstOrDefault(u => u.Name == "gsys_material_id");
+                if (entry is null || entry.Offset + 4 > shape.MaterialUboBytes.Length)
+                    continue;
+                BitConverter.TryWriteBytes(shape.MaterialUboBytes.AsSpan(entry.Offset, 4), index);
+                unsafe
+                {
+                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, shape.MaterialUboBuffer);
+                    fixed (byte* p = &shape.MaterialUboBytes[entry.Offset])
+                        _gl.BufferSubData(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, entry.Offset, 4, p);
+                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, 0);
+                }
+            }
+        }
+        batch.SetBake(perInstance);
+        return missing;
+    }
+
     /// <summary>Loads a prepared model from the cache. Needs the GL context current; compiles the model's shader programs, so it can take a moment for a large model.</summary>
     public LoadedModel LoadModel(string resolvedModelName)
     {
@@ -301,6 +343,7 @@ public sealed class WildRenderer : IDisposable
         _instances.Clear();
         View.Dispose();
         ExternalTextures.Dispose();
+        _bakes?.Dispose();
         Pipeline.Dispose();
     }
 }
