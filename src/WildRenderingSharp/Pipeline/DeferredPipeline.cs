@@ -140,6 +140,12 @@ public sealed class DeferredPipeline : IDisposable
     /// <summary>Each pass's GPU time over a recent frame - see <see cref="GpuPassTimer"/>.</summary>
     public GpuPassTimer Timer { get; }
 
+    /// <summary>What the last frame's instanced draws submitted: the G-buffer (prepass and main together), and the shadow cascades - zero when they were reused.</summary>
+    public (long Triangles, long Instances) GBufferCounts { get; private set; }
+
+    /// <inheritdoc cref="GBufferCounts"/>
+    public (long Triangles, long Instances) ShadowCounts { get; private set; }
+
     /// <summary>The game's terrain programs, for a host that hands its terrain over (<see cref="FrameRequest.Terrain"/>).</summary>
     public TerrainShading Terrain { get; }
 
@@ -486,6 +492,8 @@ public sealed class DeferredPipeline : IDisposable
         GpuTexture? shadowMapOverride = null)
     {
         Timer.BeginFrame();
+        ShapeDrawing.TakeCounts();
+        ShadowCounts = default;
         // Safety net only - the real driver is ViewportPanel calling EnsureSkyPrecomputed right
         // after construction. Kept because it is idempotent and costs one bool test per frame,
         // so any future caller that renders without going through the panel still gets its LUTs.
@@ -584,6 +592,7 @@ public sealed class DeferredPipeline : IDisposable
         _gbuffer.Run(Resources, targets, opaqueGroups, Programs);
         ClipOrigin.Game(_gl, false);
         GLDiagnostics.CheckPass(_gl, "G-buffer pass");
+        GBufferCounts = ShapeDrawing.TakeCounts();
         _terrainDrawn = false;
         if (request.Terrain is { } terrainHost && Terrain.Available)
         {
@@ -1172,6 +1181,7 @@ public sealed class DeferredPipeline : IDisposable
         if (drew)
         {
             GLDiagnostics.CheckPass(_gl, "shadow cascades");
+            ShadowCounts = ShapeDrawing.TakeCounts();
             Resources.BindUbo("ctx_true", 1);
         }
         return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias);

@@ -77,8 +77,13 @@ public sealed class InstanceBatch : IDisposable
 
     ShadowFocus? _shadowFocus;
 
-    /// <summary>The level of detail shadow casters draw at: shapes, not surface detail, decide a shadow.</summary>
-    const int ShadowLod = 1;
+    /// <summary>
+    /// The level of detail shadow casters draw at - the finest. A caster also receives its own
+    /// shadow, and a coarser level is a different surface: on a large rock its LOD1 shell stands
+    /// proud of the LOD0 surface the view draws in places and shadows it in hard-edged patches
+    /// that barely move with the sun.
+    /// </summary>
+    const int ShadowLod = 0;
 
     /// <summary>Fills <see cref="ShadowVisible"/> for <paramref name="focus"/>, if it changed.</summary>
     internal void UpdateShadowRuns(ShadowFocus focus)
@@ -101,8 +106,8 @@ public sealed class InstanceBatch : IDisposable
     /// the light's <paramref name="right"/> and <paramref name="up"/> axes about the region's centre,
     /// at any depth along the sun. Choosing them by the region's own box instead left out casters
     /// standing outside it whose shadow falls inside the square, which showed as an unshadowed band
-    /// at the edge of every cascade. Further cascades draw coarser levels of detail - a caster
-    /// covering a few texels of a far cascade needs no more triangles than that.
+    /// at the edge of every cascade. The far cascades draw coarser levels of detail - a caster
+    /// covering a few texels of one needs no more triangles than that.
     /// </summary>
     internal void UpdateCascadeRuns(int cascade, ShadowFocus focus, Vector3 right, Vector3 up, float halfExtent)
     {
@@ -112,7 +117,9 @@ public sealed class InstanceBatch : IDisposable
         var runs = CascadeRuns(cascade);
         runs.Clear();
         float reach = halfExtent + Model.BoundsRadius;
-        int lod = ShadowLod + cascade;
+        // The near two at full detail, for the reason ShadowLod gives; past them the view draws
+        // coarse levels too, and a caster covers a few texels.
+        int lod = Math.Max(ShadowLod, cascade - 1);
         int start = -1;
         for (int i = 0; i <= Count; i++)
         {

@@ -117,6 +117,8 @@ public static class ShapeDrawing
 
         void Emit(int at, int n, int firstIndex, int indexCount, int atlas)
         {
+            _triangles += (long)indexCount / 3 * n;
+            _instances += n;
             if (atlas != pendingAtlas)
             {
                 Flush();
@@ -158,6 +160,17 @@ public static class ShapeDrawing
 
     /// <summary>Where the static-object shaders read their per-instance bake table from (<c>vp_s0</c>).</summary>
     public const uint BakeTableBinding = 0;
+
+    /// <summary>Triangles and instances submitted by instanced draws since the counters were last read - see <see cref="TakeCounts"/>.</summary>
+    static long _triangles, _instances;
+
+    /// <summary>Reads and resets what instanced draws have submitted.</summary>
+    public static (long Triangles, long Instances) TakeCounts()
+    {
+        var counts = (_triangles, _instances);
+        _triangles = _instances = 0;
+        return counts;
+    }
 
     /// <summary>One command of a multi-draw: GL's DrawElementsIndirectCommand.</summary>
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
