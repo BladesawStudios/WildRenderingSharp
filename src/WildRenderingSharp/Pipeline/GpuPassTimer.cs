@@ -16,6 +16,9 @@ public sealed class GpuPassTimer : IDisposable
     const int Latency = 4;
     readonly GL _gl;
     readonly List<(string Name, uint Query)>[] _frames = new List<(string, uint)>[Latency];
+    readonly List<(string Name, double Ms)> _cpu = [];
+    readonly System.Diagnostics.Stopwatch _clock = new();
+    double _lastCpuMark;
     readonly Stack<uint> _free = new();
     int _slot = -1;
 
@@ -24,6 +27,12 @@ public sealed class GpuPassTimer : IDisposable
 
     /// <summary>The most recent completed frame: each pass and its milliseconds, in order.</summary>
     public IReadOnlyList<(string Pass, double Ms)> Last { get; private set; } = [];
+
+    /// <summary>
+    /// The CPU time spent issuing each pass of the last frame - mark to mark, like the GPU rows.
+    /// A pass whose GPU time is no more than this was waiting on the CPU to send it work.
+    /// </summary>
+    public IReadOnlyList<(string Pass, double Ms)> LastCpu { get; private set; } = [];
 
     /// <summary>The most recent completed frame's total, first mark to last.</summary>
     public double LastTotalMs { get; private set; }
@@ -58,6 +67,11 @@ public sealed class GpuPassTimer : IDisposable
         foreach (var (_, q) in old)
             _free.Push(q);
         old.Clear();
+        if (_cpu.Count > 0)
+            LastCpu = [.. _cpu];
+        _cpu.Clear();
+        _clock.Restart();
+        _lastCpuMark = 0;
         Current = this;
         Mark("start");
     }
@@ -70,6 +84,10 @@ public sealed class GpuPassTimer : IDisposable
         uint q = _free.Count > 0 ? _free.Pop() : _gl.GenQuery();
         _gl.QueryCounter(q, QueryCounterTarget.Timestamp);
         _frames[_slot].Add((pass, q));
+        double now = _clock.Elapsed.TotalMilliseconds;
+        if (pass != "start")
+            _cpu.Add((pass, now - _lastCpuMark));
+        _lastCpuMark = now;
     }
 
     /// <summary>Ends the frame; later marks are ignored until the next <see cref="BeginFrame"/>.</summary>

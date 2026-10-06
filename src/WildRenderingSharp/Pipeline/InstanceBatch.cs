@@ -97,6 +97,27 @@ public sealed class InstanceBatch : IDisposable
     readonly List<(int First, int Count, int Lod)>?[] _cascadeRuns = new List<(int, int, int)>?[RenderTargets.MaxCascades];
     readonly (ShadowFocus Focus, Vector3 Right, Vector3 Up)?[] _cascadeFocus = new (ShadowFocus, Vector3, Vector3)?[RenderTargets.MaxCascades];
 
+    /// <summary>
+    /// Which shadow cascades these instances cast into, a bit per cascade - all by default. A host
+    /// that swaps a model for a cruder stand-in by distance (a landmark's <c>_Far</c> model) never
+    /// draws both, but casters are chosen by region, so both cast: the stand-in's coarse shell
+    /// shadowed the real model in hard-edged patches up close. The stand-in is limited to the far
+    /// cascades and the model it stands in for to the near ones.
+    /// </summary>
+    public int ShadowCascadeMask
+    {
+        get => _shadowCascadeMask;
+        set
+        {
+            if (_shadowCascadeMask == value)
+                return;
+            _shadowCascadeMask = value;
+            Array.Clear(_cascadeFocus);
+        }
+    }
+
+    int _shadowCascadeMask = ~0;
+
     /// <summary>The runs of instances inside one shadow cascade (see <see cref="UpdateCascadeRuns"/>).</summary>
     internal List<(int First, int Count, int Lod)> CascadeRuns(int cascade) => _cascadeRuns[cascade] ??= [];
 
@@ -116,6 +137,8 @@ public sealed class InstanceBatch : IDisposable
         _cascadeFocus[cascade] = (focus, right, up);
         var runs = CascadeRuns(cascade);
         runs.Clear();
+        if ((_shadowCascadeMask & (1 << cascade)) == 0)
+            return;
         float reach = halfExtent + Model.BoundsRadius;
         // The near two at full detail, for the reason ShadowLod gives; past them the view draws
         // coarse levels too, and a caster covers a few texels.
