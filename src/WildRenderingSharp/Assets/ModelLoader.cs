@@ -154,7 +154,7 @@ public sealed class ModelLoader
             shapes.Add(new LoadedShape
             {
                 Hidden = hideNormalPass || noTextures,
-                CastsShadow = !hideNormalPass,
+                CastsShadow = !hideNormalPass && sh.RenderState.DepthWriteEnabled,
                 Name = sh.Name,
                 Material = sh.Material,
                 DeferredPass = sh.DeferredPass,

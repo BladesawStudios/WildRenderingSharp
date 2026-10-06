@@ -275,6 +275,16 @@ public class LightingContext
     /// </summary>
     public bool EnableKnownMaterialFixes { get; set; } = true;
 
+    /// <summary>
+    /// Whether <c>cTex_DeferredLightPrePass</c> is filled with a synthetic sun-plus-ambient term
+    /// (see <see cref="Pipeline.LightPrePass"/>). Off by default: in the game that buffer
+    /// accumulates local lights only - the resolve takes the sun from <c>Env</c> itself - and the
+    /// resolve adds it normalised to unit brightness wherever it is non-zero
+    /// (<c>prepass / luma(prepass)</c>, gated by its terminator), so a synthetic fill gave every lit
+    /// surface a second full-strength light: the sheen over everything as the sun nears the horizon.
+    /// </summary>
+    public bool SyntheticLightPrePass { get; set; }
+
     /// <summary>Blender-style ground reference grid (see <c>GridPass</c>) - a viewport display toggle, not a shading option, but lives here alongside the other per-frame display state <see cref="DeferredPipeline.RenderFrame"/> already reads from a <see cref="LightingContext"/>.</summary>
     public bool ShowGrid { get; set; } = true;
 }

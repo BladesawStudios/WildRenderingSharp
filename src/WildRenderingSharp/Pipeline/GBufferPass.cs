@@ -37,45 +37,36 @@ public sealed class GBufferPass
         _gl.Enable(EnableCap.DepthTest);
         _gl.DepthFunc(DepthFunction.Less);
 
-        bool anyZOnly = groups.Any(g => g.Shapes.Any(s => s.HasZOnly));
+        var timer = GpuPassTimer.Current;
+        timer?.Mark("G-buffer setup");
+        timer?.Detail("");
+        bool anyZOnly = groups.Any(g => g.Shapes.Any(s => s.HasZOnly && s.RenderState.DepthWriteEnabled));
+        ShapeDrawing.BeginStateCache();
         if (anyZOnly)
         {
             targets.SetGBufferColorMask(false);
-            foreach (var group in groups)
-            {
-                var withZOnly = group.Shapes.Where(s => s.HasZOnly);
-                if (!withZOnly.Any())
-                    continue;
-                group.BindUbos(resources);
-                foreach (var sh in withZOnly)
-                    group.Draw(_gl, programs, sh, ShapeProgram.ZOnly);
-            }
+            DrawSorted(resources, groups, programs, s => s.HasZOnly && s.RenderState.DepthWriteEnabled, ShapeProgram.ZOnly, "z ");
             targets.SetGBufferColorMask(true);
+            timer?.Mark("G-buffer z-prepass");
 
             _gl.DepthFunc(DepthFunction.Equal);
             _gl.DepthMask(false);
-            foreach (var group in groups)
-            {
-                var withZOnly = group.Shapes.Where(s => s.HasZOnly);
-                if (!withZOnly.Any())
-                    continue;
-                group.BindUbos(resources);
-                foreach (var sh in withZOnly)
-                    group.Draw(_gl, programs, sh, ShapeProgram.GBuffer);
-            }
+            DrawSorted(resources, groups, programs, s => s.HasZOnly && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "");
             _gl.DepthMask(true);
+            timer?.Mark("G-buffer main");
         }
 
         _gl.DepthFunc(DepthFunction.Less);
-        foreach (var group in groups)
-        {
-            var withoutZOnly = group.Shapes.Where(s => !s.HasZOnly);
-            if (!withoutZOnly.Any())
-                continue;
-            group.BindUbos(resources);
-            foreach (var sh in withoutZOnly)
-                group.Draw(_gl, programs, sh, ShapeProgram.GBuffer);
-        }
+        DrawSorted(resources, groups, programs, s => !s.HasZOnly && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-z ");
+
+        // Shapes whose render state writes no depth - a see-through surface the game blends into
+        // its G-buffer, like a shrine's warp-hole aura - after everything that does, tested but
+        // not written, and never in the depth prepass: written there, they hid what is behind them.
+        _gl.DepthMask(false);
+        DrawSorted(resources, groups, programs, s => !s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-depth ");
+        _gl.DepthMask(true);
+        ShapeDrawing.EndStateCache();
+        _gl.ActiveTexture(TextureUnit.Texture0);
 
         // Shader step debugger, G-buffer target: an EXTRA draw over just the shape(s) currently
         // being stepped, with depth testing forced to always-pass. The normal draws above only ever
@@ -114,4 +105,53 @@ public sealed class GBufferPass
         }
     }
 
+    readonly List<(ulong Key, int Group, LoadedShape Shape)> _items = [];
+
+    /// <summary>
+    /// Draws the shapes <paramref name="include"/> picks, every group's together, ordered by
+    /// program and then material: hundreds of models share a few hundred of the game's programs, and
+    /// drawn model by model each one re-bound its program, uniforms and textures for every shape -
+    /// the CPU spent more time issuing a frame than the card spent drawing it. A placed actor's
+    /// shapes keep their order and go first; their per-actor UBOs make them unsortable.
+    /// </summary>
+    void DrawSorted(GLResourceCache resources, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs,
+        Func<LoadedShape, bool> include, ShapeProgram which, string detailPrefix)
+    {
+        _items.Clear();
+        for (int g = 0; g < groups.Count; g++)
+        {
+            var group = groups[g];
+            bool instanced = group.Batch is { Visible.Count: > 0 };
+            foreach (var sh in group.Shapes)
+            {
+                if (!include(sh))
+                    continue;
+                ulong key = 0;
+                if (instanced)
+                {
+                    ActorDrawGroup.EnsureInstancedPrograms(programs, sh);
+                    uint program = which == ShapeProgram.ZOnly ? sh.InstancedZOnlyProgram : sh.InstancedGBufferProgram;
+                    key = (1UL << 63) | ((ulong)program << 32) | sh.MaterialUboBuffer;
+                }
+                _items.Add((key, g, sh));
+            }
+        }
+        // Stable for the actors (key 0), whose order is the caller's.
+        _items.Sort((a, b) => a.Key != b.Key ? a.Key.CompareTo(b.Key) : a.Group.CompareTo(b.Group));
+
+        var timer = GpuPassTimer.Current;
+        bool detailed = timer?.Detailed == true;
+        int bound = -1;
+        foreach (var (_, g, sh) in _items)
+        {
+            var group = groups[g];
+            if (g != bound)
+            {
+                group.BindUbos(resources);
+                bound = g;
+            }
+            group.Draw(_gl, programs, sh, which);
+            if (detailed) timer!.Detail(detailPrefix + group.Label);
+        }
+    }
 }

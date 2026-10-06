@@ -16,6 +16,16 @@ public sealed class GpuPassTimer : IDisposable
     const int Latency = 4;
     readonly GL _gl;
     readonly List<(string Name, uint Query)>[] _frames = new List<(string, uint)>[Latency];
+    readonly List<(string Name, uint Query)>[] _details = new List<(string, uint)>[Latency];
+
+    /// <summary>
+    /// Whether <see cref="Detail"/> records anything - a timestamp per draw group, which is a few
+    /// thousand queries a frame, so off unless someone is looking.
+    /// </summary>
+    public bool Detailed { get; set; }
+
+    /// <summary>The most expensive labels of the last detailed frame, by summed GPU time, most first.</summary>
+    public IReadOnlyList<(string Label, double Ms, int Count)> LastDetail { get; private set; } = [];
     readonly List<(string Name, double Ms)> _cpu = [];
     readonly System.Diagnostics.Stopwatch _clock = new();
     double _lastCpuMark;
@@ -41,7 +51,10 @@ public sealed class GpuPassTimer : IDisposable
     {
         _gl = gl;
         for (int i = 0; i < Latency; i++)
+        {
             _frames[i] = [];
+            _details[i] = [];
+        }
     }
 
     /// <summary>Starts a frame: reads back the frame written <see cref="Latency"/> frames ago, if it is ready, and marks the start.</summary>
@@ -67,6 +80,32 @@ public sealed class GpuPassTimer : IDisposable
         foreach (var (_, q) in old)
             _free.Push(q);
         old.Clear();
+
+        var detail = _details[_slot];
+        if (detail.Count > 1)
+        {
+            _gl.GetQueryObject(detail[^1].Query, QueryObjectParameterName.ResultAvailable, out int ready);
+            if (ready != 0)
+            {
+                var sums = new Dictionary<string, (double Ms, int Count)>(StringComparer.Ordinal);
+                _gl.GetQueryObject(detail[0].Query, QueryObjectParameterName.Result, out ulong previous);
+                for (int i = 1; i < detail.Count; i++)
+                {
+                    _gl.GetQueryObject(detail[i].Query, QueryObjectParameterName.Result, out ulong t);
+                    string label = detail[i].Name;
+                    if (label.Length > 0)
+                    {
+                        sums.TryGetValue(label, out var s);
+                        sums[label] = (s.Ms + (t - previous) / 1e6, s.Count + 1);
+                    }
+                    previous = t;
+                }
+                LastDetail = [.. sums.OrderByDescending(kv => kv.Value.Ms).Take(24).Select(kv => (kv.Key, kv.Value.Ms, kv.Value.Count))];
+            }
+        }
+        foreach (var (_, q) in detail)
+            _free.Push(q);
+        detail.Clear();
         if (_cpu.Count > 0)
             LastCpu = [.. _cpu];
         _cpu.Clear();
@@ -90,6 +129,19 @@ public sealed class GpuPassTimer : IDisposable
         _lastCpuMark = now;
     }
 
+    /// <summary>
+    /// When <see cref="Detailed"/>, marks the end of a span charged to <paramref name="label"/>,
+    /// timed from the previous detail mark; an empty label starts a span without charging one.
+    /// </summary>
+    public void Detail(string label)
+    {
+        if (!Detailed || _slot < 0)
+            return;
+        uint q = _free.Count > 0 ? _free.Pop() : _gl.GenQuery();
+        _gl.QueryCounter(q, QueryCounterTarget.Timestamp);
+        _details[_slot].Add((label, q));
+    }
+
     /// <summary>Ends the frame; later marks are ignored until the next <see cref="BeginFrame"/>.</summary>
     public void EndFrame(string lastPass)
     {
@@ -102,7 +154,7 @@ public sealed class GpuPassTimer : IDisposable
     {
         if (ReferenceEquals(Current, this))
             Current = null;
-        foreach (var frame in _frames)
+        foreach (var frame in _frames.Concat(_details))
             foreach (var (_, q) in frame)
                 _gl.DeleteQuery(q);
         while (_free.Count > 0)

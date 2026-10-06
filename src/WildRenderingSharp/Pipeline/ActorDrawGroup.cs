@@ -40,6 +40,9 @@ public readonly record struct ActorDrawGroup(byte[] BonesBytes, byte[] ShpMtxByt
     /// before its own shapes. A batch binds its instance buffer instead, plus zeroed blocks at the
     /// two bindings for the fragment shaders that still declare them.
     /// </summary>
+    /// <summary>What the group draws, for a profile: the model's name.</summary>
+    public string Label => Batch is { } b ? Path.GetFileName(b.Model.DataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) : (Shapes.Count > 0 ? Shapes[0].Name : "actor");
+
     public void BindUbos(GLResourceCache resources)
     {
         if (Batch is { } batch)

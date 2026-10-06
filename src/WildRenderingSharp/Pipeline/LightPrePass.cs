@@ -76,7 +76,7 @@ public sealed class LightPrePass : IDisposable
             if (d >= 0.999) { fragColor = vec4(uHemiSky, 1.0); return; }
             vec3 nView = decodeGBuffNormal(vUV);
             vec3 nWorld = normalize(mat3(uViewInv) * nView);
-            vec3 ambient = mix(uHemiGround, uHemiSky, nWorld.y * 0.5 + 0.5);
+            vec3 ambient = mix(uHemiGround, uHemiSky, nWorld.z * 0.5 + 0.5); // the renderer's world is Z-up
             vec3 direct = uSunColor * max(0.0, dot(nWorld, uSunWorld));
             fragColor = vec4(ambient + direct, 1.0);
         }
@@ -90,10 +90,18 @@ public sealed class LightPrePass : IDisposable
 
     public readonly record struct Params(
         Vector4[] ViewInv3Rows, Vector2 TanHalf, float Near, float Far,
-        Vector3 SunWorld, Vector3 SunColor, Vector3 HemiSky, Vector3 HemiGround);
+        Vector3 SunWorld, Vector3 SunColor, Vector3 HemiSky, Vector3 HemiGround, bool Synthetic = true);
 
     public void Run(GLResourceCache resources, RenderTargets targets, Params p)
     {
+        if (!p.Synthetic)
+        {
+            // No local lights: the buffer the game accumulates them in is black.
+            targets.BindColorTargetLayer(targets.LightPrePassArray, layer: 0);
+            _gl.ClearColor(0f, 0f, 0f, 0f);
+            _gl.Clear(ClearBufferMask.ColorBufferBit);
+            return;
+        }
         _gl.Disable(EnableCap.DepthTest);
         _gl.UseProgram(_program);
         SetMat4(_program, "uViewInv", Rendering.Mat4Math.ToMat4(p.ViewInv3Rows));

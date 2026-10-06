@@ -18,6 +18,7 @@ public static class ShapeDrawing
         if (vao == 0 || program == 0)
             return;
 
+        InvalidateStateCache();
         gl.UseProgram(program);
         gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, materialUboBuffer);
         foreach (var (unit, key, texture) in samplers)
@@ -45,25 +46,40 @@ public static class ShapeDrawing
         if (vao == 0 || program == 0)
             return;
 
-        gl.UseProgram(program);
         var locations = InstancedLocations(gl, program);
-        gl.Uniform1(locations.Stride, batch.Stride);
-        gl.Uniform1(locations.PaletteVec4s, batch.PaletteVec4s);
-        gl.Uniform1(locations.PaletteRepeat, batch.PaletteRepeats ? 1 : 0);
+        if (!_caching || _program != program)
+        {
+            gl.UseProgram(program);
+            _program = program;
+            _uniformBatch = null;
+        }
+        if (!_caching || !ReferenceEquals(_uniformBatch, batch))
+        {
+            gl.Uniform1(locations.Stride, batch.Stride);
+            gl.Uniform1(locations.PaletteVec4s, batch.PaletteVec4s);
+            gl.Uniform1(locations.PaletteRepeat, batch.PaletteRepeats ? 1 : 0);
+            _uniformBatch = batch;
+        }
 
-        gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, shape.MaterialUboBuffer);
+        if (!_caching || _material != shape.MaterialUboBuffer)
+        {
+            gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, shape.MaterialUboBuffer);
+            _material = shape.MaterialUboBuffer;
+        }
         var overrides = shape.SamplerOverrides;
         foreach (var (unit, key, texture) in samplers)
         {
             var bound = texture;
             if (overrides is not null && overrides.TryGetValue(key, out var replacement))
                 bound = replacement;
-            gl.ActiveTexture(TextureUnit.Texture0 + unit);
-            gl.BindTexture(bound.Target, bound.Handle);
+            BindTexture(gl, unit, bound.Target, bound.Handle);
         }
-        gl.ActiveTexture(TextureUnit.Texture0);
 
-        gl.BindVertexArray(vao);
+        if (!_caching || _vao != vao)
+        {
+            gl.BindVertexArray(vao);
+            _vao = vao;
+        }
 
         // Baked lighting (InstanceBatch.SetBake): the per-instance table at binding 0, and each
         // instance's atlas on the shape's bake0 unit - so a run is drawn in pieces wherever the
@@ -126,8 +142,7 @@ public static class ShapeDrawing
                 if (atlas != int.MinValue)
                 {
                     var bound = atlas >= 0 ? batch.BakeAtlases[atlas] : ownBake!;
-                    gl.ActiveTexture(TextureUnit.Texture0 + bakeUnit);
-                    gl.BindTexture(bound.Target, bound.Handle);
+                    BindTexture(gl, bakeUnit, bound.Target, bound.Handle);
                 }
             }
             if (!multi)
@@ -151,11 +166,58 @@ public static class ShapeDrawing
         }
 
         if (bakeUnit >= 0)
-        {
-            gl.ActiveTexture(TextureUnit.Texture0 + bakeUnit);
-            gl.BindTexture(ownBake!.Target, ownBake.Handle);
+            BindTexture(gl, bakeUnit, ownBake!.Target, ownBake.Handle);
+        if (!_caching)
             gl.ActiveTexture(TextureUnit.Texture0);
+    }
+
+    // ---- state cache: redundant binds skipped between BeginStateCache and EndStateCache ----
+
+    static bool _caching;
+    static uint _program, _material, _vao;
+    static InstanceBatch? _uniformBatch;
+    static readonly uint[] _textures = new uint[96];
+    static int _activeUnit = -1;
+
+    /// <summary>
+    /// Starts trusting what the instanced draws last bound: a pass drawing thousands of shapes in
+    /// program order (see <see cref="GBufferPass"/>) re-bound the same program, uniforms and
+    /// textures for each. Only valid while nothing else binds in between - a non-instanced draw
+    /// forgets it (<see cref="Draw"/>), and <see cref="EndStateCache"/> must follow.
+    /// </summary>
+    public static void BeginStateCache()
+    {
+        InvalidateStateCache();
+        _caching = true;
+    }
+
+    /// <summary>Stops trusting the cache and leaves unit 0 active, as every draw used to.</summary>
+    public static void EndStateCache(GL? gl = null)
+    {
+        _caching = false;
+        InvalidateStateCache();
+    }
+
+    static void InvalidateStateCache()
+    {
+        _program = _material = _vao = 0;
+        _uniformBatch = null;
+        Array.Clear(_textures);
+        _activeUnit = -1;
+    }
+
+    static void BindTexture(GL gl, int unit, TextureTarget target, uint handle)
+    {
+        if (_caching && (uint)unit < (uint)_textures.Length && _textures[unit] == handle)
+            return;
+        if (!_caching || _activeUnit != unit)
+        {
+            gl.ActiveTexture(TextureUnit.Texture0 + unit);
+            _activeUnit = unit;
         }
+        gl.BindTexture(target, handle);
+        if (_caching && (uint)unit < (uint)_textures.Length)
+            _textures[unit] = handle;
     }
 
     /// <summary>Where the static-object shaders read their per-instance bake table from (<c>vp_s0</c>).</summary>

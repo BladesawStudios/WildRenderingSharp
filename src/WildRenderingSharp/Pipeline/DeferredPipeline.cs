@@ -697,7 +697,8 @@ public sealed class DeferredPipeline : IDisposable
         var lightPrePassParams = new LightPrePass.Params(
             ViewInv3Rows: viewInv4[..3], TanHalf: new Vector2(vp.Aspect * vp.TanHalfFovY, vp.TanHalfFovY),
             Near: camera.NearPlane, Far: camera.FarPlane,
-            SunWorld: sunWorld, SunColor: sunColor, HemiSky: hemiSky, HemiGround: hemiGround);
+            SunWorld: sunWorld, SunColor: sunColor, HemiSky: hemiSky, HemiGround: hemiGround,
+            Synthetic: lighting.SyntheticLightPrePass);
         _lightPrePass.Run(Resources, targets, lightPrePassParams);
         GLDiagnostics.CheckPass(_gl, "light pre-pass");
 
