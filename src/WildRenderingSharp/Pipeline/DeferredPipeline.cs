@@ -471,19 +471,23 @@ public sealed class DeferredPipeline : IDisposable
         var viewProj = Mat4Math.Multiply(vp.Proj, viewMat4);
         var viewProjFlipped = Mat4Math.Multiply(projFlipped, viewMat4);
 
-        var ctxTrue = ContextUbo.BuildForCamera(vp.View, viewProj, vp.Proj, viewInv4[..3], vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
+        // Every Context a game program reads is in the game's own Y-up world (see GameWorld), while
+        // the renderer's own passes keep its Z-up one.
+        var gameView = GameWorld.Rows(vp.View);
+        var gameViewInv = GameWorld.InverseRows(viewInv4[..3]);
+        var ctxTrue = ContextUbo.BuildForCamera(gameView, GameWorld.Rows(viewProj), vp.Proj, gameViewInv, vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
         // The G-buffer's orientation: the plain projection with the upper-left origin the game's
         // programs were written for where the driver has it (see ClipOrigin), else the flipped one.
         bool gameOrigin = ClipOrigin.Supported(_gl);
         var ctxGBuffer = gameOrigin
-            ? ContextUbo.BuildForCamera(vp.View, viewProj, vp.Proj, viewInv4[..3], vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel)
-            : ContextUbo.BuildForCamera(vp.View, viewProjFlipped, projFlipped, viewInv4[..3], vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
+            ? ContextUbo.BuildForCamera(gameView, GameWorld.Rows(viewProj), vp.Proj, gameViewInv, vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel)
+            : ContextUbo.BuildForCamera(gameView, GameWorld.Rows(viewProjFlipped), projFlipped, gameViewInv, vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
         // VolumeMaskColorNoUse is the palette's own "ignore my tint" switch (present on 131 of the
         // 131 shipped palettes, read by nothing until now). See EnvPalette.VolumeMaskColorNoUse for
         // why the tint it gates is inert in WildRenderingSharp either way.
         Vector3 volumeMaskColor = pal.VolumeMaskColorNoUse ? Vector3.Zero : pal.VolumeMaskColor;
         float volumeMaskIntensity = pal.VolumeMaskColorNoUse ? 0f : pal.VolumeMaskIntensity;
-        var envUbo = EnvUbo.BuildFromLighting(sunView, sunWorld, sunColor, hemiSky, hemiGround, volumeMaskColor, volumeMaskIntensity, RenderTargets.ShadowMapSize);
+        var envUbo = EnvUbo.BuildFromLighting(sunView, GameWorld.Direction(sunWorld), sunColor, hemiSky, hemiGround, volumeMaskColor, volumeMaskIntensity, RenderTargets.ShadowMapSize);
         var sceneMatUbo = SceneMatUbo.BuildFromLighting(hemiSky, hemiGround, lighting.MidScale, lighting.HighlightScale);
 
         Resources.Ubo("ctx_true", ctxTrue.ToByteArray());
@@ -500,9 +504,9 @@ public sealed class DeferredPipeline : IDisposable
         // are computed once in SetScene) so Model Config's "Enabled" toggle takes effect on the
         // very next frame, not just the next actor placed.
         var allGroups = request.Actors.Select(a => new ActorDrawGroup(
-            BuildBonePalette(a.Model, a.ModelMatrixRows, a.BoneWorldMatrices).ToByteArray(),
-            ShapeMatrixUbo.BuildFromModelMatrix(a.ModelMatrixRows).ToByteArray(),
-            a.ModelMatrixRows,
+            BuildBonePalette(a.Model, GameWorld.PlacementRows(a.ModelMatrixRows), a.BoneWorldMatrices).ToByteArray(),
+            ShapeMatrixUbo.BuildFromModelMatrix(GameWorld.PlacementRows(a.ModelMatrixRows)).ToByteArray(),
+            GameWorld.PlacementRows(a.ModelMatrixRows),
             a.Model.Shapes.Where(s => s.Enabled).ToList())).ToList();
         foreach (var batch in instances)
         {
@@ -580,8 +584,8 @@ public sealed class DeferredPipeline : IDisposable
             lightMatrices = ShadowPass.BuildLightMatrices(rotatedLo, rotatedHi, sunWorld);
             if (shadowMapOverride is null)
             {
-                var ctxLight = ContextUbo.BuildForCamera(lightMatrices.View3Rows, lightMatrices.ViewProj, lightMatrices.Proj,
-                    Mat4Math.Invert(Mat4Math.ToMat4(lightMatrices.View3Rows))[..3], 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
+                var ctxLight = ContextUbo.BuildForCamera(GameWorld.Rows(lightMatrices.View3Rows), GameWorld.Rows(lightMatrices.ViewProj), lightMatrices.Proj,
+                    GameWorld.InverseRows(Mat4Math.Invert(Mat4Math.ToMat4(lightMatrices.View3Rows))[..3]), 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
                 Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);
                 _shadow.Run(Resources, targets, ShadowGroups(allGroups, instances, request.ShadowFocus), Programs);
                 GLDiagnostics.CheckPass(_gl, "shadow pass");
@@ -627,7 +631,8 @@ public sealed class DeferredPipeline : IDisposable
         GLDiagnostics.CheckPass(_gl, "light pre-pass");
 
         // ---- pass-ID mask (UNflipped proj - the resolve consumes it in its own true-GL space) ----
-        var maskViewProj = Mat4Math.Multiply(vp.Proj, viewMat4);
+        // In the game's world, like the palettes and placements the mask draws with.
+        var maskViewProj = GameWorld.Rows(Mat4Math.Multiply(vp.Proj, viewMat4));
         _passIdMask.Run(Resources, targets, allGroups, _passNames, maskViewProj, camera.NearPlane, camera.FarPlane);
         GLDiagnostics.CheckPass(_gl, "pass-ID mask");
 
@@ -796,7 +801,7 @@ public sealed class DeferredPipeline : IDisposable
         if (lighting.EnableKnownMaterialFixes && _cachedNeedsKnownMaterialFixes)
         {
             _forward.FlipInto(Resources, targets, targets.Scene, targets.Final, flip: true);
-            _knownFixes.Run(Resources, targets, opaqueGroups, viewProjFlipped, lighting.EmissionScale, lighting.Exposure);
+            _knownFixes.Run(Resources, targets, opaqueGroups, GameWorld.Rows(viewProjFlipped), lighting.EmissionScale, lighting.Exposure);
             _forward.FlipInto(Resources, targets, targets.Final, targets.Scene, flip: true);
             GLDiagnostics.CheckPass(_gl, "known material fixes");
         }
@@ -867,7 +872,7 @@ public sealed class DeferredPipeline : IDisposable
         {
             var owningActor = allGroups[h.ActorIndex];
             var shape = request.Actors[h.ActorIndex].Model.Shapes[h.ShapeIndex];
-            var mvp = Mat4Math.Multiply(maskViewProj, Mat4Math.ToMat4(request.Actors[h.ActorIndex].ModelMatrixRows));
+            var mvp = Mat4Math.Multiply(maskViewProj, Mat4Math.ToMat4(owningActor.ModelMatrixRows));
             _highlight.Draw(Resources, targets, owningActor, shape, mvp, maskViewProj, new Vector4(1f, 0.85f, 0.2f, 0.2f));
             GLDiagnostics.CheckPass(_gl, "highlight overlay");
         }
@@ -1047,8 +1052,8 @@ public sealed class DeferredPipeline : IDisposable
 
             if (cache.CascadeSignature[c] != signature)
             {
-                var ctxLight = ContextUbo.BuildForCamera(lm.View3Rows, lm.ViewProj, lm.Proj,
-                    Mat4Math.Invert(Mat4Math.ToMat4(lm.View3Rows))[..3], 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
+                var ctxLight = ContextUbo.BuildForCamera(GameWorld.Rows(lm.View3Rows), GameWorld.Rows(lm.ViewProj), lm.Proj,
+                    GameWorld.InverseRows(Mat4Math.Invert(Mat4Math.ToMat4(lm.View3Rows))[..3]), 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
                 Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);
 
                 static ActorDrawGroup Casting(ActorDrawGroup g) => g with { Shapes = g.Shapes.Where(s => !s.ReadsSceneColor).ToList() };
