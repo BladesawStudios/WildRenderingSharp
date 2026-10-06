@@ -269,7 +269,19 @@ public sealed class DeferredPipeline : IDisposable
         Vector4[] viewProjFlipped, Vector4[] projFlipped, Vector4[] viewInv4, Vector2 preTexel)
     {
         _linearDepth.Run(Resources, targets, camera.NearPlane, camera.FarPlane);
-        var (underAlbedo, underNormal) = targets.TerrainUnderCopies();
+        var (underAlbedo, underNormal, underDepth) = targets.TerrainUnderCopies();
+        // The depth under the terrain, for its soft edge - with nothing under it pushed out to
+        // effectively infinity. The game's far plane is kilometres off; a host fits its own to the
+        // scene, and with the sky only just past the ground the terrain judged itself to be lying
+        // right on top of something and faded into the empty G-buffer under it: black ground.
+        _underDepthProgram = _underDepthProgram != 0 ? _underDepthProgram
+            : GLProgramBuilder.Build(_gl, UnderDepthVertex, UnderDepthFragment, "terrain_under_depth");
+        _gl.Disable(EnableCap.DepthTest);
+        _gl.Disable(EnableCap.Blend);
+        targets.BindColorTarget(underDepth);
+        _gl.UseProgram(_underDepthProgram);
+        _gl.BindTextureUniform(_underDepthProgram, "t", 0, targets.LinearDepth.Handle);
+        Resources.DrawFullscreenTriangle();
         _gl.CopyImageSubData(targets.GBuffer[1].Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
             underAlbedo.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)targets.Width, (uint)targets.Height, 1);
         _gl.CopyImageSubData(targets.GBuffer[3].Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
@@ -289,9 +301,11 @@ public sealed class DeferredPipeline : IDisposable
         _gl.DepthMask(true);
         BindUnit(0, underAlbedo.Handle);
         BindUnit(1, underNormal.Handle);
-        BindUnit(4, targets.LinearDepth.Handle);
+        BindUnit(4, underDepth.Handle);
 
+        ClipOrigin.Game(_gl, true);
         host.DrawGBuffer(new TerrainDraw(_gl, Hosting.YUpWorld.PointBack(camera.Eye), -1, default));
+        ClipOrigin.Game(_gl, false);
 
         _gl.UseProgram(0);
         _gl.BindVertexArray(0);
@@ -299,6 +313,32 @@ public sealed class DeferredPipeline : IDisposable
         _gl.Disable(EnableCap.DepthTest);
         GLDiagnostics.CheckPass(_gl, "terrain");
     }
+
+    uint _underDepthProgram;
+
+    const string UnderDepthVertex = """
+        #version 450 core
+        out vec2 vUV;
+        void main()
+        {
+            float x = -1.0 + float((gl_VertexID & 1) * 4);
+            float y = -1.0 + float((gl_VertexID & 2) * 2);
+            vUV = vec2(x, y) * 0.5 + 0.5;
+            gl_Position = vec4(x, y, 0.0, 1.0);
+        }
+        """;
+
+    const string UnderDepthFragment = """
+        #version 450 core
+        uniform sampler2D t;
+        in vec2 vUV;
+        out float o;
+        void main()
+        {
+            float d = texture(t, vUV).r;
+            o = d >= 0.9999 ? 1.0e6 : d;
+        }
+        """;
 
     void BindUnit(int unit, uint handle)
     {
@@ -432,7 +472,12 @@ public sealed class DeferredPipeline : IDisposable
         var viewProjFlipped = Mat4Math.Multiply(projFlipped, viewMat4);
 
         var ctxTrue = ContextUbo.BuildForCamera(vp.View, viewProj, vp.Proj, viewInv4[..3], vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
-        var ctxGBuffer = ContextUbo.BuildForCamera(vp.View, viewProjFlipped, projFlipped, viewInv4[..3], vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
+        // The G-buffer's orientation: the plain projection with the upper-left origin the game's
+        // programs were written for where the driver has it (see ClipOrigin), else the flipped one.
+        bool gameOrigin = ClipOrigin.Supported(_gl);
+        var ctxGBuffer = gameOrigin
+            ? ContextUbo.BuildForCamera(vp.View, viewProj, vp.Proj, viewInv4[..3], vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel)
+            : ContextUbo.BuildForCamera(vp.View, viewProjFlipped, projFlipped, viewInv4[..3], vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
         // VolumeMaskColorNoUse is the palette's own "ignore my tint" switch (present on 131 of the
         // 131 shipped palettes, read by nothing until now). See EnvPalette.VolumeMaskColorNoUse for
         // why the tint it gates is inert in WildRenderingSharp either way.
@@ -471,12 +516,15 @@ public sealed class DeferredPipeline : IDisposable
             .Where(g => g.Shapes.Count > 0).ToList();
 
         // ---- G-buffer (flipped Context already bound at 1) ----
+        ClipOrigin.Game(_gl, true);
         _gbuffer.Run(Resources, targets, opaqueGroups, Programs);
+        ClipOrigin.Game(_gl, false);
         GLDiagnostics.CheckPass(_gl, "G-buffer pass");
         if (request.Terrain is { } terrainHost && Terrain.Available)
         {
             EnsureDefaultPass();
-            DrawTerrainGBuffer(terrainHost, targets, camera, vp, viewProjFlipped, projFlipped, viewInv4, preTexel);
+            DrawTerrainGBuffer(terrainHost, targets, camera, vp,
+                gameOrigin ? viewProj : viewProjFlipped, gameOrigin ? vp.Proj : projFlipped, viewInv4, preTexel);
         }
         Resources.BindUbo("ctx_true", 1); // every later pass uses the true (unflipped) projection
 
@@ -702,7 +750,9 @@ public sealed class DeferredPipeline : IDisposable
             float emissionUnits = lighting.Exposure / MathF.Max(1e-4f, lighting.EmissionScale);
             _sceneColorShapes.CopyInputs(Resources, targets, emissionUnits);
             Resources.BindUbo("ctx_gbuffer", 1);
+            ClipOrigin.Game(_gl, true);
             _sceneColorShapes.Run(Resources, targets, allGroups, Programs);
+            ClipOrigin.Game(_gl, false);
             Resources.BindUbo("ctx_true", 1);
             GLDiagnostics.CheckPass(_gl, "scene-colour shapes");
 

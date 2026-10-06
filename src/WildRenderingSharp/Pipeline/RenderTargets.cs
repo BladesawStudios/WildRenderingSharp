@@ -68,17 +68,18 @@ public sealed class RenderTargets : IDisposable
     public GpuTexture Scene { get; private set; }
     public GpuTexture Behind { get; private set; }
 
-    GpuTexture? _underAlbedo, _underNormal;
+    GpuTexture? _underAlbedo, _underNormal, _underDepth;
 
     /// <summary>
     /// Copies of the G-buffer albedo and normal under the terrain (see <see cref="TerrainShading"/>),
     /// made the first time a frame has terrain and remade with the other targets.
     /// </summary>
-    public (GpuTexture Albedo, GpuTexture Normal) TerrainUnderCopies()
+    public (GpuTexture Albedo, GpuTexture Normal, GpuTexture Depth) TerrainUnderCopies()
     {
         _underAlbedo ??= CreateColorTexture(Width, Height, InternalFormat.Rgba8, repeat: false, filterNearest: true);
         _underNormal ??= CreateColorTexture(Width, Height, InternalFormat.Rgba8, repeat: false, filterNearest: true);
-        return (_underAlbedo.Value, _underNormal.Value);
+        _underDepth ??= CreateColorTexture(Width, Height, InternalFormat.R32f, repeat: false);
+        return (_underAlbedo.Value, _underNormal.Value, _underDepth.Value);
     }
 
     /// <summary>A copy of G-buffer attachment 0 (<c>cTex_GBuffMaterialID</c>) for shapes drawn over the opaque G-buffer - see <see cref="SceneColorShapePass"/>.</summary>
@@ -148,7 +149,7 @@ public sealed class RenderTargets : IDisposable
         foreach (uint t in _owned)
             _gl.DeleteTexture(t);
         _owned.Clear();
-        _underAlbedo = _underNormal = null;
+        _underAlbedo = _underNormal = _underDepth = null;
         if (_gbufferFbo != 0) _gl.DeleteFramebuffer(_gbufferFbo);
         if (_passIdFbo != 0) _gl.DeleteFramebuffer(_passIdFbo);
 

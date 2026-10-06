@@ -184,6 +184,7 @@ public sealed class ForwardPass : IDisposable
         // unflipped-then-reflipped) background. Previously invisible because so few materials
         // ever drew here (blend-only); now every opaque/masked forward-resolved shape does.
         resources.BindUbo("ctx_gbuffer", 1);
+        ClipOrigin.Game(_gl, true);
 
         BindAt(5, targets.LinearDepthHalf.Handle);
         BindAt(30, targets.Behind.Handle);
@@ -312,6 +313,7 @@ public sealed class ForwardPass : IDisposable
         _gl.DepthMask(true);
         _gl.DepthFunc(DepthFunction.Less);
         _gl.Disable(EnableCap.DepthTest);
+        ClipOrigin.Game(_gl, false);
         resources.BindUbo("ctx_true", 1); // restore - everything after this pass expects the true (unflipped) projection
         FlipIntoWithFloor(resources, targets, targets.Final, targets.Scene, targets.Behind, flip: true);
     }
