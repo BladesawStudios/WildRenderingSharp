@@ -972,8 +972,14 @@ public sealed class DeferredPipeline : IDisposable
         for (int c = 0; c < n; c++)
         {
             var focus = cascades[c];
+            var lo = focus.Center - new Vector3(focus.Radius);
+            var hi = focus.Center + new Vector3(focus.Radius);
+            float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
+            var lm = ShadowPass.BuildLightMatrices(lo, hi, sunWorld);
+            var right = new Vector3(lm.View3Rows[0].X, lm.View3Rows[0].Y, lm.View3Rows[0].Z);
+            var up = new Vector3(lm.View3Rows[1].X, lm.View3Rows[1].Y, lm.View3Rows[1].Z);
             foreach (var batch in instances)
-                batch.UpdateCascadeRuns(c, focus);
+                batch.UpdateCascadeRuns(c, focus, right, up, lightRadius);
 
             var hash = new HashCode();
             hash.Add(sunWorld);
@@ -989,12 +995,8 @@ public sealed class DeferredPipeline : IDisposable
             }
             long signature = hash.ToHashCode() | (1L << 40);
 
-            var lo = focus.Center - new Vector3(focus.Radius);
-            var hi = focus.Center + new Vector3(focus.Radius);
-            float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
             if (cache.CascadeSignature[c] != signature)
             {
-                var lm = ShadowPass.BuildLightMatrices(lo, hi, sunWorld);
                 var ctxLight = ContextUbo.BuildForCamera(lm.View3Rows, lm.ViewProj, lm.Proj,
                     Mat4Math.Invert(Mat4Math.ToMat4(lm.View3Rows))[..3], 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
                 Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);

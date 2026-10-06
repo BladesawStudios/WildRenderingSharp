@@ -90,21 +90,47 @@ public sealed class InstanceBatch : IDisposable
     }
 
     readonly List<(int First, int Count, int Lod)>?[] _cascadeRuns = new List<(int, int, int)>?[RenderTargets.MaxCascades];
-    readonly ShadowFocus?[] _cascadeFocus = new ShadowFocus?[RenderTargets.MaxCascades];
+    readonly (ShadowFocus Focus, Vector3 Right, Vector3 Up)?[] _cascadeFocus = new (ShadowFocus, Vector3, Vector3)?[RenderTargets.MaxCascades];
 
     /// <summary>The runs of instances inside one shadow cascade (see <see cref="UpdateCascadeRuns"/>).</summary>
     internal List<(int First, int Count, int Lod)> CascadeRuns(int cascade) => _cascadeRuns[cascade] ??= [];
 
     /// <summary>
-    /// Fills a cascade's runs for its region, if it moved. Further cascades draw coarser levels of
-    /// detail - a caster covering a few texels of a far cascade needs no more triangles than that.
+    /// Fills a cascade's runs, if its region or the sun moved: every instance whose placement falls
+    /// inside the square the cascade's light projection covers - <paramref name="halfExtent"/> along
+    /// the light's <paramref name="right"/> and <paramref name="up"/> axes about the region's centre,
+    /// at any depth along the sun. Choosing them by the region's own box instead left out casters
+    /// standing outside it whose shadow falls inside the square, which showed as an unshadowed band
+    /// at the edge of every cascade. Further cascades draw coarser levels of detail - a caster
+    /// covering a few texels of a far cascade needs no more triangles than that.
     /// </summary>
-    internal void UpdateCascadeRuns(int cascade, ShadowFocus focus)
+    internal void UpdateCascadeRuns(int cascade, ShadowFocus focus, Vector3 right, Vector3 up, float halfExtent)
     {
-        if (_cascadeFocus[cascade] == focus && _cascadeRuns[cascade] is not null)
+        if (_cascadeFocus[cascade] == (focus, right, up) && _cascadeRuns[cascade] is not null)
             return;
-        _cascadeFocus[cascade] = focus;
-        FillRuns(CascadeRuns(cascade), focus, ShadowLod + cascade);
+        _cascadeFocus[cascade] = (focus, right, up);
+        var runs = CascadeRuns(cascade);
+        runs.Clear();
+        float reach = halfExtent + Model.BoundsRadius;
+        int lod = ShadowLod + cascade;
+        int start = -1;
+        for (int i = 0; i <= Count; i++)
+        {
+            bool inside = false;
+            if (i < Count)
+            {
+                Vector4[] r = Placements[i];
+                var d = new Vector3(r[0].W, r[1].W, r[2].W) - focus.Center;
+                inside = MathF.Abs(Vector3.Dot(d, right)) <= reach && MathF.Abs(Vector3.Dot(d, up)) <= reach;
+            }
+            if (inside && start < 0)
+                start = i;
+            else if (!inside && start >= 0)
+            {
+                runs.Add((start, i - start, lod));
+                start = -1;
+            }
+        }
     }
 
     void FillRuns(List<(int First, int Count, int Lod)> runs, ShadowFocus focus, int lod)
