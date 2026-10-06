@@ -589,7 +589,9 @@ public sealed class DeferredPipeline : IDisposable
         // here without also doing that same copy-in/copy-out was drawing into stale/empty content
         // that ForwardPass's own copy-in then immediately overwrote a moment later. Same FlipInto
         // sandwich the known-material-fixes block below already uses for exactly this reason.
-        float sceneRadius = MathF.Max(1f, request.Actors.Max(a => a.Model.BoundsRadius));
+        // A world of instance batches can have no actors at all.
+        float sceneRadius = MathF.Max(1f, request.Actors.Select(a => a.Model.BoundsRadius)
+            .Concat(instances.Select(b => b.Model.BoundsRadius)).DefaultIfEmpty(1f).Max());
         if (lighting.ShowGrid)
         {
             _forward.FlipInto(Resources, targets, targets.Scene, targets.Final, flip: true);
