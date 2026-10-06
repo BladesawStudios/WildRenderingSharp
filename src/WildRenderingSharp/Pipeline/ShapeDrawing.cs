@@ -26,7 +26,7 @@ public static class ShapeDrawing
             if (overrides is not null && overrides.TryGetValue(key, out var replacement))
                 bound = replacement;
             gl.ActiveTexture(TextureUnit.Texture0 + unit);
-            gl.BindTexture(TextureTarget.Texture2D, bound.Handle);
+            gl.BindTexture(bound.Target, bound.Handle);
         }
         gl.ActiveTexture(TextureUnit.Texture0);
 
@@ -59,7 +59,7 @@ public static class ShapeDrawing
             if (overrides is not null && overrides.TryGetValue(key, out var replacement))
                 bound = replacement;
             gl.ActiveTexture(TextureUnit.Texture0 + unit);
-            gl.BindTexture(TextureTarget.Texture2D, bound.Handle);
+            gl.BindTexture(bound.Target, bound.Handle);
         }
         gl.ActiveTexture(TextureUnit.Texture0);
 

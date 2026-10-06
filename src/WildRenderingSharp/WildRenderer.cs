@@ -53,6 +53,9 @@ public sealed class WildRenderer : IDisposable
     /// <summary>The main view <see cref="Render"/> draws into.</summary>
     public SceneView View { get; }
 
+    /// <summary>Textures a host supplies by name - the terrain's material arrays (<c>MaterialAlb</c>, <c>MaterialCmb</c>) that ground-blending objects sample. See <see cref="Assets.ExternalTextures"/>.</summary>
+    public ExternalTextures ExternalTextures { get; }
+
     public IReadOnlyList<RenderActor> Actors => _actors;
 
     /// <summary>Incremented once per <see cref="Render"/> - see <see cref="RenderActor.EvaluatePosedSkeleton"/> for why physics needs it.</summary>
@@ -87,6 +90,7 @@ public sealed class WildRenderer : IDisposable
             Pipeline = new DeferredPipeline(gl, cache.Root, cache.Shaders, initialWidth, initialHeight,
                 cache.DeferredMaterials, cache.SystemTextures);
             View = new SceneView(gl, Pipeline);
+            ExternalTextures = new ExternalTextures(gl);
             // The atmosphere bake is scene-independent and ~600 draw calls, so it runs once here
             // against the palette that will actually be used rather than inside the first frame.
             Pipeline.EnsureSkyPrecomputed(Environment.SkyPostFx, Environment.Palettes.Get(Lighting.PaletteName),
@@ -98,7 +102,7 @@ public sealed class WildRenderer : IDisposable
     public LoadedModel LoadModel(string resolvedModelName)
     {
         using var _ = GLHostState.Enter(_gl);
-        var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName));
+        var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName), ExternalTextures);
         return loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Lighting.EnableKnownMaterialFixes);
     }
 
@@ -278,6 +282,7 @@ public sealed class WildRenderer : IDisposable
             model.Dispose();
         _instances.Clear();
         View.Dispose();
+        ExternalTextures.Dispose();
         Pipeline.Dispose();
     }
 }

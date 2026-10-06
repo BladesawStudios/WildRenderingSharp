@@ -17,11 +17,15 @@ public sealed class ModelLoader
     readonly ShaderProgramCache _programs;
     readonly string _dataDirectory;
 
-    public ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory)
+    readonly ExternalTextures? _external;
+
+    /// <param name="external">A host's shared textures - see <see cref="ExternalTextures"/>.</param>
+    public ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
     {
         _gl = gl;
         _programs = programs;
         _dataDirectory = dataDirectory;
+        _external = external;
     }
 
     /// <param name="modelName">The model to load.</param>
@@ -38,7 +42,7 @@ public sealed class ModelLoader
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
     {
         var manifest = ModelManifest.Load(Path.Combine(_dataDirectory, $"{modelName}.manifest.json"));
-        var textures = new TextureCache(_gl, _dataDirectory);
+        var textures = new TextureCache(_gl, _dataDirectory, _external);
         var shapes = new List<LoadedShape>();
         var lo = new Vector3(float.MaxValue);
         var hi = new Vector3(float.MinValue);

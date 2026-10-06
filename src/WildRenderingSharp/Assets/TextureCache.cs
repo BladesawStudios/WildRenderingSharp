@@ -4,7 +4,10 @@ namespace WildRenderingSharp.Assets;
 
 public sealed class LoadedTexture
 {
-    public required uint Handle { get; init; }
+    public required uint Handle { get; set; }
+
+    /// <summary>What the handle is bound as - a 2D texture, or a host's texture array (<see cref="ExternalTextures"/>).</summary>
+    public TextureTarget Target { get; init; } = TextureTarget.Texture2D;
     public required int Width { get; init; }
     public required int Height { get; init; }
 
@@ -34,10 +37,15 @@ public sealed class TextureCache : IDisposable
     readonly string _dataDirectory;
     readonly Dictionary<string, LoadedTexture> _byTextureName = new(StringComparer.Ordinal);
 
-    public TextureCache(GL gl, string dataDirectory)
+    ExternalTextures? _external;
+    bool _ownsExternal;
+
+    /// <param name="external">Where array samplers find a host's textures (see <see cref="ExternalTextures"/>); null binds them white.</param>
+    public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null)
     {
         _gl = gl;
         _dataDirectory = dataDirectory;
+        _external = external;
     }
 
     /// <summary>Resolves every texture a shape's sampler list references, skipping unbound units and logging anything it can't load. Returns bindings ready to bind.</summary>
@@ -50,6 +58,17 @@ public sealed class TextureCache : IDisposable
             // unbound: an unbound unit reads whatever the last draw left on it, which is how a
             // missing baked-lighting texture once turned every static world object black instead of
             // showing up as missing.
+            if (ExternalTextures.IsArraySampler(s.Key))
+            {
+                // Never the model's own one-layer copy - see ExternalTextures.
+                if (_external is null)
+                {
+                    _external = new ExternalTextures(_gl);
+                    _ownsExternal = true;
+                }
+                result.Add(new ShapeSampler(s.Unit, s.Key, _external.Get(s.Texture)));
+                continue;
+            }
             var tex = string.IsNullOrEmpty(s.File) ? null : GetOrLoad(s);
             result.Add(new ShapeSampler(s.Unit, s.Key, tex ?? White()));
         }
@@ -282,5 +301,7 @@ public sealed class TextureCache : IDisposable
         if (_white is { } white)
             _gl.DeleteTexture(white.Handle);
         _white = null;
+        if (_ownsExternal)
+            _external?.Dispose();
     }
 }
