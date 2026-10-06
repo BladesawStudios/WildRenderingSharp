@@ -46,11 +46,12 @@ public sealed class TextureCache : IDisposable
         var result = new List<ShapeSampler>();
         foreach (var s in samplers)
         {
-            if (string.IsNullOrEmpty(s.File))
-                continue;
-            var tex = GetOrLoad(s);
-            if (tex is not null)
-                result.Add(new ShapeSampler(s.Unit, s.Key, tex));
+            // Bound to plain white when the texture could not be found or loaded, rather than left
+            // unbound: an unbound unit reads whatever the last draw left on it, which is how a
+            // missing baked-lighting texture once turned every static world object black instead of
+            // showing up as missing.
+            var tex = string.IsNullOrEmpty(s.File) ? null : GetOrLoad(s);
+            result.Add(new ShapeSampler(s.Unit, s.Key, tex ?? White()));
         }
         return result;
     }
@@ -256,10 +257,30 @@ public sealed class TextureCache : IDisposable
         _ => GLEnum.ClampToEdge, // Clamp, ClampBorder, ClampHalfBorder, ClampToEdge, MirrorOnce, MirrorOnceBorder, MirrorOnceHalfBorder
     };
 
+    LoadedTexture? _white;
+
+    /// <summary>A 1x1 opaque white texture, made the first time a binding has nothing else.</summary>
+    unsafe LoadedTexture White()
+    {
+        if (_white is { } white)
+            return white;
+        uint handle = _gl.GenTexture();
+        _gl.BindTexture(TextureTarget.Texture2D, handle);
+        byte* texel = stackalloc byte[] { 255, 255, 255, 255 };
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba8, 1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte, texel);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        _gl.BindTexture(TextureTarget.Texture2D, 0);
+        return _white = new LoadedTexture { Handle = handle, Width = 1, Height = 1, Name = "(missing)" };
+    }
+
     public void Dispose()
     {
         foreach (var tex in _byTextureName.Values)
             _gl.DeleteTexture(tex.Handle);
         _byTextureName.Clear();
+        if (_white is { } white)
+            _gl.DeleteTexture(white.Handle);
+        _white = null;
     }
 }
