@@ -68,6 +68,9 @@ public sealed class RenderTargets : IDisposable
     public GpuTexture Scene { get; private set; }
     public GpuTexture Behind { get; private set; }
 
+    /// <summary>A copy of G-buffer attachment 0 (<c>cTex_GBuffMaterialID</c>) for shapes drawn over the opaque G-buffer - see <see cref="SceneColorShapePass"/>.</summary>
+    public GpuTexture MaterialIdCopy { get; private set; }
+
     // ---- bloom pyramid (4 levels, halved resolution per level) ----
     public GpuTexture[] BloomLevels { get; private set; } = [];
     public GpuTexture[] BloomTmp { get; private set; } = [];
@@ -200,7 +203,10 @@ public sealed class RenderTargets : IDisposable
         Ldr = CreateColorTexture(width, height, InternalFormat.Rgba16f);
 
         Scene = CreateColorTexture(width, height, InternalFormat.Rgba16f);
-        Behind = CreateColorTexture(width, height, InternalFormat.Rgba16f);
+        // Clamped: it is sampled as cTex_ColorBuffer at refracted, normal-offset positions that
+        // can land past the edge, where wrapping would show the opposite side of the screen.
+        Behind = CreateColorTexture(width, height, InternalFormat.Rgba16f, repeat: false);
+        MaterialIdCopy = CreateColorTexture(width, height, InternalFormat.Rgba8, repeat: false, filterNearest: true);
 
         BloomLevels = new GpuTexture[BloomLevelCount];
         BloomTmp = new GpuTexture[BloomLevelCount];

@@ -169,6 +169,7 @@ public sealed class ModelLoader
                 ForwardShaderName = forwardProgram != 0 ? sh.MaterialShader : "",
                 GBufferShaderName = sh.GBufferShader,
                 ZOnlyShaderName = zonlyProgram != 0 ? sh.ZOnlyShader : "",
+                ReadsSceneColor = _gl.GetUniformLocation(gbufferProgram, "cTex_ColorBuffer") >= 0,
                 MaterialUboBuffer = materialUboBuffer,
                 MaterialUboBytes = materialUbo,
                 MaterialParams = materialParams,

@@ -126,6 +126,12 @@ public sealed class LoadedShape
     public required uint PassIdVao { get; init; }
 
     public bool HasZOnly => ZOnlyVao != 0;
+
+    /// <summary>
+    /// Whether the G-buffer program samples <c>cTex_ColorBuffer</c> - the lit scene behind it, as
+    /// water does. Such a shape draws after the opaque scene is lit (<see cref="Pipeline.SceneColorShapePass"/>).
+    /// </summary>
+    public bool ReadsSceneColor { get; init; }
     public bool HasForward => ForwardVao != 0;
 
     /// <summary>

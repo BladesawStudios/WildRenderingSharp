@@ -123,6 +123,7 @@ public sealed class DeferredPipeline : IDisposable
     Vector3 _skyPrecomputeSun = new(0f, 0f, 1f);
     string _skyPrecomputeKey = "\0never";
     readonly DeferredResolvePass _resolve;
+    readonly SceneColorShapePass _sceneColorShapes;
     readonly KnownMaterialFixes _knownFixes;
     readonly ForwardPass _forward;
     readonly GridPass _grid;
@@ -181,6 +182,7 @@ public sealed class DeferredPipeline : IDisposable
         _lensFlare = new LensFlarePass(gl, Programs);
         _colorCorrection = new ColorCorrectionPass(gl);
         _resolve = new DeferredResolvePass(gl);
+        _sceneColorShapes = new SceneColorShapePass(gl);
         _knownFixes = new KnownMaterialFixes(gl);
         _forward = new ForwardPass(gl, systemTexturesDir);
         _grid = new GridPass(gl);
@@ -377,8 +379,9 @@ public sealed class DeferredPipeline : IDisposable
                 allGroups.Add(new ActorDrawGroup([], [], IdentityRows,
                     batch.Model.Shapes.Where(s => s.Enabled && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch));
         }
+        // Shapes that read the lit scene (water) draw after it is lit - see SceneColorShapePass.
         var opaqueGroups = allGroups
-            .Select(g => g with { Shapes = g.Shapes.Where(s => !s.Blend).ToList() })
+            .Select(g => g with { Shapes = g.Shapes.Where(s => !s.Blend && !s.ReadsSceneColor).ToList() })
             .Where(g => g.Shapes.Count > 0).ToList();
 
         // ---- G-buffer (flipped Context already bound at 1) ----
@@ -578,8 +581,35 @@ public sealed class DeferredPipeline : IDisposable
         }
 
         // ---- deferred resolve, ID-masked ----
-        _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure);
+        bool sceneColorShapes = SceneColorShapePass.Any(allGroups);
+        var sceneColorPasses = sceneColorShapes
+            ? allGroups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass).ToHashSet(StringComparer.Ordinal)
+            : [];
+        _resolve.SetEnvironmentColor(hemiSky);
+        _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
+            sceneColorShapes ? name => !sceneColorPasses.Contains(name) : null);
         GLDiagnostics.CheckPass(_gl, "deferred resolve");
+
+        // ---- shapes that read the lit scene (water): drawn over a copy of it, then their pixels
+        // lit and composited - see SceneColorShapePass. The screen-space inputs are re-derived
+        // because the G-buffer under those pixels just changed.
+        if (sceneColorShapes)
+        {
+            float emissionUnits = lighting.Exposure / MathF.Max(1e-4f, lighting.EmissionScale);
+            _sceneColorShapes.CopyInputs(Resources, targets, emissionUnits);
+            Resources.BindUbo("ctx_gbuffer", 1);
+            _sceneColorShapes.Run(Resources, targets, allGroups, Programs);
+            Resources.BindUbo("ctx_true", 1);
+            GLDiagnostics.CheckPass(_gl, "scene-colour shapes");
+
+            _linearDepth.Run(Resources, targets, camera.NearPlane, camera.FarPlane);
+            _shadowAo.Run(Resources, targets, ssaoParams);
+            _lightPrePass.Run(Resources, targets, lightPrePassParams);
+            _passIdMask.Run(Resources, targets, allGroups, _passNames, maskViewProj, camera.NearPlane, camera.FarPlane);
+            _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
+                sceneColorPasses.Contains);
+            GLDiagnostics.CheckPass(_gl, "scene-colour shapes resolve");
+        }
 
         // ---- ground reference grid ---- drawn into Scene, depth-tested against GBufferDepth, so
         // opaque geometry occludes it correctly - BEFORE the forward pass, so blended materials
@@ -827,14 +857,16 @@ public sealed class DeferredPipeline : IDisposable
     /// </summary>
     static List<ActorDrawGroup> ShadowGroups(List<ActorDrawGroup> allGroups, IReadOnlyList<InstanceBatch> instances, ShadowFocus? focus)
     {
+        // Shapes drawn over the lit scene (water) cast nothing.
+        static ActorDrawGroup Casting(ActorDrawGroup g) => g with { Shapes = g.Shapes.Where(s => !s.ReadsSceneColor).ToList() };
         if (focus is null)
-            return allGroups;
-        var groups = allGroups.Where(g => g.Batch is null).ToList();
+            return [.. allGroups.Select(Casting)];
+        var groups = allGroups.Where(g => g.Batch is null).Select(Casting).ToList();
         foreach (var batch in instances)
         {
             if (batch.ShadowVisible.Count > 0)
                 groups.Add(new ActorDrawGroup([], [], IdentityRows,
-                    batch.Model.Shapes.Where(s => s.Enabled && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch, ShadowRuns: true));
+                    batch.Model.Shapes.Where(s => s.Enabled && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch, ShadowRuns: true));
         }
         return groups;
     }
@@ -872,6 +904,7 @@ public sealed class DeferredPipeline : IDisposable
         _lensFlare.Dispose();
         _colorCorrection.Dispose();
         _resolve.Dispose();
+        _sceneColorShapes.Dispose();
         _knownFixes.Dispose();
         _forward.Dispose();
         _grid.Dispose();

@@ -22,6 +22,19 @@ public sealed class DeferredResolvePass : IDisposable
     /// <summary><c>o_material_behave = 2</c> spans the whole field_* family, none of which can run correctly without the preshading passes/undecoded Env tail - substituted with a logged fallback rather than rendering black. See <c>FIELD_FALLBACK</c>.</summary>
     public const string FieldFallbackPass = "chara_nonmetal";
 
+    /// <summary>
+    /// The field passes that run their own program after all. <c>field_water</c> reads the same
+    /// screen-space inputs the chara passes do, plus <c>cTex_CubeEnvMap</c> for its reflection;
+    /// what made water black was its G-buffer half (see <see cref="SceneColorShapePass"/>), not
+    /// this one, and lighting its scatter colour as an opaque nonmetal surface was never right.
+    /// </summary>
+    static readonly HashSet<string> RealFieldPasses = ["field_water"];
+
+    /// <summary><c>cTex_CubeEnvMap</c>'s unit in the resolve programs that read it.</summary>
+    const int CubeEnvMapUnit = 9;
+
+    readonly uint _cubeEnvMap;
+
     const string QuadVertexSource = """
         #version 450 core
         out vec2 vUV;
@@ -77,6 +90,24 @@ public sealed class DeferredResolvePass : IDisposable
         _composeProgram = GLProgramBuilder.Build(gl, QuadVertexSource, ComposeFragmentSource, "mask_compose");
         _texPreFog = CreateConstTexture2D(0f, 0f, 0f, 0f);
         _texVolumeMask = CreateConstTexture2D(0f, 0f, 0f, 0f);
+        _cubeEnvMap = _gl.GenTexture();
+        SetEnvironmentColor(new System.Numerics.Vector3(0.5f));
+    }
+
+    /// <summary>
+    /// Fills <c>cTex_CubeEnvMap</c>. WildRenderingSharp renders no environment cube, so every face is
+    /// one colour - the palette's sky colour, which is what an open-air reflection mostly shows.
+    /// </summary>
+    public unsafe void SetEnvironmentColor(System.Numerics.Vector3 color)
+    {
+        _gl.BindTexture(TextureTarget.TextureCubeMap, _cubeEnvMap);
+        float* texel = stackalloc float[] { color.X, color.Y, color.Z, 1f };
+        for (int face = 0; face < 6; face++)
+            _gl.TexImage2D(TextureTarget.TextureCubeMapPositiveX + face, 0, InternalFormat.Rgba16f, 1, 1, 0, PixelFormat.Rgba, PixelType.Float, texel);
+        _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMaxLevel, 0);
+        _gl.BindTexture(TextureTarget.TextureCubeMap, 0);
     }
 
     /// <summary>
@@ -102,7 +133,7 @@ public sealed class DeferredResolvePass : IDisposable
         foreach (string rawName in passNames)
         {
             string name = rawName;
-            if (name.StartsWith("field_", StringComparison.Ordinal))
+            if (name.StartsWith("field_", StringComparison.Ordinal) && !RealFieldPasses.Contains(name))
             {
                 Console.WriteLine($"  [approx] {name} needs preshading-only inputs; resolving through {FieldFallbackPass}");
                 name = FieldFallbackPass;
@@ -146,8 +177,9 @@ public sealed class DeferredResolvePass : IDisposable
     /// Dividing it back out here is the same separation <c>LightingContext.SceneGain</c> already
     /// documents for the lit path, applied to the axis that actually needed it.
     /// </param>
+    /// <param name="include">Which passes to run, by name - all of them when null. A skipped pass keeps its pass-ID, so the mask still names the rest correctly.</param>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ResolvedDeferredPass> passes,
-        float emissionScale, float sceneGain, float exposure)
+        float emissionScale, float sceneGain, float exposure, Func<string, bool>? include = null)
     {
         // Final's background content (colour/transparent/sky - see BackgroundPass) is already
         // painted in by the caller, BEFORE this runs - any pixel no resolved pass's mask covers
@@ -159,6 +191,8 @@ public sealed class DeferredResolvePass : IDisposable
         for (int i = 0; i < passes.Count; i++)
         {
             var pass = passes[i];
+            if (include is not null && !include(pass.Name))
+                continue;
 
             // Rebound every pass: the mask-compose step below claims units 0/1 (G-buffer albedo
             // and normal), which would otherwise be pass i-1's own output on the second and later
@@ -201,6 +235,7 @@ public sealed class DeferredResolvePass : IDisposable
         BindAt(17, _texPreFog);                      // cTex_PreFog (neutral - no aerial perspective)
         BindAt(18, targets.PreMisc.Handle);           // cTex_PreMisc (WildRenderingSharp-synthesised)
         BindAt(28, targets.LightPrePassArray.Handle, TextureTarget.Texture2DArray); // cTex_DeferredLightPrePass - see LightPrePass
+        BindAt(CubeEnvMapUnit, _cubeEnvMap, TextureTarget.TextureCubeMap); // cTex_CubeEnvMap (field_water) - see SetEnvironmentColor
     }
 
     void BindAt(int unit, uint handle, TextureTarget target = TextureTarget.Texture2D)
@@ -234,5 +269,6 @@ public sealed class DeferredResolvePass : IDisposable
         _gl.DeleteProgram(_composeProgram);
         _gl.DeleteTexture(_texPreFog);
         _gl.DeleteTexture(_texVolumeMask);
+        _gl.DeleteTexture(_cubeEnvMap);
     }
 }
