@@ -62,8 +62,20 @@ public static class GlslSanitizer
         string cleaned = NegativeBinding.Replace(string.Join('\n', output), $"binding = {OrphanBlockBinding}");
         cleaned = EngineVertexTexture.Replace(cleaned, m =>
             $"layout (binding = {EngineVertexTextureUnit(m.Groups[2].Value)}) uniform sampler2D {m.Groups[1].Value};");
+        cleaned = FragmentStorageWrite.Replace(cleaned, "");
         return ShadowLodToGrad(cleaned);
     }
+
+    /// <summary>
+    /// A fragment stage's writes to a storage buffer - <c>fp_s0.data[N] = 2u;</c> - in a quarter of
+    /// the game's material programs, and in its deferred passes. They are the engine's feedback
+    /// (which materials were seen this frame), read back by nothing here. But a fragment shader with
+    /// a side effect cannot be depth-tested early, so for those materials the Z-only prepass saved
+    /// nothing - every hidden fragment ran the whole program - and millions of fragments a frame
+    /// all wrote the same few words: most of a 33 ms G-buffer pass on a card that should take a
+    /// few. Binding 0 is also where the instanced draws keep their bake table.
+    /// </summary>
+    static readonly Regex FragmentStorageWrite = new(@"^[ \t]*fp_s\d+\.data\[[^\]\n]*\][ \t]*=(?!=)[^;\n]*;", RegexOptions.Compiled | RegexOptions.Multiline);
 
     /// <summary>
     /// Textures the engine renders at runtime and foliage vertex shaders sample, which nothing in
