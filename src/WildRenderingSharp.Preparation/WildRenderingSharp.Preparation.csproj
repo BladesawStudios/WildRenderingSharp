@@ -31,20 +31,10 @@
     <ProjectReference Include="$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
   </ItemGroup>
 
+  <!-- The BNTX reader with its own Tegra deswizzle, and McSharp, which unpacks .bfres.mc in place of ShaderLibrary's Windows-only CLI. Both are managed. -->
   <ItemGroup>
-    <Reference Include="Syroot.NintenTools.NSW.Bntx">
-      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\Syroot.NintenTools.NSW.Bntx.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <!--
-    MeshCodec's CLI decoder for the .bfres.mc container (see ShaderLibrary's TestMaterialDump for
-    why it shells out rather than reimplementing the codec). ShaderLibrary finds it relative to its
-    own SOURCE location, which only exists on the machine that built it - so it also ships beside
-    this assembly, and ModelPreparer points ShaderLibrary at that copy (MESHCODEC_CLI).
-  -->
-  <ItemGroup>
-    <Content Include="..\..\vendor\MeshCodec\meshcodec_cli.exe" Link="meshcodec_cli.exe" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="..\..\vendor\BntxSharp\src\BntxSharp\BntxSharp.csproj" />
+    <ProjectReference Include="..\..\vendor\McSharp\src\McSharp\McSharp.csproj" />
   </ItemGroup>
 
 </Project>

@@ -83,4 +83,3 @@ Environment variables (the older `MARROW_*` names still work):
 | `WRS_SKY_ORDERS=<n>` | Scattering orders the sky precompute bakes (default 6). |
 | `WRS_SKY_DUMP=<file>` | Write the baked inscatter table (raw floats) to a file. |
 | `WRS_CLOUD_DUMP=<file>` | Write the cloud pass's `Common` uniform block to a file. |
-| `MESHCODEC_CLI` | A different `meshcodec_cli.exe`. |

@@ -13,17 +13,6 @@ public static class ModelPreparer
     static readonly object PatchGate = new();
     static bool _patched;
 
-    static ModelPreparer()
-    {
-        // ShaderLibrary shells out to MeshCodec's CLI to unpack .bfres.mc and finds it relative to its own source file, which only exists where it was compiled; the copy shipped beside this project travels with a build.
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MESHCODEC_CLI"))
-            && Path.GetDirectoryName(typeof(ModelPreparer).Assembly.Location) is { Length: > 0 } dir
-            && File.Exists(Path.Combine(dir, "meshcodec_cli.exe")))
-        {
-            Environment.SetEnvironmentVariable("MESHCODEC_CLI", Path.Combine(dir, "meshcodec_cli.exe"));
-        }
-    }
-
     public static void EnsureBfresReady(string romfsRoot)
     {
         ExternalBinaryStringTable.RomfsRoot = romfsRoot ?? "";
@@ -32,6 +21,7 @@ public static class ModelPreparer
             if (_patched)
                 return;
             BfresLibraryPatches.EnsureApplied();
+            McSharpDecompression.EnsureApplied();
             _patched = true;
         }
     }
