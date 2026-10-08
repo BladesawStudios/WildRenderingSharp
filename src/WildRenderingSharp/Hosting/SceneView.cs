@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Hosting;
 /// <summary>
 /// An offscreen view of a scene: renders a <see cref="FrameRequest"/> through a <see cref="DeferredPipeline"/> and composites the
 /// result (supersample downfilter, the palette's colour correction, sRGB encode, FXAA) into an RGBA8 texture the host displays
-/// however it likes.
+/// however it likes. Every method needs the GL context current.
 /// </summary>
 public sealed class SceneView : IDisposable
 {

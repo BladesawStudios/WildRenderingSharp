@@ -86,3 +86,16 @@ dotnet test tests/WildRenderingSharp.Tests
 pipeline used to build inline. Neither needs a GL context.
 
 After a deliberate layout change, re-record with `WRS_UPDATE_SNAPSHOTS=1`.
+
+`tests/WildRenderingSharp.TestBench` is the GL check the unit tests cannot be: it prepares one actor from a
+romfs, opens a hidden GL 4.5 window, renders it through the real pipeline (sky, clouds, deferred lighting) and
+writes a PNG, failing on GL errors or a blank image:
+
+```bash
+dotnet run --project tests/WildRenderingSharp.TestBench -- --game totk --romfs <romfs dir> --actor Npc_Zelda_AncientHyrule --out zelda.png
+```
+
+`--game botw` prepares the actor and then stops, since there is no BotW profile to draw it with yet.
+
+Reverse-engineering findings that used to sit in XML docs (Ghidra addresses, manifest format history) are in
+[game-notes.md](game-notes.md).

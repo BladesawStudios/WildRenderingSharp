@@ -5,5 +5,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WildRenderingSharp.Tests/WildRenderingSharp.Tests.csproj" />
+    <Project Path="tests/WildRenderingSharp.TestBench/WildRenderingSharp.TestBench.csproj" />
   </Folder>
 </Solution>
