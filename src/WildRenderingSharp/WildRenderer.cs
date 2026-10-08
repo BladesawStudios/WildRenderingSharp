@@ -96,8 +96,7 @@ public sealed class WildRenderer : IDisposable
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
-            // The atmosphere bake is scene-independent and ~600 draw calls, so it runs once here
-            // against the palette that will actually be used rather than inside the first frame.
+            // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
             Pipeline.EnsureSkyPrecomputed(Environment.SkyPostFx, Environment.Palettes.Get(Lighting.PaletteName),
                 Lighting.PaletteName, Lighting.SkyPaletteTint);
         }
@@ -244,9 +243,7 @@ public sealed class WildRenderer : IDisposable
     {
         using var _ = GLHostState.Enter(_gl);
         var batch = new InstanceBatch(_gl, model, placements, Pipeline.Profile.World);
-        // Linked now, while the host is loading, rather than lazily on the first frame the batch
-        // is visible - a link that misses the program binary cache costs 100-500 ms, and paid
-        // mid-frame that is a hitch every time a new model comes into view.
+        // Linked now, while the host is loading: a link that misses the program binary cache costs 100-500 ms and would hitch the first visible frame.
         foreach (var shape in model.Shapes)
             ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
         _instances.Add(batch);

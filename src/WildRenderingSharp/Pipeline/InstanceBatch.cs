@@ -8,22 +8,19 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Every placement of one model, drawn with instanced calls through the game's own shaders - see
-/// <see cref="InstancedShaderPatch"/> for how the shaders read it.
+/// Every placement of one model, drawn with instanced calls through the game's own shaders (see
+/// <c>InstancedShaderPatch</c> for how they read it).
 /// </summary>
 /// <remarks>
 /// <para>
-/// Built for static placements in bind pose - a map's trees, rocks and buildings. Each instance
-/// carries exactly the two blocks the per-actor path would bind for it: its <c>ShpMtx</c> rows (its
-/// placement, then row 8 - see <see cref="SetBake"/>) and its <c>_Mtx</c> bone palette (the model's
-/// bind-pose palette with the placement folded in, as
-/// <see cref="Shaders.Profiles.Totk.Ubos.BonePaletteUbo.Build"/> does it), back to back in one
-/// storage buffer.
+/// Built for static placements in bind pose: a map's trees, rocks and buildings. Each instance carries the two blocks the
+/// per-actor path would bind for it, its <c>ShpMtx</c> rows (placement, then row 8; see <see cref="SetBake"/>) and its
+/// <c>_Mtx</c> bone palette (the bind-pose palette with the placement folded in, as <c>BonePaletteUbo.Build</c> does), back
+/// to back in one storage buffer.
 /// </para>
 /// <para>
-/// The host decides what is drawn: <see cref="Visible"/> holds runs of instances and the level of
-/// detail each run draws at, refilled as often as the host culls. A batch drawn with nothing
-/// visible draws nothing, and costs nothing.
+/// The host decides what is drawn: <see cref="Visible"/> holds runs of instances and the level of detail of each, refilled
+/// as often as the host culls. A batch with nothing visible draws nothing.
 /// </para>
 /// </remarks>
 public sealed class InstanceBatch : IDisposable
@@ -69,21 +66,15 @@ public sealed class InstanceBatch : IDisposable
     public bool IncludeBlended { get; set; } = true;
 
     /// <summary>
-    /// Runs of instances inside the shadow focus, which is what the shadow map draws when a frame
-    /// has one (<see cref="FrameRequest.ShadowFocus"/>) - chosen by the shadow region, not by what
-    /// the camera sees, so turning the view neither redraws the map nor drops a caster just
-    /// off-screen. Recomputed only when the focus moves.
+    /// Runs of instances inside the shadow focus, which the shadow map draws when a frame has one
+    /// (<see cref="FrameRequest.ShadowFocus"/>). Chosen by the shadow region, not the camera, so turning the view neither
+    /// redraws the map nor drops a caster just off-screen.
     /// </summary>
     public List<(int First, int Count, int Lod)> ShadowVisible { get; } = [];
 
     ShadowFocus? _shadowFocus;
 
-    /// <summary>
-    /// The level of detail shadow casters draw at - the finest. A caster also receives its own
-    /// shadow, and a coarser level is a different surface: on a large rock its LOD1 shell stands
-    /// proud of the LOD0 surface the view draws in places and shadows it in hard-edged patches
-    /// that barely move with the sun.
-    /// </summary>
+    /// <summary>The level of detail shadow casters draw at: the finest. A caster also receives its own shadow, and a coarser level is a different surface that stands proud in places and shadows it in hard-edged patches.</summary>
     const int ShadowLod = 0;
 
     /// <summary>Fills <see cref="ShadowVisible"/> for <paramref name="focus"/>, if it changed.</summary>
@@ -99,11 +90,10 @@ public sealed class InstanceBatch : IDisposable
     readonly (ShadowFocus Focus, Vector3 Right, Vector3 Up)?[] _cascadeFocus = new (ShadowFocus, Vector3, Vector3)?[RenderTargets.MaxCascades];
 
     /// <summary>
-    /// Which shadow cascades these instances cast into, a bit per cascade - all by default. A host
-    /// that swaps a model for a cruder stand-in by distance (a landmark's <c>_Far</c> model) never
-    /// draws both, but casters are chosen by region, so both cast: the stand-in's coarse shell
-    /// shadowed the real model in hard-edged patches up close. The stand-in is limited to the far
-    /// cascades and the model it stands in for to the near ones.
+    /// Which shadow cascades these instances cast into, a bit per cascade; all by default. A host swapping a model for a
+    /// cruder stand-in by distance (a landmark's <c>_Far</c> model) never draws both, but casters are chosen by region, so
+    /// both cast and the stand-in's shell shadowed the real model in patches. Limit the stand-in to the far cascades and the
+    /// real model to the near ones.
     /// </summary>
     public int ShadowCascadeMask
     {
@@ -123,13 +113,11 @@ public sealed class InstanceBatch : IDisposable
     internal List<(int First, int Count, int Lod)> CascadeRuns(int cascade) => _cascadeRuns[cascade] ??= [];
 
     /// <summary>
-    /// Fills a cascade's runs, if its region or the sun moved: every instance whose placement falls
-    /// inside the square the cascade's light projection covers - <paramref name="halfExtent"/> along
-    /// the light's <paramref name="right"/> and <paramref name="up"/> axes about the region's centre,
-    /// at any depth along the sun. Choosing them by the region's own box instead left out casters
-    /// standing outside it whose shadow falls inside the square, which showed as an unshadowed band
-    /// at the edge of every cascade. The far cascades draw coarser levels of detail - a caster
-    /// covering a few texels of one needs no more triangles than that.
+    /// Fills a cascade's runs if its region or the sun moved: every instance whose placement falls inside the square the
+    /// cascade's light projection covers, <paramref name="halfExtent"/> along the light's <paramref name="right"/> and
+    /// <paramref name="up"/> axes about the region's centre, at any depth along the sun. Choosing by the region's own box
+    /// left out casters standing outside it whose shadow falls inside, an unshadowed band at each cascade's edge. Far
+    /// cascades draw coarser levels of detail.
     /// </summary>
     internal void UpdateCascadeRuns(int cascade, ShadowFocus focus, Vector3 right, Vector3 up, float halfExtent)
     {
@@ -141,8 +129,7 @@ public sealed class InstanceBatch : IDisposable
         if ((_shadowCascadeMask & (1 << cascade)) == 0)
             return;
         float reach = halfExtent + Model.BoundsRadius;
-        // The near two at full detail, for the reason ShadowLod gives; past them the view draws
-        // coarse levels too, and a caster covers a few texels.
+        // The near two cascades at full detail (see ShadowLod); past them the view draws coarse levels too.
         int lod = Math.Max(ShadowLod, cascade - 1);
         int start = -1;
         for (int i = 0; i <= Count; i++)
@@ -208,8 +195,7 @@ public sealed class InstanceBatch : IDisposable
         var hi = new Vector3(float.MinValue);
         for (int i = 0; i < Count; i++)
         {
-            // What the game's programs read is in the game's own world (GameWorld); the placements
-            // themselves stay as given, for bounds, culling and shadows.
+            // The programs read the game's world (the profile's basis); the placements stay as given, for bounds, culling and shadows.
             Vector4[] rows = world.PlacementRows(placements[i]);
             Vector4[] given = placements[i];
             int at = i * Stride;
@@ -272,23 +258,16 @@ public sealed class InstanceBatch : IDisposable
     /// <summary>The per-instance bake table, bound at storage binding 0 when drawing (0 for none).</summary>
     internal uint BakeTable { get; private set; }
 
-    /// <summary>
-    /// Entries left empty at the head of the bake table. Binding 0 is also where a water program
-    /// writes a per-pixel value of its own (into entry 28, with the Context slot that addresses it
-    /// left zero); the table starts past it.
-    /// </summary>
+    /// <summary>Entries left empty at the head of the bake table: binding 0 is also where a water program writes a per-pixel value (entry 28), so the table starts past it.</summary>
     const int BakeTableHead = 64;
 
     /// <summary>
-    /// Gives each instance its baked lighting, the way the game does: the static-object shaders
-    /// read <c>ShpMtx</c> row 8, and when its top two bits are <c>01</c> they take the bake
-    /// texcoord scale/offset from a storage buffer at binding 0 - entry
-    /// <c>(row8.y &amp; 0xFFFFF) + gsys_material_id</c>, 16 bytes each - instead of the material's
-    /// <c>gsys_bake_st0</c>, then sample <c>bake0</c> there. So each baked instance gets a run of
-    /// entries, one per material index, and its base written into row 8; the caller sets each
-    /// shape's <c>gsys_material_id</c> to its material index, and the draw binds the instance's
-    /// atlas to <c>bake0</c>. Instances with no bake keep row 8 zero and the material's own
-    /// <c>bake0</c>, as before.
+    /// Gives each instance its baked lighting, as the game does: static-object shaders read <c>ShpMtx</c> row 8, and when its
+    /// top two bits are <c>01</c> they take the bake texcoord scale and offset from a storage buffer at binding 0, entry
+    /// <c>(row8.y &amp; 0xFFFFF) + gsys_material_id</c> (16 bytes each), instead of the material's <c>gsys_bake_st0</c>, then
+    /// sample <c>bake0</c> there. So each baked instance gets a run of entries, one per material index, with its base written
+    /// into row 8; the caller sets each shape's <c>gsys_material_id</c> to its material index and the draw binds the
+    /// instance's atlas to <c>bake0</c>. Instances with no bake keep row 8 zero and the material's own <c>bake0</c>.
     /// </summary>
     public void SetBake(IReadOnlyList<BakeActor?> perInstance)
     {
@@ -319,8 +298,7 @@ public sealed class InstanceBatch : IDisposable
                 changed = true;
             }
         }
-        // One upload for the lot: thousands of 16-byte writes into a buffer the GPU may still be
-        // reading each stall on it in turn.
+        // One upload: thousands of 16-byte writes into a buffer the GPU may still be reading would each stall on it.
         if (changed)
         {
             _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, Buffer);
@@ -350,11 +328,7 @@ public sealed class InstanceBatch : IDisposable
             Visible.Add((0, Count, lod));
     }
 
-    /// <summary>
-    /// The model's bind-pose palette with no placement in it: inverse-bind times bone for the smooth
-    /// slots, the bone alone for the rigid ones - BonePaletteUbo.Build's own two loops. Empty for a
-    /// model with no skeleton.
-    /// </summary>
+    /// <summary>The model's bind-pose palette without a placement: inverse-bind times bone for smooth slots, the bone alone for rigid ones. Empty for a model with no skeleton.</summary>
     internal static Matrix4x4[] BindPalette(SkeletonManifest? skeleton)
     {
         if (skeleton is not { } skel)
@@ -374,7 +348,7 @@ public sealed class InstanceBatch : IDisposable
         return palette;
     }
 
-    /// <summary>The rows convention (translation in each row's W) as a row-vector Matrix4x4 - the transpose DeferredPipeline.BuildBonePalette applies.</summary>
+    /// <summary>The rows convention (translation in each row's W) as a row-vector Matrix4x4, the transpose the bone palette builder applies.</summary>
     static Matrix4x4 MatrixFromRows(Vector4[] r) => new(
         r[0].X, r[1].X, r[2].X, 0,
         r[0].Y, r[1].Y, r[2].Y, 0,

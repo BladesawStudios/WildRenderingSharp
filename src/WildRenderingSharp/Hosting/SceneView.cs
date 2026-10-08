@@ -35,28 +35,23 @@ public enum SceneViewMode
 }
 
 /// <summary>
-/// An offscreen view of a scene: renders a <see cref="FrameRequest"/> through a
-/// <see cref="DeferredPipeline"/> and composites the result - supersample downfilter, the palette's
-/// colour correction, sRGB encode, FXAA - into an ordinary RGBA8 texture the host displays however
-/// it likes (an ImGui image, a blit into its own framebuffer, a readback to a file).
+/// An offscreen view of a scene: renders a <see cref="FrameRequest"/> through a <see cref="DeferredPipeline"/> and composites
+/// the result (supersample downfilter, the palette's colour correction, sRGB encode, FXAA) into an RGBA8 texture the host
+/// displays however it likes.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Several views can share one pipeline - a main viewport plus a picture-in-picture camera
-/// preview, say. The main one renders through the pipeline's own <see cref="RenderTargets"/>; a
-/// secondary one is created with <c>ownTargets: true</c> and gets its own targets and its own
-/// <see cref="ShadowCache"/>. That is not an optimisation detail: resizing shared targets back and
-/// forth every frame reallocated every G-buffer texture twice a frame, and two views sharing one
-/// shadow cache invalidate each other on every frame.
+/// Several views can share one pipeline, such as a main viewport plus a picture-in-picture preview. The main one renders
+/// through the pipeline's own <see cref="RenderTargets"/>; a secondary one is created with <c>ownTargets: true</c> and gets
+/// its own targets and <see cref="ShadowCache"/>, because resizing shared targets reallocated every G-buffer texture twice a
+/// frame and two views sharing a shadow cache invalidate each other every frame.
 /// </para>
 /// <para>
-/// <see cref="OutputTexture"/> is stored the GL way, bottom row first - except in the four raw
-/// G-buffer-space modes (Albedo/Normal/Shadow/AO), which the pipeline rasterises through a
-/// Y-flipped projection and so come out top row first. <see cref="OutputIsTopDown"/> says which,
-/// and <see cref="ImGuiUv"/> gives the matching texture coordinates for an <c>ImGui.Image</c>.
+/// <see cref="OutputTexture"/> is stored the GL way, bottom row first, except in the four raw G-buffer-space modes (Albedo,
+/// Normal, Shadow, AO), which are rasterised through a Y-flipped projection and come out top row first.
+/// <see cref="OutputIsTopDown"/> says which and <see cref="ImGuiUv"/> gives the matching texture coordinates.
 /// </para>
-/// <para>Every method needs the GL context current. None of them change the host's GL state
-/// conventions; wrap calls in <see cref="GLHostState"/> if the host has changed GL's defaults.</para>
+/// <para>Every method needs the GL context current. None change the host's GL state conventions; wrap calls in <see cref="GLHostState"/> if the host changed GL's defaults.</para>
 /// </remarks>
 public sealed class SceneView : IDisposable
 {
@@ -91,12 +86,7 @@ public sealed class SceneView : IDisposable
 
     public DeferredPipeline Pipeline => _pipeline;
 
-    /// <summary>
-    /// 2x supersampling by default. It was once pulled in favour of FXAA-only after it produced
-    /// evenly spaced black bands on thin bright geometry; the real cause turned out to be the
-    /// bit-packed G-buffer attachments defaulting to LINEAR filtering (fixed in
-    /// <see cref="RenderTargets"/>), not supersampling itself.
-    /// </summary>
+    /// <summary>2x supersampling by default. Pulling it once looked like a fix for black bands on thin geometry, but the cause was bit-packed G-buffer attachments filtering linearly (fixed in <see cref="RenderTargets"/>).</summary>
     public AntiAliasingMode AntiAliasing { get; set; } = AntiAliasingMode.Supersample2x;
 
     public SceneViewMode Mode { get; set; } = SceneViewMode.Final;
@@ -121,12 +111,7 @@ public sealed class SceneView : IDisposable
     /// <summary>The last frame rendered, for re-presenting or probing without re-rendering.</summary>
     public FrameResult? LastFrame { get; private set; }
 
-    /// <summary>
-    /// The last frame's depth, for a host compositing it into a scene of its own: standard GL
-    /// [0, 1] depth through the request camera's own projection, cleared to 1 where nothing was
-    /// drawn, at the render size (<see cref="Supersample"/> times the output) - and stored the
-    /// G-buffer's way up, i.e. upside down relative to <see cref="OutputTexture"/>.
-    /// </summary>
+    /// <summary>The last frame's depth for a host compositing it into its own scene: standard GL [0, 1] depth through the request camera's projection, 1 where nothing was drawn, at the render size (<see cref="Supersample"/> times the output), stored upside down relative to <see cref="OutputTexture"/>.</summary>
     public uint DepthTexture => Targets.GBufferDepth.Handle;
 
     /// <summary>True when <see cref="OutputTexture"/> holds its top row first (the raw G-buffer-space modes) - see the class remarks.</summary>
@@ -162,11 +147,7 @@ public sealed class SceneView : IDisposable
         return frame;
     }
 
-    /// <summary>
-    /// Re-composites <see cref="LastFrame"/> into <see cref="OutputTexture"/> - after a change of
-    /// <see cref="Mode"/> or FXAA, which do not need the scene rendered again. A change of
-    /// supersampling does, since it changes the render size.
-    /// </summary>
+    /// <summary>Re-composites <see cref="LastFrame"/> into <see cref="OutputTexture"/> after a change of <see cref="Mode"/> or FXAA. A change of supersampling needs a new render.</summary>
     public void Present()
     {
         if (LastFrame is not { } frame || _lastPalette is not { } pal)
@@ -179,9 +160,7 @@ public sealed class SceneView : IDisposable
         float gamma = pal.ColorCorrectEnable ? pal.ColorCorrectGamma : 1f;
         var resources = _pipeline.Resources;
 
-        // The graded views render into the native-resolution intermediate first, so FXAA (or a
-        // plain passthrough when it is off) can run on the finished image without re-deriving
-        // it; the raw diagnostic views skip grading and AA entirely.
+        // Graded views render into a native-resolution intermediate first so FXAA (or a passthrough) runs on the finished image; the raw diagnostic views skip grading and AA.
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, graded ? _gradedFbo : _outputFbo);
         _gl.Viewport(0, 0, (uint)_width, (uint)_height);
         _gl.Disable(EnableCap.Blend);
@@ -209,8 +188,7 @@ public sealed class SceneView : IDisposable
                 _present.RunRaw(resources, frame.PassId, 40f);
                 break;
             default:
-                // Real per-pixel coverage alpha (Background: Transparent) comes from frame.Final,
-                // not frame.Ldr itself - see PresentPass.Run's own remarks on why.
+                // Coverage alpha for a transparent background comes from frame.Final, not frame.Ldr (see PresentPass.Run).
                 _present.Run(resources, frame.Ldr, ss, saturation, brightness, gamma,
                     alphaSource: _lastBackground == BackgroundMode.Transparent ? frame.Final : null);
                 break;
@@ -224,16 +202,12 @@ public sealed class SceneView : IDisposable
             if (ApplyFxaa)
                 _fxaa.Run(resources, gradedTexture);
             else
-                // alphaSource: itself makes this a genuine alpha PASSTHROUGH rather than RunRaw's
-                // usual diagnostic "hardcode opaque" default.
+                // alphaSource makes this an alpha passthrough rather than RunRaw's default of opaque.
                 _present.RunRaw(resources, gradedTexture, 1f, alphaSource: gradedTexture);
         }
     }
 
-    /// <summary>
-    /// The exact HDR value under a point of the view, BEFORE exposure/tonemap - "what is this
-    /// shader value really doing here", which a graded image cannot answer.
-    /// </summary>
+    /// <summary>The exact HDR value under a point of the view, before exposure and tonemap, which a graded image cannot answer.</summary>
     /// <param name="uvTopLeft">0..1 within the displayed image, top-left origin.</param>
     public Vector4? ProbeHdr(Vector2 uvTopLeft)
     {
@@ -262,11 +236,7 @@ public sealed class SceneView : IDisposable
         return flipped;
     }
 
-    /// <summary>
-    /// The last frame's scene-referred linear HDR buffer (BEFORE exposure/tonemap) as top-down
-    /// RGBA float rows, at the render resolution - for a real <c>.hdr</c> export the viewer's own
-    /// exposure is not baked into.
-    /// </summary>
+    /// <summary>The last frame's linear HDR buffer, before exposure and tonemap, as top-down RGBA float rows at the render resolution, for an <c>.hdr</c> export without the viewer's exposure baked in.</summary>
     public float[]? ReadHdrRgba(out int width, out int height)
     {
         width = height = 0;
@@ -277,12 +247,7 @@ public sealed class SceneView : IDisposable
         return Targets.ReadPixelsFloatRgba(frame.Final);
     }
 
-    /// <summary>
-    /// Renders one frame at an arbitrary size and returns it as top-down RGBA8, leaving the view
-    /// exactly as it was (its size, its last frame) afterwards - for an export at a resolution
-    /// other than the on-screen one. Honours <see cref="AntiAliasing"/>, so an export is never
-    /// lower quality than the view it was taken from.
-    /// </summary>
+    /// <summary>Renders one frame at an arbitrary size and returns it as top-down RGBA8, leaving the view's size and last frame as they were. Honours <see cref="AntiAliasing"/>.</summary>
     public byte[] RenderToRgba8(FrameRequest request, int width, int height)
     {
         var restore = (_width, _height, LastFrame, _lastPalette, _lastBackground);
@@ -322,8 +287,7 @@ public sealed class SceneView : IDisposable
             EnsureOutput(state.Width, state.Height);
             Targets.Resize(state.Width * Supersample, state.Height * Supersample);
         }
-        // The targets were reallocated, so the old frame's textures are gone; the caller renders
-        // again before presenting anything.
+        // The targets were reallocated, so the old frame's textures are gone and the caller must render again.
         LastFrame = null;
         _lastPalette = state.Palette;
         _lastBackground = state.Background;
@@ -363,12 +327,7 @@ public sealed class SceneView : IDisposable
         return texture;
     }
 
-    /// <summary>
-    /// Shrinks the render targets and outputs to almost nothing, returning their memory - the
-    /// G-buffer, HDR and post targets at a large window and 2x supersampling run to well over a
-    /// gigabyte. For a host that keeps the view while not showing it; the next <see cref="Render"/>
-    /// grows them back.
-    /// </summary>
+    /// <summary>Shrinks the render targets and outputs to almost nothing, returning their memory (a large window at 2x supersampling runs past a gigabyte). The next <see cref="Render"/> grows them back.</summary>
     public void ReleaseTargets()
     {
         Targets.Resize(8, 8);

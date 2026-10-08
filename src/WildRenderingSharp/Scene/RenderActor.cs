@@ -6,36 +6,26 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Scene;
 
 /// <summary>
-/// One instance of a loaded model placed in the scene. Owns its own placement transform AND its
-/// own complete set of animation channels (skeletal/shader-param/texture-SRT/texture-pattern), so
-/// two placed actors animate fully independently.
+/// One instance of a loaded model placed in the scene, with its own placement and its own animation channels (skeletal,
+/// shader-param, texture-SRT, texture-pattern), so placed actors animate independently.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Does NOT own a <see cref="DeferredPipeline"/> - one shared pipeline draws every placed actor's
-/// shapes together (see <see cref="DeferredPipeline.SetScene"/>). Nor does it own any GPU-side
-/// skinning bytes: <see cref="DeferredPipeline.RenderFrame"/> rebuilds this actor's own
-/// bone-palette/ShpMtx buffer fresh every frame from <see cref="ToRenderInput"/> into a transient
-/// <see cref="ActorDrawGroup"/>, rebound to the shared <c>_Mtx</c>/<c>ShpMtx</c> binding points
-/// immediately before this actor's own shapes draw - the real compiled game shaders read bone
-/// transforms from those two GLOBAL, frame-shared UBO binding points with no per-draw instance
-/// addressing at all, so every actor needs ITS OWN buffer bound there right before its own draw calls.
+/// It owns no <see cref="DeferredPipeline"/> (one shared pipeline draws every actor) and no skinning buffers: the pipeline
+/// builds this actor's uniforms fresh each frame from <see cref="ToRenderInput"/> into an <see cref="ActorDrawGroup"/>, bound
+/// right before its shapes draw, because the game's shaders read bones from shared binding points with no per-draw instance
+/// addressing.
 /// </para>
 /// <para>
-/// The world is Z-up. A BFRES model is authored Y-up, which is why <see cref="Pitch"/> defaults to
-/// a quarter turn: that is what stands a model upright. A host with its own Y-up world can either
-/// keep that default and convert its camera (see <see cref="Hosting.YUpWorld"/>), or supply its
-/// own matrix through <see cref="TransformOverride"/>.
+/// The world is Z-up while a BFRES model is authored Y-up, so <see cref="Pitch"/> defaults to a quarter turn to stand a model
+/// upright. A host with its own Y-up world can keep that default and convert its camera (see <see cref="Hosting.YUpWorld"/>),
+/// or supply its own matrix through <see cref="TransformOverride"/>.
 /// </para>
+/// <para>Not sealed: a host commonly hangs its own editor state off the same object.</para>
 /// <para>
-/// Not sealed: a host commonly wants to hang its own editor state (a gizmo interface, a display
-/// name, an icon framing) off the same object.
-/// </para>
-/// <para>
-/// Physics is not the renderer's. Havok Cloth and Phive Helper Bones are their own libraries
-/// (HkxSimSharp, HkxHbSharp); a host that runs them overrides <see cref="ModifiesPose"/> and
-/// <see cref="ModifyPose"/> to write what they drive into the pose, which is all the renderer needs
-/// of them - cloth reaches the screen as a handful of bone matrices.
+/// Physics is not the renderer's. A host running Havok Cloth or Phive Helper Bones (HkxSimSharp, HkxHbSharp) overrides
+/// <see cref="ModifiesPose"/> and <see cref="ModifyPose"/> to write what they drive into the pose; cloth reaches the screen
+/// as a handful of bone matrices.
 /// </para>
 /// </remarks>
 public class RenderActor : IDisposable
@@ -58,10 +48,9 @@ public class RenderActor : IDisposable
     public bool Visible { get; set; } = true;
 
     /// <summary>
-    /// When set, replaces the Position/Yaw/Pitch/Roll/Scale placement entirely: the GPU "rows"
-    /// convention <see cref="TransformRows"/> returns (row i holds the matrix's i-th row, with the
-    /// translation in each row's W - the layout <see cref="EulerRotation"/> builds). Build one from
-    /// a row-vector <see cref="Matrix4x4"/> with <see cref="RowsFromMatrix"/>.
+    /// When set, replaces the Position/Yaw/Pitch/Roll/Scale placement entirely: the GPU rows <see cref="TransformRows"/> returns
+    /// (row i is the matrix's i-th row, translation in each row's W; the layout <see cref="EulerRotation"/> builds). Build one
+    /// from a row-vector <see cref="Matrix4x4"/> with <see cref="RowsFromMatrix"/>.
     /// </summary>
     public Vector4[]? TransformOverride { get; set; }
 
@@ -74,11 +63,9 @@ public class RenderActor : IDisposable
     public Matrix4x4[]? ExternalPose { get; set; }
 
     /// <summary>
-    /// The actor's own placement transform - what every render pass actually needs. Rotation AND
-    /// scale pivot about the model's own bounds centre (so rotating/scaling in place doesn't also
-    /// shift the object); <see cref="Position"/> is then added as an INDEPENDENT world-space
-    /// translation on top, not folded into the pivot itself - folding it in would make Position's
-    /// effect a function of the current rotation instead of a plain additive move.
+    /// The placement transform every pass needs. Rotation and scale pivot about the model's bounds centre so rotating in place
+    /// does not shift the object; <see cref="Position"/> is then added as an independent world-space translation, so its
+    /// effect does not depend on the rotation.
     /// </summary>
     public Vector4[] TransformRows() =>
         TransformOverride ?? EulerRotation.MakeYawPitchRollScaleAboutPivot(Yaw, Pitch, Roll, Scale, Model.BoundsCenter, Position);
@@ -111,7 +98,7 @@ public class RenderActor : IDisposable
         return (forward, right, up);
     }
 
-    // ---- Per-actor animation state ----
+    // Per-actor animation state.
 
     public SkeletalAnimManifest? SkeletalClip { get; private set; }
     public AnimSlot<SkeletalAnimManifest>? Skeletal { get; private set; }
@@ -141,7 +128,7 @@ public class RenderActor : IDisposable
         TexturePattern.Clear();
     }
 
-    /// <summary>BFRES skeletal anims don't carry their own playback rate in the exported manifest - 30 is the standard TotK/g3d anim frame rate.</summary>
+    /// <summary>The exported manifest carries no playback rate for BFRES skeletal anims; 30 is the standard g3d animation frame rate.</summary>
     public const float DefaultFramesPerSecond = 30f;
 
     /// <returns>True if any clip moved this frame - callers use this to decide whether the frame needs redrawing. A host whose physics moves on its own (cloth) adds that itself; helper bones, say, only move when a clip does.</returns>
@@ -154,11 +141,7 @@ public class RenderActor : IDisposable
         return moved;
     }
 
-    /// <summary>
-    /// True while <see cref="ModifyPose"/> has work to do - an enabled cloth or helper-bone rig, say.
-    /// Without it, an actor with no skeletal clip is drawn in its bind pose and the pose is never
-    /// evaluated at all.
-    /// </summary>
+    /// <summary>True while <see cref="ModifyPose"/> has work to do, such as an enabled cloth or helper-bone rig. Without it an actor with no skeletal clip draws in its bind pose and the pose is never evaluated.</summary>
     protected virtual bool ModifiesPose => false;
 
     /// <summary>
@@ -170,12 +153,7 @@ public class RenderActor : IDisposable
     /// <param name="deltaSeconds">Real time since the last frame.</param>
     protected virtual void ModifyPose(Matrix4x4[] world, float deltaSeconds) { }
 
-    /// <summary>
-    /// Applies this actor's texture-pattern and material animations to its model: a pattern anim
-    /// re-points sampler bindings and a material anim rewrites uniform blocks, both of which every
-    /// pass then picks up while drawing this actor's shapes. Needs the GL context. Only the skeletal
-    /// pose feeds a per-frame UBO; that one goes through <see cref="ToRenderInput"/>.
-    /// </summary>
+    /// <summary>Applies this actor's texture-pattern and material animations to its model; every pass then picks them up while drawing its shapes. Needs the GL context. The skeletal pose goes through <see cref="ToRenderInput"/> instead.</summary>
     public void ApplyMaterialAnimations(Silk.NET.OpenGL.GL gl)
     {
         var patternAnims = TexturePattern.Slots
@@ -227,17 +205,14 @@ public class RenderActor : IDisposable
     private Matrix4x4[]? _lastPosedResult;
 
     /// <summary>
-    /// Evaluates the posed skeleton: the skeletal clip (or the bind pose), then whatever the host's
-    /// <see cref="ModifyPose"/> writes over it. Returns null if the model has no skeleton, or nothing
-    /// moves it (the pipeline then uses the bind pose). <see cref="ExternalPose"/>, when set, is
-    /// returned as-is.
+    /// Evaluates the posed skeleton: the skeletal clip (or bind pose), then whatever <see cref="ModifyPose"/> writes over it.
+    /// Null if the model has no skeleton or nothing moves it (the pipeline then uses the bind pose).
+    /// <see cref="ExternalPose"/>, when set, is returned as is.
     /// </summary>
     /// <param name="frameId">
-    /// A counter the host increments once per real rendered frame. A host's physics is stateful and
-    /// must step exactly once per real render regardless of how many times (main view, a
-    /// picture-in-picture preview, an export) this actor's pose gets asked for within that frame; a
-    /// repeat call with the same id returns the frame's already-computed pose instead of running
-    /// <see cref="ModifyPose"/> again - running it twice silently steps a simulation at double speed.
+    /// A counter the host increments once per real rendered frame. A host's physics is stateful and must step exactly once per
+    /// frame however many times (main view, preview, export) the pose is asked for, so a repeat call with the same id returns
+    /// the already computed pose.
     /// </param>
     public Matrix4x4[]? EvaluatePosedSkeleton(float dt, ulong frameId)
     {
