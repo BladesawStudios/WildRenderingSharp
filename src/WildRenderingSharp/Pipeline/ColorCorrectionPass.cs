@@ -3,25 +3,16 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>
-/// The game's final grade - <c>agl::pfx::ColorCorrection</c>, driven by the real
-/// <c>postfx/master_field.baglccr</c> - applied after <c>agl_hdr_compose</c>.
-/// </summary>
+/// <summary>The game's final grade, <c>agl::pfx::ColorCorrection</c> driven by <c>postfx/master_field.baglccr</c>, applied after <c>agl_hdr_compose</c>.</summary>
 /// <remarks>
 /// <para>
-/// WildRenderingSharp never applied this at all, which matters for every visual comparison made against the
-/// game: a screenshot is a GRADED image and WildRenderingSharp's output was not. The single most visible field
-/// is <c>saturation = 1.175</c>, so the shipped game is ~17.5% more saturated than its own raw
-/// render - enough on its own to make a correct render look washed out beside a screenshot.
+/// It matters for every comparison against the game: a screenshot is a graded image. The most visible field is <c>saturation = 1.175</c>, so the game is about 17.5% more saturated than its raw render.
 /// </para>
 /// <para>
-/// Written by hand rather than decompiled: unlike the sky and cloud programs, colour correction is
-/// simple, well-understood arithmetic (HSB, gamma, lift/gain) and its PARAMETERS are what carry the
-/// game's look, not its instruction sequence. The values are the real authored ones.
+/// Written by hand rather than decompiled: colour correction is simple arithmetic (HSB, gamma, lift/gain) whose parameters, not its instruction sequence, carry the look. The values are the authored ones.
 /// </para>
 /// <para>
-/// The <c>level</c> curve array is not implemented. AAMP curves need a real interpolator, and a
-/// guessed curve would silently reshape the whole image - see <see cref="ColorCorrectionPostFx"/>.
+/// The <c>level</c> curve array is not implemented: AAMP curves need a real interpolator, and a guessed curve would silently reshape the image (see <see cref="ColorCorrectionPostFx"/>).
 /// </para>
 /// </remarks>
 public sealed class ColorCorrectionPass : IDisposable
@@ -30,13 +21,8 @@ public sealed class ColorCorrectionPass : IDisposable
     readonly uint _program;
     readonly uint _blitProgram;
 
-    // Its OWN scratch, deliberately not targets.Scene. A texture cannot be its own sampler and
-    // render target in one pass, so a grade in place needs a bounce buffer - but borrowing the
-    // forward pass's Scene buffer means inheriting THAT pass's orientation convention (Scene exists
-    // to hold a Y-FLIPPED copy for depth-testing against the G-buffer), and copying back through a
-    // helper with its own flip semantics produced a vertically INVERTED frame. Owning the scratch
-    // and blitting with the very same vertex shader in both directions makes the orientation
-    // trivially self-consistent instead of a question about someone else's convention.
+    // Its own scratch, not targets.Scene: grading in place needs a bounce buffer, but Scene holds a Y-flipped copy for depth-testing against the G-buffer, and copying back through a helper with its own
+    // flip semantics produced an inverted frame. Blitting both ways with the same vertex shader keeps the orientation self-consistent.
     uint _scratchTex, _scratchFbo;
     int _scratchW, _scratchH;
 
@@ -50,8 +36,7 @@ public sealed class ColorCorrectionPass : IDisposable
         }
         """;
 
-    // Rec.709 luminance - the same weighting the rest of this pipeline uses for perceived
-    // brightness, so saturation pivots around a colour's real luminance rather than a flat average.
+    // Rec.709 luminance, the weighting the rest of the pipeline uses for perceived brightness, so saturation pivots around real luminance rather than a flat average.
     const string BlitFragmentSource = """
         #version 330 core
         in vec2 vUV;
@@ -80,8 +65,7 @@ public sealed class ColorCorrectionPass : IDisposable
         vec3 applyHue(vec3 c, float radians)
         {
             if (abs(radians) < 1e-5) return c;
-            // Rotation about the luma axis in RGB - equivalent to an HSV hue shift but without the
-            // conversion's discontinuity at the hue wrap, which would band a smooth sky gradient.
+            // Rotation about the luma axis in RGB: equivalent to an HSV hue shift without the discontinuity at the hue wrap that would band a smooth sky gradient.
             float cosA = cos(radians), sinA = sin(radians);
             float k = 1.0 / 3.0, sq = sqrt(k);
             mat3 m = mat3(
@@ -93,8 +77,7 @@ public sealed class ColorCorrectionPass : IDisposable
 
         vec3 applyToycam(vec3 c)
         {
-            // Two lift/gain stages with their own saturation, then contrast about mid grey and a
-            // colour multiply - the shape agl's own toycam parameters describe.
+            // Two lift/gain stages with their own saturation, then contrast about mid grey and a colour multiply: the shape agl's toycam parameters describe.
             c = applySaturation(c * uLevel1 + uOffset1, uSat1);
             c = applySaturation(c * uLevel2 + uOffset2, uSat2);
             c = (c - 0.5) * uToyContrast + 0.5;
@@ -115,9 +98,7 @@ public sealed class ColorCorrectionPass : IDisposable
             if (uToycamEnable == 1 && uOrderToycamHsb == 0)
                 c = applyToycam(c);
 
-            // Gamma last, and guarded: this runs on a tonemapped image, but a negative value can
-            // still reach here from a saturation boost pushing a channel below zero, and pow() of a
-            // negative is undefined - it shows up as black speckle rather than an error.
+            // Gamma last and guarded: this runs on a tonemapped image, but a saturation boost can push a channel below zero, and pow() of a negative is undefined (black speckle).
             if (abs(uGamma - 1.0) > 1e-5)
                 c = pow(max(c, vec3(0.0)), vec3(1.0 / max(uGamma, 1e-4)));
 
@@ -167,8 +148,7 @@ public sealed class ColorCorrectionPass : IDisposable
         _gl.SetFloat(_program, "uToyContrast", cc.ToycamContrast);
         resources.DrawFullscreenTriangle();
 
-        // Pass 2: straight back, through the SAME vertex shader - so whatever orientation pass 1
-        // wrote, pass 2 reads identically and the round trip cannot flip.
+        // Pass 2: straight back through the same vertex shader, so whatever orientation pass 1 wrote, pass 2 reads identically and the round trip cannot flip.
         targets.BindColorTarget(target);
         _gl.UseProgram(_blitProgram);
         _gl.BindTextureUniform(_blitProgram, "tSrc", 0, _scratchTex);
@@ -186,8 +166,7 @@ public sealed class ColorCorrectionPass : IDisposable
         _scratchH = Math.Max(1, height);
         _scratchTex = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, _scratchTex);
-        // Matches Ldr's own Rgba32f: the grade runs on tonemapped but still float data, and a
-        // narrower scratch would quantise it on the way through.
+        // Matches Ldr's Rgba32f: the grade runs on tonemapped but still float data, and a narrower scratch would quantise it.
         _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba32f, (uint)_scratchW, (uint)_scratchH, 0,
             PixelFormat.Rgba, PixelType.Float, null);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);

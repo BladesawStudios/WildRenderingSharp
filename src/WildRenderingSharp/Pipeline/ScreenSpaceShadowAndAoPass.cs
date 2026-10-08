@@ -4,14 +4,9 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Produces the two screen-space buffers the real deferred resolve shaders expect from the
-/// (unimplemented) <c>preshading_*</c> passes - <c>cTex_PreShadow</c> (sun visibility, 12-tap
-/// Poisson-disc PCF against the shadow map) and <c>cTex_PreMisc</c> (an alchemy-style AO plus the
-/// diffuse N.L the <c>chara_*</c> resolve passes read out of <c>.y</c> rather than computing
-/// themselves). Both decode the packed G-buffer normal with the same Lambert-azimuthal scheme the
-/// game's own shaders write and read. HONEST SCOPE: these two textures are produced by WildRenderingSharp, not
-/// the game - only their CONSUMPTION (the real deferred resolve shader) is authentic. Direct port
-/// of <c>PRESHADOW_SRC</c>/<c>AO_SRC</c>/<c>AO_BLUR_SRC</c>.
+/// Produces the two screen-space buffers the deferred resolve shaders expect from the unimplemented <c>preshading_*</c> passes: <c>cTex_PreShadow</c> (sun visibility, Poisson-disc PCF against the shadow
+/// map) and <c>cTex_PreMisc</c> (an alchemy-style AO plus the diffuse N.L the <c>chara_*</c> resolve passes read from <c>.y</c>). Both decode the packed G-buffer normal with the Lambert-azimuthal scheme the
+/// game's shaders use. These two textures are this renderer's own; only their consumption (the game's resolve shader) is authentic.
 /// </summary>
 public sealed class ScreenSpaceShadowAndAoPass : IDisposable
 {
@@ -135,13 +130,9 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
             float bias = uBias / uDepthRange;
             float refZ = clamp(sc.z - bias, 0.0, 1.0);
 
-            // TotK uses cascades with fine per-cascade texels; WildRenderingSharp uses a single wide-frustum
-            // ortho map. The real 4-tap PCF at ±0.5 texel produces only 5 discrete output values
-            // (0, 0.25, 0.5, 0.75, 1.0) on WildRenderingSharp's coarser map, and chara_skin's 8× ramp turns
-            // those into hard staircases. Fix: 16-tap rotated Poisson disc PCF over ±3 shadow
-            // texels to produce a smooth 0→1 gradient that the downstream Gaussian can work with.
-            //
-            // Disc rotated per-pixel via Bayer 4×4 to break fixed-grid sampling patterns.
+            // TotK uses cascades with fine per-cascade texels; this uses a single wide-frustum ortho map. The game's 4-tap PCF at ±0.5 texel gives only 5 output values on a coarser map, and chara_skin's 8x ramp
+            // turns those into hard staircases. So: 16-tap rotated Poisson disc PCF over ±3 shadow texels for a smooth 0 to 1 gradient the downstream Gaussian can work with, with the disc rotated per pixel via a
+            // Bayer 4x4 matrix to break fixed-grid patterns.
             const vec2 disc[16] = vec2[16](
                 vec2(-0.94201624, -0.39906216), vec2( 0.94558609, -0.76890725),
                 vec2(-0.09418410, -0.92938870), vec2( 0.34495938,  0.29387760),
@@ -368,7 +359,7 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
     {
         _gl.Disable(EnableCap.DepthTest);
 
-        // ---- PreShadow: render initial raw PCF into PreShadow ----
+        // PreShadow: raw PCF first.
         _gl.UseProgram(_preshadowProgram);
         SetMat4(_preshadowProgram, "uViewInv", Rendering.Mat4Math.ToMat4(p.ViewInv3Rows));
         SetMat4(_preshadowProgram, "uLightViewProj", p.LightViewProj);
@@ -404,11 +395,10 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
         }
         resources.DrawFullscreenTriangle();
 
-        // Authentic Nintendo 2-tier preshading filter: filters PreShadow into smooth penumbra
-        // (PreShadow.rgb gets half-res reduce blur; PreShadow.w gets full-res 3-tap Gaussian via uStack_364 = 7)
+        // The game's two-tier preshading filter smooths PreShadow into a penumbra: rgb gets the half-res reduce blur and w the full-res 3-tap Gaussian (uStack_364 = 7).
         RunPreshadingFilter(resources, targets, targets.PreShadow, targets.AoTmp);
 
-        // ---- AO: raw into AoRaw scratch (reused), then blur into PreMisc ----
+        // AO: raw into the AoRaw scratch (reused), then blurred into PreMisc.
         _gl.UseProgram(_aoProgram);
         _gl.Uniform2(_gl.GetUniformLocation(_aoProgram, "uTanHalf"), p.TanHalf.X, p.TanHalf.Y);
         _gl.Uniform2(_gl.GetUniformLocation(_aoProgram, "uPix"), 1f / targets.Width, 1f / targets.Height);
@@ -429,9 +419,7 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
     {
         _gl.UseProgram(_preshadingFilterProgram);
 
-        // Tier 1: Full-resolution anti-aliasing blur (Nintendo agl_preshading_filter STEP1/STEP2)
-        // Horizontal into tmp, then vertical directly back into preShadow!
-        // Both PreShadow.rgb and PreShadow.w receive the full-resolution anti-aliased 3-tap Gaussian filter!
+        // Tier 1: full-resolution anti-aliasing blur (agl_preshading_filter STEP1/STEP2), horizontal into tmp then vertical straight back into preShadow, for both rgb and w.
         targets.BindColorTarget(tmp);
         BindTexture(_preshadingFilterProgram, "tex_src", 0, preShadow.Handle);
         _gl.Uniform2(_gl.GetUniformLocation(_preshadingFilterProgram, "uStep"), 1.3636f / targets.Width, 0f);
@@ -442,7 +430,7 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
         _gl.Uniform2(_gl.GetUniformLocation(_preshadingFilterProgram, "uStep"), 0f, 1.3636f / targets.Height);
         resources.DrawFullscreenTriangle();
 
-        // Tier 2: Downsample to half-resolution (TotK's Blur0/1(Reduce)) with hardware 2x2 bilinear downsample (STEP3)
+        // Tier 2: downsample to half resolution (TotK's Blur0/1 Reduce) with a hardware 2x2 bilinear downsample (STEP3).
         _gl.UseProgram(_preshadingUpsampleProgram);
         targets.BindColorTarget(targets.PreShadowHalf0);
         BindTexture(_preshadingUpsampleProgram, "tex_src", 0, preShadow.Handle);
@@ -463,10 +451,7 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
         _gl.Uniform2(_gl.GetUniformLocation(_preshadingReduceProgram, "uStep"), 0f, 1.0f / hh);
         resources.DrawFullscreenTriangle();
 
-        // Upsample back to full-resolution dst (targets.PreShadow) with GL_LINEAR reconstruction (STEP6)
-        // ColorMask(true, true, true, false) replicates TotK's uStack_364 = 7:
-        // writes half-res blur into PreShadow.rgb, while PreShadow.w keeps
-        // the full-resolution anti-aliased 3-tap Gaussian filter from Tier 1!
+        // Upsample back to full resolution into dst (targets.PreShadow) with GL_LINEAR (STEP6). ColorMask(true, true, true, false) replicates TotK's uStack_364 = 7: the half-res blur goes into rgb while w keeps Tier 1's full-resolution Gaussian.
         _gl.UseProgram(_preshadingUpsampleProgram);
         targets.BindColorTarget(preShadow);
         BindTexture(_preshadingUpsampleProgram, "tex_src", 0, targets.PreShadowHalf0.Handle);

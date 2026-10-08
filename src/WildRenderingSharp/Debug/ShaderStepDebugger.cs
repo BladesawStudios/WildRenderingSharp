@@ -4,27 +4,15 @@ using System.Text.RegularExpressions;
 namespace WildRenderingSharp.Debug;
 
 /// <summary>
-/// Instruments a real decompiled fragment shader so a single chosen intermediate value
-/// (<c>temp_N</c>, in the decompiler's own numbering - the same numbers visible when reading the
-/// file directly) can be visualised as the final pixel colour instead of the shader's real output.
-/// This is a text-level splice, not a real GPU instruction stepper (there is no such thing for a
-/// compiled fragment program on real hardware) - it works because these shaders are already plain,
-/// readable GLSL text with one assignment per line, not opaque bytecode.
-///
-/// A <c>temp_N</c> can be written more than once along the SAME executed path, not just once per
-/// if/else branch - e.g. "give it a default, then maybe overwrite it a few lines later" is a common
-/// pattern in this decompiler's output. An early-return at the FIRST assignment site (the original
-/// design) shows the wrong thing whenever a later write on the same path would have overwritten it
-/// - you'd see the stale default, never the value that actually reaches the rest of the shader.
-/// Fixed by making every hook a plain CAPTURE (no return): `if (target == N) { captured = <cast>;
-/// hit = true; }`, at every assignment site, with no early exit. Since these run in the same
-/// sequential order the real assignments do, a later capture on the executed path naturally
-/// overwrites an earlier one - exactly mirroring how the real variable would end up. Only at the
-/// very end of `main()` (right before the shader's own real final output write) does the debugger
-/// actually divert output_color: to whatever was last captured, or - if the target's assignment
-/// site(s) never executed on this pixel's path at all - a solid-orange sentinel, so "never wrote to
-/// it" and "wrote a real value" can never be confused for each other.
+/// Instruments a decompiled fragment shader so one chosen intermediate (<c>temp_N</c>, in the decompiler's numbering) is shown as the final pixel colour instead of the shader's output.
+/// This is a text-level splice, not a GPU stepper: it works because these shaders are plain GLSL with one assignment per line.
 /// </summary>
+/// <remarks>
+/// A <c>temp_N</c> can be written more than once along the same executed path ("give it a default, then maybe overwrite it a few lines later" is common), so an early return at the first assignment shows
+/// the stale default instead of the value that reaches the rest of the shader. Every hook is therefore a plain capture, `if (target == N) { captured = value; hit = true; }`, with no early exit; a later
+/// capture on the executed path overwrites an earlier one as the real variable would. Only at the end of <c>main()</c>, before the shader's own final output write, does the debugger divert output_color
+/// to the last capture, or to a solid-orange sentinel if the target's assignment sites never ran on that pixel's path, so "never wrote to it" cannot be mistaken for a real value.
+/// </remarks>
 public static class ShaderStepDebugger
 {
     const string UnreachedSentinel = "vec4(1.0, 0.5, 0.0, 1.0)";
@@ -37,7 +25,7 @@ public static class ShaderStepDebugger
         @"^(?<indent>[ \t]*)temp_(?<n>\d+)\s*=(?!=)",
         RegexOptions.Compiled);
 
-    /// <summary>Every real fragment output this shader declares (there can be more than one on a G-buffer program - albedo/normal/emission are separate <c>out vec4</c>s at different locations) - the debug override has to overwrite ALL of them, not just the first, or stepping a value only shows up on whichever attachment happens to come first in the file.</summary>
+    /// <summary>Every real fragment output the shader declares (a G-buffer program has several: albedo, normal and emission at different locations). The override must overwrite all of them, or the value shows only on whichever attachment comes first in the file.</summary>
     static readonly Regex OutputDeclRegex = new(
         @"^\s*layout\s*\(location\s*=\s*\d+\)\s*out\s+vec4\s+(\w+(?:\[0\])?)\s*;",
         RegexOptions.Multiline);
@@ -55,20 +43,8 @@ public static class ShaderStepDebugger
         return types;
     }
 
-    /// <summary>
-    /// Returns the instrumented RAW source (still needs <c>GlslSanitizer.Clean</c> and compilation,
-    /// same as any other decompiled shader - see <c>ShaderProgramCache.Load</c>) plus every
-    /// <c>temp_N</c> that got at least one debug hook, sorted ascending, for a step-through UI to
-    /// jump between.
-    /// </summary>
-    /// <param name="suppressDiscard">
-    /// When true, every bare <c>discard;</c> statement is replaced with a no-op instead of actually
-    /// discarding the fragment. Without this, a value computed right before a real discard can never
-    /// be inspected for a pixel that WOULD have been cut - the shader exits before the debug-override
-    /// block at the end of <c>main()</c> ever runs, so "why does this always discard" is exactly the
-    /// one question the debugger couldn't answer until this existed. Leaves the real output alone
-    /// (target -1) unaffected in every other way; only matters once you've picked a real target.
-    /// </param>
+    /// <summary>Returns the instrumented raw source (still needs <c>GlslSanitizer.Clean</c> and compilation, like any decompiled shader) plus every <c>temp_N</c> that got a hook, sorted ascending, for a step-through UI.</summary>
+    /// <param name="suppressDiscard">When true, every bare <c>discard;</c> becomes a no-op. Otherwise a value computed right before a discard that would fire can never be inspected, since the shader exits before the override block runs. Only matters once a real target is picked.</param>
     public static string Instrument(string fragSource, out List<int> availableTargets, bool suppressDiscard = false)
     {
         var types = ParseTempTypes(fragSource);
@@ -92,29 +68,18 @@ public static class ShaderStepDebugger
                 continue; // no declaration found for this temp - shouldn't happen, skip defensively rather than emit invalid GLSL
             targets.Add(n);
             string indent = m.Groups["indent"].Value;
-            // No "return" here on purpose - see the class doc. A later capture of the SAME target
-            // on this executed path must be able to overwrite this one, exactly like the real
-            // temp_N reassignment it sits next to would.
+            // No "return" on purpose (see the class doc): a later capture of the same target on this path must be able to overwrite this one.
             output.Add($"{indent}if (uDebugStepTarget == {n}) {{ dbgCapturedValue = {CastToVec4($"temp_{n}", glslType)}; dbgCaptureHit = true; }}");
         }
 
         availableTargets = [.. targets];
 
-        // Every real fragment output this shader declares - a G-buffer program can have several
-        // (albedo/normal/emission are separate `out vec4`s at different locations), and the debug
-        // override has to replace ALL of them, not just the first one found, or the visualised value
-        // only shows up on whichever G-buffer attachment happens to be textually first in the file
-        // rather than the one a caller is actually looking at (e.g. the Albedo view).
+        // The override replaces every real fragment output, not only the first found, or the value shows only on whichever attachment is textually first (e.g. not the Albedo view).
         var outputNames = OutputDeclRegex.Matches(string.Join('\n', output))
             .Select(m => m.Groups[1].Value).Distinct().ToList();
 
-        // The single point where debug mode actually takes over every output - must run BEFORE the
-        // real shader's own final output write, not merely before main()'s closing brace: these
-        // files consistently end with their own unconditional "return;" right before that brace
-        // (confirmed against real decompiled output), and inserting after it would put this in
-        // genuinely dead code, never executing at all. Insert before the LAST bare "return;" if one
-        // exists (the common case); fall back to before the closing brace only for a file that
-        // instead just falls off the end of main().
+        // The point where debug mode takes over every output. It must run before the shader's own final output write, not merely before main()'s closing brace: these files end with an unconditional
+        // "return;" right before that brace, so inserting after it would be dead code. Insert before the last bare "return;" if there is one, else before the closing brace.
         int insertBefore = output.FindLastIndex(l => l.Trim() == "return;");
         if (insertBefore < 0)
             insertBefore = output.FindLastIndex(l => l.Trim() == "}");
@@ -126,9 +91,7 @@ public static class ShaderStepDebugger
 
         string body = string.Join('\n', output);
 
-        // "void main()" appears exactly once in these files (the entry point) - safe to insert the
-        // debug uniform declaration immediately before it, and the two capture locals as the very
-        // first statements of its body, wherever both are in the source.
+        // "void main()" appears once (the entry point), so the debug uniform goes immediately before it and the two capture locals at the start of its body.
         body = body.Replace("void main()", "uniform int uDebugStepTarget;\nvoid main()");
         return body.Replace(
             "void main()\n{",
@@ -146,8 +109,7 @@ public static class ShaderStepDebugger
         "ivec2" or "uvec2" => $"vec4(vec2({name}), 0.0, 1.0)",
         "ivec3" or "uvec3" => $"vec4(vec3({name}), 1.0)",
         "ivec4" or "uvec4" => $"vec4({name})",
-        // Unrecognised type (shouldn't happen given the same regex both sides use) - bright
-        // magenta so it's obviously "unsupported", never a silent wrong colour.
+        // Unrecognised type (not expected, since both sides use the same regex): bright magenta so it reads as unsupported, never a silent wrong colour.
         _ => "vec4(1.0, 0.0, 1.0, 1.0)",
     };
 }
