@@ -25,13 +25,7 @@ public sealed class BoneManifestEntry
     [JsonPropertyName("parent_index")] public int ParentIndex { get; set; } = -1;
     /// <summary>This bone's slot in the smooth-skinning segment of the palette, or -1 if it has none. Redundant with <see cref="SkeletonManifest.MatrixToBoneList"/> (its inverse) but kept for reference/debugging - and it is what <see cref="SkeletonManifest.SmoothCount"/> falls back to counting.</summary>
     [JsonPropertyName("smooth_matrix_index")] public int SmoothMatrixIndex { get; set; } = -1;
-    /// <summary>
-    /// This bone's slot in the palette's rigid segment, or -1 if it has none. This is an ABSOLUTE
-    /// palette index - BFRES stores it already offset past the smooth segment (Animal_Bass has 4
-    /// smooth slots and its Head bone reports <c>SmoothMatrixIndex 0, RigidMatrixIndex 4</c>, with
-    /// <c>MatrixToBoneList[4]</c> pointing back at Head). Never add
-    /// <see cref="SkeletonManifest.SmoothCount"/> to it.
-    /// </summary>
+    /// <summary>This bone's slot in the palette's rigid segment, or -1 if it has none. An absolute palette index: BFRES stores it already offset past the smooth segment (Animal_Bass has 4 smooth slots and its Head bone reports <c>SmoothMatrixIndex 0, RigidMatrixIndex 4</c>), so never add <see cref="SkeletonManifest.SmoothCount"/> to it.</summary>
     [JsonPropertyName("rigid_matrix_index")] public int RigidMatrixIndex { get; set; } = -1;
     /// <summary>Billboard mode index, or -1. Not implemented by <see cref="WildRenderingSharp.Rendering.SkeletonPose"/> (the game's own <c>SkeletonObj::CalculateBillboardMtx</c> needs a camera); carried so a billboarded bone is at least identifiable.</summary>
     [JsonPropertyName("billboard_index")] public int BillboardIndex { get; set; } = -1;
@@ -73,16 +67,9 @@ public sealed class BoneManifestEntry
 }
 
 /// <summary>
-/// Deserialized <c>&lt;Model&gt;.skeleton.json</c> - everything needed to build the real
-/// <see cref="WildRenderingSharp.Profiles.Totk.Ubos.BonePaletteUbo"/> at bind pose (via
-/// <see cref="WildRenderingSharp.Rendering.SkeletonPose.BindPoseWorldMatrices"/>), or at any animated
-/// pose given a <see cref="SkeletalAnimManifest"/>.
-///
-/// THE PALETTE IS TWO SEGMENTS AND <see cref="MatrixToBoneList"/> COVERS BOTH - it has
-/// <see cref="SmoothCount"/> + <see cref="RigidCount"/> entries, not just the smooth ones, and
-/// <see cref="InverseModelMatrices"/> is parallel to its smooth PREFIX only. See
-/// <see cref="WildRenderingSharp.Profiles.Totk.Ubos.BonePaletteUbo"/>'s remarks for the Ghidra
-/// citations and what goes wrong when the split is missed.
+/// Deserialized <c>&lt;Model&gt;.skeleton.json</c>: everything needed to build the <c>BonePaletteUbo</c> at bind pose (via <see cref="WildRenderingSharp.Rendering.SkeletonPose.BindPoseWorldMatrices"/>)
+/// or at an animated pose given a <see cref="SkeletalAnimManifest"/>. The palette has two segments and <see cref="MatrixToBoneList"/> covers both (<see cref="SmoothCount"/> +
+/// <see cref="RigidCount"/> entries), while <see cref="InverseModelMatrices"/> is parallel to the smooth prefix only; see <c>BonePaletteUbo</c> for the Ghidra citations.
 /// </summary>
 public sealed class SkeletonManifest
 {
@@ -107,14 +94,7 @@ public sealed class SkeletonManifest
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a skeleton manifest.");
     }
 
-    /// <summary>
-    /// The real length of the palette's smooth segment, clamped to what
-    /// <see cref="MatrixToBoneList"/> can actually supply. A manifest exported before
-    /// <see cref="SmoothMatrixCount"/> existed gets it counted off the bones' own
-    /// <see cref="BoneManifestEntry.SmoothMatrixIndex"/> - which is the same number, and which also
-    /// makes those older manifests split correctly here even though they over-wrote the
-    /// <see cref="InverseModelMatrices"/> array.
-    /// </summary>
+    /// <summary>The length of the palette's smooth segment, clamped to what <see cref="MatrixToBoneList"/> can supply. A manifest exported before <see cref="SmoothMatrixCount"/> existed gets it counted off the bones' <see cref="BoneManifestEntry.SmoothMatrixIndex"/>, the same number, which also splits those manifests correctly.</summary>
     public int SmoothCount
     {
         get
@@ -128,17 +108,10 @@ public sealed class SkeletonManifest
     public int RigidCount => MatrixToBoneList.Count - SmoothCount;
 
     /// <summary>
-    /// Converts each row of 12 floats (3 GPU-style rows of 4 - translation in each row's 4th
-    /// component, exactly the buffer layout <c>ExportTestBench.ExportSkeleton</c> writes) into a
-    /// NATIVE <see cref="System.Numerics.Matrix4x4"/> (row-vector: translation in row 4), the form
-    /// <see cref="WildRenderingSharp.Rendering.SkeletonPose"/>'s bone-hierarchy math and
-    /// <c>BonePaletteUbo.Build</c>'s multiplication both use. This is the TRANSPOSE of a naive
-    /// row-major read (see <c>BonePaletteUbo.WriteMatrix</c>'s remarks for the same conversion in
-    /// the opposite direction) - getting it backwards silently drops every bone's translation.
-    ///
-    /// Exactly <see cref="SmoothCount"/> entries come back: an older manifest that wrote one row
-    /// per COMBINED slot is truncated to its smooth prefix (which was always the correct part), and
-    /// a manifest short of a few rows is padded with identity rather than throwing.
+    /// Converts each row of 12 floats (3 GPU-style rows of 4, translation in each row's 4th component, as <c>ExportTestBench.ExportSkeleton</c> writes) into a native row-vector
+    /// <see cref="System.Numerics.Matrix4x4"/> (translation in row 4), the form the bone-hierarchy math and <c>BonePaletteUbo.Build</c> use. This is the transpose of a naive row-major
+    /// read; getting it backwards silently drops every bone's translation. Exactly <see cref="SmoothCount"/> entries come back: an older manifest with one row per combined slot is
+    /// truncated to its smooth prefix, and one short of a few rows is padded with identity.
     /// </summary>
     public Matrix4x4[] InverseModelMatricesAsMatrices()
     {

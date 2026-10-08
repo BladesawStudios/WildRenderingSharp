@@ -4,43 +4,27 @@ using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// Walks a <see cref="SkeletonManifest"/>'s hierarchy into per-bone WORLD matrices - at bind pose,
-/// or (given a <see cref="SkeletalAnimManifest"/> and a frame) at an animated pose.
-///
-/// THE WALK (<see cref="World"/>) reproduces <c>nn::g3d2::SkeletonObj::CalculateWorldImpl</c>,
-/// whose three specialisations <c>CalculateWorldMtx</c> (Ghidra 0x710008246c) selects with
-/// <c>(ResSkeleton.flags &gt;&gt; 8) &amp; 3</c> - <see cref="SkeletonManifest.ScalingMode"/>:
-///
-///   <see cref="SkeletonScalingMode.None"/> (0x7100080b40) - identical to Standard except the local
-///     scale is never applied at all.
-///   <see cref="SkeletonScalingMode.Standard"/> (0x7100080d00) -
-///     <c>world = Scale * Rotate * Translate * parentWorld</c> in row-vector order. The game does
-///     the scale last, multiplying world rows 0/1/2 by scale.x/y/z AFTER the parent multiply and
-///     leaving the translation row alone, which is the same matrix as putting Scale first here.
-///   <see cref="SkeletonScalingMode.Maya"/> (0x7100080f2c) - Standard, plus SEGMENT SCALE
-///     COMPENSATE: a bone whose flag bit 23 is set first divides its parent's world basis rows by
-///     the PARENT'S OWN LOCAL scale, so the parent's scale does not cascade into it. This is the
-///     one that turns a legitimately non-uniform rig into a mess of stretched limbs when it is
-///     skipped, since the compensation is exactly what keeps a scaled parent from doubling up on
-///     its children. (The game skips the divide when the parent's scale is already 1 - a pure
-///     fast path, reproduced here only because a zero scale component must not divide.)
-///   <see cref="SkeletonScalingMode.Softimage"/> has no specialisation in the shipped binary and is
-///     treated as Maya.
-///
-/// THE CURVE MATH (<see cref="EvaluateCurve"/>) is likewise reverse engineered, not guessed:
-/// <c>nn::g3d2::ResAnimCurve::EvaluateCubic&lt;float&gt;</c> (0x71000733b4),
-/// <c>EvaluateLinear&lt;float&gt;</c> (0x71000736d0), <c>EvaluateBakedFloat&lt;float&gt;</c>
-/// (0x7100073984) and <c>FindFrame&lt;float&gt;</c> (0x710007316c). Cubic keys are already-baked
-/// polynomial coefficients (NOT explicit Hermite value/tangent pairs): with
-/// <c>t = (frame - Frames[i]) / (Frames[i+1] - Frames[i])</c>,
-/// <c>raw = Keys[i][0] + Keys[i][1]*t + Keys[i][2]*t^2 + Keys[i][3]*t^3</c>. Linear is
-/// <c>raw = Keys[i][0] + Keys[i][1]*t</c> (same normalized t, so <c>Keys[i][1]</c> is the whole
-/// segment's delta, not a per-frame slope). BakedFloat has no explicit frame list - one value per
-/// integer frame, linearly blended by the fractional part. Every curve type finishes with
-/// <c>value = Offset + raw * Scale</c> (<c>EvaluateFloat</c>, 0x7100073d90, reading
-/// <c>ResAnimCurve[0x24]</c> and <c>[0x20]</c>) - Offset, not the separate Delta field at 0x28 that
-/// only relative-repeat wrapping uses.
+/// Walks a <see cref="SkeletonManifest"/>'s hierarchy into per-bone world matrices, at bind pose or (given a <see cref="SkeletalAnimManifest"/> and a frame) at an animated pose.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <see cref="World"/> reproduces <c>nn::g3d2::SkeletonObj::CalculateWorldImpl</c>, whose three specialisations <c>CalculateWorldMtx</c> (Ghidra 0x710008246c) selects with
+/// <c>(ResSkeleton.flags &gt;&gt; 8) &amp; 3</c>, i.e. <see cref="SkeletonManifest.ScalingMode"/>. <see cref="SkeletonScalingMode.None"/> (0x7100080b40) never applies local scale.
+/// <see cref="SkeletonScalingMode.Standard"/> (0x7100080d00) is <c>world = Scale * Rotate * Translate * parentWorld</c> in row-vector order; the game multiplies world rows 0/1/2 by
+/// scale.x/y/z after the parent multiply and leaves the translation row alone, the same matrix as scaling first here. <see cref="SkeletonScalingMode.Maya"/> (0x7100080f2c) adds
+/// segment scale compensate: a bone with flag bit 23 first divides its parent's world basis rows by the parent's own local scale, so the parent's scale does not cascade into it
+/// (skipping it stretches a non-uniform rig; the game skips the divide when the scale is already 1, reproduced only because a zero component must not divide).
+/// <see cref="SkeletonScalingMode.Softimage"/> has no specialisation and is treated as Maya.
+/// </para>
+/// <para>
+/// <see cref="EvaluateCurve"/> is reverse engineered from <c>nn::g3d2::ResAnimCurve::EvaluateCubic&lt;float&gt;</c> (0x71000733b4), <c>EvaluateLinear</c> (0x71000736d0),
+/// <c>EvaluateBakedFloat</c> (0x7100073984) and <c>FindFrame</c> (0x710007316c). Cubic keys are baked polynomial coefficients, not Hermite value and tangent pairs: with
+/// <c>t = (frame - Frames[i]) / (Frames[i+1] - Frames[i])</c>, <c>raw = Keys[i][0] + Keys[i][1]*t + Keys[i][2]*t^2 + Keys[i][3]*t^3</c>. Linear is
+/// <c>raw = Keys[i][0] + Keys[i][1]*t</c> with the same normalised t, so <c>Keys[i][1]</c> is the segment's whole delta. BakedFloat has no frame list: one value per integer
+/// frame, blended by the fractional part. Every type finishes with <c>value = Offset + raw * Scale</c> (<c>EvaluateFloat</c>, 0x7100073d90, reading <c>ResAnimCurve[0x24]</c> and
+/// <c>[0x20]</c>); Offset, not the Delta field at 0x28 that only relative-repeat wrapping uses.
+/// </para>
+/// </remarks>
 public static class SkeletonPose
 {
     /// <summary>A bone's resolved local transform for one frame - the inputs <see cref="World"/> composes. <see cref="Scale"/> is kept separately (rather than folded into <see cref="Rotation"/>) because Maya's segment scale compensate needs a PARENT'S local scale on its own.</summary>
@@ -57,11 +41,7 @@ public static class SkeletonPose
         return World(skel, locals, sscOverride: null);
     }
 
-    /// <summary>
-    /// Same walk, but every bone with a matching <see cref="BoneAnimManifestEntry"/> gets its
-    /// local TRS overridden by the anim's base values plus whatever curves it carries, evaluated
-    /// at <paramref name="frame"/>. A bone the anim doesn't touch keeps its bind pose exactly.
-    /// </summary>
+    /// <summary>The same walk with every bone that has a matching <see cref="BoneAnimManifestEntry"/> getting its local TRS overridden by the anim's base values plus its curves at <paramref name="frame"/>. A bone the anim does not touch keeps its bind pose.</summary>
     public static Matrix4x4[] AnimatedWorldMatrices(SkeletonManifest skel, SkeletalAnimManifest anim, float frame)
     {
         var byName = new Dictionary<string, BoneAnimManifestEntry>(anim.BoneAnims.Count, StringComparer.Ordinal);
@@ -69,8 +49,7 @@ public static class SkeletonPose
             byName[ba.BoneName] = ba;
 
         var locals = new BoneLocal[skel.Bones.Count];
-        // An animated bone's segment-scale-compensate state comes from the ANIM, not the skeleton:
-        // ApplyToImpl copies the anim result's flag bits 23-27 straight over the bone's own.
+        // An animated bone's segment-scale-compensate state comes from the anim: ApplyToImpl copies the anim result's flag bits 23-27 over the bone's own.
         bool[]? ssc = null;
         for (int i = 0; i < skel.Bones.Count; i++)
         {
@@ -100,12 +79,7 @@ public static class SkeletonPose
         return ssc;
     }
 
-    /// <summary>
-    /// Composes per-bone local transforms into world matrices down the hierarchy, honouring
-    /// <see cref="SkeletonManifest.ScalingMode"/>. Parents always precede children in a BFRES
-    /// skeleton, so one forward pass suffices - a bone whose parent does not precede it is treated
-    /// as a root rather than read out of order.
-    /// </summary>
+    /// <summary>Composes per-bone local transforms into world matrices down the hierarchy, honouring <see cref="SkeletonManifest.ScalingMode"/>. Parents precede children in a BFRES skeleton, so one forward pass suffices; a bone whose parent does not precede it is treated as a root.</summary>
     /// <param name="sscOverride">Per-bone segment-scale-compensate flags to use instead of the skeleton's own (an anim can override them); null to use <see cref="BoneManifestEntry.SegmentScaleCompensate"/>.</param>
     public static Matrix4x4[] World(SkeletonManifest skel, BoneLocal[] locals, bool[]? sscOverride)
     {
@@ -138,12 +112,7 @@ public static class SkeletonPose
         return world;
     }
 
-    /// <summary>
-    /// Divides a world matrix's three basis rows by <paramref name="scale"/>.x/y/z, leaving its
-    /// translation row alone - the segment-scale-compensate step
-    /// <c>CalculateWorldImpl&lt;CalculateWorldMaya&gt;</c> applies to a bone's parent before
-    /// composing (it reciprocates the parent's local scale and scales the parent's world rows).
-    /// </summary>
+    /// <summary>Divides a world matrix's three basis rows by <paramref name="scale"/>.x/y/z, leaving the translation row alone: the segment-scale-compensate step <c>CalculateWorldImpl&lt;CalculateWorldMaya&gt;</c> applies to a bone's parent before composing.</summary>
     public static Matrix4x4 DescaleRows(Matrix4x4 m, Vector3 scale)
     {
         if (scale.X == 1f && scale.Y == 1f && scale.Z == 1f)
@@ -162,10 +131,7 @@ public static class SkeletonPose
         Vector3 scale = anim.UseScale ? new(anim.BaseScale[0], anim.BaseScale[1], anim.BaseScale[2]) : bone.ScaleVec;
         Vector3 translate = anim.UseTranslate ? new(anim.BaseTranslate[0], anim.BaseTranslate[1], anim.BaseTranslate[2]) : bone.PositionVec;
 
-        // Rotation lives in whichever representation the ANIM declares, so a curve-less bone's bind
-        // rotation has to be expressed in that same representation before curves overwrite parts of
-        // it. The two agree for every real file (an FSKA is authored against its skeleton), but
-        // converting rather than assuming keeps a mismatch from silently producing garbage.
+        // Rotation lives in whichever representation the anim declares, so a curve-less bone's bind rotation is converted to it before curves overwrite parts of it. The two agree for real files; converting keeps a mismatch from producing garbage.
         Vector4 rotate;
         if (anim.UseRotate)
             rotate = new Vector4(anim.BaseRotate[0], anim.BaseRotate[1], anim.BaseRotate[2], anim.BaseRotate[3]);
@@ -213,7 +179,7 @@ public static class SkeletonPose
         return new BoneLocal(scale, rotation, translate);
     }
 
-    /// <summary>Delegates to <see cref="AnimCurveEval"/>, which every kind of animation WildRenderingSharp plays shares - the maths and its Ghidra derivation live there rather than being repeated per animation type.</summary>
+    /// <summary>Delegates to <see cref="AnimCurveEval"/>, shared by every kind of animation played; the maths and its Ghidra derivation live there.</summary>
     public static float EvaluateCurve(AnimCurveManifestEntry curve, float frame) =>
         AnimCurveEval.EvaluateFloat(curve.CurveType, curve.StartFrame, curve.EndFrame,
             curve.Scale, curve.Offset, curve.Frames, curve.Keys, frame);

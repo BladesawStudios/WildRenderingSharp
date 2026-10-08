@@ -5,36 +5,23 @@ using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
-/// <summary>
-/// The sun and the moon, drawn from the game's own sprites.
-/// </summary>
+/// <summary>The sun and the moon, drawn from the game's own sprites.</summary>
 /// <remarks>
 /// <para>
-/// Both are REAL romfs assets, which is what makes this worth doing properly rather than drawing a
-/// procedural blob: <c>TexToGo/Etc_Sun_A_Alb.txtg</c> is a 64x64 BC4 disc MASK (single channel -
-/// the colour comes from the palette's own sun colour, which is why one texture covers every time
-/// of day), and <c>Etc_Moon_A_Alb.1</c>..<c>.8</c> are 256x256 BC5 sprites - eight of them, the
-/// moon's phases. <c>SystemTextures.ExtractSkyBodyTextures</c> pulls them into the shared
-/// <c>_system_textures</c> cache the same way the cloud masks and the 3D noise volume are.
+/// Both are romfs assets: <c>TexToGo/Etc_Sun_A_Alb.txtg</c> is a 64x64 BC4 disc mask (single channel; the colour comes from the palette's sun colour, so one texture covers every
+/// time of day) and <c>Etc_Moon_A_Alb.1</c> to <c>.8</c> are 256x256 BC5 sprites, the moon's eight phases. <c>SystemTextures.ExtractSkyBodyTextures</c> pulls them into the shared
+/// <c>_system_textures</c> cache.
 /// </para>
 /// <para>
-/// <b>Drawn as a fullscreen pass, not billboard geometry.</b> Each pixel reconstructs its own view
-/// ray (the same tanHalfFov + inverse-view basis every other sky pass here uses) and is placed into
-/// the body's own tangent frame around its direction. That sidesteps the whole billboard problem -
-/// no quad to orient, no projection matrix to get right, no near/far interaction, and it behaves
-/// identically at any FOV or aspect. It also means a body near the screen edge cannot be clipped
-/// by a quad that happened to fall outside the frustum.
+/// Drawn as a fullscreen pass, not billboard geometry. Each pixel reconstructs its view ray (the same tanHalfFov and inverse-view basis as every other sky pass) and is placed into
+/// the body's tangent frame around its direction, so there is no quad to orient, no projection to get right and no clipping of a body near the screen edge, and it behaves
+/// identically at any FOV or aspect.
 /// </para>
 /// <para>
-/// <b>Why the moon is not the BFRES.</b> <c>Model/Obj_Moon_A.Obj_Moon_A_01.bfres.mc</c> is a real
-/// model and WildRenderingSharp's own prepare path could load it, but it is a lit, shaded object needing a
-/// place in the world at true sky distance - and the sprite is what actually produces the moon's
-/// look, phases included. The model is the better long-term answer for a close-up; the sprite is
-/// the correct one for a sky body.
+/// The moon is a sprite, not <c>Model/Obj_Moon_A.Obj_Moon_A_01.bfres.mc</c>: the model is a lit, shaded object needing a place in the world at true sky distance, while the sprite
+/// is what produces the moon's look, phases included. The model suits a close-up; the sprite suits a sky body.
 /// </para>
-/// <para>
-/// Runs after the sky and BEFORE the cloud dome, so cloud correctly draws over both.
-/// </para>
+/// <para>Runs after the sky and before the cloud dome, so cloud draws over both.</para>
 /// </remarks>
 public sealed class SkyBodyPass : IDisposable
 {
@@ -76,15 +63,12 @@ public sealed class SkyBodyPass : IDisposable
         // plus whether the pixel is inside the sprite at all.
         bool bodyUv(vec3 dir, vec3 centre, float radius, out vec2 uv)
         {
-            // Behind the viewer of that body, or beyond its disc: reject early. The dot test is
-            // what keeps a body from also appearing at its own antipode, which a pure tangent-plane
-            // projection would happily do.
+            // Reject behind the body or beyond its disc; the dot test keeps a body from also appearing at its antipode, which a tangent-plane projection would allow.
             if (dot(dir, centre) <= 0.0) return false;
             vec3 up = abs(centre.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
             vec3 right = normalize(cross(up, centre));
             vec3 realUp = cross(centre, right);
-            // Divide by the dot so the sprite stays square as it approaches the screen edge -
-            // this is a gnomonic (tangent-plane) projection, the same thing a real billboard does.
+            // Divide by the dot so the sprite stays square toward the screen edge: a gnomonic projection, as a real billboard does.
             float d = dot(dir, centre);
             vec2 t = vec2(dot(dir, right), dot(dir, realUp)) / (d * radius);
             uv = t * 0.5 + 0.5;
@@ -105,8 +89,7 @@ public sealed class SkyBodyPass : IDisposable
             if (uDrawMoon == 1 && bodyUv(dir, uMoonDir, uMoonRadius, uv))
             {
                 vec2 m = texture(tMoon, vec2(uv.x, 1.0 - uv.y)).rg;
-                // R is the lit albedo, G the coverage/phase mask. Multiplying keeps the unlit limb
-                // fully transparent instead of a dark disc punched into the sky.
+                // R is the lit albedo, G the coverage or phase mask; multiplying keeps the unlit limb transparent instead of a dark disc.
                 float a = m.r * m.g;
                 acc += uMoonColor * a;
                 cover = max(cover, a);
@@ -158,8 +141,7 @@ public sealed class SkyBodyPass : IDisposable
 
         uint tex = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, tex);
-        // Row alignment matters: these are 1- and 2-byte-per-texel uploads, and GL's default
-        // 4-byte unpack alignment shears any width that is not a multiple of 4.
+        // Row alignment matters: these are 1- and 2-byte-per-texel uploads, and the default 4-byte unpack alignment shears any width not a multiple of 4.
         _gl.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
         var (ifmt, fmt) = channels == 1
             ? (InternalFormat.R8, PixelFormat.Red)
@@ -168,14 +150,13 @@ public sealed class SkyBodyPass : IDisposable
             _gl.TexImage2D(TextureTarget.Texture2D, 0, ifmt, (uint)w, (uint)h, 0, fmt, PixelType.UnsignedByte, p);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        // Clamped, not wrapped: the sprite is a disc on transparent ground and a wrapped edge would
-        // tile ghost copies of it across the sky.
+        // Clamped, not wrapped: the sprite is a disc on transparent ground and a wrapped edge would tile ghost copies across the sky.
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
         return tex;
     }
 
-    /// <summary>WildRenderingSharp's Z-up world vector as the Y-up one the sky passes work in.</summary>
+    /// <summary>The renderer's Z-up vector as the Y-up one the sky passes work in.</summary>
     static Vector3 ToYUp(Vector3 v) => new(v.X, v.Z, v.Y);
 
     public readonly record struct Params(
@@ -196,9 +177,7 @@ public sealed class SkyBodyPass : IDisposable
         targets.BindColorTarget(target);
         _gl.Disable(EnableCap.DepthTest);
         _gl.Disable(EnableCap.CullFace);
-        // Straight alpha over the sky. NOT additive: an additive sun over an already-bright sky
-        // just clips to white and loses the disc's own shape, and the moon has to be able to be
-        // DARKER than a bright sky behind it.
+        // Straight alpha over the sky, not additive: an additive sun over a bright sky clips to white and loses the disc, and the moon must be able to be darker than the sky behind it.
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFuncSeparate(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha, GLEnum.Zero, GLEnum.One);
         _gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);
@@ -207,11 +186,7 @@ public sealed class SkyBodyPass : IDisposable
         _gl.BindTextureUniform(_program, "tSun", 0, sun ? _sunTex : 0);
         _gl.BindTextureUniform(_program, "tMoon", 1, moon ? _moonTex[phase] : 0);
 
-        // Same Z-up -> Y-up row swap BuildContext does for the real sky program, so every sky pass
-        // agrees about which way is up.
-        // Column-major for GL, and the row order is the Z-up -> Y-up swap: world Z feeds Y-up's y,
-        // world Y feeds Y-up's z. A local function would close over the span, which C# forbids, so
-        // the nine writes are spelled out.
+        // Column-major for GL, with the Z-up to Y-up row swap (world Z feeds y, world Y feeds z), as BuildContext does for the real sky program. A local function would close over the span, which C# forbids, so the nine writes are spelled out.
         Vector4 r0 = viewInv3Rows[0], r1 = viewInv3Rows[2], r2 = viewInv3Rows[1];
         Span<float> m = stackalloc float[9]
         {
@@ -236,15 +211,7 @@ public sealed class SkyBodyPass : IDisposable
         _gl.Disable(EnableCap.Blend);
     }
 
-    /// <summary>
-    /// The requested phase, or the closest one that actually loaded.
-    /// </summary>
-    /// <remarks>
-    /// Not every phase is guaranteed present: <c>Etc_Moon_A_Alb.5</c> is authored in a TXTG format
-    /// the extractor does not decode (0x107), so it is simply absent from the cache. Walking
-    /// outward to the nearest neighbour shows a slightly wrong phase instead of no moon at all,
-    /// which is the better failure for a sky body.
-    /// </remarks>
+    /// <summary>The requested phase, or the closest that loaded: <c>Etc_Moon_A_Alb.5</c> is authored in a TXTG format the extractor does not decode (0x107), and the nearest neighbour is a better failure than no moon.</summary>
     int NearestAvailablePhase(int want)
     {
         if (_moonTex[want] != 0)
