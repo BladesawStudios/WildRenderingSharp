@@ -96,6 +96,8 @@ if (options.TryGetValue("haze", out var haze))
     renderer.Totk.SkyHorizonHaze = float.Parse(haze);
 if (options.TryGetValue("flare-threshold", out var flareThreshold))
     renderer.Totk.LensFlareThreshold = float.Parse(flareThreshold);
+if (options.TryGetValue("cloud-brightness", out var cloudBrightness))
+    renderer.Totk.CloudBrightness = float.Parse(cloudBrightness);
 if (options.ContainsKey("noflare"))
     renderer.Totk.UseLensFlare = false;
 if (options.ContainsKey("nobodies"))
