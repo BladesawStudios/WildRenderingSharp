@@ -4,15 +4,8 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Persistent GL objects that would otherwise get reallocated every frame - named uniform
-/// buffers (rewritten in place rather than recreated) and the one attribute-less VAO every
-/// fullscreen pass draws through (the deferred vertex shaders synthesise their own position/UV
-/// from <c>gl_VertexID</c>, so no vertex buffer is needed at all).
-///
-/// Mirrors <c>viewer.Viewer</c>'s <c>_ubo</c>/<c>_tri</c> helpers, which exist specifically
-/// because allocating a fresh buffer/VAO inside the frame - which an early version of the bench
-/// did - hands the driver a new live GL object every frame and only frees it whenever Python's GC
-/// happens to run, so the process slows down and leaks over a session.
+/// Persistent GL objects that would otherwise be reallocated every frame: named uniform buffers (rewritten in place rather than recreated) and the one attribute-less VAO every fullscreen pass draws
+/// through (the deferred vertex shaders synthesise position and UV from <c>gl_VertexID</c>).
 /// </summary>
 public sealed class GLResourceCache : IDisposable
 {
@@ -44,7 +37,6 @@ public sealed class GLResourceCache : IDisposable
         return handle;
     }
 
-    /// <summary>Binds an already-written named buffer to a binding point without rewriting it - for rebinding <c>Context</c> between its several per-frame variants.</summary>
     /// <summary>The context these resources belong to.</summary>
     public GL Gl => _gl;
 

@@ -24,7 +24,7 @@ public sealed class KnownMaterialFixes : IDisposable
     /// emission gated by the mask.
     /// No masking mechanism was found by static analysis: not in the shader text, not in the per-material static options (which differ from a working sibling, "Mt_Eye_OutSide", but
     /// resolve to a different algorithm rather than a hidden gate), and not in the executable's option-resolution code (the mapping from option value to meaning is baked into each
-    /// compiled shader). So this is a hand-authored correction; see tasks_set1.md for the trace.
+    /// compiled shader). So this is a hand-authored correction.
     /// </summary>
     public const string EyeVisibilityMaskTextureName = "Cmn_Enemy_DungeonBoss_Eye_Alb";
 
@@ -102,7 +102,7 @@ public sealed class KnownMaterialFixes : IDisposable
             vec3 albedo = texture(tex_alb, uv).rgb;
 
             // Green is the visibility mask: a continuous multiplier (0 = eye not visible, 1 = fully visible), so a partially green pixel gets proportionally dimmed emission.
-            // Red plays a separate role (it suppresses a distinct over-brightness artifact, see the still-open "white bars" item in tasks_set1.md) and must not be folded in.
+            // Red plays a separate role (it suppresses a distinct over-brightness artifact) and must not be folded in.
             float mask = albedo.g;
             vec3 emission = max(texture(tex_emis, uv).rgb, vec3(0.0)) * uEmission * uEmissionExposureRcp;
             fragColor = vec4(emission * mask, 1.0);

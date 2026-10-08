@@ -2,28 +2,16 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>
-/// GL error reporting that says what it actually knows.
-///
-/// <c>glGetError</c> pops ONE error off a queue that GL keeps filling until someone drains it, so a
-/// lone <c>GetError()</c> after an operation reports whatever was already pending - not necessarily
-/// anything that operation caused - and leaves any further errors for the next unlucky caller. That
-/// is exactly how a texture upload came to be blamed for <c>GL_INVALID_FRAMEBUFFER_OPERATION</c>,
-/// an error <c>glCompressedTexImage2D</c> is not capable of raising: the texture cache held the only
-/// <c>glGetError</c> in the codebase, so it drained errors the render pipeline had left behind and
-/// attributed them to whichever texture happened to be loading.
-///
-/// Use <see cref="Drain"/> to clear the queue before an operation you intend to check, and
-/// <see cref="Check"/> to report everything that operation itself raised.
-/// </summary>
+/// <summary>GL error reporting that says what it actually knows.</summary>
+/// <remarks>
+/// <c>glGetError</c> pops one error off a queue GL keeps filling until someone drains it, so a lone call after an operation reports whatever was already pending and leaves further errors for the next
+/// unlucky caller. That is how a texture upload came to be blamed for <c>GL_INVALID_FRAMEBUFFER_OPERATION</c>, which <c>glCompressedTexImage2D</c> cannot raise: the texture cache held the only
+/// <c>glGetError</c> and drained errors the render pipeline had left behind. Use <see cref="Drain"/> to clear the queue before an operation you intend to check, and <see cref="Check"/> to report
+/// everything it raised.
+/// </remarks>
 public static class GLDiagnostics
 {
-    /// <summary>
-    /// Whether the fine-grained per-pass checks run. Off by default: each one is a
-    /// <c>glGetError</c>, which can force a driver sync, and nine of them per frame is a real cost
-    /// for an interactive viewer. Turn it on to find WHICH pass raised an error the frame-level
-    /// bracket has already reported.
-    /// </summary>
+    /// <summary>Whether the fine-grained per-pass checks run. Off by default: each is a <c>glGetError</c>, which can force a driver sync. Turn it on to find which pass raised an error the frame-level bracket reported.</summary>
     public static bool VerbosePerPass { get; set; }
         = (Environment.GetEnvironmentVariable("WRS_GL_TRACE") ?? Environment.GetEnvironmentVariable("MARROW_GL_TRACE")) == "1";
 
@@ -37,12 +25,7 @@ public static class GLDiagnostics
     /// <summary>How many errors to pop before giving up - a driver in a bad state can queue them faster than a loop clears them, and hanging is worse than a truncated report.</summary>
     const int MaxDrain = 32;
 
-    /// <summary>
-    /// Empties the error queue and returns what was in it, so a later <see cref="Check"/> can only
-    /// report errors raised after this point. Reports nothing itself: the caller decides whether a
-    /// pending error is worth mentioning, because at most call sites it means "something earlier
-    /// failed", not "this failed".
-    /// </summary>
+    /// <summary>Empties the error queue and returns what was in it, so a later <see cref="Check"/> reports only errors raised after this point. Reports nothing itself: at most call sites a pending error means something earlier failed.</summary>
     public static List<GLEnum> Drain(GL gl)
     {
         var errors = new List<GLEnum>();
@@ -68,11 +51,7 @@ public static class GLDiagnostics
         return errors.Count > 0;
     }
 
-    /// <summary>
-    /// Reports anything already pending BEFORE <paramref name="context"/> runs, naming it as such -
-    /// for bracketing a stage that wants to know it started from a clean slate. An error found here
-    /// was raised by something earlier, and saying so is the whole point.
-    /// </summary>
+    /// <summary>Reports anything already pending before <paramref name="context"/> runs, naming it as such, for bracketing a stage that wants a clean slate. An error found here was raised by something earlier.</summary>
     public static bool CheckPending(GL gl, string context)
     {
         var errors = Drain(gl);

@@ -3,26 +3,14 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>
-/// A simplified, single-pass, FXAA-style edge-aware blur - the replacement for supersampling as
-/// the viewport's anti-aliasing method.
-///
-/// WHY: supersampling (rendering at 2x resolution then box-downsampling in <see cref="PresentPass"/>)
-/// doubled the actual fragment-shading resolution, which changes the density of any real, per-pixel
-/// dither pattern the compiled game shaders evaluate against <c>gl_FragCoord</c> - hair rendering's
-/// screen-door-style edge dither (a real technique for faking soft strand edges without true alpha
-/// blending) looks correct at native resolution but aliases into visible, evenly-spaced dark bands
-/// once the shading resolution no longer matches what the dither pattern's period assumes, then
-/// SURVIVES the box-downsample instead of averaging out (confirmed: reported as sharp, evenly-spaced
-/// bands specifically at 2x quality, gone at 1x). Post-process AA sidesteps this entirely by keeping
-/// the fragment-shading resolution native - the dither pattern stays exactly as the real shader
-/// intends, and this pass only smooths the FINAL, already-correct image's aliased edges.
-///
-/// This is a compact approximation of NVIDIA's public FXAA technique (luma-based edge detection,
-/// single directional blend toward the higher-contrast neighbour) rather than a full multi-tap
-/// sub-pixel search - sufficient here because the artifact being targeted is isolated, high-contrast
-/// single-texel dither cells along thin bright strands, not general polygon-edge aliasing.
-/// </summary>
+/// <summary>A simplified single-pass FXAA-style edge-aware blur, the anti-aliasing used instead of supersampling by default.</summary>
+/// <remarks>
+/// Supersampling doubles the fragment-shading resolution, which changes the density of any per-pixel dither the game's shaders evaluate against <c>gl_FragCoord</c>: hair's screen-door edge dither
+/// looks right at native resolution but aliases into evenly spaced dark bands at 2x that survive the box downsample. Post-process AA keeps shading native, so the dither stays as the shader intends
+/// and this pass only smooths the finished image's edges.
+/// It approximates NVIDIA's public FXAA (luma edge detection, a single directional blend toward the higher-contrast neighbour) rather than a full multi-tap sub-pixel search, which suffices
+/// because the artifact targeted is isolated high-contrast single-texel dither cells along thin bright strands, not general polygon-edge aliasing.
+/// </remarks>
 public sealed class FxaaPass : IDisposable
 {
     readonly GL _gl;
@@ -62,10 +50,7 @@ public sealed class FxaaPass : IDisposable
             float lumaMax = max(lumaCenter, max(max(lumaUp, lumaDown), max(lumaLeft, lumaRight)));
             float lumaRange = lumaMax - lumaMin;
 
-            // Flat/low-contrast area - leave it alone rather than waste a blend on nothing. Lower
-            // than a "textbook" FXAA threshold on purpose: the artifact this exists to hide (an
-            // isolated single-texel dither dot on a thin bright strand) is exactly the kind of
-            // small, sharp feature a stricter threshold would skip as "not really an edge."
+            // Flat or low-contrast area: leave it alone. The threshold is below textbook FXAA on purpose, since the artifact this hides (an isolated single-texel dither dot on a thin bright strand) is a small sharp feature a stricter threshold would skip.
             if (lumaRange < max(0.0625, lumaMax * 0.0625)) {
                 fragColor = vec4(centerColor, texture(t, vUV).a);
                 return;
@@ -78,11 +63,7 @@ public sealed class FxaaPass : IDisposable
             float lumaUpLeft = luma(upLeftColor), lumaUpRight = luma(upRightColor);
             float lumaDownLeft = luma(downLeftColor), lumaDownRight = luma(downRightColor);
 
-            // Subpixel-aliasing term: how far the centre sits from a low-pass average of its whole
-            // 3x3 neighbourhood, normalised by the local contrast range. This is what actually
-            // catches an isolated dither dot - a single stray texel has no long "edge" for the
-            // directional search below to follow, but it stands out hugely against a smoothed
-            // average of everything around it.
+            // Subpixel term: how far the centre sits from a low-pass average of its 3x3 neighbourhood, over the local contrast range. It catches an isolated dither dot, which has no long edge for the directional search to follow.
             vec3 boxAvg3 = (upColor + downColor + leftColor + rightColor
                            + upLeftColor + upRightColor + downLeftColor + downRightColor + centerColor) / 9.0;
             float subpixel = clamp(abs(luma(boxAvg3) - lumaCenter) / max(lumaRange, 1e-4), 0.0, 1.0);
@@ -104,20 +85,14 @@ public sealed class FxaaPass : IDisposable
             vec2 blendDir = isHorizontal ? vec2(0.0, isPositive ? stepLength : -stepLength)
                                           : vec2(isPositive ? stepLength : -stepLength, 0.0);
 
-            // Edge-directional blend, sampling a FULL texel toward the higher-contrast neighbour
-            // (not a half-texel tap) so it actually crosses onto the other side of the edge instead
-            // of re-blending mostly the same two texels the min/max already came from.
+            // Edge-directional blend, sampling a full texel toward the higher-contrast neighbour so it crosses onto the other side of the edge instead of re-blending the same two texels.
             float edgeBlend = clamp(lumaRange / max(lumaMax, 1e-4), 0.0, 1.0);
             vec3 edgeBlended = texture(t, vUV + blendDir).rgb;
 
-            // Combine both terms rather than pick one - a dither dot benefits mostly from the
-            // subpixel term, a real polygon edge mostly from the directional term, and many pixels
-            // are some mix of both.
+            // Combine both terms: a dither dot benefits mostly from the subpixel term, a polygon edge from the directional one, and many pixels are a mix.
             float blendFactor = clamp(max(subpixel, edgeBlend * 0.75), 0.0, 1.0);
             vec3 blended = mix(edgeBlended, boxAvg3, subpixel);
-            // Alpha passes straight through unblended - PresentPass already wrote the real
-            // coverage alpha (Background: Transparent) into this same source texture by the time
-            // FXAA runs, and alpha was never part of what this pass is smoothing.
+            // Alpha passes through unblended: PresentPass already wrote the real coverage alpha (Background: Transparent) into this source, and it is not what this pass smooths.
             fragColor = vec4(mix(centerColor, blended, blendFactor), texture(t, vUV).a);
         }
         """;
@@ -128,7 +103,7 @@ public sealed class FxaaPass : IDisposable
         _program = GLProgramBuilder.Build(gl, QuadVertexSource, FragmentSource, "fxaa");
     }
 
-    /// <summary>Caller must have already bound the destination framebuffer/viewport - mirrors <see cref="PresentPass"/>'s own convention.</summary>
+    /// <summary>The caller must have bound the destination framebuffer and viewport, as for <see cref="PresentPass"/>.</summary>
     public void Run(GLResourceCache resources, GpuTexture source)
     {
         _gl.UseProgram(_program);

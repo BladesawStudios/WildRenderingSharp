@@ -4,13 +4,9 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// The final blit: box-downsamples the supersampled render (done in LINEAR light, before the sRGB
-/// encode - filtering after encoding would darken edges), applies <c>agl</c>'s colour-correction
-/// curve (hue/saturation/brightness/gamma), and sRGB-encodes. Also offers a Reinhard HDR preview
-/// mode for inspecting <c>rt_final</c> directly. Caller must have already bound the destination
-/// framebuffer/viewport (the screen, or whatever texture the UI displays) - this pass only knows
-/// about its source texture and the sampling/grading maths, not where the result lands. Mirrors
-/// <c>viewer.Viewer.prog_blit</c>.
+/// The final blit: box-downsamples the supersampled render in linear light (filtering after the sRGB encode would darken edges), applies <c>agl</c>'s colour-correction curve (hue, saturation,
+/// brightness, gamma) and sRGB-encodes. Also offers a Reinhard HDR preview for inspecting <c>rt_final</c>. The caller must have bound the destination framebuffer and viewport; this pass knows only
+/// its source texture and the sampling and grading maths.
 /// </summary>
 public sealed class PresentPass : IDisposable
 {
@@ -35,12 +31,8 @@ public sealed class PresentPass : IDisposable
         uniform sampler2D tAlpha; uniform int uUseAlpha;
         in vec2 vUV; out vec4 f;
         void main() {
-            // Mode 2: a diagnostic passthrough for near-zero-valued buffers (the pass-ID mask,
-            // a single PreShadow/PreMisc channel) - no supersample averaging, no colour grading,
-            // just scaled up so distinct small values are visually distinguishable. Also reused
-            // (with uUseAlpha) as the plain "no AA" blit of an already-graded image, where the
-            // source's own alpha DOES need to survive (Background: Transparent - see PresentPass's
-            // own remarks on alphaSource) rather than a diagnostic view's packed, non-alpha data.
+            // Mode 2: a diagnostic passthrough for near-zero buffers (the pass-ID mask, one PreShadow or PreMisc channel): no supersample averaging or grading, just scaled so small values are
+            // distinguishable. Also the plain "no AA" blit of an already-graded image, where the source's alpha must survive (Background: Transparent; see alphaSource).
             if (uMode == 2) {
                 float a2 = uUseAlpha == 1 ? texture(tAlpha, vUV).a : 1.0;
                 f = vec4(texture(t, vUV).rgb * uRawScale, a2);
@@ -81,19 +73,11 @@ public sealed class PresentPass : IDisposable
         _program = GLProgramBuilder.Build(gl, QuadVertexSource, FragmentSource, "present_blit");
     }
 
-    /// <summary>
-    /// <paramref name="hdrPreview"/> switches to the Reinhard-tonemapped raw-HDR view (view mode 1
-    /// in the original viewer); normally false, presenting the already-tonemapped LDR result.
-    /// </summary>
+    /// <summary><paramref name="hdrPreview"/> switches to the Reinhard-tonemapped raw-HDR view; normally false, presenting the tonemapped LDR result.</summary>
     /// <param name="alphaSource">
-    /// When given, real per-pixel coverage alpha (box-averaged across the same supersample grid as
-    /// the colour) is read from THIS texture's own alpha channel instead of being hardcoded to 1 -
-    /// for Background: Transparent (see <c>LightingContext.Background</c>), where <paramref name="source"/>
-    /// is <c>frame.Ldr</c> (already past exposure/tonemap/bloom, which all discard alpha - they were
-    /// never written to preserve it) but <c>frame.Final</c> still carries the REAL coverage
-    /// <c>BackgroundPass</c>/the deferred-resolve compose step wrote (0 where nothing was drawn, 1
-    /// where something was), unmodified by any of that grading. Null (the default) keeps every
-    /// existing caller's opaque behaviour exactly as it was.
+    /// When given, real per-pixel coverage alpha (box-averaged across the same supersample grid as the colour) is read from this texture's alpha instead of being hardcoded to 1, for Background:
+    /// Transparent (see <c>LightingContext.Background</c>). There <paramref name="source"/> is <c>frame.Ldr</c>, already past exposure, tonemap and bloom, which discard alpha, while
+    /// <c>frame.Final</c> still carries the coverage <c>BackgroundPass</c> and the resolve wrote (0 where nothing was drawn, 1 where something was). Null keeps the opaque behaviour.
     /// </param>
     public void Run(GLResourceCache resources, GpuTexture source, int supersample, float saturation, float brightness, float gamma, bool hdrPreview = false, GpuTexture? alphaSource = null)
     {
@@ -109,7 +93,7 @@ public sealed class PresentPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    /// <summary>Diagnostic passthrough (no supersampling, no colour grading) with a brightness multiply - for inspecting a near-zero-valued buffer like the pass-ID mask, or (with <paramref name="alphaSource"/>) as the plain "AA off" blit that still needs to preserve Background: Transparent's real alpha - see <see cref="Run"/>'s own remarks on <c>alphaSource</c>.</summary>
+    /// <summary>Diagnostic passthrough (no supersampling, no grading) with a brightness multiply, for inspecting a near-zero buffer like the pass-ID mask or, with <paramref name="alphaSource"/>, as the plain "AA off" blit that preserves Background: Transparent's alpha (see <see cref="Run"/>).</summary>
     public void RunRaw(GLResourceCache resources, GpuTexture source, float scale, GpuTexture? alphaSource = null)
     {
         _gl.UseProgram(_program);
@@ -120,7 +104,7 @@ public sealed class PresentPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    /// <summary>Binds a real alpha source (see <see cref="Run"/>'s remarks) at a texture unit distinct from <c>t</c> - always bound to SOMETHING valid (falling back to unit 0's own texture) even when unused, so <c>tAlpha</c> is never left pointing at an incomplete/unbound texture regardless of <c>uUseAlpha</c>.</summary>
+    /// <summary>Binds a real alpha source (see <see cref="Run"/>) at a unit distinct from <c>t</c>. Always bound to something valid, falling back to unit 0's texture, so <c>tAlpha</c> never points at an incomplete texture whatever <c>uUseAlpha</c> says.</summary>
     void BindAlpha(GpuTexture? alphaSource)
     {
         _gl.BindTextureUniform(_program, "tAlpha", 1, (alphaSource ?? default).Handle);

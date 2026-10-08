@@ -2,12 +2,7 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Rendering;
 
-/// <summary>
-/// Orbit/pan/first-person-fly camera rig, feeding a <see cref="Camera"/>'s Eye/Target. Ports
-/// <c>viewer.Viewer</c>'s <c>_eye</c>/<c>_look</c>/<c>_basis</c>/<c>_on_move</c>/<c>_on_scroll</c>
-/// math (the model's own rotation, sun direction, and everything ImGui/input-specific stay in
-/// <c>the host viewer</c> - this class only knows about the camera rig itself).
-/// </summary>
+/// <summary>Orbit, pan and first-person-fly camera rig feeding a <see cref="Camera"/>'s Eye and Target. Input handling and the model's own rotation stay in the host; this class only knows the rig.</summary>
 public class OrbitCameraController
 {
     public float Yaw { get; set; }

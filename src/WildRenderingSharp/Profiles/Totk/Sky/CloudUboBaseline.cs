@@ -2,38 +2,25 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// The real <c>agl_cloud</c> "Common" uniform block, captured verbatim from a real frame of the
-/// actual game (Ryujinx + RenderDoc, Colour Pass #40's near-dome draw, buffer 24637 bytes
-/// 6400-7168), used as the BASELINE that <see cref="CloudDomePass"/> then overlays live
-/// ROM-derived values onto.
-///
-/// WHY A CAPTURED BASELINE RATHER THAN AN ALL-ZERO BUFFER: this block is 48 vec4 slots and the real
-/// shader divides by several of them. Two are fatal - the fragment shader opens with
-/// <c>1.0 / fp_c3.data[5].w</c> (a UV distance normaliser) and later takes
-/// <c>1.0 / fp_c3.data[26].w</c>. Left at zero those become infinity, the infinities reach the
-/// texture-coordinate maths, and the whole cloud resolves to NaN, which clamps to nothing
-/// on screen. Every slot whose real source has since been identified IS overwritten from live ROM
-/// data (see <see cref="CloudDomePass.BuildCommonBlock"/>); the residue kept from here is the
-/// handful of genuinely-unidentified runtime constants, which are the same for every user and every
-/// palette, so keeping the real captured value is strictly better than guessing or zeroing.
-///
-/// This is 768 bytes of engine constants, NOT game content - it is not model, texture, audio or
-/// shader data, and it is not derived from a ROM the user might not own (a user with no capture of
-/// their own still gets a working cloud shader out of it). It exists as a checked-in constant for
-/// exactly the same reason a hardcoded default anywhere else does: the alternative is a broken
-/// render.
-///
-/// Slot-by-slot identifications live in <see cref="CloudDomePass.BuildCommonBlock"/>. Notably still
-/// unidentified and therefore inherited from here: slots 0-1 (per-frame values of unknown meaning),
-/// 4.y/4.z (the alpha multiply/threshold pair, which do NOT equal the AAMP's own mAlphaMul/
-/// mAlphaThreshold for either layer - runtime-modulated somehow), 5.y/5.w (5.w being the fatal
-/// divisor above), 9/13/17/21.x (the placement-point proximity fades - real, but they need
-/// EffectCloudPlacementPoints data WildRenderingSharp doesn't load), 25.x, 33.y (a camera-relative sky height),
-/// 35-41 odds and ends, 46.
+/// The <c>agl_cloud</c> "Common" uniform block captured verbatim from a frame of the game (Ryujinx and RenderDoc, Colour Pass #40's near-dome draw, buffer 24637 bytes 6400-7168), the baseline
+/// <see cref="CloudDomePass"/> overlays live ROM-derived values onto.
 /// </summary>
+/// <remarks>
+/// <para>
+/// A captured baseline rather than zeros: the block is 48 vec4 slots and the shader divides by several. Two are fatal: the fragment shader opens with <c>1.0 / fp_c3.data[5].w</c> (a UV distance
+/// normaliser) and later takes <c>1.0 / fp_c3.data[26].w</c>. Left at zero they become infinity, reach the texture-coordinate maths, and the whole cloud resolves to NaN. Every slot whose source is
+/// identified is overwritten from ROM data (see <see cref="CloudDomePass.BuildCommonBlock"/>); what remains from here are unidentified runtime constants, the same for every user and palette, so the
+/// captured value beats guessing or zeroing.
+/// </para>
+/// <para>
+/// These are 768 bytes of engine constants, not model, texture, audio or shader content, and not derived from a ROM the user might not own. Still unidentified and so inherited: slots 0-1 (per-frame
+/// values of unknown meaning), 4.y/4.z (the alpha multiply and threshold, which equal neither layer's AAMP mAlphaMul/mAlphaThreshold, so they are runtime-modulated), 5.y/5.w (5.w is the fatal divisor),
+/// 9/13/17/21.x (placement-point proximity fades, needing EffectCloudPlacementPoints data that is not loaded), 25.x, 33.y (a camera-relative sky height), 35-41 and 46.
+/// </para>
+/// </remarks>
 static class CloudUboBaseline
 {
-    /// <summary>The captured 768-byte "Common" block. See the class remarks before changing anything here.</summary>
+    /// <summary>The captured 768-byte "Common" block. See the class remarks before changing it.</summary>
     public static byte[] Common() => Convert.FromHexString(string.Concat(CommonHex));
 
     static readonly string[] CommonHex =

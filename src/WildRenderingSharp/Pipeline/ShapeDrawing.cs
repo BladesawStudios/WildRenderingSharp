@@ -107,10 +107,8 @@ public static class ShapeDrawing
             _vao = vao;
         }
 
-        // Every visible run - coalesced where Prism-style cells leave neighbouring runs at one level
-        // of detail - goes out as one multi-draw per atlas, each run a command whose base instance
-        // says where its instances start. One call per run used to be tens of thousands of draws a
-        // frame for a map, and the card sat idle between them.
+        // Every visible run, coalesced where neighbouring runs share a level of detail, goes out as one multi-draw per atlas, each run a command whose base instance says where its instances start.
+        // One call per run was tens of thousands of draws a frame for a map, with the card idle between them.
         Commands.Clear();
         int pendingAtlas = int.MinValue;
         var list = runs ?? batch.Visible;
@@ -305,16 +303,11 @@ public static class ShapeDrawing
 
     static readonly List<DrawCommand> Commands = [];
 
-    /// <summary>
-    /// A ring the multi-draw commands are written into, bound as the draw-indirect buffer.
-    /// </summary>
+    /// <summary>A ring the multi-draw commands are written into, bound as the draw-indirect buffer.</summary>
     /// <remarks>
-    /// Persistently mapped where the driver has buffer storage: commands are written straight into
-    /// memory the card reads, in chunks, and a chunk is only waited on when the ring comes back
-    /// round to it - a fence per chunk, a few a second. It used to be <c>glBufferSubData</c> per
-    /// multi-draw into the buffer the very next call reads from, which the driver serialises: every
-    /// draw waited for its own upload. Measured as a near-constant 0.2-0.4 ms of GPU time per draw
-    /// however small - thousands of them, most of a 38 ms G-buffer.
+    /// Persistently mapped where the driver has buffer storage: commands are written straight into memory the card reads, in chunks, and a chunk is only waited on when the ring comes back round to it
+    /// (a fence per chunk, a few a second). <c>glBufferSubData</c> per multi-draw into the buffer the next call reads is serialised by the driver, so every draw waited for its own upload: a near-constant
+    /// 0.2-0.4 ms of GPU time per draw however small, most of a 38 ms G-buffer.
     /// </remarks>
     sealed unsafe class IndirectStream
     {

@@ -5,13 +5,8 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
-/// Cleans up one of <c>ShaderLibrary.CompileTool</c>'s decompiled <c>.vert</c>/<c>.frag</c> files
-/// so desktop GL will link it - direct port of <c>render_deferred_master_sword.clean_glsl</c>.
-/// The decompiled source targets a Tegra/NVN GLSL dialect that declares several
-/// hardware/driver-specific extensions desktop drivers don't have, and the decompiler's own
-/// array-output syntax for a single fragment output needs a small rewrite. Never edit the shader
-/// logic itself here - only strip/rewrite the handful of things that keep it from *compiling* at
-/// all; the shading math is evidence, not editable source.
+/// Cleans one of <c>ShaderLibrary.CompileTool</c>'s decompiled <c>.vert</c>/<c>.frag</c> files so desktop GL will link it. The source targets a Tegra/NVN GLSL dialect that declares extensions desktop
+/// drivers lack, and the decompiler's array syntax for a single fragment output needs a small rewrite. Never edit shader logic here, only what keeps it from compiling: the shading math is evidence.
 /// </summary>
 public static class GlslSanitizer
 {
@@ -35,9 +30,7 @@ public static class GlslSanitizer
             if (Array.Exists(DroppedLinePrefixes, d => line.TrimStart().StartsWith(d, StringComparison.Ordinal)))
                 continue;
 
-            // The decompiler emits a single fragment output as an array declaration
-            // ("out vec4 output_color[0];"), which desktop GLSL rejects - a real output needs an
-            // explicit location and no array brackets.
+            // The decompiler emits a single fragment output as an array ("out vec4 output_color[0];"), which desktop GLSL rejects; a real output needs an explicit location and no brackets.
             if (line.Contains("out vec4 output_color[0];"))
                 line = "layout (location = 0) out vec4 output_color0;";
             line = line.Replace("output_color[0]", "output_color0");
@@ -47,12 +40,8 @@ public static class GlslSanitizer
             if (!versionFound && line.TrimStart().StartsWith("#version", StringComparison.Ordinal))
             {
                 versionFound = true;
-                // Every uniform this shader was ever meant to read as a pow() exponent is
-                // guaranteed nonzero on the console (see EnvUbo.PowExponentSlots for why), but
-                // WildRenderingSharp's own reconstruction of a handful of still-undecoded slots leaves some at
-                // zero - which turns exp2(log2(0) * k) into NaN through the compiler's own
-                // pow(x,k) idiom. Guarding log2/inversesqrt here is cheap insurance against that
-                // propagating through an entire frame, and matches what the Python bench does.
+                // Uniforms the console guarantees nonzero as pow() exponents (see EnvUbo.PowExponentSlots) can be zero here, where still-undecoded slots are reconstructed, and the compiler's pow(x,k)
+                // idiom turns exp2(log2(0) * k) into NaN. Guarding log2 and inversesqrt is cheap insurance against it spreading through the frame.
                 output.Add("#define safe_log2(x) log2(max(float(x), 1e-7))");
                 output.Add("#define log2(x) safe_log2(x)");
                 output.Add("#define safe_inversesqrt(x) inversesqrt(max(float(x), 1e-12))");
@@ -67,26 +56,10 @@ public static class GlslSanitizer
         return ShadowLodToGrad(cleaned);
     }
 
-    /// <summary>
-    /// A fragment stage's writes to a storage buffer - <c>fp_s0.data[N] = 2u;</c> - in a quarter of
-    /// the game's material programs, and in its deferred passes. They are the engine's feedback
-    /// (which materials were seen this frame), read back by nothing here. But a fragment shader with
-    /// a side effect cannot be depth-tested early, so for those materials the Z-only prepass saved
-    /// nothing - every hidden fragment ran the whole program - and millions of fragments a frame
-    /// all wrote the same few words: most of a 33 ms G-buffer pass on a card that should take a
-    /// few. Binding 0 is also where the instanced draws keep their bake table.
-    /// </summary>
+    /// <summary>A fragment stage's writes to a storage buffer (<c>fp_s0.data[N] = 2u;</c>), in a quarter of the material programs and the deferred passes. They are the engine's feedback (which materials were seen), read by nothing here, but a fragment shader with a side effect cannot be depth-tested early, so the Z-only prepass saved nothing for those materials and millions of fragments a frame wrote the same few words: most of a 33 ms G-buffer pass. Binding 0 is also where instanced draws keep their bake table.</summary>
     static readonly Regex FragmentStorageWrite = new(@"^[ \t]*fp_s\d+\.data\[[^\]\n]*\][ \t]*=(?!=)[^;\n]*;", RegexOptions.Compiled | RegexOptions.Multiline);
 
-    /// <summary>
-    /// Textures the engine renders at runtime and foliage vertex shaders sample, which nothing in
-    /// romfs supplies: <c>TexWindSwell</c> (wind gusts travelling over the field), <c>TexLieMap</c>
-    /// (where grass is pressed flat) and <c>TexThickness</c>. Each shader numbers them its own way
-    /// (wind swell is unit 1 in some, 2 in others, where the lie map takes 1), and those units are
-    /// where the resolve leaves G-buffer attachments bound - so foliage was bent by last frame's
-    /// G-buffer, which the leaves' wind droop term cubes into long spikes. Moved to units of their
-    /// own, where <see cref="DeferredPipeline"/> keeps each one's neutral bound.
-    /// </summary>
+    /// <summary>Textures the engine renders at runtime and foliage vertex shaders sample, which nothing in romfs supplies: <c>TexWindSwell</c>, <c>TexLieMap</c> (where grass is pressed flat) and <c>TexThickness</c>. Each shader numbers them its own way, and those units are where the resolve leaves G-buffer attachments bound, so foliage was bent by last frame's G-buffer (the wind droop term cubes it into spikes). They move to units of their own, where the pipeline keeps each one's neutral bound.</summary>
     static readonly Regex EngineVertexTexture = new(
         @"layout\s*\(\s*binding\s*=\s*\d+\s*\)\s*uniform\s+sampler2D\s+(c\d+_(TexWindSwell|TexLieMap|TexThickness))\s*;", RegexOptions.Compiled);
 
@@ -100,31 +73,16 @@ public static class GlslSanitizer
         _ => ThicknessUnit,
     };
 
-    /// <summary>
-    /// Where a block the decompiler numbered negatively ends up - see <see cref="NegativeBinding"/>.
-    /// <see cref="DeferredPipeline"/> keeps a zeroed buffer bound here, so what such a block reads
-    /// is defined.
-    /// </summary>
+    /// <summary>Where a block the decompiler numbered negatively ends up (see <see cref="NegativeBinding"/>). A zeroed buffer is kept bound here so what such a block reads is defined.</summary>
     public const uint OrphanBlockBinding = Profiles.Totk.TotkBindings.Orphan;
 
-    /// <summary>
-    /// The decompiler renumbers constant buffer N to binding N - 3, so the driver's own buffer
-    /// (c0) comes out as <c>binding = -3</c>. NVIDIA lets that through; a stricter driver refuses the
-    /// whole shader. Nothing ever supplied that buffer, so its one read has always been of nothing.
-    /// </summary>
+    /// <summary>The decompiler renumbers constant buffer N to binding N - 3, so the driver's own buffer (c0) comes out as <c>binding = -3</c>. NVIDIA lets that through, a stricter driver refuses the shader; nothing ever supplied that buffer, so its one read has always been of nothing.</summary>
     static readonly Regex NegativeBinding = new(@"binding\s*=\s*-\d+", RegexOptions.Compiled);
 
     static readonly Regex ShadowSamplerDeclaration = new(
         @"\buniform\s+(sampler2DArrayShadow|samplerCubeShadow|samplerCubeArrayShadow)\s+(\w+)\s*;", RegexOptions.Compiled);
 
-    /// <summary>
-    /// <c>textureLod</c> on an array-shadow or cube-shadow sampler exists only through
-    /// <c>GL_EXT_texture_shadow_lod</c> - which the decompiler asks for and this class strips above.
-    /// NVIDIA accepts the call regardless; Intel and AMD, integrated graphics included, refuse the
-    /// whole shader ("no matching overloaded function"), and the model fails to load. Core GLSL's
-    /// <c>textureGrad</c> with zero derivatives takes the same coordinate and samples the same base
-    /// level - and a shadow map has nothing but its base level - so the call is rewritten to that.
-    /// </summary>
+    /// <summary><c>textureLod</c> on an array-shadow or cube-shadow sampler exists only through <c>GL_EXT_texture_shadow_lod</c>, which the decompiler asks for and this class strips. NVIDIA accepts the call anyway; Intel and AMD refuse the whole shader ("no matching overloaded function"). Core GLSL's <c>textureGrad</c> with zero derivatives takes the same coordinate and samples the same base level (a shadow map has only one), so the call is rewritten to that.</summary>
     static string ShadowLodToGrad(string source)
     {
         foreach (Match decl in ShadowSamplerDeclaration.Matches(source))

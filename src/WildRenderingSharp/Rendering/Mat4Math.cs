@@ -3,12 +3,10 @@ using System.Numerics;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// 4x4 matrix helpers over the "array of 4 row vectors" representation used throughout the
-/// camera/UBO-building code (matching <c>render_deferred_master_sword.py</c>'s numpy row-list
-/// matrices) rather than <see cref="Matrix4x4"/> directly - that type's own row-vector transform
-/// convention (translation in <c>M41..M43</c>) doesn't match the column-vector/GL convention this
-/// pipeline's matrices use, and mixing the two invites a transpose bug. <see cref="Matrix4x4"/>
-/// is still used internally as a pure numeric multiply/invert engine, which is convention-agnostic.
+/// 4x4 matrix helpers over an array of 4 row vectors, the representation used by the camera and UBO-building code, rather than <see cref="Matrix4x4"/> directly: that type's row-vector convention
+/// (translation in <c>M41..M43</c>) does not match the column-vector GL convention these matrices use, and mixing the two invites a transpose bug. <see cref="Matrix4x4"/> is still used internally
+/// as a convention-agnostic multiply and invert engine.
+/// </summary>
 /// </summary>
 public static class Mat4Math
 {
@@ -42,7 +40,7 @@ public static class Mat4Math
         return [affine3Rows[0], affine3Rows[1], affine3Rows[2], new Vector4(0, 0, 0, 1)];
     }
 
-    /// <summary>Standard matrix product <c>a * b</c> (row i of the result is a's row i "dotted" through b), matching numpy's <c>@</c>.</summary>
+    /// <summary>Standard matrix product <c>a * b</c> (row i of the result is a's row i "dotted" through b).</summary>
     public static Vector4[] Multiply(ReadOnlySpan<Vector4> a, ReadOnlySpan<Vector4> b) =>
         FromNumerics(ToNumerics(a) * ToNumerics(b));
 

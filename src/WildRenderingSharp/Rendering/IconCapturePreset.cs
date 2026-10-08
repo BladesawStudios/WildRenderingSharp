@@ -2,13 +2,7 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Rendering;
 
-/// <summary>
-/// TotK's own in-game item-icon capture: a fixed actor pose, a near-orthographic FOV, and a
-/// specific sun/palette/exposure combination, with the camera distance auto-fit to whichever
-/// model is loaded (rather than the Master Sword's own fixed distance, which cuts off anything
-/// bigger). Mirrors <c>viewer.Viewer._enable_icon_capture</c>/<c>render_deferred_master_sword.frame_icon_capture</c>
-/// exactly - these are the real shipped values, not tuned approximations.
-/// </summary>
+/// <summary>TotK's in-game item-icon capture: a fixed actor pose, a near-orthographic FOV and a specific sun, palette and exposure, with the camera distance auto-fitted to the loaded model (the Master Sword's fixed distance cuts off anything bigger). These are the shipped values, not tuned approximations.</summary>
 public static class IconCapturePreset
 {
     public static readonly Vector3 ActorRotationDegrees = new(-134.64f, 165.6f, -59.0f);
@@ -34,14 +28,9 @@ public static class IconCapturePreset
     public static Vector4[] ActorRotationRows() => EulerRotation.MakeXyzRows3(ActorRotationDegrees.X, ActorRotationDegrees.Y, ActorRotationDegrees.Z);
 
     /// <summary>
-    /// Sun elevation/azimuth (radians) matching <see cref="LightDirection"/>, in the same
-    /// convention <see cref="LightingContext"/> uses.
-    ///
-    /// EXPERIMENTAL: sign flipped from what <c>viewer.py</c>'s own formula produces (which negates
-    /// <see cref="LightDirection"/> before converting) - on the hypothesis that a fix made
-    /// elsewhere in the shading pipeline changed the effective sun-facing convention for this
-    /// specific path. Revert to <c>Vector3.Normalize(-LightDirection)</c> if this doesn't actually
-    /// match the game's own icon capture any better.
+    /// Sun elevation and azimuth (radians) matching <see cref="LightDirection"/>, in the convention <see cref="LightingContext"/> uses.
+    /// EXPERIMENTAL: the sign is flipped from the original formula (which negates <see cref="LightDirection"/> before converting), on the hypothesis that a fix elsewhere in the shading pipeline changed
+    /// the effective sun-facing convention for this path. Revert to <c>Vector3.Normalize(-LightDirection)</c> if it does not match the game's icon capture any better.
     /// </summary>
     public static (float Elevation, float Azimuth) SunElevationAzimuth()
     {

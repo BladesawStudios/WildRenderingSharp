@@ -141,7 +141,7 @@ public sealed class ColorCorrectionPass : IDisposable
 
         EnsureScratch(target.Width, target.Height);
 
-        // Pass 1: graded copy into our own scratch.
+        // Pass 1: graded copy into a scratch target.
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchFbo);
         _gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0,
             TextureTarget.Texture2D, _scratchTex, 0);

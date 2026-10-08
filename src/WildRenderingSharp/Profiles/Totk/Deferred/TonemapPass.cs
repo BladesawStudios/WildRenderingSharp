@@ -5,14 +5,9 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
-/// Exposure -> highlight compression -> the real <c>agl_hdr_compose</c> (TotK's own HDR compose
-/// pass, loaded through <see cref="ShaderProgramCache"/> like any other decompiled game shader) ->
-/// bloom add. The highlight compression is WildRenderingSharp's own addition (not decompiled), softly
-/// asymptoting the rare silhouette-adjacent grazing highlight that legally saturates to its own
-/// coded ceiling under a high calibrated exposure - see <c>HDR_COMPRESS_SRC</c>'s remarks for why.
-///
-/// Split into two calls because <see cref="BloomPass"/> must run in between, reading this pass's
-/// compressed HDR result as its own input.
+/// Exposure, highlight compression, the game's <c>agl_hdr_compose</c> (loaded through <see cref="ShaderProgramCache"/> like any decompiled game shader), then the bloom add. The highlight compression is
+/// this renderer's own (not decompiled): it softly asymptotes the rare grazing silhouette highlight that saturates to its coded ceiling under a high calibrated exposure (see <c>HDR_COMPRESS_SRC</c>).
+/// Split into two calls because <see cref="BloomPass"/> must run between them, reading the compressed result.
 /// </summary>
 public sealed class TonemapPass : IDisposable
 {
@@ -21,13 +16,9 @@ public sealed class TonemapPass : IDisposable
     uint _hdrQuadVbo, _hdrQuadVao;
     uint _hdrQuadVaoProgram;
 
-    // The compression asymptotes to knee + (ceil - knee) = HdrCompressCeil, so the ceiling is the
-    // brightest value that can leave this pass. It used to be 2.2, which a display cannot show -
-    // everything between 1 and 2.2 survived tonemapping only to be clipped at final present, and
-    // clipping the dominant channel while the others pass through shifts the ratio (a red sky at
-    // (2.5, 0, 0.55) presents as (1, 0, 0.42) - nearly DOUBLE the relative blue, i.e. a push toward
-    // magenta). Asymptoting to 1.0 instead means nothing needs clipping later and the hue that
-    // reaches the screen is the hue that was computed.
+    // The compression asymptotes to knee + (ceil - knee) = HdrCompressCeil, the brightest value that can leave this pass. It was 2.2, which a display cannot show: values from 1 to 2.2 survived the
+    // tonemap only to be clipped at present, and clipping the dominant channel shifts the ratio (a red sky at (2.5, 0, 0.55) presents as (1, 0, 0.42), nearly double the relative blue, toward magenta).
+    // Asymptoting to 1.0 means nothing needs clipping later and the computed hue reaches the screen.
     public const float HdrCompressKnee = 0.8f;
     public const float HdrCompressCeil = 1.0f;
 
@@ -48,19 +39,9 @@ public sealed class TonemapPass : IDisposable
         void main() { fragColor = vec4(texture(t, vUV).rgb * k, 1.0); }
         """;
 
-    // Compresses on the BRIGHTEST CHANNEL and scales the colour as a whole, rather than squashing
-    // each channel independently.
-    //
-    // Per-channel was the previous behaviour and it desaturates by construction: for a saturated
-    // colour only the dominant channel exceeds the knee, so only that one is pulled down while the
-    // others pass through untouched, and the three converge toward grey. Measured on a blood-moon
-    // red (3.0, 0.6, 0.45): saturation 0.850 -> 0.772 at this step alone, before agl_hdr_compose
-    // even runs. That is the "deep red comes out pink" failure, and no amount of upstream colour
-    // correction can survive it.
-    //
-    // Scaling by compressed/max keeps every channel ratio identical, so hue and saturation are
-    // preserved exactly while the magnitude still lands under the ceiling. Neutral colours are
-    // unaffected either way, so this changes nothing for non-saturated content.
+    // Compresses on the brightest channel and scales the colour as a whole. Per-channel compression desaturates by construction: for a saturated colour only the dominant channel exceeds the knee, so it
+    // alone is pulled down and the three converge toward grey (a blood-moon red (3.0, 0.6, 0.45) went from saturation 0.850 to 0.772 at this step alone, the "deep red comes out pink" failure). Scaling
+    // by compressed/max keeps every channel ratio, so hue and saturation are preserved while the magnitude lands under the ceiling. Neutral colours are unaffected.
     const string CompressFragmentSource = """
         #version 450 core
         uniform sampler2D t; uniform float uKnee, uCeil;
@@ -84,9 +65,7 @@ public sealed class TonemapPass : IDisposable
         _exposureProgram = GLProgramBuilder.Build(gl, QuadVertexSource, ExposureFragmentSource, "exposure");
         _compressProgram = GLProgramBuilder.Build(gl, QuadVertexSource, CompressFragmentSource, "hdr_compress");
 
-        // hdr_compose's own vertex shader is attribute-driven (unlike the fullscreen-triangle
-        // passes above): in_attr0 is a half-size position it doubles into clip space, in_attr1
-        // the UV.
+        // hdr_compose's vertex shader is attribute-driven, unlike the fullscreen-triangle passes above: in_attr0 is a half-size position it doubles into clip space, in_attr1 the UV.
         float[] quad =
         [
             -0.5f, -0.5f, 0f, 1f, 0f, 0f, 0f, 0f,
@@ -99,7 +78,7 @@ public sealed class TonemapPass : IDisposable
 
     static ReadOnlySpan<byte> MemoryMarshalBytes(float[] values) => System.Runtime.InteropServices.MemoryMarshal.AsBytes<float>(values);
 
-    /// <summary>Exposure multiply (skipped when 1.0, matching <c>render_scene</c>) then the highlight-compression knee/ceiling. Returns the resulting texture (either <c>targets.Compressed</c> always).</summary>
+    /// <summary>Exposure multiply (skipped when 1.0) then the highlight-compression knee and ceiling. Returns the resulting texture.</summary>
     public GpuTexture RunExposureAndCompress(GLResourceCache resources, RenderTargets targets, float exposure)
     {
         _gl.Disable(EnableCap.DepthTest);
@@ -123,12 +102,7 @@ public sealed class TonemapPass : IDisposable
         return targets.Compressed;
     }
 
-    /// <summary>
-    /// The real <c>agl_hdr_compose</c> draw. Its sampler inputs (<c>fp_t_tcb_8</c> = cColor,
-    /// <c>fp_t_tcb_A</c> = cBloom) already carry an explicit <c>layout(binding=N)</c> from the
-    /// BNSH reflection, so - like every other decompiled game shader here - binding the texture
-    /// UNIT is enough; no separate sampler-uniform assignment is needed or correct.
-    /// </summary>
+    /// <summary>The <c>agl_hdr_compose</c> draw. Its samplers (<c>fp_t_tcb_8</c> = cColor, <c>fp_t_tcb_A</c> = cBloom) carry an explicit <c>layout(binding=N)</c> from the BNSH reflection, so binding the texture unit is enough, as for every decompiled game shader.</summary>
     public void RunHdrComposite(GLResourceCache resources, RenderTargets targets, uint hdrComposeProgram, GpuTexture hdrSource, GpuTexture bloomSource, byte[] hdrComposeParamsBytes)
     {
         EnsureHdrQuadVao(hdrComposeProgram);
