@@ -2,7 +2,7 @@ using SarcLibrary;
 using WildRenderingSharp.Profiles.Totk.Sky;
 using Syroot.NintenTools.NSW.Bntx;
 
-namespace WildRenderingSharp.Preparation;
+namespace WildRenderingSharp.Preparation.Totk;
 
 /// <summary>
 /// The three 512x512 masks the cloud dome samples, read from the BNTX inside <c>collect.genvres</c> in

@@ -10,7 +10,9 @@ using WildRenderingSharp.TestBench;
 // Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline.
 //
 //   WildRenderingSharp.TestBench --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>]
-//                                [--size <px>] [--background sky|color] [--palette <name>] [--sun <elevation radians>]
+//                                [--size <px>] [--background sky|color] [--sun <elevation radians>]
+//                                [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1]
+//   with --game totk: see TotkBenchOptions.Usage
 //
 // Exit codes: 0 rendered, 1 failure, 2 bad command line, 3 game has no profile yet, 4 the image is blank.
 
@@ -19,7 +21,9 @@ string Option(string key, string fallback) => options.TryGetValue(key, out var v
 
 if (!options.TryGetValue("romfs", out var romfs) || !options.TryGetValue("actor", out var actorName))
 {
-    Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] [--background sky|color] [--palette <name>] [--sun <elevation radians>]");
+    Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] " +
+        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] " +
+        (Option("game", "totk") == "totk" ? TotkBenchOptions.Usage : ""));
     return 2;
 }
 
@@ -58,22 +62,12 @@ Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(St
 var renderer = new WildRenderer(gl, cache, romfs, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
 renderer.AddActor(model);
-if (options.TryGetValue("palette", out var palette))
-    renderer.Totk.PaletteName = palette;
-if (options.TryGetValue("atmosphere", out var atmosphere))
-    renderer.Totk.AtmosphereIntensity = float.Parse(atmosphere);
-if (options.ContainsKey("palette-info"))
-{
-    var pal = renderer.Environment.Palettes.Get(renderer.Totk.PaletteName);
-    Console.WriteLine($"SkySunColor={pal.SkySunColor} intensity={pal.SkySunColorIntensity} noUse={pal.SkySunColorNoUse} Fog={pal.FogColor} BgDif={pal.BgDifColor}x{pal.BgDifIntensity}");
-}
+if (game == "totk")
+    TotkBenchOptions.Apply(renderer, options);
 if (options.TryGetValue("azimuth", out var azimuth))
     renderer.Lighting.SunAzimuth = float.Parse(azimuth);
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
-if (options.TryGetValue("list-palettes", out _))
-    Console.WriteLine("palettes: " + string.Join(", ", renderer.Environment.Palettes.Names.Order()));
-
 var camera = new Camera();
 var (center, radius) = renderer.FrameFor(camera);
 camera.Target = center;
@@ -85,25 +79,6 @@ if (options.TryGetValue("lookup", out var lookup))
     float pitch = float.DegreesToRadians(float.Parse(lookup));
     camera.Target = camera.Eye + flat * MathF.Cos(pitch) * radius + Vector3.UnitZ * MathF.Sin(pitch) * radius;
 }
-if (options.TryGetValue("tint", out var tint))
-    renderer.Totk.SkyPaletteTint = float.Parse(tint);
-if (options.TryGetValue("fog", out var fog))
-{
-    renderer.Totk.UseSkyFog = true;
-    renderer.Totk.SkyFogStrength = float.Parse(fog);
-}
-if (options.TryGetValue("haze", out var haze))
-    renderer.Totk.SkyHorizonHaze = float.Parse(haze);
-if (options.TryGetValue("flare-threshold", out var flareThreshold))
-    renderer.Totk.LensFlareThreshold = float.Parse(flareThreshold);
-if (options.TryGetValue("cloud-brightness", out var cloudBrightness))
-    renderer.Totk.CloudBrightness = float.Parse(cloudBrightness);
-if (options.ContainsKey("noflare"))
-    renderer.Totk.UseLensFlare = false;
-if (options.ContainsKey("nobodies"))
-    renderer.Totk.ShowSun = renderer.Totk.ShowMoon = false;
-if (options.ContainsKey("noclouds"))
-    renderer.Totk.UseRealCloudDome = false;
 if (options.TryGetValue("exposure", out var exposure))
     renderer.Lighting.Exposure = float.Parse(exposure);
 
