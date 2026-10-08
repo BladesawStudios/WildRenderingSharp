@@ -5,34 +5,25 @@ using SarcLibrary;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// The real <c>agl::pfx::Sky</c> config the game itself loads at runtime - <c>postfx/master_field.baglsky</c>
-/// inside <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c> (a SARC of AAMP <c>.bagl*</c> files), parsed by
-/// the real <c>AampLibrary</c> NuGet package rather than a hand-rolled AAMP reader. The actual
-/// parsing happens OUT OF PROCESS-ISOLATION (a private <c>AssemblyLoadContext</c>, not literally a
-/// separate OS process) in <c>WildRenderingSharp.AampReader</c> - a standalone project this one does NOT
-/// reference at compile time - because <c>AampLibrary</c> needs <c>Syroot.BinaryData</c>/
-/// <c>Syroot.Maths</c> 5.x, which is binary-incompatible with the 2.x versions vendored for
-/// <c>BfresLibrary</c> (<c>vendor/ShaderLibrary/ShaderLibrary.CompileTool/Libs/Bfres/*.dll</c>) that
-/// the SAME process also needs, in-process, for BFRES/material parsing - confirmed by reproduction:
-/// adding AampLibrary as a normal PackageReference here broke <c>ViewportPanel</c> construction at
-/// startup with <c>TypeLoadException: Could not load type 'Syroot.BinaryData.BinaryDataReader'</c>
-/// the moment <c>BfresLibraryPatches.EnsureApplied()</c> ran. See
-/// <see cref="WildRenderingSharp.Rendering.IsolatedAampReader"/> for the loader and
-/// <c>WildRenderingSharp.AampReader/SkyPostFxJson.cs</c> for the actual AAMP parsing.
-///
-/// This is a DIFFERENT source from <see cref="EnvPalette"/>: a ResEnvPalette's <c>SkyRParam_*</c>
-/// fields are the per-time-of-day/weather DYNAMIC multiplier the game layers on top of this file's
-/// STATIC physical baseline (base scattering heights/coefficients, the sun disc's own size/intensity/
-/// falloff curve, fog falloff shape, the ground colour seen from orbit) - this file changes only if
-/// the ROM itself is patched, a palette changes every few in-game minutes. <see cref="Default"/>
-/// mirrors the exact values <c>AmbientLighting</c> previously had hardcoded (transcribed by hand from
-/// a one-off dump earlier in this project's life) - <see cref="SkyPostFxLibrary.LoadFromRomfs"/>
-/// replaces that hardcoded transcription with a live parse of the real file, falling back to the
-/// identical numbers if no romfs is configured or the archive/AAMP reader can't be reached.
+/// The <c>agl::pfx::Sky</c> config the game loads at runtime: <c>postfx/master_field.baglsky</c> inside <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c> (a SARC of AAMP <c>.bagl*</c> files).
 /// </summary>
+/// <remarks>
+/// <para>
+/// Parsing happens in a private <c>AssemblyLoadContext</c> in <c>WildRenderingSharp.AampReader</c>, which this project does not reference at compile time: <c>AampLibrary</c> needs
+/// <c>Syroot.BinaryData</c> and <c>Syroot.Maths</c> 5.x, binary-incompatible with the 2.x versions vendored for <c>BfresLibrary</c> that the same process needs for BFRES parsing
+/// (referencing it directly threw <c>TypeLoadException: Could not load type 'Syroot.BinaryData.BinaryDataReader'</c> once <c>BfresLibraryPatches.EnsureApplied()</c> ran). See
+/// <see cref="WildRenderingSharp.Rendering.IsolatedAampReader"/> and <c>WildRenderingSharp.AampReader/SkyPostFxJson.cs</c>.
+/// </para>
+/// <para>
+/// This is a different source from <see cref="EnvPalette"/>: a palette's <c>SkyRParam_*</c> fields are the dynamic per-time-of-day multiplier the game layers on this file's static
+/// physical baseline (scattering heights and coefficients, the sun disc's size and falloff, fog falloff shape, the ground colour seen from orbit). <see cref="Default"/> holds the
+/// values transcribed by hand from a one-off dump; <see cref="SkyPostFxLibrary.LoadFromRomfs"/> replaces them with a live parse, falling back to the same numbers if no romfs is
+/// configured or the reader cannot be reached.
+/// </para>
+/// </remarks>
 public sealed class SkyPostFx
 {
-    /// <summary>Per-channel Rayleigh scattering coefficients (why the sky is blue) - real field, unnamed in the AAMP hash table (resolved by <c>WildRenderingSharp.AampReader</c> via its raw CRC32 hash, which is stable regardless of name-table coverage).</summary>
+    /// <summary>Per-channel Rayleigh scattering coefficients (why the sky is blue). The field is unnamed in the AAMP hash table; <c>WildRenderingSharp.AampReader</c> resolves it by raw CRC32 hash.</summary>
     public Vector3 RayleighScatteringCoeff = new(0.0041f, 0.0113f, 0.0284f);
     public float RayleighBaseHeight = 24f;
     public float MieBaseHeight = 2f;
@@ -46,18 +37,17 @@ public sealed class SkyPostFx
     public float RenderSunSize = 1f;
     /// <summary>Blend weight between a hard disc and a soft glow falloff (1.0 = default).</summary>
     public float RenderSunLerp = 1f;
-    /// <summary>The ground colour seen looking down from the sky, i.e. below the horizon in a screen-space sky pass - a real authored value, not an invented dim.</summary>
+    /// <summary>The ground colour seen looking down from the sky, i.e. below the horizon in a screen-space sky pass.</summary>
     public Vector3 GroundColor = new(0.5f, 0.4f, 0.3f);
     public float ScatterFogNear = 0f;
     public float ScatterFogFar = 30000f;
     public float ScatterFogDensity = 0.85f;
     public float ScatterFogAtten = 40f;
-    /// <summary>Real horizon fog falloff curve exponent - how sharply haze thickens as the view ray approaches the horizon.</summary>
+    /// <summary>Horizon fog falloff exponent: how sharply haze thickens as the view ray approaches the horizon.</summary>
     public float ScatterFogHorz = 2.5f;
 
-    // ---- adhoc fog: the coloured haze band that hugs the horizon ----
-    // Defaults are master_field.baglsky's own authored values.
-    /// <summary>Exponent on the view ray's upward component - shapes how fast the band falls off with elevation. NEVER let this reach the shader as 0: it is a pow() exponent, and pow(0,0) decompiles to exp2(-inf * 0) = NaN.</summary>
+    // Adhoc fog: the coloured haze band at the horizon. Defaults are master_field.baglsky's authored values.
+    /// <summary>Exponent on the view ray's upward component, shaping how fast the band falls off with elevation. Never let this reach the shader as 0: it is a pow() exponent and pow(0,0) decompiles to exp2(-inf * 0) = NaN.</summary>
     public float AdhocFogAttenSky = 0.7642950f;
     /// <summary>Fog scale at the ZENITH; the horizon end of the same mix is the density itself.</summary>
     public float AdhocFogAttenMinScaleSky = 0.3f;
@@ -71,7 +61,7 @@ public sealed class SkyPostFx
 
     public static readonly SkyPostFx Default = new();
 
-    /// <summary>Parses the <c>"sky"</c> object of the JSON <see cref="WildRenderingSharp.AampReader.SkyPostFxJson.ParseToJson"/> produces - see that method for the exact key set.</summary>
+    /// <summary>Parses the <c>"sky"</c> object of the JSON <see cref="WildRenderingSharp.AampReader.SkyPostFxJson.ParseToJson"/> produces.</summary>
     internal static SkyPostFx FromJson(JsonElement sky)
     {
         var result = new SkyPostFx();
@@ -118,7 +108,7 @@ public sealed class SkyPostFx
         return new Vector3(arr[0].GetSingle(), arr[1].GetSingle(), arr[2].GetSingle());
     }
 
-    /// <summary>The 4th component of a colour array - <c>adhoc_fog_color</c> carries the fog DENSITY there, not an opacity.</summary>
+    /// <summary>The 4th component of a colour array; <c>adhoc_fog_color</c> carries the fog density there, not an opacity.</summary>
     internal static float ReadColorAlpha(JsonElement obj, string name, float fallback)
     {
         if (obj.ValueKind == JsonValueKind.Object && obj.TryGetProperty(name, out var v)
@@ -136,28 +126,17 @@ public sealed class SkyPostFx
 }
 
 /// <summary>
-/// One <c>CloudParamN</c> block of <c>postfx/master_field.baglclwd</c> - the real <c>agl::fx::Cloud</c>
-/// billboard-dome shading model's per-layer parameters, EVERY field (not a hand-picked subset - see
-/// <c>WildRenderingSharp.AampReader.SkyPostFxJson.ParseObject</c>, which dumps the whole object generically).
-/// Field names match the real AAMP names exactly (including the "m" prefix and the authored typo
-/// "Distotion") so they can be cross-referenced directly against the real decompiled
-/// <c>agl_cloud.vert</c>/<c>.frag</c> (<c>ModelPreparer.EnsureCloudShader</c>) and its own uniform
-/// reflection (<c>mDensity</c>, <c>mAlphaMul</c>, etc.) without a name-mapping table to get out of
-/// sync.
-///
-/// <c>CloudParam2</c> in the shipped file is byte-identical to <c>CloudParam1</c> (confirmed by
-/// direct dump) - not a third distinct layer - so <see cref="CloudPostFx"/> only exposes two.
-///
-/// The <c>*No</c>/<c>*No_Blend</c> fields are texture SLOT INDICES into a small fixed array, not
-/// names - traced via Ghidra: index 1 (both <see cref="NoiseTextureNo"/> and
-/// <see cref="NoiseTextureNoBlend"/> are always 1 in the real file) resolves through a generic
-/// runtime name->texture dispatcher (<c>FUN_71008da38c</c>) to a texture literally named
-/// <c>"cloud_noise"</c> that is BAKED, not loaded from romfs - by the real <c>noise_cloud</c> shading
-/// model in <c>agl_technique_proc.sharcb</c> (see <c>TestAglShader.ExtractCloudNoiseShader</c>).
-/// Indices 0/2 (the base texture) are real static romfs assets whose exact filenames were not
-/// found despite a real trace attempt (no literal string anywhere near the load site, unlike
-/// "cloud_noise") - callers needing an actual texture should treat those two as unconfirmed.
+/// One <c>CloudParamN</c> block of <c>postfx/master_field.baglclwd</c>: the per-layer parameters of the <c>agl::fx::Cloud</c> billboard-dome shading model, every field (see
+/// <c>WildRenderingSharp.AampReader.SkyPostFxJson.ParseObject</c>, which dumps the object generically). Names match the AAMP names exactly, including the "m" prefix and the
+/// authored typo "Distotion", so they cross-reference the decompiled <c>agl_cloud.vert</c>/<c>.frag</c> and its uniform reflection without a mapping table.
 /// </summary>
+/// <remarks>
+/// <c>CloudParam2</c> is byte-identical to <c>CloudParam1</c>, so <see cref="CloudPostFx"/> exposes two layers. The <c>*No</c> and <c>*No_Blend</c> fields are slot indices into a small
+/// fixed array, not names. Traced via Ghidra, index 1 (both <see cref="NoiseTextureNo"/> and <see cref="NoiseTextureNoBlend"/> are always 1) resolves through a runtime
+/// name-to-texture dispatcher (<c>FUN_71008da38c</c>) to a texture named <c>"cloud_noise"</c>, which is baked by the <c>noise_cloud</c> shading model in
+/// <c>agl_technique_proc.sharcb</c> (see <c>TestAglShader.ExtractCloudNoiseShader</c>), not loaded from romfs. Indices 0 and 2 (the base texture) are static romfs assets whose
+/// filenames were not found; treat them as unconfirmed.
+/// </remarks>
 public sealed class CloudPostFxLayer
 {
     public bool IsEnable = true;
@@ -362,12 +341,8 @@ public sealed class CloudPostFx
 }
 
 /// <summary>
-/// Loads <see cref="SkyPostFx"/>/<see cref="CloudPostFx"/> once from <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>
-/// - mirrors <see cref="EnvPaletteLibrary.LoadFromRomfs"/>'s own SARC/Zstd opening pattern exactly
-/// (same archive family, same <c>TotkCommon</c> helpers) for locating and decompressing the archive,
-/// then hands the two extracted <c>.bagl*</c> byte blobs to <see cref="IsolatedAampReader"/> (see its
-/// own remarks for why the actual AAMP parsing can't happen directly in this assembly). Cached
-/// process-wide since this data is entirely static (no per-palette variation, unlike <c>EnvPalette</c>).
+/// Loads <see cref="SkyPostFx"/> and <see cref="CloudPostFx"/> once from <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>, opening the archive as <see cref="EnvPaletteLibrary.LoadFromRomfs"/> does,
+/// then hands the two extracted <c>.bagl*</c> blobs to <see cref="IsolatedAampReader"/> (the AAMP parsing cannot happen in this assembly). Cached process-wide, since the data is static.
 /// </summary>
 public static class SkyPostFxLibrary
 {

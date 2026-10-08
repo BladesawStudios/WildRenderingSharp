@@ -4,30 +4,16 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>
-/// TotK <c>gsys_scene_material</c> ("SceneMat", decompiled as <c>fp_c13</c>), binding 10, 928
-/// bytes. Unlike <see cref="ContextUbo"/>/<see cref="EnvUbo"/>, every field's name and byte
-/// offset here comes straight from the "material" shading model's own BFSHA reflection
-/// (regenerate with <c>ShaderLibrary.CompileTool --dump-uniform-blocks</c>) - not
-/// reverse-engineered guesswork, so <see cref="Fields"/> is a faithful, complete transcription of
-/// that reflection rather than a "what we've confirmed so far" subset. As of this writing, every
-/// field's real DEFAULT VALUE is known too (see <see cref="BuildFromLighting"/>'s own remarks) -
-/// unlike Context/Env, this isn't scene state the engine writes every frame by name; it comes
-/// from a real, separate romfs model asset's authored material parameters.
-///
-/// Fields are addressed by byte offset (<see cref="Std140Block.GetFloatAt"/>/
-/// <see cref="Std140Block.SetVectorAt"/>) rather than 16-byte slot, because several of them
-/// (e.g. <see cref="Fields.ConstXluShadowDiffuseAmbientScale"/>) sit at a reflection-reported
-/// offset that isn't itself slot-aligned.
+/// TotK <c>gsys_scene_material</c> ("SceneMat", decompiled as <c>fp_c13</c>), binding 10, 928 bytes. Every field's name and byte offset comes from the "material" shading model's BFSHA
+/// reflection (regenerate with <c>ShaderLibrary.CompileTool --dump-uniform-blocks</c>), so <see cref="Fields"/> is a complete transcription of it, and every field's default value is
+/// known too (see <see cref="BuildFromLighting"/>). Fields are addressed by byte offset (<see cref="Std140Block.GetFloatAt"/>, <see cref="Std140Block.SetVectorAt"/>) because several,
+/// such as <see cref="Fields.ConstXluShadowDiffuseAmbientScale"/>, sit at a reflection-reported offset that is not slot-aligned.
 /// </summary>
 public sealed class SceneMatUbo : IUboBlock
 {
     public const int ByteSize = 928;
 
-    /// <summary>
-    /// Byte offsets for all 88 uniforms the archive's reflection declares, named exactly after
-    /// the BFSHA symbol (including its literal spelling, e.g. "Repeeat") so this table can be
-    /// diffed against the source dump directly.
-    /// </summary>
+    /// <summary>Byte offsets for all 88 uniforms the archive's reflection declares, named after the BFSHA symbol (including its spelling, e.g. "Repeeat") so the table can be diffed against the source dump.</summary>
     public static class Fields
     {
         public const int DynamicToonLightAdjustForDemo = 0;      // vec4 - MIDS scale, see BuildFromLighting
@@ -126,42 +112,23 @@ public sealed class SceneMatUbo : IUboBlock
     public string Name => "SceneMat";
     public int BindingIndex => (int)TotkBindings.SceneMaterial;
 
-    /// <summary>
-    /// Starts from the REAL authored defaults for all 88 fields, then overlays the handful WildRenderingSharp
-    /// drives from live lighting/studio state - the exact same "defaults, then overlay" shape as
-    /// every other UBO in this codebase (<c>BuildMaterialUbo.BuildBlock</c> for a material's own
-    /// <c>gsys_material</c>, most directly).
-    ///
-    /// Those defaults are NOT invented: traced via Ghidra to <c>gsys::ModelScene::initialize_</c>,
-    /// which loads a real, separate model - <c>Model/SystemModel.SceneMaterial.bfres.mc</c>,
-    /// found by searching romfs for the resource name "SceneMaterial" the scene looks up - through
-    /// <c>gsys::ModelNW::initialize</c>, then passes that loaded model into every render context's
-    /// <c>gsys::ModelRenderContext::setSceneMaterial</c>. So unlike Context/Env ("Dynamic" scene
-    /// state written by engine code every frame, by field name - see the "Dynamic" fields' own
-    /// remarks below for the one case that IS confirmed this way), most of SceneMat's fields -
-    /// especially every "Const"-prefixed one - are just an ordinary material's authored
-    /// <c>ShaderParams</c> on this one dedicated model ("MasterMaterial"), read with
-    /// <c>ShaderLibrary.CompileTool --dump-scene-material</c> (new flag, see
-    /// <c>BuildMaterialUbo.DumpSceneMaterial</c>) - the exact same name-join mechanism
-    /// <c>BuildMaterialUbo.BuildBlock</c> already uses for <c>gsys_material</c>, just pointed at
-    /// this model's own block instead. All 88 fields matched by name; nothing here is guessed.
-    ///
-    /// This directly explains the TotK "Blueprint" (Zonai schematic/ghost-construct) rendering
-    /// bug this session chased at length: every <c>ConstBlueprint*</c> colour authored here is a
-    /// shade of GREEN (e.g. <see cref="Fields.ConstBlueprintEmissionColor"/> = (0.01, 1, 0.2)) -
-    /// the real, recognisable Zonai-schematic green tint - and WildRenderingSharp leaving them all at zero
-    /// made that formula collapse into a nonsensical NEGATIVE result instead, which is what
-    /// actually produced the reported "pure cyan" look on Enemy_MiasmaTentacle's Mt_Skin once its
-    /// forward (<c>gsys_assign_material</c>) program was enabled (that material authors
-    /// <c>p_blue_print_alpha = 1.0</c>, genuinely turning this whole code path on).
-    /// </summary>
+    /// <summary>Starts from the authored defaults for all 88 fields, then overlays the few the renderer drives from live lighting state.</summary>
+    /// <remarks>
+    /// The defaults come from a real model: <c>gsys::ModelScene::initialize_</c> loads <c>Model/SystemModel.SceneMaterial.bfres.mc</c> through <c>gsys::ModelNW::initialize</c> and
+    /// passes it into every render context's <c>setSceneMaterial</c> (found via Ghidra). Unlike Context and Env, which engine code writes by name every frame, most fields here,
+    /// especially every "Const" one, are that model's ("MasterMaterial") authored <c>ShaderParams</c>, read with <c>ShaderLibrary.CompileTool --dump-scene-material</c> (see
+    /// <c>BuildMaterialUbo.DumpSceneMaterial</c>) by the same name-join as a material's own block. All 88 matched by name.
+    /// This is what explains the Zonai "Blueprint" cyan bug: every <c>ConstBlueprint*</c> colour is a shade of green (e.g. <see cref="Fields.ConstBlueprintEmissionColor"/> =
+    /// (0.01, 1, 0.2)), and leaving them zero made the formula collapse to a negative result, which produced the pure cyan on Enemy_MiasmaTentacle's Mt_Skin once its forward
+    /// program ran (that material authors <c>p_blue_print_alpha = 1.0</c>).
+    /// </remarks>
     public static SceneMatUbo BuildFromLighting(
         Vector3 hemiSkyColor, Vector3 hemiGroundColor, float midScale, float highlightScale)
     {
         var scn = new SceneMatUbo();
         var b = scn._block;
 
-        // ---- Real authored defaults from MasterMaterial (Model/SystemModel.SceneMaterial), verbatim ----
+        // Authored defaults from MasterMaterial (Model/SystemModel.SceneMaterial), verbatim.
         b.SetVectorAt(Fields.DynamicToonLightAdjustForDemo, 1f, 1f, 1f, 1f);
         b.SetFloatAt(Fields.DynamicCloudRatio, 1f);
         b.SetFloatAt(Fields.DynamicDepthShadowOff, 0f);
@@ -249,38 +216,23 @@ public sealed class SceneMatUbo : IUboBlock
         b.SetFloatAt(Fields.DynamicDebug1, 0f);
         b.SetFloatAt(Fields.DynamicDebug2, 0f);
         b.SetFloatAt(Fields.DynamicDebug3, 0f);
-        // The 88-float catch-all tail (576..927) is authored all-zero except its very last
-        // component (index 3, .w = 1) in MasterMaterial - kept zero here too, since the specific
-        // slots this codebase has confirmed a real reader for (1/16/20/54, immediately below) are
-        // overridden right after this anyway, and the rest have no confirmed reader to justify a
-        // non-zero guess.
+        // The 88-float catch-all tail (576..927) is authored all-zero except its last component (.w = 1) in MasterMaterial. It stays zero: the slots with a confirmed reader (1, 16, 20, 54) are overridden right after, and the rest have no reader to justify a guess.
 
-        // ---- WildRenderingSharp-driven overrides: live studio/lighting state, not authored constants ----
+        // Overrides driven by live studio and lighting state, not authored constants.
         b.SetVectorAt(Fields.DynamicToonLightAdjustForDemo, midScale, midScale, midScale, 0f);
         b.SetFloatAt(Fields.DynamicBaseLightChangeRatio, highlightScale);
 
-        // DynamicExposure's neutral is 1, not 0 (MasterMaterial's own authored default above IS
-        // 0), and leaving it at 0 is not a no-op - several G-buffer shaders fold it into a lerp
-        // rather than a multiply. Enemy_MiasmaTentacle's skin computes its emission scale as
-        //     fma(fma(volumeMask.y, -DynamicExposure, DynamicExposure), 0.5, 0.5)
-        // which collapses to a flat 0.5 at DynamicExposure = 0 instead of resolving to 1.0 for an
-        // un-masked pixel. Every real palette authors Exposure 1.0 for daylight, and 1.0 is the
-        // identity for every use of it seen in the decompiled shaders - this is a genuine engine
-        // per-frame "Dynamic" override on top of MasterMaterial's own bootstrap default, mirroring
-        // how the real engine's Dynamic fields work in general (see DynamicDepthShadowScale/Off's
-        // own confirmed runtime writer, game::gfx::ModelSceneExtension::setDynamicShadowParams).
+        // DynamicExposure's neutral is 1, not MasterMaterial's authored 0, and 0 is not a no-op: several G-buffer shaders fold it into a lerp. Enemy_MiasmaTentacle's skin computes
+        // its emission scale as fma(fma(volumeMask.y, -DynamicExposure, DynamicExposure), 0.5, 0.5), a flat 0.5 at 0 instead of 1.0 for an unmasked pixel. Daylight palettes author
+        // Exposure 1.0 and 1.0 is the identity for every use seen, so this is an engine-style per-frame override (compare game::gfx::ModelSceneExtension::setDynamicShadowParams).
         b.SetFloatAt(Fields.DynamicExposure, 1f);
 
-        // SceneShadingInfoExposure[1]: ADDED to the shadow term (temp = clamp(shadow + this, 0, 1)).
-        // 0 lets the real PreShadow buffer do something; 1 would unconditionally unshadow the sun.
+        // SceneShadingInfoExposure[1] is added to the shadow term, clamp(shadow + this, 0, 1): 0 lets PreShadow act, 1 would unshadow the sun.
         b.SetFloatAt(Fields.SceneShadingInfoExposureBase + 4 * 1, 0f);
-        // SceneShadingInfoExposure[16]/[20]: the deferred VERTEX shader lerps these by screen Y
-        // into an ambient term prog 6 multiplies albedo by - a genuine ambient sky/ground colour
-        // pair hiding in the reflection's unnamed catch-all array, not a scalar.
+        // SceneShadingInfoExposure[16] and [20]: the deferred vertex shader lerps these by screen Y into an ambient term prog 6 multiplies albedo by, an ambient sky and ground pair hidden in the unnamed catch-all array.
         b.SetVectorAt(Fields.SceneShadingInfoExposureBase + 4 * 16, hemiSkyColor.X, hemiSkyColor.Y, hemiSkyColor.Z);
         b.SetVectorAt(Fields.SceneShadingInfoExposureBase + 4 * 20, hemiGroundColor.X, hemiGroundColor.Y, hemiGroundColor.Z);
-        // SceneShadingInfoExposure[54]: another pow() exponent (see EnvUbo.PowExponentSlots for why
-        // zero is dangerous) landing in the same unnamed tail; 1.0 for the same NaN-free reason.
+        // SceneShadingInfoExposure[54] is another pow() exponent (see EnvUbo.PowExponentSlots); 1.0 for the same NaN-free reason.
         b.SetFloatAt(Fields.SceneShadingInfoExposureBase + 4 * 54, 1f);
 
         return scn;

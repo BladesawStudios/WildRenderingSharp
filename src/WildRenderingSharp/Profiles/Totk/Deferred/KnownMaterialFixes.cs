@@ -6,17 +6,10 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
-/// Manual, individually-verified corrections for real game rendering behavior WildRenderingSharp's shader-
-/// driven pipeline cannot derive automatically - see <see cref="Rendering.LightingContext.EnableKnownMaterialFixes"/>
-/// for why this category exists as a distinct, toggleable thing rather than being folded into the
-/// "faithfully reproduce the real decompiled shader" approach everywhere else in this codebase.
-///
-/// Each fix here is scoped to one specific, named real game asset, verified against actually
-/// observed game behavior - never a guess or a general heuristic that could silently reach other
-/// materials. Adding a new fix means: confirm the real behavior by direct observation, exhaust the
-/// static-analysis options first (shader logic, material data, shader-variant resolution, and the
-/// game's own option-resolution code where Ghidra can reach it), and only then add a narrowly-
-/// scoped correction here with the same evidence trail documented.
+/// Manual, individually verified corrections for game rendering behaviour the shader-driven pipeline cannot derive; see <see cref="Rendering.LightingContext.EnableKnownMaterialFixes"/>.
+/// Each fix is scoped to one named game asset and verified against observed behaviour, never a heuristic that could reach other materials. To add one: confirm the behaviour by
+/// observation, exhaust static analysis (shader logic, material data, variant resolution, the game's option-resolution code via Ghidra), then add a narrow correction with the
+/// same evidence trail.
 /// </summary>
 public sealed class KnownMaterialFixes : IDisposable
 {
@@ -24,28 +17,14 @@ public sealed class KnownMaterialFixes : IDisposable
     readonly uint _program;
 
     /// <summary>
-    /// Cmn_Enemy_DungeonBoss_Eye_Alb (Enemy_Drake's and Enemy_MiasmaTentacle's/Gleeok's shared iris
-    /// texture, bound to shading-model slot "_a0") is authored as a VISIBILITY MASK for the eye's
-    /// emission, not literal diffuse albedo colour - confirmed by directly observing the real game
-    /// (the Gleeok boss): green marks where the glowing eye is visible, black is where it isn't.
-    ///
-    /// The real, correctly-decompiled G-buffer shader for this material (material_prog11146,
-    /// Mt_Eye) is a genuine UV-distortion blend that reads this texture as literal RGB colour, with
-    /// no masking relationship to its own emission output at all (see tasks_set1.md for the full
-    /// trace). That is real, correct game code, faithfully reproduced - the gap is that WildRenderingSharp's
-    /// normal deferred-resolve compositing (real diffuse lighting math using this data as albedo,
-    /// added to emission) doesn't reproduce what the shipped game actually shows: it renders as a
-    /// green-tinted, doubled-brightness result (a real lit contribution AND full emission both
-    /// firing everywhere) instead of emission cleanly gated by the mask.
-    ///
-    /// No masking mechanism for this was found anywhere reachable by static analysis: not in the
-    /// G-buffer or deferred-resolve shader text, not in the per-material static option values
-    /// (which genuinely differ between this material and a working sibling, "Mt_Eye_OutSide", but
-    /// resolve to a structurally different real algorithm rather than revealing a hidden gate), and
-    /// not in the executable's own option-resolution code (confirmed via Ghidra: the mapping from
-    /// an option's numeric value to its real-world meaning is baked into each already-compiled
-    /// shader's instructions, not present anywhere else in the shipped binary). This is therefore a
-    /// targeted, hand-authored correction rather than a discoverable bug fix.
+    /// Cmn_Enemy_DungeonBoss_Eye_Alb (Enemy_Drake's and Enemy_MiasmaTentacle's/Gleeok's shared iris texture, sampler slot "_a0") is authored as a visibility mask for the eye's emission,
+    /// not diffuse albedo: observed in the game (the Gleeok boss), green marks where the glowing eye is visible and black where it is not.
+    /// The decompiled G-buffer shader (material_prog11146, Mt_Eye) is a UV-distortion blend that reads the texture as literal RGB with no masking relationship to its emission, and is
+    /// faithfully reproduced. The gap is that the normal resolve (diffuse lighting using this as albedo, plus emission) renders a green-tinted, doubled-brightness result instead of
+    /// emission gated by the mask.
+    /// No masking mechanism was found by static analysis: not in the shader text, not in the per-material static options (which differ from a working sibling, "Mt_Eye_OutSide", but
+    /// resolve to a different algorithm rather than a hidden gate), and not in the executable's option-resolution code (the mapping from option value to meaning is baked into each
+    /// compiled shader). So this is a hand-authored correction; see tasks_set1.md for the trace.
     /// </summary>
     public const string EyeVisibilityMaskTextureName = "Cmn_Enemy_DungeonBoss_Eye_Alb";
 
@@ -122,14 +101,8 @@ public sealed class KnownMaterialFixes : IDisposable
             vec2 uv = gl_FragCoord.xy / uViewportSize;
             vec3 albedo = texture(tex_alb, uv).rgb;
 
-            // Green specifically (not red, not max-channel) is the confirmed visibility mask for
-            // emission - a CONTINUOUS multiplier (0 = eye not visible here, 1 = fully visible), not
-            // a binary on/off switch, so a partially-green (anti-aliased mask edge, or a genuinely
-            // dim region) pixel gets proportionally dimmed emission rather than either the full
-            // strength or none at all. Red plays a different, separate role (confirmed: it
-            // suppresses a distinct over-brightness artifact, not emission visibility - see this
-            // class's own remarks and the still-open "white bars" item in tasks_set1.md) and must
-            // not be folded into this mask.
+            // Green is the visibility mask: a continuous multiplier (0 = eye not visible, 1 = fully visible), so a partially green pixel gets proportionally dimmed emission.
+            // Red plays a separate role (it suppresses a distinct over-brightness artifact, see the still-open "white bars" item in tasks_set1.md) and must not be folded in.
             float mask = albedo.g;
             vec3 emission = max(texture(tex_emis, uv).rgb, vec3(0.0)) * uEmission * uEmissionExposureRcp;
             fragColor = vec4(emission * mask, 1.0);
@@ -143,17 +116,9 @@ public sealed class KnownMaterialFixes : IDisposable
     }
 
     /// <summary>
-    /// Redraws every shape <see cref="NeedsEyeVisibilityMaskFix"/> flags, replacing the wrong
-    /// green-tinted/doubled-brightness result the normal deferred-resolve pass produced for them
-    /// with emission continuously scaled by the green channel's own brightness (0 = eye not visible
-    /// here, 1 = fully visible - see the fragment shader's own remarks on why this must be a
-    /// multiply, not a discard threshold). Runs into the same target <see cref="ForwardPass"/> does
-    /// - <see cref="RenderTargets.Scene"/>/<see cref="RenderTargets.GBufferDepth"/>, the G-buffer's
-    /// flipped orientation - so its output flows through the same exposure/tonemap/bloom chain as
-    /// everything else. Deliberately NOT depth-tested against that depth buffer - see the no-depth-
-    /// test comment in <see cref="Run"/> for why re-transforming this geometry through a hand-
-    /// written vertex shader made a real per-pixel depth match unreliable (confirmed: visible
-    /// z-fighting with a LEQUAL test).
+    /// Redraws every shape <see cref="NeedsEyeVisibilityMaskFix"/> flags, with emission scaled by the green channel's brightness (a multiply, not a discard threshold) in place of the
+    /// wrong result the normal resolve produced. Runs into the same target as <see cref="ForwardPass"/> (<see cref="RenderTargets.Scene"/> and <see cref="RenderTargets.GBufferDepth"/>,
+    /// in the G-buffer's flipped orientation), so its output flows through the same exposure, tonemap and bloom chain. Depth-tested with a small polygon offset; see the comment in <see cref="Run"/>.
     /// </summary>
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups,
         ReadOnlySpan<Vector4> viewProjFlippedRows, float emissionScale, float exposure)
@@ -166,18 +131,9 @@ public sealed class KnownMaterialFixes : IDisposable
             return;
 
         targets.BindColorAndDepthTarget(targets.Scene, targets.GBufferDepth);
-        // Depth-tested, WITH a small negative polygon offset - the standard decal-over-the-same-
-        // surface technique. This redraws geometry the real G-buffer pass already rasterised,
-        // through a hand-written vertex shader that computes clip position via a completely
-        // different instruction sequence than the real compiled one did, so its depth can legally
-        // land a few ULPs off the real, stored value (ForwardPass.cs's own remarks document exactly
-        // this risk for its own, much closer-matching real-shader redraw). A bare LEQUAL test
-        // against that flickered pass/fail per pixel (confirmed: visible z-fighting); disabling the
-        // test entirely "fixed" that but then drew over anything genuinely in front of the eye
-        // (confirmed by the user: eyelid/head geometry no longer occluded it). The offset nudges
-        // this draw's depth slightly toward the camera by a couple of the depth buffer's own
-        // smallest resolvable steps - enough to always beat the ULP-level self-mismatch, nowhere
-        // near enough to beat a real occluder's genuinely different depth.
+        // Depth-tested with a small negative polygon offset, the standard decal technique. This redraws geometry the G-buffer already rasterised through a hand-written vertex shader
+        // whose clip position can land a few ULPs off the stored depth (see ForwardPass). A bare LEQUAL test flickered (z-fighting); no test at all drew over genuine occluders
+        // (eyelid and head geometry). The offset nudges depth toward the camera by a couple of the buffer's smallest steps: enough to beat the self-mismatch, far short of a real occluder.
         _gl.Enable(EnableCap.DepthTest);
         _gl.DepthFunc(DepthFunction.Lequal);
         _gl.DepthMask(false);
@@ -196,8 +152,7 @@ public sealed class KnownMaterialFixes : IDisposable
 
         foreach (var (group, flagged) in flaggedGroups)
         {
-            // A character's eye fix; batches of placed world objects have none to fix and no
-            // single model matrix to draw it with.
+            // A character's eye fix: batches of placed world objects have none to fix and no single model matrix to draw it with.
             if (group.Batch is not null)
                 continue;
             group.BindUbos(resources);
