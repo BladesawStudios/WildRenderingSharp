@@ -242,7 +242,7 @@ public sealed class WildRenderer : IDisposable
     public InstanceBatch AddInstances(LoadedModel model, IReadOnlyList<Vector4[]> placements, bool updateScene = true)
     {
         using var _ = GLHostState.Enter(_gl);
-        var batch = new InstanceBatch(_gl, model, placements);
+        var batch = new InstanceBatch(_gl, model, placements, Pipeline.Profile.World);
         // Linked now, while the host is loading, rather than lazily on the first frame the batch
         // is visible - a link that misses the program binary cache costs 100-500 ms, and paid
         // mid-frame that is a hitch every time a new model comes into view.

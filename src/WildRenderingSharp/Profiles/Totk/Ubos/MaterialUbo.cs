@@ -1,6 +1,6 @@
 using WildRenderingSharp.Shaders.Common;
 
-namespace WildRenderingSharp.Shaders.Profiles.Totk.Ubos;
+namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>
 /// TotK <c>gsys_material</c> ("Mat"), bound at binding 8 across every draw (G-buffer, z-only,

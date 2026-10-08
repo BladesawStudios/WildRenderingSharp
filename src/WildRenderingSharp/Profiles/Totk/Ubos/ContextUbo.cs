@@ -1,7 +1,7 @@
 using System.Numerics;
 using WildRenderingSharp.Shaders.Common;
 
-namespace WildRenderingSharp.Shaders.Profiles.Totk.Ubos;
+namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>
 /// TotK <c>gsys_context</c> ("Context", decompiled as <c>fp_c4</c>), binding 1, 2368 bytes.

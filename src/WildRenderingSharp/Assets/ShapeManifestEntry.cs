@@ -53,7 +53,7 @@ public sealed class ShapeManifestEntry
     [JsonPropertyName("zonly_shader")] public string ZOnlyShader { get; set; } = "";
     [JsonPropertyName("alpha_test")] public bool AlphaTest { get; set; }
 
-    /// <summary>Path, relative to the data directory, of this material's resolved <c>gsys_material</c> bytes - see <see cref="WildRenderingSharp.Shaders.Profiles.Totk.Ubos.MaterialUbo"/>.</summary>
+    /// <summary>Path, relative to the data directory, of this material's resolved <c>gsys_material</c> bytes - see <see cref="WildRenderingSharp.Profiles.Totk.Ubos.MaterialUbo"/>.</summary>
     [JsonPropertyName("material_ubo")] public string MaterialUbo { get; set; } = "";
     [JsonPropertyName("o_material_behave")] public string MaterialBehave { get; set; } = "";
     /// <summary>Which <c>SystemModel.DeferredMain</c> resolve pass this shape's material resolves through (empty if unmapped).</summary>

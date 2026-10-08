@@ -1,7 +1,7 @@
 using System.Numerics;
 using WildRenderingSharp.Shaders.Common;
 
-namespace WildRenderingSharp.Shaders.Profiles.Totk.Ubos;
+namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>
 /// TotK's skinning matrix palette - the real engine calls the containing GPU buffer
@@ -48,7 +48,8 @@ public sealed class BonePaletteUbo : IUboBlock
     readonly byte[] _data;
 
     public string Name => "_Mtx";
-    public int BindingIndex => 2;
+    public const int Binding = 2;
+    public int BindingIndex => Binding;
     public int SizeBytes => _data.Length;
 
     BonePaletteUbo(byte[] data) => _data = data;

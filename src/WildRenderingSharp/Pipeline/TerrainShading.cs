@@ -101,22 +101,6 @@ public sealed partial class TerrainShading : IDisposable
         }
     }
 
-    /// <summary>
-    /// Rows written for the renderer's Z-up world (<c>row · (p, 1)</c>) re-expressed for a point in
-    /// the game's Y-up world, which the renderer's world is a quarter turn from: <c>(x, y, z)</c>
-    /// is <c>(x, -z, y)</c> there.
-    /// </summary>
-    internal static Vector4[] FromYUp(ReadOnlySpan<Vector4> rows)
-    {
-        var result = new Vector4[rows.Length];
-        for (int i = 0; i < rows.Length; i++)
-            result[i] = new Vector4(rows[i].X, rows[i].Z, -rows[i].Y, rows[i].W);
-        return result;
-    }
-
-    /// <summary>A view-to-world inverse for the Z-up world, as one for the Y-up world.</summary>
-    internal static Vector4[] InverseToYUp(ReadOnlySpan<Vector4> viewInv3) => [viewInv3[0], viewInv3[2], -viewInv3[1]];
-
     public void Dispose()
     {
         if (_materialBuffer != 0)

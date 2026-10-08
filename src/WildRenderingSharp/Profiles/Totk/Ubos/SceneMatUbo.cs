@@ -1,7 +1,7 @@
 using System.Numerics;
 using WildRenderingSharp.Shaders.Common;
 
-namespace WildRenderingSharp.Shaders.Profiles.Totk.Ubos;
+namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>
 /// TotK <c>gsys_scene_material</c> ("SceneMat", decompiled as <c>fp_c13</c>), binding 10, 928

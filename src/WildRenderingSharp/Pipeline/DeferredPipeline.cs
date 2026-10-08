@@ -2,8 +2,9 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Rendering;
-using WildRenderingSharp.Shaders.Profiles.Totk.Ubos;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -88,6 +89,7 @@ public sealed class DeferredPipeline : IDisposable
     readonly string _decompiledDirectory;
     readonly string _deferredMaterialsDirectory;
 
+    public IGameProfile Profile { get; }
     public GLResourceCache Resources { get; }
     public RenderTargets Targets { get; }
     public ShaderProgramCache Programs { get; }
@@ -180,9 +182,10 @@ public sealed class DeferredPipeline : IDisposable
     readonly ShadowCache _mainShadowCache = new();
 
     public DeferredPipeline(GL gl, string dataDirectory, string decompiledDirectory, int width, int height,
-        string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null)
+        string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null, IGameProfile? profile = null)
     {
         _gl = gl;
+        Profile = profile ?? new TotkProfile();
         // Before any instanced program is built - the pass-ID mask builds one in its constructor.
         InstancedShaderPatch.BaseInstance = gl.IsExtensionPresent("GL_ARB_shader_draw_parameters");
         _dataDirectory = dataDirectory;
@@ -329,8 +332,7 @@ public sealed class DeferredPipeline : IDisposable
     /// into it, then the host draws through the game's terrain program with a <c>Context</c> in the
     /// game's own Y-up world.
     /// </summary>
-    void DrawTerrainGBuffer(ITerrainHost host, RenderTargets targets, Camera camera, Camera.ViewProjection vp,
-        Vector4[] viewProjFlipped, Vector4[] projFlipped, Vector4[] viewInv4, Vector2 preTexel)
+    void DrawTerrainGBuffer(ITerrainHost host, RenderTargets targets, Camera camera, CameraData terrainCamera)
     {
         _linearDepth.Run(Resources, targets, camera.NearPlane, camera.FarPlane);
         var (underAlbedo, underNormal, underDepth) = targets.TerrainUnderCopies();
@@ -351,9 +353,7 @@ public sealed class DeferredPipeline : IDisposable
         _gl.CopyImageSubData(targets.GBuffer[3].Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
             underNormal.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)targets.Width, (uint)targets.Height, 1);
 
-        var ctx = ContextUbo.BuildForCamera(TerrainShading.FromYUp(vp.View), TerrainShading.FromYUp(viewProjFlipped), projFlipped,
-            TerrainShading.InverseToYUp(viewInv4[..3]), vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
-        Resources.Ubo("ctx_terrain", ctx.ToByteArray(), bindingIndex: 1);
+        Profile.Camera("ctx_terrain", terrainCamera).Bind(Resources);
         _gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, Terrain.MaterialBuffer);
 
         targets.BindGBuffer();
@@ -523,43 +523,20 @@ public sealed class DeferredPipeline : IDisposable
         // scene between frames may well use storage binding 0 itself (see GLHostState).
         _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 0, _zeroStorageBuffer);
 
-        var vp = camera.BuildViewProjection(targets.Width, targets.Height);
-        Vector4[] projFlipped = [vp.Proj[0], -vp.Proj[1], vp.Proj[2], vp.Proj[3]];
-        Vector2 preTexel = new(1f / targets.Width, 1f / targets.Height);
+        var cam = CameraData.From(camera, targets.Width, targets.Height);
+        var flipped = cam.FlippedY();
 
         Vector3 sunWorld = SunWorldFromElevationAzimuth(lighting.SunElevation, lighting.SunAzimuth);
-        Vector3 sunView = TransformDirection(vp.View, sunWorld);
+        Vector3 sunView = TransformDirection(cam.View, sunWorld);
         Vector3 sunColor = AmbientLighting.SunColor(pal);
         var (hemiSky, hemiGround) = AmbientLighting.ResolveHemisphereColors(pal, lighting.AmbientScale, skyPostFx);
 
-        var viewMat4 = Mat4Math.ToMat4(vp.View);
-        var viewInv4 = Mat4Math.Invert(viewMat4);
-        var viewProj = Mat4Math.Multiply(vp.Proj, viewMat4);
-        var viewProjFlipped = Mat4Math.Multiply(projFlipped, viewMat4);
-
-        // Every Context a game program reads is in the game's own Y-up world (see GameWorld), while
-        // the renderer's own passes keep its Z-up one.
-        var gameView = GameWorld.Rows(vp.View);
-        var gameViewInv = GameWorld.InverseRows(viewInv4[..3]);
-        var ctxTrue = ContextUbo.BuildForCamera(gameView, GameWorld.Rows(viewProj), vp.Proj, gameViewInv, vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
         // The G-buffer's orientation: the plain projection with the upper-left origin the game's
         // programs were written for where the driver has it (see ClipOrigin), else the flipped one.
         bool gameOrigin = ClipOrigin.Supported(_gl);
-        var ctxGBuffer = gameOrigin
-            ? ContextUbo.BuildForCamera(gameView, GameWorld.Rows(viewProj), vp.Proj, gameViewInv, vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel)
-            : ContextUbo.BuildForCamera(gameView, GameWorld.Rows(viewProjFlipped), projFlipped, gameViewInv, vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, preTexel);
-        // VolumeMaskColorNoUse is the palette's own "ignore my tint" switch (present on 131 of the
-        // 131 shipped palettes, read by nothing until now). See EnvPalette.VolumeMaskColorNoUse for
-        // why the tint it gates is inert in WildRenderingSharp either way.
-        Vector3 volumeMaskColor = pal.VolumeMaskColorNoUse ? Vector3.Zero : pal.VolumeMaskColor;
-        float volumeMaskIntensity = pal.VolumeMaskColorNoUse ? 0f : pal.VolumeMaskIntensity;
-        var envUbo = EnvUbo.BuildFromLighting(sunView, GameWorld.Direction(sunWorld), sunColor, hemiSky, hemiGround, volumeMaskColor, volumeMaskIntensity, RenderTargets.ShadowMapSize);
-        var sceneMatUbo = SceneMatUbo.BuildFromLighting(hemiSky, hemiGround, lighting.MidScale, lighting.HighlightScale);
-
-        Resources.Ubo("ctx_true", ctxTrue.ToByteArray());
-        Resources.Ubo("ctx_gbuffer", ctxGBuffer.ToByteArray(), bindingIndex: 1);
-        Resources.Ubo("env", envUbo.ToByteArray(), bindingIndex: 6);
-        Resources.Ubo("scenemat", sceneMatUbo.ToByteArray(), bindingIndex: 10);
+        Profile.Camera("ctx_true", cam).Bind(Resources);
+        Profile.Camera("ctx_gbuffer", gameOrigin ? cam : flipped).Bind(Resources);
+        Profile.Lighting(BuildSceneLighting(pal, lighting, sunView, sunWorld, sunColor, hemiSky, hemiGround)).Bind(Resources);
         Resources.Ubo("support", SupportBufferUbo.Build(), bindingIndex: SupportBufferUbo.BindingIndex);
         Resources.BindZeroUbo(GlslSanitizer.OrphanBlockBinding, 65536);
         Resources.BindEngineVertexTextures();
@@ -570,14 +547,13 @@ public sealed class DeferredPipeline : IDisposable
         // are computed once in SetScene) so Model Config's "Enabled" toggle takes effect on the
         // very next frame, not just the next actor placed.
         var allGroups = request.Actors.Select(a => new ActorDrawGroup(
-            BuildBonePalette(a.Model, GameWorld.PlacementRows(a.ModelMatrixRows), a.BoneWorldMatrices).ToByteArray(),
-            ShapeMatrixUbo.BuildFromModelMatrix(GameWorld.PlacementRows(a.ModelMatrixRows)).ToByteArray(),
-            GameWorld.PlacementRows(a.ModelMatrixRows),
+            Profile.Actor(new SkinningData(a.ModelMatrixRows, a.Model.Skeleton, a.BoneWorldMatrices)),
+            Profile.World.PlacementRows(a.ModelMatrixRows),
             a.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow)).ToList())).ToList();
         foreach (var batch in instances)
         {
             if (batch.Visible.Count > 0)
-                allGroups.Add(new ActorDrawGroup([], [], IdentityRows,
+                allGroups.Add(new ActorDrawGroup(Profile.InstancedActorPlaceholders, IdentityRows,
                     batch.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow) && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch));
         }
         // Shapes that read the lit scene (water) draw after it is lit - see SceneColorShapePass.
@@ -599,8 +575,7 @@ public sealed class DeferredPipeline : IDisposable
         {
             _terrainDrawn = true;
             EnsurePass(DefaultPass);
-            DrawTerrainGBuffer(terrainHost, targets, camera, vp,
-                gameOrigin ? viewProj : viewProjFlipped, gameOrigin ? vp.Proj : projFlipped, viewInv4, preTexel);
+            DrawTerrainGBuffer(terrainHost, targets, camera, gameOrigin ? cam : flipped);
         }
         Resources.BindUbo("ctx_true", 1); // every later pass uses the true (unflipped) projection
 
@@ -624,7 +599,7 @@ public sealed class DeferredPipeline : IDisposable
             foreach (var batch in instances)
                 batch.UpdateShadowRuns(shadowFocus);
         ScreenSpaceShadowAndAoPass.CascadeParams? cascadeParams = request.ShadowCascades is { Count: > 0 } cascades && shadowMapOverride is null
-            ? RenderCascades(request, cascades, castingGroups, instances, sunWorld, camera, preTexel, targets, shadowCache)
+            ? RenderCascades(request, cascades, castingGroups, instances, sunWorld, camera, cam, targets, shadowCache)
             : null;
 
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
@@ -656,9 +631,7 @@ public sealed class DeferredPipeline : IDisposable
             lightMatrices = ShadowPass.BuildLightMatrices(rotatedLo, rotatedHi, sunWorld);
             if (shadowMapOverride is null)
             {
-                var ctxLight = ContextUbo.BuildForCamera(GameWorld.Rows(lightMatrices.View3Rows), GameWorld.Rows(lightMatrices.ViewProj), lightMatrices.Proj,
-                    GameWorld.InverseRows(Mat4Math.Invert(Mat4Math.ToMat4(lightMatrices.View3Rows))[..3]), 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
-                Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);
+                Profile.Camera("ctx_light", CameraData.ForLight(lightMatrices, cam)).Bind(Resources);
                 _shadow.Run(Resources, targets, ShadowGroups(castingGroups, instances, request.ShadowFocus), Programs);
                 GLDiagnostics.CheckPass(_gl, "shadow pass");
                 Resources.BindUbo("ctx_true", 1);
@@ -682,8 +655,8 @@ public sealed class DeferredPipeline : IDisposable
         // ---- screen-space shadow + AO ----
         float lightRadius = (rotatedHi - rotatedLo).Length() * 0.5f + 1e-4f;
         var ssaoParams = new ScreenSpaceShadowAndAoPass.Params(
-            ViewInv3Rows: viewInv4[..3], LightViewProj: lightMatrices.ViewProj,
-            TanHalf: new Vector2(vp.Aspect * vp.TanHalfFovY, vp.TanHalfFovY),
+            ViewInv3Rows: cam.ViewInv, LightViewProj: lightMatrices.ViewProj,
+            TanHalf: cam.TanHalf,
             SunWorld: sunWorld, SunView: sunView,
             Near: camera.NearPlane, Far: camera.FarPlane,
             ShadowBias: request.ShadowBias, ShadowTexel: 1f / RenderTargets.ShadowMapSize,
@@ -696,7 +669,7 @@ public sealed class DeferredPipeline : IDisposable
 
         // ---- light pre-pass (real per-pixel light colour for cTex_DeferredLightPrePass - see LightPrePass's own remarks) ----
         var lightPrePassParams = new LightPrePass.Params(
-            ViewInv3Rows: viewInv4[..3], TanHalf: new Vector2(vp.Aspect * vp.TanHalfFovY, vp.TanHalfFovY),
+            ViewInv3Rows: cam.ViewInv, TanHalf: cam.TanHalf,
             Near: camera.NearPlane, Far: camera.FarPlane,
             SunWorld: sunWorld, SunColor: sunColor, HemiSky: hemiSky, HemiGround: hemiGround,
             Synthetic: lighting.SyntheticLightPrePass);
@@ -705,7 +678,7 @@ public sealed class DeferredPipeline : IDisposable
 
         // ---- pass-ID mask (UNflipped proj - the resolve consumes it in its own true-GL space) ----
         // In the game's world, like the palettes and placements the mask draws with.
-        var maskViewProj = GameWorld.Rows(Mat4Math.Multiply(vp.Proj, viewMat4));
+        var maskViewProj = Profile.World.Rows(cam.ViewProj);
         _passIdMask.Run(Resources, targets, allGroups, _passNames, maskViewProj, camera.NearPlane, camera.FarPlane);
         GLDiagnostics.CheckPass(_gl, "pass-ID mask");
 
@@ -713,8 +686,8 @@ public sealed class DeferredPipeline : IDisposable
         // Paints Final BEFORE the resolve loop below, which only ever composites into a pixel its
         // own pass-ID mask claims - see that pass's own remarks for why draw order (not blending)
         // is what makes this survive untouched everywhere no placed actor covers.
-        var tanHalf = new Vector2(vp.Aspect * vp.TanHalfFovY, vp.TanHalfFovY);
-        _background.Run(Resources, targets, lighting.Background, lighting.BackgroundColor, sunWorld, pal, viewInv4[..3], tanHalf, lighting.SceneGain, skyPostFx, cloudPostFx, skyBin, lighting.AtmosphereIntensity);
+        var tanHalf = cam.TanHalf;
+        _background.Run(Resources, targets, lighting.Background, lighting.BackgroundColor, sunWorld, pal, cam.ViewInv, tanHalf, lighting.SceneGain, skyPostFx, cloudPostFx, skyBin, lighting.AtmosphereIntensity);
         GLDiagnostics.CheckPass(_gl, "background");
 
         // ---- the REAL sky: agl_sky_postfx_sky sampling the Bruneton LUT the precompute baked.
@@ -769,7 +742,7 @@ public sealed class DeferredPipeline : IDisposable
                 ? SkyPostFxPass.Resolve(pal, skyPostFx, skyIntensity, lighting.SkyFogStrength, lighting.SkyFogNormaliseHue)
                 : default;
             _skyPostFx.Run(Resources, targets, targets.Final, _skyPrecompute.BakedInscatter,
-                viewInv4[..3], vp.Aspect, vp.TanHalfFovY, sunWorld, skyPostFx, skyIntensity, skyGroundColor, lighting.SkyPaletteTint,
+                cam.ViewInv, cam.Aspect, cam.TanHalfFovY, sunWorld, skyPostFx, skyIntensity, skyGroundColor, lighting.SkyPaletteTint,
                 adhocFog);
             GLDiagnostics.CheckPass(_gl, "real sky postfx");
         }
@@ -783,7 +756,7 @@ public sealed class DeferredPipeline : IDisposable
             // hue so the sprite's brightness is the slider's business rather than the palette's
             // raw intensity (which runs to 18 at noon and would clip the disc to flat white).
             Vector3 sunHue = pal.SkySunColorNoUse ? Vector3.One : AmbientLighting.NormaliseHue(pal.SkySunColor);
-            _skyBody.Run(Resources, targets, targets.Final, viewInv4[..3], vp.Aspect, vp.TanHalfFovY,
+            _skyBody.Run(Resources, targets, targets.Final, cam.ViewInv, cam.Aspect, cam.TanHalfFovY,
                 new SkyBodyPass.Params(
                     SunDirZUp: sunWorld,
                     MoonDirZUp: moonWorld,
@@ -803,7 +776,7 @@ public sealed class DeferredPipeline : IDisposable
         // texture not wired to the real sky yet).
         if (lighting.UseRealCloudDome && lighting.Background == BackgroundMode.TotkSky)
         {
-            _cloudDome.Run(Resources, targets, pal, cloudPostFx.Shared, cloudPostFx.Layer0, vp.View, vp.Proj, camera.Eye, sunWorld, camera.FarPlane, lighting.SceneGain, lighting.CloudBrightness, lighting.Exposure, lighting.AnimateClouds,
+            _cloudDome.Run(Resources, targets, pal, cloudPostFx.Shared, cloudPostFx.Layer0, cam.View, cam.Proj, camera.Eye, sunWorld, camera.FarPlane, lighting.SceneGain, lighting.CloudBrightness, lighting.Exposure, lighting.AnimateClouds,
                 lighting.CloudFade, pal.FogColor, lighting.CloudResolutionScale,
                 _skyPrecompute.BakedInscatter);
             GLDiagnostics.CheckPass(_gl, "cloud dome");
@@ -882,7 +855,7 @@ public sealed class DeferredPipeline : IDisposable
         if (lighting.ShowGrid)
         {
             _forward.FlipInto(Resources, targets, targets.Scene, targets.Final, flip: true);
-            _grid.Run(targets, viewProjFlipped, camera.Eye, MathF.Max(20f, sceneRadius * 20f));
+            _grid.Run(targets, flipped.ViewProj, camera.Eye, MathF.Max(20f, sceneRadius * 20f));
             _forward.FlipInto(Resources, targets, targets.Final, targets.Scene, flip: true);
             GLDiagnostics.CheckPass(_gl, "grid");
         }
@@ -896,7 +869,7 @@ public sealed class DeferredPipeline : IDisposable
         if (lighting.EnableKnownMaterialFixes && _cachedNeedsKnownMaterialFixes)
         {
             _forward.FlipInto(Resources, targets, targets.Scene, targets.Final, flip: true);
-            _knownFixes.Run(Resources, targets, opaqueGroups, GameWorld.Rows(viewProjFlipped), lighting.EmissionScale, lighting.Exposure);
+            _knownFixes.Run(Resources, targets, opaqueGroups, Profile.World.Rows(flipped.ViewProj), lighting.EmissionScale, lighting.Exposure);
             _forward.FlipInto(Resources, targets, targets.Final, targets.Scene, flip: true);
             GLDiagnostics.CheckPass(_gl, "known material fixes");
         }
@@ -978,29 +951,14 @@ public sealed class DeferredPipeline : IDisposable
         return new FrameResult(targets.Ldr, targets.Final, targets.GBuffer[1], targets.GBuffer[3], targets.PreShadow, targets.PreMisc, targets.PassId);
     }
 
-    /// <summary>Builds one actor's real gsys_skeleton palette (bind pose, or its own animated pose), or falls back to <c>FillIdentity</c> for a model with no skeleton at all - every placed actor gets its own, never a shared/combined one (see class remarks).</summary>
-    static BonePaletteUbo BuildBonePalette(LoadedModel model, Vector4[] modelMatrixRows, Matrix4x4[]? boneWorldOverride)
+    static SceneLightingData BuildSceneLighting(EnvPalette palette, LightingContext lighting,
+        Vector3 sunView, Vector3 sunWorld, Vector3 sunColor, Vector3 hemiSky, Vector3 hemiGround)
     {
-        if (model.Skeleton is not { } skel)
-            return BonePaletteUbo.FillIdentity(modelMatrixRows);
-
-        Matrix4x4[] boneWorld = boneWorldOverride ?? SkeletonPose.BindPoseWorldMatrices(skel);
-
-        // modelMatrixRows is WildRenderingSharp's GPU "rows" convention (translation in each row's W - see
-        // EulerRotation/Mat4Math), NOT a native row-vector Matrix4x4's own row layout (which
-        // BonePaletteUbo.Build's multiplication needs) - transpose it the same way
-        // SkeletonManifest.InverseModelMatricesAsMatrices does, or every bone's palette matrix
-        // silently loses the actor's placement transform.
-        var modelTransform = new Matrix4x4(
-            modelMatrixRows[0].X, modelMatrixRows[1].X, modelMatrixRows[2].X, 0,
-            modelMatrixRows[0].Y, modelMatrixRows[1].Y, modelMatrixRows[2].Y, 0,
-            modelMatrixRows[0].Z, modelMatrixRows[1].Z, modelMatrixRows[2].Z, 0,
-            modelMatrixRows[0].W, modelMatrixRows[1].W, modelMatrixRows[2].W, 1);
-
-        // MatrixToBoneList is the COMBINED smooth+rigid slot table; the inverse-bind array's own
-        // length is what tells Build where the rigid segment starts (see BonePaletteUbo's remarks).
-        return BonePaletteUbo.Build(boneWorld, CollectionsMarshal.AsSpan(skel.MatrixToBoneList),
-            skel.InverseModelMatricesAsMatrices(), modelTransform);
+        // The palette's own "ignore my tint" switch.
+        Vector3 volumeMaskColor = palette.VolumeMaskColorNoUse ? Vector3.Zero : palette.VolumeMaskColor;
+        float volumeMaskIntensity = palette.VolumeMaskColorNoUse ? 0f : palette.VolumeMaskIntensity;
+        return new SceneLightingData(sunView, sunWorld, sunColor, hemiSky, hemiGround, volumeMaskColor, volumeMaskIntensity,
+            RenderTargets.ShadowMapSize, lighting.MidScale, lighting.HighlightScale);
     }
 
     static Vector3 SunWorldFromElevationAzimuth(float elevation, float azimuth)
@@ -1111,7 +1069,7 @@ public sealed class DeferredPipeline : IDisposable
     /// </summary>
     ScreenSpaceShadowAndAoPass.CascadeParams RenderCascades(FrameRequest request, IReadOnlyList<ShadowFocus> cascades,
         List<ActorDrawGroup> allGroups, IReadOnlyList<InstanceBatch> instances, Vector3 sunWorld, Camera camera,
-        Vector2 preTexel, RenderTargets targets, ShadowCache cache)
+        CameraData sceneCamera, RenderTargets targets, ShadowCache cache)
     {
         int n = Math.Min(cascades.Count, RenderTargets.MaxCascades);
         var viewProj = new Vector4[n][];
@@ -1143,29 +1101,25 @@ public sealed class DeferredPipeline : IDisposable
                 foreach (var run in batch.CascadeRuns(c))
                     hash.Add(run);
             }
-            long signature = hash.ToHashCode() | (1L << 40);
+            long signature = (uint)hash.ToHashCode() | (1L << 40);
 
             if (cache.CascadeSignature[c] != signature)
             {
-                var ctxLight = ContextUbo.BuildForCamera(GameWorld.Rows(lm.View3Rows), GameWorld.Rows(lm.ViewProj), lm.Proj,
-                    GameWorld.InverseRows(Mat4Math.Invert(Mat4Math.ToMat4(lm.View3Rows))[..3]), 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
-                Resources.Ubo("ctx_light", ctxLight.ToByteArray(), bindingIndex: 1);
+                Profile.Camera("ctx_light", CameraData.ForLight(lm, sceneCamera)).Bind(Resources);
 
                 static ActorDrawGroup Casting(ActorDrawGroup g) => g with { Shapes = g.Shapes.Where(s => !s.ReadsSceneColor).ToList() };
                 var groups = allGroups.Where(g => g.Batch is null).Select(Casting).ToList();
                 foreach (var batch in instances)
                 {
                     if (batch.CascadeRuns(c).Count > 0)
-                        groups.Add(new ActorDrawGroup([], [], IdentityRows,
+                        groups.Add(new ActorDrawGroup(Profile.InstancedActorPlaceholders, IdentityRows,
                             batch.Model.Shapes.Where(s => s.Enabled && s.CastsShadow && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(),
                             batch, ShadowRuns: true, Cascade: c));
                 }
                 _shadow.Run(Resources, targets, groups, Programs, c);
                 if (request.Terrain is { } terrainHost && Terrain.Available)
                 {
-                    var ctxTerrain = ContextUbo.BuildForCamera(TerrainShading.FromYUp(lm.View3Rows), TerrainShading.FromYUp(lm.ViewProj), lm.Proj,
-                        TerrainShading.InverseToYUp(Mat4Math.Invert(Mat4Math.ToMat4(lm.View3Rows))[..3]), 1f, 1f, camera.NearPlane, camera.FarPlane, preTexel);
-                    Resources.Ubo("ctx_light_terrain", ctxTerrain.ToByteArray(), bindingIndex: 1);
+                    Profile.Camera("ctx_light_terrain", CameraData.ForLight(lm, sceneCamera)).Bind(Resources);
                     terrainHost.DrawShadow(new TerrainDraw(_gl, Hosting.YUpWorld.PointBack(camera.Eye), c,
                         new Vector4(Hosting.YUpWorld.PointBack(focus.Center), focus.Radius)));
                     _gl.UseProgram(0);
@@ -1209,7 +1163,7 @@ public sealed class DeferredPipeline : IDisposable
     /// shadow-focus runs (<see cref="InstanceBatch.ShadowVisible"/>) - including a batch the camera
     /// sees none of - instead of from what is on screen.
     /// </summary>
-    static List<ActorDrawGroup> ShadowGroups(List<ActorDrawGroup> allGroups, IReadOnlyList<InstanceBatch> instances, ShadowFocus? focus)
+    List<ActorDrawGroup> ShadowGroups(List<ActorDrawGroup> allGroups, IReadOnlyList<InstanceBatch> instances, ShadowFocus? focus)
     {
         // Shapes drawn over the lit scene (water) cast nothing.
         static ActorDrawGroup Casting(ActorDrawGroup g) => g with { Shapes = g.Shapes.Where(s => !s.ReadsSceneColor).ToList() };
@@ -1219,7 +1173,7 @@ public sealed class DeferredPipeline : IDisposable
         foreach (var batch in instances)
         {
             if (batch.ShadowVisible.Count > 0)
-                groups.Add(new ActorDrawGroup([], [], IdentityRows,
+                groups.Add(new ActorDrawGroup(Profile.InstancedActorPlaceholders, IdentityRows,
                     batch.Model.Shapes.Where(s => s.Enabled && s.CastsShadow && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch, ShadowRuns: true));
         }
         return groups;

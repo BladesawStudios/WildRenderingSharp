@@ -175,7 +175,7 @@ public sealed class SkyPostFxPass : IDisposable
     /// The pow() exponent on the view ray's upward component. MUST be strictly positive: the
     /// decompiled program renders pow as <c>exp2(log2(up) * atten)</c>, so at the horizon (up = 0)
     /// an exponent of 0 evaluates <c>exp2(-inf * 0)</c> = NaN and poisons the whole sky - the same
-    /// trap <see cref="WildRenderingSharp.Shaders.Profiles.Totk.Ubos.EnvUbo.PowExponentSlots"/> documents.
+    /// trap <see cref="WildRenderingSharp.Profiles.Totk.Ubos.EnvUbo.PowExponentSlots"/> documents.
     /// <see cref="Resolve"/> is what guarantees it.
     /// </param>
     /// <param name="Color">Fog colour, ALREADY in the sky's own HDR units - the shader mixes it in raw, with no intensity multiply of its own (unlike the LUT, which it scales by Context[13].x).</param>

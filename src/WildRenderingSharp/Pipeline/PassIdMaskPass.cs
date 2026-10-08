@@ -43,7 +43,7 @@ public sealed class PassIdMaskPass : IDisposable
     ///     the high half, which this codebase's exporter never packs, so it stays zero);
     ///   - <c>_Mtx</c> at binding 2 is one flat <c>vec4</c> array, three consecutive rows per bone
     ///     (48 bytes), each row dotted with <c>vec4(pos, 1)</c> to produce one output component -
-    ///     row-vector convention, exactly what <see cref="WildRenderingSharp.Shaders.Profiles.Totk.Ubos.BonePaletteUbo"/> writes;
+    ///     row-vector convention, exactly what <see cref="WildRenderingSharp.Profiles.Totk.Ubos.BonePaletteUbo"/> writes;
     ///   - a skinned draw does NOT apply the shape transform separately: the model matrix is already
     ///     folded into every palette entry, so skinned vertices go through <c>uViewProj</c> while
     ///     only <c>SKIN_COUNT == 0</c> (bone pose baked into the exported positions) uses <c>uMVP</c>.

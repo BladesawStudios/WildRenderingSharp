@@ -1,6 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -27,7 +28,7 @@ public enum ShapeProgram
 /// rather than once per placement. Passes do not need to know which kind they hold - they bind with
 /// <see cref="BindUbos"/> and draw with <see cref="Draw"/>.
 /// </remarks>
-public readonly record struct ActorDrawGroup(byte[] BonesBytes, byte[] ShpMtxBytes, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
+public readonly record struct ActorDrawGroup(IReadOnlyList<UniformBlock> Uniforms, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
     InstanceBatch? Batch = null, bool ShadowRuns = false, int Cascade = -1)
 {
     /// <summary>The batch's runs this group draws: a cascade's or the shadow focus's runs for a shadow group, its camera runs otherwise.</summary>
@@ -54,13 +55,11 @@ public readonly record struct ActorDrawGroup(byte[] BonesBytes, byte[] ShpMtxByt
     {
         if (Batch is { } batch)
         {
-            resources.BindZeroUbo(2);
-            resources.BindZeroUbo(4);
+            Uniforms.Bind(resources);
             resources.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, InstancedShaderPatch.InstanceBinding, batch.Buffer);
             return;
         }
-        resources.Ubo("bones", BonesBytes, bindingIndex: 2);
-        resources.Ubo("shpmtx", ShpMtxBytes, bindingIndex: 4);
+        Uniforms.Bind(resources);
     }
 
     /// <summary>Draws one of this group's shapes with the chosen program - the actor once, or every visible run of the batch.</summary>

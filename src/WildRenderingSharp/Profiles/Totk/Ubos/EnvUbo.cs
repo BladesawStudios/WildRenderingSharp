@@ -1,7 +1,7 @@
 using System.Numerics;
 using WildRenderingSharp.Shaders.Common;
 
-namespace WildRenderingSharp.Shaders.Profiles.Totk.Ubos;
+namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>
 /// TotK <c>gsys_environment</c> ("Env", decompiled as <c>fp_c9</c>), binding 6, 1328 bytes.

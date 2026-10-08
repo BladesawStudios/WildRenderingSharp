@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline;
@@ -189,7 +190,7 @@ public sealed class InstanceBatch : IDisposable
     }
 
     /// <param name="placements">Each placement's model rows, the convention <see cref="ActorRenderInput.ModelMatrixRows"/> uses.</param>
-    public InstanceBatch(GL gl, LoadedModel model, IReadOnlyList<Vector4[]> placements)
+    public InstanceBatch(GL gl, LoadedModel model, IReadOnlyList<Vector4[]> placements, IWorldBasis world)
     {
         _gl = gl;
         Model = model;
@@ -209,7 +210,7 @@ public sealed class InstanceBatch : IDisposable
         {
             // What the game's programs read is in the game's own world (GameWorld); the placements
             // themselves stay as given, for bounds, culling and shadows.
-            Vector4[] rows = GameWorld.PlacementRows(placements[i]);
+            Vector4[] rows = world.PlacementRows(placements[i]);
             Vector4[] given = placements[i];
             int at = i * Stride;
             data[at] = rows[0];

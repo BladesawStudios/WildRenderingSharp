@@ -74,14 +74,14 @@ public sealed class BoneManifestEntry
 
 /// <summary>
 /// Deserialized <c>&lt;Model&gt;.skeleton.json</c> - everything needed to build the real
-/// <see cref="WildRenderingSharp.Shaders.Profiles.Totk.Ubos.BonePaletteUbo"/> at bind pose (via
+/// <see cref="WildRenderingSharp.Profiles.Totk.Ubos.BonePaletteUbo"/> at bind pose (via
 /// <see cref="WildRenderingSharp.Rendering.SkeletonPose.BindPoseWorldMatrices"/>), or at any animated
 /// pose given a <see cref="SkeletalAnimManifest"/>.
 ///
 /// THE PALETTE IS TWO SEGMENTS AND <see cref="MatrixToBoneList"/> COVERS BOTH - it has
 /// <see cref="SmoothCount"/> + <see cref="RigidCount"/> entries, not just the smooth ones, and
 /// <see cref="InverseModelMatrices"/> is parallel to its smooth PREFIX only. See
-/// <see cref="WildRenderingSharp.Shaders.Profiles.Totk.Ubos.BonePaletteUbo"/>'s remarks for the Ghidra
+/// <see cref="WildRenderingSharp.Profiles.Totk.Ubos.BonePaletteUbo"/>'s remarks for the Ghidra
 /// citations and what goes wrong when the split is missed.
 /// </summary>
 public sealed class SkeletonManifest
