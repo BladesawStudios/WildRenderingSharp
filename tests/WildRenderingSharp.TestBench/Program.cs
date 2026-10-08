@@ -62,6 +62,13 @@ if (options.TryGetValue("palette", out var palette))
     renderer.Totk.PaletteName = palette;
 if (options.TryGetValue("atmosphere", out var atmosphere))
     renderer.Totk.AtmosphereIntensity = float.Parse(atmosphere);
+if (options.ContainsKey("palette-info"))
+{
+    var pal = renderer.Environment.Palettes.Get(renderer.Totk.PaletteName);
+    Console.WriteLine($"SkySunColor={pal.SkySunColor} intensity={pal.SkySunColorIntensity} noUse={pal.SkySunColorNoUse} Fog={pal.FogColor} BgDif={pal.BgDifColor}x{pal.BgDifIntensity}");
+}
+if (options.TryGetValue("azimuth", out var azimuth))
+    renderer.Lighting.SunAzimuth = float.Parse(azimuth);
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
 if (options.TryGetValue("list-palettes", out _))
@@ -80,6 +87,19 @@ if (options.TryGetValue("lookup", out var lookup))
 }
 if (options.TryGetValue("tint", out var tint))
     renderer.Totk.SkyPaletteTint = float.Parse(tint);
+if (options.TryGetValue("fog", out var fog))
+{
+    renderer.Totk.UseSkyFog = true;
+    renderer.Totk.SkyFogStrength = float.Parse(fog);
+}
+if (options.TryGetValue("haze", out var haze))
+    renderer.Totk.SkyHorizonHaze = float.Parse(haze);
+if (options.TryGetValue("flare-threshold", out var flareThreshold))
+    renderer.Totk.LensFlareThreshold = float.Parse(flareThreshold);
+if (options.ContainsKey("noflare"))
+    renderer.Totk.UseLensFlare = false;
+if (options.ContainsKey("nobodies"))
+    renderer.Totk.ShowSun = renderer.Totk.ShowMoon = false;
 if (options.ContainsKey("noclouds"))
     renderer.Totk.UseRealCloudDome = false;
 if (options.TryGetValue("exposure", out var exposure))
@@ -94,8 +114,8 @@ for (var e = gl.GetError(); e != GLEnum.NoError; e = gl.GetError())
     errors.Add(e);
 
 if (options.ContainsKey("probe"))
-    foreach (float v in new[] { 0.05f, 0.2f, 0.4f, 0.6f, 0.75f })
-        Console.WriteLine($"HDR v={v:F2}: {renderer.View.ProbeHdr(new Vector2(0.85f, v))}");
+    foreach (float v in new[] { 0.05f, 0.2f, 0.4f, 0.6f, 0.62f, 0.64f, 0.66f, 0.68f, 0.7f, 0.75f })
+        Console.WriteLine($"HDR v={v:F2}: {renderer.View.ProbeHdr(new Vector2(float.Parse(Option("probe-x", "0.85")), v))}");
 
 byte[] rgba = renderer.View.ReadOutputRgba8();
 PngWriter.Write(outPath, rgba, size, size);

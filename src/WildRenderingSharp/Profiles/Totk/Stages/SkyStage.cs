@@ -62,14 +62,14 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
 
         float skyUnit = lighting.SceneGain * SkyGain * palette.BgDifIntensity / 5.0f;
         float intensity = settings.AtmosphereIntensity * skyUnit;
-        Vector3 groundColor = environment.SkyPostFx.GroundColor * skyUnit;
+        Vector3 hazeColor = palette.FogColor * intensity;
         var fog = settings.UseSkyFog
             ? SkyPostFxPass.Resolve(palette, environment.SkyPostFx, intensity, settings.SkyFogStrength, settings.SkyFogNormaliseHue)
             : default;
 
         _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter,
-            cam.ViewInv, cam.Aspect, cam.TanHalfFovY, frame.SunWorld, environment.SkyPostFx, intensity, groundColor,
-            settings.SkyPaletteTint, fog);
+            cam.ViewInv, cam.Aspect, cam.TanHalfFovY, frame.SunWorld, environment.SkyPostFx, intensity, hazeColor,
+            settings.SkyHorizonHaze, fog);
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
     }
 
@@ -89,8 +89,13 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var palette = environment.Palette;
         var cam = frame.Cam;
 
-        // The sprite takes the palette's sun hue only; its brightness is the slider's.
-        Vector3 sunHue = palette.SkySunColorNoUse ? Vector3.One : AmbientLighting.NormaliseHue(palette.SkySunColor);
+        // The disc is the sun seen through the atmosphere: white overhead, orange and then red as it nears the horizon. The palette's
+        // SkySunColor is the tint the sun scatters into the sky (a sunset authors a lilac there) and would paint the disc wrongly.
+        float rayleighAmplifier = MathF.Max(0.02f, palette.SkyRayleighAmplifier);
+        float mieAmplifier = palette.SkyMieAmplifier > 0f ? palette.SkyMieAmplifier : 1f;
+        Vector3 sunHue = SunTransmittance.Colour(environment.SkyPostFx, rayleighAmplifier, mieAmplifier, lighting.SunElevation);
+        float sunPeak = MathF.Max(sunHue.X, MathF.Max(sunHue.Y, sunHue.Z));
+        if (sunPeak > 1e-6f) sunHue /= sunPeak;
         _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, cam.ViewInv, cam.Aspect, cam.TanHalfFovY,
             new SkyBodyPass.Params(
                 SunDirZUp: frame.SunWorld,

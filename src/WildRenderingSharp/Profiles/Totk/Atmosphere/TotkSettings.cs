@@ -23,10 +23,13 @@ public sealed class TotkSettings
 
     public float SkyPaletteTint { get; set; }
 
+    /// <summary>How far the sky shader blends the haze colour (the palette's fog colour) into the table where the table is thick, which is toward the horizon.</summary>
+    public float SkyHorizonHaze { get; set; }
+
 
     public bool UseLensFlare { get; set; } = true;
 
-    public float LensFlareThreshold { get; set; } = 24f;
+    public float LensFlareThreshold { get; set; } = 60f;
 
     public bool LensFlareSkyOnly { get; set; } = true;
     public float LensFlareGhostSpacing { get; set; } = 0.32f;

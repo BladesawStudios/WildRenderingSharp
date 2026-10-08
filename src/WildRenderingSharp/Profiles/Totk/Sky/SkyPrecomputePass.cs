@@ -282,6 +282,10 @@ public sealed class SkyPrecomputePass : IDisposable
         return buf;
     }
 
+    // Config[1].x is the Mie phase asymmetry: the solve passes use it as g, g*g, 2+g*g and 1+g*g. The bake pass reads the same
+    // constant from RenderInfo[1].x, and the captured block holds 0.75 there.
+    const float MieAsymmetry = 0.75f;
+
     internal static byte[] BuildConfig(SkyPostFx postfx, int layer,
         float rayleighAmplifier = 1f, float mieAmplifier = 1f)
     {
@@ -294,6 +298,7 @@ public sealed class SkyPrecomputePass : IDisposable
         u.Set(0, 1, br.Y);
         u.Set(0, 2, br.Z);
         u.Set(0, 3, postfx.MieScatteringCoeff * mieAmplifier);
+        u.Set(1, 0, MieAsymmetry);
         u.Set(1, 1, postfx.RayleighBaseHeight);
         u.Set(1, 2, postfx.MieBaseHeight);
 
@@ -513,6 +518,9 @@ public sealed class SkyPrecomputePass : IDisposable
 
     public Vector3 PaletteTint { get; set; } = Vector3.One;
 
+    // The table's v axis is the view direction's y component mapped to 0..1, so 0.5 is the horizon; 0.58 is about 9 degrees above it.
+    public float HorizonClampY { get; set; } = 0.58f;
+
     uint _calibProgram;
 
     static readonly string CalibVert = GlslFiles.Load("Totk/Sky/SkyPrecompute/Calib.vert");
@@ -524,8 +532,6 @@ public sealed class SkyPrecomputePass : IDisposable
     void ApplySpectralCalibration()
     {
         Vector3 gain = SpectralCalibration * PaletteTint;
-        if (gain == Vector3.One)
-            return;
 
         if (_calibProgram == 0)
             _calibProgram = GLProgramBuilder.Build(_gl, CalibVert, CalibFrag, "sky_spectral_calibration");
@@ -535,6 +541,7 @@ public sealed class SkyPrecomputePass : IDisposable
         _gl.UseProgram(_calibProgram);
         _gl.BindTextureUniform(_calibProgram, "tSrc", 0, _bakedInscatter);
         _gl.SetVec3(_calibProgram, "uGain", gain);
+        _gl.SetFloat(_calibProgram, "uHorizonY", HorizonClampY);
         _gl.BindVertexArray(_vao);
         _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         _gl.BindVertexArray(0);
