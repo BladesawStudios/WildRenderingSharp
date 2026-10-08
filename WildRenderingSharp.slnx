@@ -4,4 +4,7 @@
     <Project Path="src/WildRenderingSharp.AampReader/WildRenderingSharp.AampReader.csproj" />
     <Project Path="src/WildRenderingSharp.Preparation/WildRenderingSharp.Preparation.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WildRenderingSharp.Tests/WildRenderingSharp.Tests.csproj" />
+  </Folder>
 </Solution>
