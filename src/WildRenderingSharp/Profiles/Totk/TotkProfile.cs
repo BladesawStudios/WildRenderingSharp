@@ -1,4 +1,5 @@
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk;
@@ -20,4 +21,6 @@ public sealed class TotkProfile : IGameProfile
     public IReadOnlyList<UniformBlock> Actor(in SkinningData actor) => TotkActorUniforms.Build(World, actor);
 
     public IReadOnlyList<UniformBlock> InstancedActorPlaceholders => TotkActorUniforms.InstancedPlaceholders;
+
+    public IFrameGraph CreateFrameGraph(FrameServices services) => new TotkFrameGraph(services);
 }

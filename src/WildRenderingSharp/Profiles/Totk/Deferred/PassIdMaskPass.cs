@@ -169,6 +169,14 @@ public sealed class PassIdMaskPass : IDisposable
     }
 
     /// <summary>Ordered distinct deferred-pass names present in a shape list - pass i owns ID (i + 1) / 255.</summary>
+    static int IndexOf(IReadOnlyList<string> list, string value)
+    {
+        for (int i = 0; i < list.Count; i++)
+            if (list[i] == value)
+                return i;
+        return -1;
+    }
+
     public static List<string> DistinctPasses(IEnumerable<LoadedShape> shapes) =>
         shapes.Select(s => s.DeferredPass)
               .Where(p => !string.IsNullOrEmpty(p))
@@ -182,7 +190,7 @@ public sealed class PassIdMaskPass : IDisposable
     /// be drawn in that same space.
     /// </summary>
     /// <param name="viewProjRows"><c>proj @ [view;0,0,0,1]</c> - shared across every actor (camera-only); used directly by skinned shapes (whose palette already includes their own actor's model transform) and combined with each actor's OWN model rows for that actor's skin-count-0 shapes.</param>
-    public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, List<string> passes,
+    public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
         ReadOnlySpan<Vector4> viewProjRows, float near, float far)
     {
         targets.BindPassIdTarget();
@@ -212,7 +220,7 @@ public sealed class PassIdMaskPass : IDisposable
             {
                 if (string.IsNullOrEmpty(sh.DeferredPass))
                     continue;
-                int index = passes.IndexOf(sh.DeferredPass);
+                int index = IndexOf(passes, sh.DeferredPass);
                 if (index < 0)
                     continue;
                 _gl.Uniform1(idLocation, (index + 1) / 255f);
@@ -225,7 +233,7 @@ public sealed class PassIdMaskPass : IDisposable
         _gl.Disable(EnableCap.DepthTest);
     }
 
-    unsafe void RunInstanced(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, List<string> passes,
+    unsafe void RunInstanced(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
         ReadOnlySpan<Vector4> viewProjRows)
     {
         if (!groups.Any(g => g.Batch is { Visible.Count: > 0 }))
@@ -257,7 +265,7 @@ public sealed class PassIdMaskPass : IDisposable
             {
                 if (string.IsNullOrEmpty(sh.DeferredPass))
                     continue;
-                int index = passes.IndexOf(sh.DeferredPass);
+                int index = IndexOf(passes, sh.DeferredPass);
                 if (index < 0)
                     continue;
                 _gl.Uniform1(id, (index + 1) / 255f);

@@ -1,8 +1,10 @@
+using WildRenderingSharp.Pipeline.Frame;
+
 namespace WildRenderingSharp.Graphics;
 
 /// <summary>
 /// Everything that differs between games' shader interfaces: how the renderer's neutral frame data
-/// becomes the uniform blocks their shaders read, and where each is bound.
+/// becomes the uniform blocks their shaders read, where each is bound, and the stages of the frame.
 /// </summary>
 public interface IGameProfile
 {
@@ -24,4 +26,7 @@ public interface IGameProfile
 
     /// <summary>Blocks bound as zeroes while an instanced batch draws, for shaders that still declare what instancing replaces.</summary>
     IReadOnlyList<UniformBlock> InstancedActorPlaceholders { get; }
+
+    /// <summary>Builds the ordered stages of this game's frame.</summary>
+    IFrameGraph CreateFrameGraph(FrameServices services);
 }

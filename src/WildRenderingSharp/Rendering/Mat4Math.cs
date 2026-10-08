@@ -17,6 +17,23 @@ public static class Mat4Math
         new(1, 0, 0, 0), new(0, 1, 0, 0), new(0, 0, 1, 0), new(0, 0, 0, 1),
     ];
 
+    public static readonly Vector4[] Identity3 =
+    [
+        new(1, 0, 0, 0), new(0, 1, 0, 0), new(0, 0, 1, 0),
+    ];
+
+    /// <summary>Applies the rotation and scale of a 3-row affine matrix to a direction.</summary>
+    public static Vector3 TransformDirection(ReadOnlySpan<Vector4> rows, Vector3 d) => new(
+        rows[0].X * d.X + rows[0].Y * d.Y + rows[0].Z * d.Z,
+        rows[1].X * d.X + rows[1].Y * d.Y + rows[1].Z * d.Z,
+        rows[2].X * d.X + rows[2].Y * d.Y + rows[2].Z * d.Z);
+
+    /// <summary>Applies a 3-row affine matrix to a point.</summary>
+    public static Vector3 TransformPoint(ReadOnlySpan<Vector4> rows, Vector3 p) => new(
+        rows[0].X * p.X + rows[0].Y * p.Y + rows[0].Z * p.Z + rows[0].W,
+        rows[1].X * p.X + rows[1].Y * p.Y + rows[1].Z * p.Z + rows[1].W,
+        rows[2].X * p.X + rows[2].Y * p.Y + rows[2].Z * p.Z + rows[2].W);
+
     /// <summary>Appends the implicit (0,0,0,1) fourth row to a 3-row affine matrix.</summary>
     public static Vector4[] ToMat4(ReadOnlySpan<Vector4> affine3Rows)
     {

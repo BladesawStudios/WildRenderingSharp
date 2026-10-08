@@ -2,7 +2,6 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Pipeline;
 
