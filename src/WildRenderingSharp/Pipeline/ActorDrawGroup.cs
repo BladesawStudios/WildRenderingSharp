@@ -5,14 +5,6 @@ using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>Which of a shape's three programs a pass draws it with.</summary>
-public enum ShapeProgram
-{
-    GBuffer,
-    ZOnly,
-    Forward,
-}
-
 /// <summary>
 /// One placed actor's shapes plus the per-actor GPU skinning resources every shape-drawing pass
 /// needs bound before drawing them - the real compiled game shaders read bone transforms from

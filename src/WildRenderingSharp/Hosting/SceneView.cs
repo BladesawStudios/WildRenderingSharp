@@ -5,35 +5,6 @@ using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Hosting;
 
-/// <summary>Anti-aliasing for a <see cref="SceneView"/>.</summary>
-public enum AntiAliasingMode
-{
-    Off,
-    Fxaa,
-    /// <summary>Renders at twice the output size in each dimension and box-filters down in linear light.</summary>
-    Supersample2x,
-    Supersample2xFxaa,
-}
-
-/// <summary>What a <see cref="SceneView"/> shows.</summary>
-public enum SceneViewMode
-{
-    /// <summary>The graded, tonemapped frame.</summary>
-    Final,
-    /// <summary>The raw HDR buffer before exposure, Reinhard-mapped - for judging what the shaders output.</summary>
-    HdrPreview,
-    /// <summary>G-buffer albedo.</summary>
-    Albedo,
-    /// <summary>G-buffer normal (packed .xy only - "is the G-buffer populated at all").</summary>
-    Normal,
-    /// <summary><c>cTex_PreShadow</c>, the renderer's synthesised sun visibility.</summary>
-    Shadow,
-    /// <summary><c>cTex_PreMisc</c>, the renderer's synthesised screen-space AO / N.L.</summary>
-    AmbientOcclusion,
-    /// <summary>The deferred-resolve pass mask, scaled so distinct passes show as distinct greys.</summary>
-    PassId,
-}
-
 /// <summary>
 /// An offscreen view of a scene: renders a <see cref="FrameRequest"/> through a <see cref="DeferredPipeline"/> and composites
 /// the result (supersample downfilter, the palette's colour correction, sRGB encode, FXAA) into an RGBA8 texture the host

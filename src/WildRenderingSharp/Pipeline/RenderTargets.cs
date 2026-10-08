@@ -2,8 +2,6 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline;
 
-public readonly record struct GpuTexture(uint Handle, int Width, int Height);
-
 /// <summary>
 /// Every size-dependent render target the deferred pipeline uses, plus the fixed-size shadow map. Rebuilt when the
 /// viewport resizes. Framebuffers are two shared scratch objects repointed per pass with

@@ -2,25 +2,6 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets;
 
-public sealed class LoadedTexture
-{
-    public required uint Handle { get; set; }
-
-    /// <summary>What the handle is bound as - a 2D texture, or a host's texture array (<see cref="ExternalTextures"/>).</summary>
-    public TextureTarget Target { get; init; } = TextureTarget.Texture2D;
-    public required int Width { get; init; }
-    public required int Height { get; init; }
-
-    /// <summary>The romfs texture name (e.g. "Cmn_Enemy_DungeonBoss_Eye_Alb"), so a pass can identify a specific asset, as <c>KnownMaterialFixes</c> does.</summary>
-    public required string Name { get; init; }
-}
-
-/// <summary>
-/// One resolved texture binding on a shape: the shader unit, the sampler key it was bound through (e.g. "_a0"), and the
-/// texture. The key is carried because a texture pattern anim re-points a sampler by key.
-/// </summary>
-public readonly record struct ShapeSampler(int Unit, string Key, LoadedTexture Texture);
-
 /// <summary>
 /// Loads and caches textures by name so shapes sharing a texture share one GL object. Compressed block data is uploaded
 /// straight to the GPU (see <see cref="CompressedTextureFormat"/>); a texture in an unhandled format, or whose bin file is

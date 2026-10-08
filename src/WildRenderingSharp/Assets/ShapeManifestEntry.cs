@@ -2,23 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>One entry of <c>vertex_layout</c>: an attribute's fixed byte offset/component count in <c>ExportTestBench</c>'s 192-byte interleaved vertex.</summary>
-public sealed class VertexLayoutEntry
-{
-    [JsonPropertyName("name")] public string Name { get; set; } = "";
-    [JsonPropertyName("location")] public int Location { get; set; }
-    [JsonPropertyName("offset")] public int Offset { get; set; }
-    [JsonPropertyName("components")] public int Components { get; set; }
-}
-
-/// <summary>Which compiled program index (or -1, unresolved) each pipeline stage selected for a shape's material.</summary>
-public sealed class ProgramIndices
-{
-    [JsonPropertyName("gbuffer")] public int GBuffer { get; set; } = -1;
-    [JsonPropertyName("zonly")] public int ZOnly { get; set; } = -1;
-    [JsonPropertyName("material")] public int Material { get; set; } = -1;
-}
-
 /// <summary>
 /// One shape from a model's manifest - everything <c>WildRenderingSharp.Assets.ModelLoader</c> needs to
 /// draw it, with no BFRES/BNSH parsing of its own (that already happened offline in

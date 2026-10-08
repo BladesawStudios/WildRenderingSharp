@@ -1,62 +1,6 @@
 namespace WildRenderingSharp.Hosting;
 
 /// <summary>
-/// One request to prepare an actor or model into a <see cref="CacheLayout"/>.
-/// </summary>
-/// <param name="RomfsRoot">The base game's romfs.</param>
-/// <param name="ActorOrModelName">
-/// An actor name (preferred - its pack names the real model and its animation archives exactly)
-/// or a bare model name for something with no actor pack.
-/// </param>
-/// <param name="Cache">Where to write.</param>
-/// <param name="ModRomfsLayers">
-/// Mod romfs folders layered over <paramref name="RomfsRoot"/>, highest priority first. Replacement
-/// is per file, like an emulator's LayeredFS, so a texture-only mod applies to an unmodded model.
-/// </param>
-/// <param name="ImportAnimations">False skips the actor's animation archives - much faster, for a static look.</param>
-/// <param name="Force">Prepare even if the cache says the model is already up to date.</param>
-public sealed record PrepareRequest(
-    string RomfsRoot,
-    string ActorOrModelName,
-    CacheLayout Cache,
-    IReadOnlyList<string>? ModRomfsLayers = null,
-    bool ImportAnimations = true,
-    bool Force = false);
-
-/// <summary>
-/// A request to prepare many actors or models at once - a map section's worth.
-/// </summary>
-/// <param name="ActorOrModelNames">What to prepare. Names that resolve to the same model are prepared once.</param>
-/// <param name="Parallelism">How many models to prepare at the same time; 0 picks from the processor count.</param>
-/// <remarks>The other parameters mean what they do on <see cref="PrepareRequest"/>, and apply to every name.</remarks>
-public sealed record PrepareBatchRequest(
-    string RomfsRoot,
-    IReadOnlyList<string> ActorOrModelNames,
-    CacheLayout Cache,
-    IReadOnlyList<string>? ModRomfsLayers = null,
-    bool ImportAnimations = true,
-    bool Force = false,
-    int Parallelism = 0)
-{
-    /// <summary><see cref="Parallelism"/>, or the default for this machine when it is 0.</summary>
-    public int EffectiveParallelism => Parallelism > 0 ? Parallelism : DefaultParallelism;
-
-    /// <summary>
-    /// One model per core, leaving one for the host, and no more than twelve: each model in flight
-    /// holds its decompressed BFRES and textures, so memory, not cores, is what runs out first.
-    /// </summary>
-    public static int DefaultParallelism => Math.Clamp(Environment.ProcessorCount - 1, 1, 12);
-}
-
-/// <summary>How one name of a <see cref="PrepareBatchRequest"/> went.</summary>
-/// <param name="ModelName">The resolved model name on success, as <see cref="IModelPreparer.PrepareAsync"/> returns it; null on failure.</param>
-/// <param name="Error">Why it failed, on one line; null on success.</param>
-public readonly record struct PrepareOutcome(string ActorOrModelName, string? ModelName, string? Error)
-{
-    public bool Succeeded => ModelName is not null;
-}
-
-/// <summary>
 /// The offline half of the renderer, behind one seam so a host can choose how it runs.
 /// </summary>
 /// <remarks>
