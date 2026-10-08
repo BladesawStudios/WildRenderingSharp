@@ -1,8 +1,9 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
 /// Manual, individually-verified corrections for real game rendering behavior WildRenderingSharp's shader-

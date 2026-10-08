@@ -1,7 +1,8 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
 /// Cleans up one of <c>ShaderLibrary.CompileTool</c>'s decompiled <c>.vert</c>/<c>.frag</c> files

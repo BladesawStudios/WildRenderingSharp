@@ -12,6 +12,8 @@ public interface IGameProfile
 
     ShaderBindings Bindings { get; }
 
+    IShaderSources ShaderSources { get; }
+
     /// <summary>The camera block, kept under <paramref name="key"/> so several variants can live side by side.</summary>
     UniformBlock Camera(string key, in CameraData camera);
 

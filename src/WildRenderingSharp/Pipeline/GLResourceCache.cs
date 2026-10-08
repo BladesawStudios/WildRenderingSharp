@@ -77,45 +77,6 @@ public sealed class GLResourceCache : IDisposable
 
     public void BindMaterial(uint buffer) => _gl.BindBufferBase(BufferTargetARB.UniformBuffer, Bindings.Material, buffer);
 
-    uint _windSwell, _lieMap, _thickness;
-
-    /// <summary>
-    /// Binds each engine-rendered vertex texture's neutral at its own unit (see
-    /// <see cref="GlslSanitizer.WindSwellUnit"/>): no wind swell, grass pressed nowhere (the lie map
-    /// is read as <c>2x - 1</c>, so 0.5 is no push), no thickness.
-    /// </summary>
-    public void BindEngineVertexTextures()
-    {
-        if (_windSwell == 0)
-        {
-            _windSwell = Constant(0f, 0f);
-            _lieMap = Constant(0.5f, 0.5f);
-            _thickness = Constant(0f, 0f);
-        }
-        Bind(GlslSanitizer.WindSwellUnit, _windSwell);
-        Bind(GlslSanitizer.LieMapUnit, _lieMap);
-        Bind(GlslSanitizer.ThicknessUnit, _thickness);
-        _gl.ActiveTexture(TextureUnit.Texture0);
-
-        void Bind(int unit, uint handle)
-        {
-            _gl.ActiveTexture(TextureUnit.Texture0 + unit);
-            _gl.BindTexture(TextureTarget.Texture2D, handle);
-        }
-    }
-
-    unsafe uint Constant(float r, float g)
-    {
-        uint handle = _gl.GenTexture();
-        _gl.BindTexture(TextureTarget.Texture2D, handle);
-        float* texel = stackalloc float[] { r, g, 0f, 1f };
-        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, 1, 1, 0, PixelFormat.Rgba, PixelType.Float, texel);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Nearest);
-        _gl.BindTexture(TextureTarget.Texture2D, 0);
-        return handle;
-    }
-
     public void DrawFullscreenTriangle()
     {
         _gl.BindVertexArray(_attributelessVao);
@@ -135,8 +96,5 @@ public sealed class GLResourceCache : IDisposable
         _ubos.Clear();
         _zeroUbos.Clear();
         _gl.DeleteVertexArray(_attributelessVao);
-        foreach (uint t in new[] { _windSwell, _lieMap, _thickness })
-            if (t != 0)
-                _gl.DeleteTexture(t);
     }
 }

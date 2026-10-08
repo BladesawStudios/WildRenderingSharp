@@ -1,6 +1,7 @@
 using System.Numerics;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Profiles.Totk.Ubos;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Tests;
 

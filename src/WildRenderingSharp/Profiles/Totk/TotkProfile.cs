@@ -1,4 +1,5 @@
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk;
 
@@ -7,6 +8,8 @@ public sealed class TotkProfile : IGameProfile
     public string Name => "Tears of the Kingdom";
 
     public IWorldBasis World => YUpWorldBasis.Instance;
+
+    public IShaderSources ShaderSources { get; } = new TotkShaderSources();
 
     public ShaderBindings Bindings { get; } = new(TotkBindings.Camera, TotkBindings.Environment, TotkBindings.Material);
 

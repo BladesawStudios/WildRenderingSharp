@@ -1,7 +1,8 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
 /// Exposure -> highlight compression -> the real <c>agl_hdr_compose</c> (TotK's own HDR compose

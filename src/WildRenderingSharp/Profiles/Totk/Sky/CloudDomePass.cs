@@ -2,8 +2,9 @@ using System.Diagnostics;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
 /// Draws the REAL, decompiled <c>agl_cloud</c> shader (auto-extracted from romfs by

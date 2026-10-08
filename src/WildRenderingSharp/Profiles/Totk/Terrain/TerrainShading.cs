@@ -2,8 +2,10 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
 /// <summary>
 /// What a host draws its terrain with when the renderer shades it: the game's own terrain fragment

@@ -1,4 +1,5 @@
-namespace WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
 /// The real <c>agl_cloud</c> "Common" uniform block, captured verbatim from a real frame of the

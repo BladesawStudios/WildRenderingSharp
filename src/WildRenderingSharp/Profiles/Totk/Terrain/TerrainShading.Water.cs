@@ -2,8 +2,10 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
 /// <summary>
 /// The game's terrain water - <c>Shader/terrain_water</c>'s program 98, exported by the preparer

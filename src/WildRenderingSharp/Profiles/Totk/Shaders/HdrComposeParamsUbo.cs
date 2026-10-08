@@ -1,7 +1,8 @@
 using System.Numerics;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
 /// <c>agl_hdr_compose</c>'s own tiny "cContext" block (decompiled as <c>fp_c3</c>), binding 4,

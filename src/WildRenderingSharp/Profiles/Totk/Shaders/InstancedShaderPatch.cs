@@ -1,7 +1,8 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
 /// Makes a decompiled game vertex shader draw many placements in one instanced call, without
@@ -35,22 +36,6 @@ namespace WildRenderingSharp.Pipeline;
 /// </remarks>
 public static class InstancedShaderPatch
 {
-    /// <summary>The storage-buffer binding the instance data is read from. The decompiled shaders themselves use binding 0.</summary>
-    public const uint InstanceBinding = Profiles.Totk.TotkBindings.InstanceStorage;
-
-    public const string FirstInstanceUniform = "wrs_first_instance";
-    public const string StrideUniform = "wrs_instance_stride";
-    public const string PaletteVec4sUniform = "wrs_palette_vec4s";
-    public const string PaletteRepeatUniform = "wrs_palette_repeat";
-
-    /// <summary>
-    /// Whether instances are found through <c>gl_BaseInstance</c> (ARB_shader_draw_parameters) as
-    /// well as the first-instance uniform - which is what lets every visible run of a shape go out
-    /// in one multi-draw (see <see cref="ShapeDrawing.DrawInstanced"/>). Set once a context is
-    /// known to have it, before any instanced program is built.
-    /// </summary>
-    public static bool BaseInstance { get; set; }
-
     static readonly Regex MainSignature = new(@"\bvoid\s+main\s*\(\s*\)", RegexOptions.Compiled);
 
     static Regex BlockDeclaration(string blockName) => new(
@@ -78,9 +63,9 @@ public static class InstancedShaderPatch
         // #version/#extension lines that must open it - where every function that reads the
         // blocks, not only main, comes after them.
         int at = EndOfDirectives(source);
-        string helpers = BaseInstance ? "#extension GL_ARB_shader_draw_parameters : require\n" + Helpers : Helpers;
+        string helpers = InstancingContract.BaseInstance ? "#extension GL_ARB_shader_draw_parameters : require\n" + Helpers : Helpers;
         source = source[..at] + helpers + source[at..];
-        string wrapper = BaseInstance ? Wrapper.Replace("wrs_first_instance + gl_InstanceID", "wrs_first_instance + gl_BaseInstanceARB + gl_InstanceID") : Wrapper;
+        string wrapper = InstancingContract.BaseInstance ? Wrapper.Replace("wrs_first_instance + gl_InstanceID", "wrs_first_instance + gl_BaseInstanceARB + gl_InstanceID") : Wrapper;
         return source.TrimEnd() + "\n\n" + wrapper;
     }
 

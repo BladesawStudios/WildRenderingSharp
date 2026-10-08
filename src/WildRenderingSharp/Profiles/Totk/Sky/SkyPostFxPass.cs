@@ -1,8 +1,10 @@
 using System.Numerics;
 using WildRenderingSharp.Rendering;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
 /// Draws the sky with the game's OWN <c>agl_sky_postfx_sky</c> program, sampling the baked

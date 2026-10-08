@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
 /// Patches ONE specific, individually-verified decompiler corruption - deliberately NOT a general

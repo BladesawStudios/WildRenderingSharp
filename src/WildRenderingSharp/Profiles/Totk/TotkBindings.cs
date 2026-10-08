@@ -10,7 +10,6 @@ public static class TotkBindings
     public const uint ShapeMatrix = 4;
     public const uint HdrComposeParams = 4;
     public const uint Environment = 6;
-    public const uint InstanceStorage = 7;
     public const uint Material = 8;
     public const uint SceneMaterial = 10;
 

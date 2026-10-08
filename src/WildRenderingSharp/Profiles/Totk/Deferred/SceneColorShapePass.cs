@@ -1,7 +1,8 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
 /// G-buffer shapes whose program reads the lit scene behind them - water above all - drawn the

@@ -5,6 +5,10 @@ using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Profiles.Totk.Deferred;
+using WildRenderingSharp.Profiles.Totk.Shaders;
+using WildRenderingSharp.Profiles.Totk.Sky;
+using WildRenderingSharp.Profiles.Totk.Terrain;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -88,6 +92,8 @@ public sealed class DeferredPipeline : IDisposable
     readonly string _dataDirectory;
     readonly string _decompiledDirectory;
     readonly string _deferredMaterialsDirectory;
+
+    readonly EngineVertexTextures _engineVertexTextures;
 
     public IGameProfile Profile { get; }
     public GLResourceCache Resources { get; }
@@ -187,7 +193,7 @@ public sealed class DeferredPipeline : IDisposable
         _gl = gl;
         Profile = profile ?? new TotkProfile();
         // Before any instanced program is built - the pass-ID mask builds one in its constructor.
-        InstancedShaderPatch.BaseInstance = gl.IsExtensionPresent("GL_ARB_shader_draw_parameters");
+        InstancingContract.Detect(gl);
         _dataDirectory = dataDirectory;
         _decompiledDirectory = decompiledDirectory;
         // Shared across every model (see DeferredResolvePass.ResolveDeferredPasses's remarks) -
@@ -202,9 +208,10 @@ public sealed class DeferredPipeline : IDisposable
         GLProgramBuilder.BinaryCacheDirectory ??=
             Path.Combine(Path.GetDirectoryName(decompiledDirectory) ?? decompiledDirectory, "_glprograms");
 
+        _engineVertexTextures = new EngineVertexTextures(gl);
         Resources = new GLResourceCache(gl, Profile.Bindings);
         Targets = new RenderTargets(gl, width, height);
-        Programs = new ShaderProgramCache(gl, decompiledDirectory, Profile.Bindings);
+        Programs = new ShaderProgramCache(gl, decompiledDirectory, Profile.Bindings, Profile.ShaderSources);
 
         _gbuffer = new GBufferPass(gl);
         _shadow = new ShadowPass(gl);
@@ -539,7 +546,7 @@ public sealed class DeferredPipeline : IDisposable
         Profile.Lighting(BuildSceneLighting(pal, lighting, sunView, sunWorld, sunColor, hemiSky, hemiGround)).Bind(Resources);
         Resources.Ubo("support", SupportBufferUbo.Build(), bindingIndex: TotkBindings.Support);
         Resources.BindZeroUbo(TotkBindings.Orphan, 65536);
-        Resources.BindEngineVertexTextures();
+        _engineVertexTextures.Bind();
 
         // Every placed actor's own draw group - bones/ShpMtx bytes built fresh this frame from
         // THAT actor's own transform/pose (never a shared/combined buffer - see class remarks),
@@ -1199,6 +1206,7 @@ public sealed class DeferredPipeline : IDisposable
         _resolvedPasses = [];
         Programs.Dispose();
         Resources.Dispose();
+        _engineVertexTextures.Dispose();
         Targets.Dispose();
         _linearDepth.Dispose();
         _shadowAo.Dispose();

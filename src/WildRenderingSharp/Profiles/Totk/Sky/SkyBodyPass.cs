@@ -1,8 +1,9 @@
 using System.Numerics;
 using WildRenderingSharp.Rendering;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
 /// The sun and the moon, drawn from the game's own sprites.

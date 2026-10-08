@@ -1,8 +1,10 @@
 using System.Numerics;
 using WildRenderingSharp.Rendering;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
 /// Runs the real <c>agl::pfx::Sky</c> Bruneton precompute chain, whose end product is the

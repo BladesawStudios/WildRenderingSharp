@@ -5,6 +5,7 @@ using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Scene;
+using WildRenderingSharp.Profiles.Totk.Terrain;
 
 namespace WildRenderingSharp;
 

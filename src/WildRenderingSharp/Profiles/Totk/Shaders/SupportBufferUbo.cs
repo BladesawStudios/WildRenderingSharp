@@ -1,4 +1,5 @@
-namespace WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
 /// Ryujinx's decompiler "support buffer", binding 0 - not a game/gsys concept at all, an artifact

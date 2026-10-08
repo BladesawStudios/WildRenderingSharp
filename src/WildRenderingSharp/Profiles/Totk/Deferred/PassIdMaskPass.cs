@@ -2,8 +2,10 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
 /// A model is not one deferred pass - <c>o_material_behave</c> picks a DIFFERENT resolve program
@@ -237,10 +239,10 @@ public sealed class PassIdMaskPass : IDisposable
         _gl.SetVec2(program, "uNearFar", new Vector2(_near, _far));
         int id = _gl.GetUniformLocation(program, "uId");
         int skin = _gl.GetUniformLocation(program, "uSkinCount");
-        int first = _gl.GetUniformLocation(program, InstancedShaderPatch.FirstInstanceUniform);
-        int stride = _gl.GetUniformLocation(program, InstancedShaderPatch.StrideUniform);
-        int palette = _gl.GetUniformLocation(program, InstancedShaderPatch.PaletteVec4sUniform);
-        int repeat = _gl.GetUniformLocation(program, InstancedShaderPatch.PaletteRepeatUniform);
+        int first = _gl.GetUniformLocation(program, InstancingContract.FirstInstanceUniform);
+        int stride = _gl.GetUniformLocation(program, InstancingContract.StrideUniform);
+        int palette = _gl.GetUniformLocation(program, InstancingContract.PaletteVec4sUniform);
+        int repeat = _gl.GetUniformLocation(program, InstancingContract.PaletteRepeatUniform);
 
         foreach (var group in groups)
         {

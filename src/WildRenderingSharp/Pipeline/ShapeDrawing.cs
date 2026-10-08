@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -46,7 +47,7 @@ public static class ShapeDrawing
         if (vao == 0 || program == 0)
             return;
 
-        bool multi = InstancedShaderPatch.BaseInstance;
+        bool multi = InstancingContract.BaseInstance;
         if (!_caching || _program != program)
         {
             gl.UseProgram(program);
@@ -216,7 +217,7 @@ public static class ShapeDrawing
     /// </summary>
     public static unsafe bool MultiDrawRuns(GL gl, LoadedShape shape, IReadOnlyList<(int First, int Count, int Lod)> runs)
     {
-        if (!InstancedShaderPatch.BaseInstance)
+        if (!InstancingContract.BaseInstance)
             return false;
         Commands.Clear();
         for (int r = 0; r < runs.Count; r++)
@@ -406,10 +407,10 @@ public static class ShapeDrawing
         if (!LocationCache.TryGetValue(program, out var l))
         {
             l = new Locations(
-                gl.GetUniformLocation(program, InstancedShaderPatch.FirstInstanceUniform),
-                gl.GetUniformLocation(program, InstancedShaderPatch.StrideUniform),
-                gl.GetUniformLocation(program, InstancedShaderPatch.PaletteVec4sUniform),
-                gl.GetUniformLocation(program, InstancedShaderPatch.PaletteRepeatUniform));
+                gl.GetUniformLocation(program, InstancingContract.FirstInstanceUniform),
+                gl.GetUniformLocation(program, InstancingContract.StrideUniform),
+                gl.GetUniformLocation(program, InstancingContract.PaletteVec4sUniform),
+                gl.GetUniformLocation(program, InstancingContract.PaletteRepeatUniform));
             LocationCache[program] = l;
         }
         return l;

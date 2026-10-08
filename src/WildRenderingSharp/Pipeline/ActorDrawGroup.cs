@@ -2,6 +2,7 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -49,14 +50,14 @@ public readonly record struct ActorDrawGroup(IReadOnlyList<UniformBlock> Uniform
     /// already bound - what changes from one batch's draw to the next in a pass sorted by program.
     /// </summary>
     public void BindInstanceBuffer(GLResourceCache resources) =>
-        resources.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, InstancedShaderPatch.InstanceBinding, Batch!.Buffer);
+        resources.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, InstancingContract.InstanceBinding, Batch!.Buffer);
 
     public void BindUbos(GLResourceCache resources)
     {
         if (Batch is { } batch)
         {
             Uniforms.Bind(resources);
-            resources.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, InstancedShaderPatch.InstanceBinding, batch.Buffer);
+            resources.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, InstancingContract.InstanceBinding, batch.Buffer);
             return;
         }
         Uniforms.Bind(resources);

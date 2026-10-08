@@ -19,10 +19,13 @@ public sealed class ShaderProgramCache : IDisposable
 
     public ShaderBindings Bindings { get; }
 
-    public ShaderProgramCache(GL gl, string decompiledDir, ShaderBindings bindings)
+    readonly IShaderSources _sources;
+
+    public ShaderProgramCache(GL gl, string decompiledDir, ShaderBindings bindings, IShaderSources sources)
     {
         _gl = gl;
         Bindings = bindings;
+        _sources = sources;
         _decompiledDir = decompiledDir;
     }
 
@@ -60,9 +63,9 @@ public sealed class ShaderProgramCache : IDisposable
         if (!patched && _programs.TryGetValue(baseName, out uint cached))
             return cached;
 
-        string vertSource = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-        string rawFragSource = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
-        string fragSource = isForwardProgram ? KnownDecompilerCorrections.Apply(rawFragSource) : rawFragSource;
+        string vertSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
+        string rawFragSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+        string fragSource = isForwardProgram ? _sources.CorrectForwardFragment(rawFragSource) : rawFragSource;
         if (patchVertex is not null) vertSource = patchVertex(vertSource);
         if (patchFragment is not null) fragSource = patchFragment(fragSource);
         uint program = GLProgramBuilder.Build(_gl, vertSource, fragSource, baseName);
@@ -90,12 +93,12 @@ public sealed class ShaderProgramCache : IDisposable
         if (_instancedPrograms.TryGetValue(key, out uint cached))
             return cached;
 
-        string vertSource = InstancedShaderPatch.Apply(GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")))) ?? "";
+        string vertSource = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")))) ?? "";
         uint program = 0;
         if (vertSource.Length > 0)
         {
-            string rawFragSource = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
-            string fragSource = isForwardProgram ? KnownDecompilerCorrections.Apply(rawFragSource) : rawFragSource;
+            string rawFragSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+            string fragSource = isForwardProgram ? _sources.CorrectForwardFragment(rawFragSource) : rawFragSource;
             program = GLProgramBuilder.Build(_gl, vertSource, fragSource, baseName + "_instanced");
         }
         _instancedPrograms[key] = program;

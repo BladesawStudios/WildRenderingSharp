@@ -1,6 +1,7 @@
 using System.Numerics;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
 /// WildRenderingSharp's OWN distance fade for the cloud dome, injected into the real <c>agl_cloud</c> shader

@@ -1,7 +1,8 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>One deferred resolve pass, pre-resolved to its real compiled program and its own <c>SystemModel.DeferredMain</c> material bytes - see <see cref="DeferredResolvePass.ResolveDeferredPasses"/>.</summary>
 /// <param name="PassIndex">
