@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -183,7 +184,7 @@ public sealed class ForwardPass : IDisposable
         // leaving it a vertically mirrored duplicate of itself relative to the (correctly
         // unflipped-then-reflipped) background. Previously invisible because so few materials
         // ever drew here (blend-only); now every opaque/masked forward-resolved shape does.
-        resources.BindUbo("ctx_gbuffer", 1);
+        resources.BindCamera(FrameUniformKeys.GBufferCamera);
         ClipOrigin.Game(_gl, true);
 
         BindAt(5, targets.LinearDepthHalf.Handle);
@@ -296,7 +297,7 @@ public sealed class ForwardPass : IDisposable
                 _gl.UseProgram(program);
                 _gl.SetInt(program, "uDebugStepTarget", sh.DebugStepTarget);
             }
-            ShapeDrawing.Draw(_gl, program, sh.ForwardVao, sh.MaterialUboBuffer, sh.ForwardSamplers, sh.IndexCount, sh.SamplerOverrides);
+            ShapeDrawing.Draw(_gl, programs.Bindings.Material, program, sh.ForwardVao, sh.MaterialUboBuffer, sh.ForwardSamplers, sh.IndexCount, sh.SamplerOverrides);
         }
         }
 
@@ -314,7 +315,7 @@ public sealed class ForwardPass : IDisposable
         _gl.DepthFunc(DepthFunction.Less);
         _gl.Disable(EnableCap.DepthTest);
         ClipOrigin.Game(_gl, false);
-        resources.BindUbo("ctx_true", 1); // restore - everything after this pass expects the true (unflipped) projection
+        resources.BindCamera(FrameUniformKeys.SceneCamera); // restore - everything after this pass expects the true (unflipped) projection
         FlipIntoWithFloor(resources, targets, targets.Final, targets.Scene, targets.Behind, flip: true);
     }
 

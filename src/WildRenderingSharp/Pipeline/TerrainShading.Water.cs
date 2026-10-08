@@ -60,7 +60,7 @@ public sealed partial class TerrainShading
     internal const int StampDepthUnit = 28;
 
     /// <summary>The stamp program's block: <c>(pass id, near, far, -)</c>, <c>(1/width, 1/height, -, -)</c>.</summary>
-    internal const uint StampBinding = 3;
+    internal const uint StampBinding = Profiles.Totk.TotkBindings.TerrainWaterStamp;
 
     const string WaterProgramName = "terrain_water_prog98";
 
@@ -165,7 +165,7 @@ public sealed partial class TerrainShading
             string path = Path.Combine(_shadersDir, "terrain_water_material.bin");
             _waterMaterial = GLBuffer.CreatePaddedUniformBuffer(_gl, File.Exists(path) ? File.ReadAllBytes(path) : []);
         }
-        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, _waterMaterial);
+        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, _bindings.Material, _waterMaterial);
         BindArray(WaterAlbUnit, _waterAlb);
         // _s0, _n0, _t0, _a1: the normals; _e0: the emission.
         BindArray(14, _waterNrm);

@@ -1,4 +1,4 @@
-using WildRenderingSharp.Shaders.Common;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
@@ -20,7 +20,7 @@ public sealed class MaterialUbo : IUboBlock
     readonly byte[] _data;
 
     public string Name { get; }
-    public int BindingIndex => 8;
+    public int BindingIndex => (int)TotkBindings.Material;
     public int SizeBytes => _data.Length;
 
     public MaterialUbo(string materialName, byte[] data)

@@ -15,7 +15,7 @@ namespace WildRenderingSharp.Pipeline;
 public static class SupportBufferUbo
 {
     public const int ByteSize = 512;
-    public const int BindingIndex = 0;
+    public const uint BindingIndex = Profiles.Totk.TotkBindings.Support;
 
     public static byte[] Build()
     {

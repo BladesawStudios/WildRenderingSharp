@@ -1,5 +1,5 @@
 using System.Numerics;
-using WildRenderingSharp.Shaders.Common;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
@@ -48,8 +48,8 @@ public sealed class BonePaletteUbo : IUboBlock
     readonly byte[] _data;
 
     public string Name => "_Mtx";
-    public const int Binding = 2;
-    public int BindingIndex => Binding;
+    public const uint Binding = TotkBindings.Bones;
+    public int BindingIndex => (int)Binding;
     public int SizeBytes => _data.Length;
 
     BonePaletteUbo(byte[] data) => _data = data;

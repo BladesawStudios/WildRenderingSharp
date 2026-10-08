@@ -219,7 +219,7 @@ public sealed class DeferredResolvePass : IDisposable
             // and normal), which would otherwise be pass i-1's own output on the second and later
             // passes of a multi-pass model.
             BindResolveInputs(targets);
-            _gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, pass.MaterialUboBuffer);
+            resources.BindMaterial(pass.MaterialUboBuffer);
 
             targets.BindColorTarget(targets.ResolvePass);
             _gl.ClearColor(0, 0, 0, 1);

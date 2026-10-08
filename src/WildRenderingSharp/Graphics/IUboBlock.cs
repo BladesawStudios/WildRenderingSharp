@@ -1,4 +1,4 @@
-﻿namespace WildRenderingSharp.Shaders.Common;
+﻿namespace WildRenderingSharp.Graphics;
 
 /// <summary>
 /// Defines the contract for any Uniform Buffer Object block (e.g. Context, Env, SceneMat, Material).

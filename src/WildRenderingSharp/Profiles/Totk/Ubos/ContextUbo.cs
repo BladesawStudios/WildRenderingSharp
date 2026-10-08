@@ -1,5 +1,5 @@
 using System.Numerics;
-using WildRenderingSharp.Shaders.Common;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
@@ -78,7 +78,7 @@ public sealed class ContextUbo : IUboBlock
     readonly Std140Block _block = new(ByteSize);
 
     public string Name => "Context";
-    public int BindingIndex => 1;
+    public int BindingIndex => (int)TotkBindings.Camera;
     public int SizeBytes => ByteSize;
 
     /// <summary>

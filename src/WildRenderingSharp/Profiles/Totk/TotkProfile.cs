@@ -8,6 +8,8 @@ public sealed class TotkProfile : IGameProfile
 
     public IWorldBasis World => YUpWorldBasis.Instance;
 
+    public ShaderBindings Bindings { get; } = new(TotkBindings.Camera, TotkBindings.Environment, TotkBindings.Material);
+
     public UniformBlock Camera(string key, in CameraData camera) => TotkCameraUniforms.Build(World, key, camera);
 
     public IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting) => TotkLightingUniforms.Build(World, lighting);

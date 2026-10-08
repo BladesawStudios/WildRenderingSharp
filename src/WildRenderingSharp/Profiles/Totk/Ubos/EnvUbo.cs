@@ -1,5 +1,5 @@
 using System.Numerics;
-using WildRenderingSharp.Shaders.Common;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
@@ -96,7 +96,7 @@ public sealed class EnvUbo : IUboBlock
     readonly Std140Block _block = new(ByteSize);
 
     public string Name => "Env";
-    public int BindingIndex => 6;
+    public int BindingIndex => (int)TotkBindings.Environment;
     public int SizeBytes => ByteSize;
 
     /// <summary>

@@ -71,7 +71,7 @@ public readonly record struct ActorDrawGroup(IReadOnlyList<UniformBlock> Uniform
         if (Batch is not { } batch)
         {
             uint program = which switch { ShapeProgram.ZOnly => shape.ZOnlyProgram, ShapeProgram.Forward => shape.ForwardProgram, _ => shape.GBufferProgram };
-            ShapeDrawing.Draw(gl, program, vao, shape.MaterialUboBuffer, samplers, shape.IndexCount, shape.SamplerOverrides);
+            ShapeDrawing.Draw(gl, programs.Bindings.Material, program, vao, shape.MaterialUboBuffer, samplers, shape.IndexCount, shape.SamplerOverrides);
             return;
         }
 
@@ -80,7 +80,7 @@ public readonly record struct ActorDrawGroup(IReadOnlyList<UniformBlock> Uniform
             return;
         EnsureInstancedPrograms(programs, shape);
         uint instanced = which switch { ShapeProgram.ZOnly => shape.InstancedZOnlyProgram, ShapeProgram.Forward => shape.InstancedForwardProgram, _ => shape.InstancedGBufferProgram };
-        ShapeDrawing.DrawInstanced(gl, instanced, vao, shape, samplers, batch, runs);
+        ShapeDrawing.DrawInstanced(gl, programs.Bindings.Material, instanced, vao, shape, samplers, batch, runs);
     }
 
     /// <summary>Links a shape's instanced programs the first time it is drawn instanced.</summary>

@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -36,6 +37,7 @@ public sealed partial class TerrainShading : IDisposable
 {
     readonly GL _gl;
     readonly string _shadersDir;
+    readonly ShaderBindings _bindings;
     uint _materialBuffer;
 
     /// <summary>The flat varying a host's vertex stage writes the tile's array layer to.</summary>
@@ -47,10 +49,11 @@ public sealed partial class TerrainShading : IDisposable
     public const int NormalUnit = 17, MaterialUnit = 18, MaterialLinearUnit = 19, BakeUnit = 20, AlbedoArrayUnit = 13, CombinedArrayUnit = 14;
     public const uint TerrainSystemBinding = 11;
 
-    internal TerrainShading(GL gl, string shadersDir)
+    internal TerrainShading(GL gl, string shadersDir, ShaderBindings bindings)
     {
         _gl = gl;
         _shadersDir = shadersDir;
+        _bindings = bindings;
     }
 
     /// <summary>Whether the preparer has exported the terrain programs into the cache.</summary>

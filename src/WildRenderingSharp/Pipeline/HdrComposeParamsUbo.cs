@@ -1,5 +1,5 @@
 using System.Numerics;
-using WildRenderingSharp.Shaders.Common;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -18,7 +18,7 @@ public sealed class HdrComposeParamsUbo : IUboBlock
     readonly Std140Block _block = new(ByteSize);
 
     public string Name => "cContext";
-    public int BindingIndex => 4;
+    public int BindingIndex => (int)Profiles.Totk.TotkBindings.HdrComposeParams;
     public int SizeBytes => ByteSize;
 
     /// <summary>

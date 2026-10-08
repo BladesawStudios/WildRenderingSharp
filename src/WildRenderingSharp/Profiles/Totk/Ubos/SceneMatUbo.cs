@@ -1,5 +1,5 @@
 using System.Numerics;
-using WildRenderingSharp.Shaders.Common;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
@@ -124,7 +124,7 @@ public sealed class SceneMatUbo : IUboBlock
     readonly Std140Block _block = new(ByteSize);
 
     public string Name => "SceneMat";
-    public int BindingIndex => 10;
+    public int BindingIndex => (int)TotkBindings.SceneMaterial;
     public int SizeBytes => ByteSize;
 
     /// <summary>

@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace WildRenderingSharp.Shaders.Common;
+namespace WildRenderingSharp.Graphics;
 
 /// <summary>
 /// A slot-indexed std140 scratch buffer, addressed the same way the decompiled shaders and the

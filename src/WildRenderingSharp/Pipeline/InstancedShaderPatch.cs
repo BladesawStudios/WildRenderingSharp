@@ -36,7 +36,7 @@ namespace WildRenderingSharp.Pipeline;
 public static class InstancedShaderPatch
 {
     /// <summary>The storage-buffer binding the instance data is read from. The decompiled shaders themselves use binding 0.</summary>
-    public const int InstanceBinding = 7;
+    public const uint InstanceBinding = Profiles.Totk.TotkBindings.InstanceStorage;
 
     public const string FirstInstanceUniform = "wrs_first_instance";
     public const string StrideUniform = "wrs_instance_stride";

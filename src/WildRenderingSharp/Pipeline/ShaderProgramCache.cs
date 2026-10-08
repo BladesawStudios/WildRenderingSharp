@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -16,9 +17,12 @@ public sealed class ShaderProgramCache : IDisposable
     readonly string _decompiledDir;
     readonly Dictionary<string, uint> _programs = new(StringComparer.Ordinal);
 
-    public ShaderProgramCache(GL gl, string decompiledDir)
+    public ShaderBindings Bindings { get; }
+
+    public ShaderProgramCache(GL gl, string decompiledDir, ShaderBindings bindings)
     {
         _gl = gl;
+        Bindings = bindings;
         _decompiledDir = decompiledDir;
     }
 

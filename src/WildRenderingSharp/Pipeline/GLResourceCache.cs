@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -19,9 +20,12 @@ public sealed class GLResourceCache : IDisposable
     readonly Dictionary<string, uint> _ubos = new(StringComparer.Ordinal);
     readonly uint _attributelessVao;
 
-    public GLResourceCache(GL gl)
+    public ShaderBindings Bindings { get; }
+
+    public GLResourceCache(GL gl, ShaderBindings bindings)
     {
         _gl = gl;
+        Bindings = bindings;
         _attributelessVao = gl.GenVertexArray();
     }
 
@@ -65,6 +69,13 @@ public sealed class GLResourceCache : IDisposable
         if (_ubos.TryGetValue(key, out uint handle))
             _gl.BindBufferBase(BufferTargetARB.UniformBuffer, bindingIndex, handle);
     }
+
+    /// <summary>Makes the camera block kept under <paramref name="key"/> the one shaders read.</summary>
+    public void BindCamera(string key) => BindUbo(key, Bindings.Camera);
+
+    public void BindEnvironment() => BindUbo(FrameUniformKeys.Environment, Bindings.Environment);
+
+    public void BindMaterial(uint buffer) => _gl.BindBufferBase(BufferTargetARB.UniformBuffer, Bindings.Material, buffer);
 
     uint _windSwell, _lieMap, _thickness;
 

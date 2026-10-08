@@ -131,7 +131,7 @@ public sealed class TonemapPass : IDisposable
     public void RunHdrComposite(GLResourceCache resources, RenderTargets targets, uint hdrComposeProgram, GpuTexture hdrSource, GpuTexture bloomSource, byte[] hdrComposeParamsBytes)
     {
         EnsureHdrQuadVao(hdrComposeProgram);
-        resources.Ubo("hdr_compose_params", hdrComposeParamsBytes, bindingIndex: 4);
+        resources.Ubo("hdr_compose_params", hdrComposeParamsBytes, bindingIndex: Profiles.Totk.TotkBindings.HdrComposeParams);
 
         targets.BindColorTarget(targets.Ldr);
         _gl.ClearColor(0, 0, 0, 1);

@@ -104,7 +104,7 @@ public static class GlslSanitizer
     /// <see cref="DeferredPipeline"/> keeps a zeroed buffer bound here, so what such a block reads
     /// is defined.
     /// </summary>
-    public const int OrphanBlockBinding = 30;
+    public const uint OrphanBlockBinding = Profiles.Totk.TotkBindings.Orphan;
 
     /// <summary>
     /// The decompiler renumbers constant buffer N to binding N - 3, so the driver's own buffer

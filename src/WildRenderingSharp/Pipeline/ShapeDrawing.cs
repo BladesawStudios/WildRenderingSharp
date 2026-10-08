@@ -11,7 +11,7 @@ public static class ShapeDrawing
     /// that key, or null for none. This is how a texture pattern anim takes effect: it re-points a
     /// sampler at a different texture without touching the program, the VAO, or the material UBO.
     /// </param>
-    public static unsafe void Draw(GL gl, uint program, uint vao, uint materialUboBuffer,
+    public static unsafe void Draw(GL gl, uint materialBinding, uint program, uint vao, uint materialUboBuffer,
         IReadOnlyList<ShapeSampler> samplers, int indexCount,
         IReadOnlyDictionary<string, LoadedTexture>? overrides = null)
     {
@@ -20,7 +20,7 @@ public static class ShapeDrawing
 
         InvalidateStateCache();
         gl.UseProgram(program);
-        gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, materialUboBuffer);
+        gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, materialUboBuffer);
         foreach (var (unit, key, texture) in samplers)
         {
             var bound = texture;
@@ -40,7 +40,7 @@ public static class ShapeDrawing
     /// instanced call per run, each at that run's level of detail. The instance buffer is already
     /// bound (<see cref="ActorDrawGroup.BindUbos"/>).
     /// </summary>
-    public static unsafe void DrawInstanced(GL gl, uint program, uint vao, LoadedShape shape,
+    public static unsafe void DrawInstanced(GL gl, uint materialBinding, uint program, uint vao, LoadedShape shape,
         IReadOnlyList<ShapeSampler> samplers, InstanceBatch batch, IReadOnlyList<(int First, int Count, int Lod)>? runs = null)
     {
         if (vao == 0 || program == 0)
@@ -69,7 +69,7 @@ public static class ShapeDrawing
 
         if (!_caching || _material != shape.MaterialUboBuffer)
         {
-            gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, shape.MaterialUboBuffer);
+            gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, shape.MaterialUboBuffer);
             _material = shape.MaterialUboBuffer;
         }
 

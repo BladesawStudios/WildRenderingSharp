@@ -1,5 +1,5 @@
 using System.Numerics;
-using WildRenderingSharp.Shaders.Common;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
@@ -20,8 +20,8 @@ public sealed class ShapeMatrixUbo : IUboBlock
     readonly Std140Block _block = new(ByteSize);
 
     public string Name => "ShpMtx";
-    public const int Binding = 4;
-    public int BindingIndex => Binding;
+    public const uint Binding = TotkBindings.ShapeMatrix;
+    public int BindingIndex => (int)Binding;
     public int SizeBytes => ByteSize;
 
     /// <summary>Rows 0-2 = the model/shape transform (mat3x4); everything else stays zero.</summary>

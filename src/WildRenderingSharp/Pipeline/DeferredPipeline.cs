@@ -202,9 +202,9 @@ public sealed class DeferredPipeline : IDisposable
         GLProgramBuilder.BinaryCacheDirectory ??=
             Path.Combine(Path.GetDirectoryName(decompiledDirectory) ?? decompiledDirectory, "_glprograms");
 
-        Resources = new GLResourceCache(gl);
+        Resources = new GLResourceCache(gl, Profile.Bindings);
         Targets = new RenderTargets(gl, width, height);
-        Programs = new ShaderProgramCache(gl, decompiledDirectory);
+        Programs = new ShaderProgramCache(gl, decompiledDirectory, Profile.Bindings);
 
         _gbuffer = new GBufferPass(gl);
         _shadow = new ShadowPass(gl);
@@ -221,7 +221,7 @@ public sealed class DeferredPipeline : IDisposable
         _colorCorrection = new ColorCorrectionPass(gl);
         _resolve = new DeferredResolvePass(gl);
         Timer = new GpuPassTimer(gl);
-        Terrain = new TerrainShading(gl, decompiledDirectory);
+        Terrain = new TerrainShading(gl, decompiledDirectory, Profile.Bindings);
         _sceneColorShapes = new SceneColorShapePass(gl);
         _knownFixes = new KnownMaterialFixes(gl);
         _forward = new ForwardPass(gl, systemTexturesDir);
@@ -286,8 +286,8 @@ public sealed class DeferredPipeline : IDisposable
     {
         if (!Terrain.BindWater())
             return;
-        Resources.BindUbo("ctx_terrain", 1);
-        Resources.BindUbo("env", 6);
+        Resources.BindCamera(FrameUniformKeys.TerrainCamera);
+        Resources.BindEnvironment();
         _gl.Disable(EnableCap.CullFace);
         _gl.Disable(EnableCap.Blend);
         var draw = new TerrainDraw(_gl, Hosting.YUpWorld.PointBack(camera.Eye), -1, default);
@@ -312,7 +312,7 @@ public sealed class DeferredPipeline : IDisposable
             _gl.Disable(EnableCap.DepthTest);
             int index = _passNames.IndexOf(WaterPass);
             var block = new float[8] { (index + 1) / 255f, camera.NearPlane, camera.FarPlane, 0f, 1f / targets.Width, 1f / targets.Height, 0f, 0f };
-            Resources.Ubo("terrain_water_stamp", System.Runtime.InteropServices.MemoryMarshal.AsBytes(block.AsSpan()), bindingIndex: TerrainShading.StampBinding);
+            Resources.Ubo("terrain_water_stamp", System.Runtime.InteropServices.MemoryMarshal.AsBytes(block.AsSpan()), bindingIndex: TotkBindings.TerrainWaterStamp);
             BindUnit(TerrainShading.StampDepthUnit, targets.GBufferDepth.Handle);
             host.DrawWater(draw, stamp: true);
         }
@@ -353,8 +353,8 @@ public sealed class DeferredPipeline : IDisposable
         _gl.CopyImageSubData(targets.GBuffer[3].Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
             underNormal.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)targets.Width, (uint)targets.Height, 1);
 
-        Profile.Camera("ctx_terrain", terrainCamera).Bind(Resources);
-        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, Terrain.MaterialBuffer);
+        Profile.Camera(FrameUniformKeys.TerrainCamera, terrainCamera).Bind(Resources);
+        Resources.BindMaterial(Terrain.MaterialBuffer);
 
         targets.BindGBuffer();
         targets.SetGBufferColorMask(true);
@@ -534,11 +534,11 @@ public sealed class DeferredPipeline : IDisposable
         // The G-buffer's orientation: the plain projection with the upper-left origin the game's
         // programs were written for where the driver has it (see ClipOrigin), else the flipped one.
         bool gameOrigin = ClipOrigin.Supported(_gl);
-        Profile.Camera("ctx_true", cam).Bind(Resources);
-        Profile.Camera("ctx_gbuffer", gameOrigin ? cam : flipped).Bind(Resources);
+        Profile.Camera(FrameUniformKeys.SceneCamera, cam).Bind(Resources);
+        Profile.Camera(FrameUniformKeys.GBufferCamera, gameOrigin ? cam : flipped).Bind(Resources);
         Profile.Lighting(BuildSceneLighting(pal, lighting, sunView, sunWorld, sunColor, hemiSky, hemiGround)).Bind(Resources);
-        Resources.Ubo("support", SupportBufferUbo.Build(), bindingIndex: SupportBufferUbo.BindingIndex);
-        Resources.BindZeroUbo(GlslSanitizer.OrphanBlockBinding, 65536);
+        Resources.Ubo("support", SupportBufferUbo.Build(), bindingIndex: TotkBindings.Support);
+        Resources.BindZeroUbo(TotkBindings.Orphan, 65536);
         Resources.BindEngineVertexTextures();
 
         // Every placed actor's own draw group - bones/ShpMtx bytes built fresh this frame from
@@ -577,7 +577,7 @@ public sealed class DeferredPipeline : IDisposable
             EnsurePass(DefaultPass);
             DrawTerrainGBuffer(terrainHost, targets, camera, gameOrigin ? cam : flipped);
         }
-        Resources.BindUbo("ctx_true", 1); // every later pass uses the true (unflipped) projection
+        Resources.BindCamera(FrameUniformKeys.SceneCamera); // every later pass uses the true (unflipped) projection
 
         // ---- shadow map (skipped when the camera is the only thing that moved - see ShadowCache's own remarks) ----
         // A posed actor misses the cache only when its pose actually CHANGED since the map was
@@ -631,10 +631,10 @@ public sealed class DeferredPipeline : IDisposable
             lightMatrices = ShadowPass.BuildLightMatrices(rotatedLo, rotatedHi, sunWorld);
             if (shadowMapOverride is null)
             {
-                Profile.Camera("ctx_light", CameraData.ForLight(lightMatrices, cam)).Bind(Resources);
+                Profile.Camera(FrameUniformKeys.LightCamera, CameraData.ForLight(lightMatrices, cam)).Bind(Resources);
                 _shadow.Run(Resources, targets, ShadowGroups(castingGroups, instances, request.ShadowFocus), Programs);
                 GLDiagnostics.CheckPass(_gl, "shadow pass");
-                Resources.BindUbo("ctx_true", 1);
+                Resources.BindCamera(FrameUniformKeys.SceneCamera);
 
                 shadowCache.SunWorld = sunWorld;
                 shadowCache.ModelRowsPerActor = modelRowsPerActor;
@@ -814,14 +814,14 @@ public sealed class DeferredPipeline : IDisposable
             _sceneColorShapes.CopyInputs(Resources, targets, emissionUnits);
             if (sceneColorShapes)
             {
-                Resources.BindUbo("ctx_gbuffer", 1);
+                Resources.BindCamera(FrameUniformKeys.GBufferCamera);
                 ClipOrigin.Game(_gl, true);
                 _sceneColorShapes.Run(Resources, targets, allGroups, Programs);
                 ClipOrigin.Game(_gl, false);
             }
             if (waterHost is not null)
                 DrawTerrainWater(waterHost, targets, camera, stamp: false);
-            Resources.BindUbo("ctx_true", 1);
+            Resources.BindCamera(FrameUniformKeys.SceneCamera);
             GLDiagnostics.CheckPass(_gl, "scene-colour shapes");
 
             _linearDepth.Run(Resources, targets, camera.NearPlane, camera.FarPlane);
@@ -831,7 +831,7 @@ public sealed class DeferredPipeline : IDisposable
             if (waterHost is not null)
             {
                 DrawTerrainWater(waterHost, targets, camera, stamp: true);
-                Resources.BindUbo("ctx_true", 1);
+                Resources.BindCamera(FrameUniformKeys.SceneCamera);
             }
             _resolve.Run(Resources, targets, _resolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
                 sceneColorPasses.Contains, defaultPass);
@@ -877,7 +877,7 @@ public sealed class DeferredPipeline : IDisposable
         // ---- forward pass: blended materials over the resolved scene ----
         _forward.Run(Resources, targets, allGroups, Programs);
         GLDiagnostics.CheckPass(_gl, "forward pass");
-        Resources.BindUbo("ctx_true", 1);
+        Resources.BindCamera(FrameUniformKeys.SceneCamera);
 
         // One-shot exposure measurement, requested by the viewer. Taken HERE, on Final, because
         // this is the last moment the buffer is still pre-exposure HDR.
@@ -1105,7 +1105,7 @@ public sealed class DeferredPipeline : IDisposable
 
             if (cache.CascadeSignature[c] != signature)
             {
-                Profile.Camera("ctx_light", CameraData.ForLight(lm, sceneCamera)).Bind(Resources);
+                Profile.Camera(FrameUniformKeys.LightCamera, CameraData.ForLight(lm, sceneCamera)).Bind(Resources);
 
                 static ActorDrawGroup Casting(ActorDrawGroup g) => g with { Shapes = g.Shapes.Where(s => !s.ReadsSceneColor).ToList() };
                 var groups = allGroups.Where(g => g.Batch is null).Select(Casting).ToList();
@@ -1119,7 +1119,7 @@ public sealed class DeferredPipeline : IDisposable
                 _shadow.Run(Resources, targets, groups, Programs, c);
                 if (request.Terrain is { } terrainHost && Terrain.Available)
                 {
-                    Profile.Camera("ctx_light_terrain", CameraData.ForLight(lm, sceneCamera)).Bind(Resources);
+                    Profile.Camera(FrameUniformKeys.TerrainLightCamera, CameraData.ForLight(lm, sceneCamera)).Bind(Resources);
                     terrainHost.DrawShadow(new TerrainDraw(_gl, Hosting.YUpWorld.PointBack(camera.Eye), c,
                         new Vector4(Hosting.YUpWorld.PointBack(focus.Center), focus.Radius)));
                     _gl.UseProgram(0);
@@ -1138,7 +1138,7 @@ public sealed class DeferredPipeline : IDisposable
         {
             GLDiagnostics.CheckPass(_gl, "shadow cascades");
             ShadowCounts = ShapeDrawing.TakeCounts();
-            Resources.BindUbo("ctx_true", 1);
+            Resources.BindCamera(FrameUniformKeys.SceneCamera);
         }
         return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias);
     }
