@@ -8,9 +8,9 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// Runs the <c>agl::pfx::Sky</c> precompute chain (Bruneton's multiple-scattering solve), whose end
-/// product is the <c>cTexBakedInscatter</c> table that <c>agl_sky_postfx_sky</c> only samples.
-/// See <c>docs/agl_sky_postfx.md</c> for the extraction and the evidence for each layout fact.
+/// Runs the <c>agl::pfx::Sky</c> precompute chain (Bruneton's multiple-scattering solve), whose end product is the
+/// <c>cTexBakedInscatter</c> table that <c>agl_sky_postfx_sky</c> only samples. See <c>docs/agl_sky_postfx.md</c> for the
+/// extraction and the evidence for each layout fact.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -69,10 +69,9 @@ public sealed class SkyPrecomputePass : IDisposable
     public const float Rt = 6420f;
 
     /// <summary>
-    /// Multiple-scattering orders to solve. 6 was chosen by measurement: against the game's captured
-    /// inscatter table the mean per-slice correlation was 0.9016, 0.9392, 0.9492 and 0.9523 at 2, 4, 6
-    /// and 8 orders, so the curve flattens at 6. Override with <c>WRS_SKY_ORDERS</c> (or the older
-    /// <c>MARROW_SKY_ORDERS</c>).
+    /// Multiple-scattering orders to solve. 6 was chosen by measurement: against the game's captured inscatter table the mean
+    /// per-slice correlation was 0.9016, 0.9392, 0.9492 and 0.9523 at 2, 4, 6 and 8 orders, so the curve flattens at 6. Override
+    /// with <c>WRS_SKY_ORDERS</c> (or the older <c>MARROW_SKY_ORDERS</c>).
     /// </summary>
     public int ScatteringOrders { get; set; } =
         int.TryParse((Environment.GetEnvironmentVariable("WRS_SKY_ORDERS") ?? Environment.GetEnvironmentVariable("MARROW_SKY_ORDERS")), out int o) && o >= 1 ? o : 6;
@@ -182,7 +181,6 @@ public sealed class SkyPrecomputePass : IDisposable
             $"inscatter LUT {InscatterW}x{InscatterH}x{InscatterD}, transmittance {TransmittanceW}x{TransmittanceH}.");
     }
 
-    /// <summary>Points each program's samplers at fixed texture units, following the shader's own <c>fp_t_tcb_&lt;hex&gt;</c> naming.</summary>
     void AssignSamplerUnits(uint prog, string name)
     {
         switch (name)
@@ -247,7 +245,6 @@ public sealed class SkyPrecomputePass : IDisposable
         return tex;
     }
 
-    /// <summary>The 144-byte <c>SizeInfo</c> blob, reproducing the game's own bound contents exactly.</summary>
     internal static byte[] BuildSizeInfo()
     {
         var buf = new byte[144];
@@ -279,16 +276,8 @@ public sealed class SkyPrecomputePass : IDisposable
         return buf;
     }
 
-    /// <summary>
-    /// The <c>RenderInfo</c> the game binds to <c>sky_bake_inscatter</c>, as captured. Known slots are
-    /// overwritten by <see cref="BuildBakeRenderInfo"/>; the rest are kept because zeroing them is
-    /// demonstrably wrong.
-    /// </summary>
-    /// <remarks>
-    /// This pass is 2D over the whole table, so it has no layer. Its <c>[0]</c> carries
-    /// <c>betaR</c>/<c>betaM</c>, the weights that turn the Rayleigh and Mie tables into colour: with
-    /// them zero the table has a healthy alpha and zero RGB, which is a black sky.
-    /// </remarks>
+    // The RenderInfo the game binds to sky_bake_inscatter, as captured. Known slots are overwritten by BuildBakeRenderInfo; the
+    // rest are kept because zeroing them is demonstrably wrong.
     static readonly float[] BakeRenderInfoBaseline =
     [
         0.00411f, 0.011275f, 0.028364f, 0.0018f,     // [0] betaR.rgb, betaM      (overwritten)
@@ -301,7 +290,6 @@ public sealed class SkyPrecomputePass : IDisposable
         0f, 0f, 0f, 0f,                              // [7] zero in the capture
     ];
 
-    /// <summary>The 128-byte <c>RenderInfo</c> for <c>sky_bake_inscatter</c>.</summary>
     internal static byte[] BuildBakeRenderInfo(SkyPostFx postfx, Vector3 sunWorldZUp)
     {
         var buf = new byte[128];
@@ -323,24 +311,6 @@ public sealed class SkyPrecomputePass : IDisposable
         return buf;
     }
 
-    /// <summary>
-    /// The 48-byte <c>Config</c> blob: the ROM's atmosphere parameters plus Bruneton's <c>dhdH</c> for
-    /// one altitude slice.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <c>[2] = dhdH = (dmin, dmax, dminp, dmaxp)</c> is inferred. The shaders clamp against it in two
-    /// pairs, <c>max(t, [2].x)</c> with <c>min(t, [2].y * 0.999)</c> and the same for <c>.z/.w</c>, which is
-    /// how Bruneton clamps the sky and ground branches, and <c>inscatter_step1</c> recovers the radius as
-    /// <c>[2].z + Rg</c> (dminp is defined as <c>r - Rg</c>).
-    /// </para>
-    /// <para>
-    /// <c>[1].x</c> is read but unidentified, and left zero. Only the multiple-scattering source terms
-    /// read it, which leaves the Mie asymmetry or the ground reflectance; feeding the asymmetry (0.85)
-    /// slightly worsened correlation with the captured table (0.9392 to 0.9383), so it is not that. It is
-    /// the leading suspect for a residual blue deficit of about 20%. <c>[1].w</c> is unread.
-    /// </para>
-    /// </remarks>
     internal static byte[] BuildConfig(SkyPostFx postfx, int layer,
         float rayleighAmplifier = 1f, float mieAmplifier = 1f)
     {
@@ -364,12 +334,6 @@ public sealed class SkyPrecomputePass : IDisposable
         return buf;
     }
 
-    /// <summary>Bruneton's per-layer radius and the four ray-length bounds derived from it.</summary>
-    /// <remarks>
-    /// The epsilon nudges at the first and last layer are load-bearing: exactly at <c>r == Rg</c> the
-    /// horizon term is 0 and exactly at <c>r == Rt</c> the sky-branch length collapses, putting a
-    /// division on a knife edge and producing NaN across the slice.
-    /// </remarks>
     internal static (float Dmin, float Dmax, float Dminp, float Dmaxp) SliceGeometry(int layer)
     {
         float t = layer / (float)(ResR - 1);
@@ -382,11 +346,6 @@ public sealed class SkyPrecomputePass : IDisposable
         return (Rt - r, horizon + topHorizon, r - Rg, horizon);
     }
 
-    /// <summary>The 128-byte <c>RenderInfo</c> blob; <c>[3].w</c> is the normalised layer.</summary>
-    /// <remarks>
-    /// <c>sky_copy_inscatter</c>'s vertex shader computes <c>L * (ResR - 1) + 0.5</c>, so landing on
-    /// slice <c>i</c>'s texel centre needs <c>L = i / (ResR - 1)</c>.
-    /// </remarks>
     internal static byte[] BuildRenderInfo(int layer)
     {
         var buf = new byte[128];
@@ -452,7 +411,6 @@ public sealed class SkyPrecomputePass : IDisposable
     }
 
     /// <summary>Runs the whole precompute. The caller guards against repeating it.</summary>
-    /// <param name="sunWorldZUp">The Z-up sun direction, converted internally for the bake pass.</param>
     public void Run(GLResourceCache resources, SkyPostFx postfx, Vector3 sunWorldZUp = default,
         float rayleighAmplifier = 1f, float mieAmplifier = 1f, Vector3? paletteTint = null)
     {
@@ -582,22 +540,15 @@ public sealed class SkyPrecomputePass : IDisposable
     }
 
     /// <summary>Per-channel gain applied to the finished table. Neutral.</summary>
-    /// <remarks>
-    /// A fixed gain once compensated an unexplained residual (see <see cref="BuildConfig"/>,
-    /// <c>Config[1].x</c>) measured against a single noon palette. Applied to every palette it dragged
-    /// saturated reds toward orange, and the peak normalisation and per-palette tint now do that job.
-    /// Kept as a hook.
-    /// </remarks>
     public Vector3 SpectralCalibration { get; set; } = Vector3.One;
 
     /// <summary>Per-palette colour folded into the baked table; 0 is none.</summary>
-    /// <remarks>
-    /// Multiplied into the finished table rather than applied through the sky shader's blend bias,
-    /// which saturates wherever the table's alpha is already 1 and then ignores the palette colour.
-    /// </remarks>
     public Vector3 PaletteTint { get; set; } = Vector3.One;
 
-    /// <summary>The peak the baked table is normalised to, so palettes with very different scattering amplifiers land in one range instead of clipping.</summary>
+    /// <summary>
+    /// The peak the baked table is normalised to, so palettes with very different scattering amplifiers land in one range instead
+    /// of clipping.
+    /// </summary>
     public const float NormalisedPeak = 60f;
 
     uint _calibProgram;
@@ -618,7 +569,8 @@ public sealed class SkyPrecomputePass : IDisposable
         void main() { vec4 c = texture(tSrc, vUV); oCol = vec4(c.rgb * uGain, c.a); }
         """;
 
-    /// <summary>Multiplies the baked table in place by the calibration, through a scratch copy (a texture cannot be its own target and sampler).</summary>
+    // Multiplies the baked table in place by the calibration, through a scratch copy (a texture cannot be its own target and
+    // sampler).
     void ApplySpectralCalibration()
     {
         // Normalise the peak before tinting: a palette's amplifiers change the table's magnitude
@@ -652,7 +604,6 @@ public sealed class SkyPrecomputePass : IDisposable
         _bakedInscatter = scratch;
     }
 
-    /// <summary>The <c>SizeInfo</c> bytes as read from the game, to check <see cref="BuildSizeInfo"/> reproduces them.</summary>
     static readonly float[] CapturedSizeInfo =
     [
         256f, 64f, 0.00390625f, 0.015625f,
@@ -718,9 +669,8 @@ public sealed class SkyPrecomputePass : IDisposable
     }
 
     /// <summary>
-    /// Reports each table's range and finiteness. Every quantity in the chain is a radiance or a
-    /// transmittance, so non-finite or negative values mean a wrong dhdH, a mis-bound sampler or a
-    /// slice rendered with the wrong Config.
+    /// Reports each table's range and finiteness. Every quantity in the chain is a radiance or a transmittance, so non-finite or
+    /// negative values mean a wrong dhdH, a mis-bound sampler or a slice rendered with the wrong Config.
     /// </summary>
     public bool Verify()
     {

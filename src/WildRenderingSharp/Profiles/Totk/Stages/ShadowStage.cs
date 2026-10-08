@@ -9,8 +9,8 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>
-/// Draws the sun's shadow map, or its cascades. Skipped when only the camera moved: the map
-/// depends on the sun and what casts into it, never on the view.
+/// Draws the sun's shadow map, or its cascades. Skipped when only the camera moved: the map depends on the sun and what casts into
+/// it, never on the view.
 /// </summary>
 public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain) : IFrameStage
 {
@@ -89,10 +89,8 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         cache.LightMatrices = light;
     }
 
-    /// <summary>
-    /// What the single shadow map draws. With a focus, batches cast from their own shadow runs,
-    /// including a batch the camera sees none of, instead of from what is on screen.
-    /// </summary>
+    // What the single shadow map draws. With a focus, batches cast from their own shadow runs, including a batch the camera
+    // sees none of, instead of from what is on screen.
     List<ActorDrawGroup> ShadowGroups(FrameContext frame, ShadowFocus? focus)
     {
         if (focus is null)
@@ -105,7 +103,6 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         return groups;
     }
 
-    /// <summary>Draws whichever cascades are out of date and returns what the shadow lookup needs to read them.</summary>
     ScreenSpaceShadowAndAoPass.CascadeParams RenderCascades(FrameContext frame, IReadOnlyList<ShadowFocus> cascades)
     {
         var request = frame.Request;

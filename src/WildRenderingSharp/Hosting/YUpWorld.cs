@@ -3,9 +3,7 @@ using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Hosting;
 
-/// <summary>
-/// Conversions for a host whose world is Y-up - the game's own convention, and most tools'.
-/// </summary>
+/// <summary>Conversions for a host whose world is Y-up - the game's own convention, and most tools'.</summary>
 /// <remarks>
 /// <para>
 /// The renderer's world is Z-up: the sun, sky, clouds, grid and shadow fitting were all built that
@@ -31,9 +29,9 @@ public static class YUpWorld
     public static Vector3 PointBack(Vector3 zUp) => new(zUp.X, zUp.Z, -zUp.Y);
 
     /// <summary>
-    /// A model placement for the renderer from the host's own Y-up model matrix - what
-    /// <see cref="Scene.RenderActor.TransformOverride"/> takes. Identity puts a BFRES model exactly
-    /// where it was authored, standing upright.
+    /// A model placement for the renderer from the host's own Y-up model matrix - what <see
+    /// cref="Scene.RenderActor.TransformOverride"/> takes. Identity puts a BFRES model exactly where it was authored, standing
+    /// upright.
     /// </summary>
     public static Vector4[] ActorRows(Matrix4x4 hostModelMatrix) =>
         Scene.RenderActor.RowsFromMatrix(hostModelMatrix * ToZUp);

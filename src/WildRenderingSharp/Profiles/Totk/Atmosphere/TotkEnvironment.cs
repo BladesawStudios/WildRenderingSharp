@@ -6,8 +6,8 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
-/// TotK's environment for one frame: the palette in effect plus the static sky, cloud and colour-grade
-/// settings that come with the game's data. Missing pieces fall back to the defaults.
+/// TotK's environment for one frame: the palette in effect plus the static sky, cloud and colour-grade settings that come with the
+/// game's data. Missing pieces fall back to the defaults.
 /// </summary>
 public sealed class TotkEnvironment(
     EnvPalette palette, SkyPostFx? skyPostFx = null, CloudPostFx? cloudPostFx = null,

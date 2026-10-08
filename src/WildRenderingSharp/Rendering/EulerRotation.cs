@@ -2,10 +2,16 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Rendering;
 
-/// <summary>Euler-angle rotation matrix builders. Mirrors <c>render_deferred_master_sword.make_euler_matrix</c> (XYZ order only - the only order TotK's icon-capture preset and the default model tilt actually use).</summary>
+/// <summary>
+/// Euler-angle rotation matrix builders. Mirrors <c>render_deferred_master_sword.make_euler_matrix</c> (XYZ order only - the only
+/// order TotK's icon-capture preset and the default model tilt actually use).
+/// </summary>
 public static class EulerRotation
 {
-    /// <summary>4-row rotation matrix (no translation) applying X, then Y, then Z - i.e. <c>v' = Rz * (Ry * (Rx * v))</c>, matching <c>make_euler_matrix(..., order="xyz")</c>.</summary>
+    /// <summary>
+    /// 4-row rotation matrix (no translation) applying X, then Y, then Z - i.e. <c>v' = Rz * (Ry * (Rx * v))</c>, matching
+    /// <c>make_euler_matrix(..., order="xyz")</c>.
+    /// </summary>
     public static Vector4[] MakeXyzRows4(float rxDegrees, float ryDegrees, float rzDegrees)
     {
         float rx = float.DegreesToRadians(rxDegrees), ry = float.DegreesToRadians(ryDegrees), rz = float.DegreesToRadians(rzDegrees);
@@ -23,10 +29,9 @@ public static class EulerRotation
     public static Vector4[] MakeXyzRows3(float rxDegrees, float ryDegrees, float rzDegrees) => MakeXyzRows4(rxDegrees, ryDegrees, rzDegrees)[..3];
 
     /// <summary>
-    /// Yaw (about Z) then pitch (about X) - <c>Rz(yaw) * Rx(pitch)</c> - applied about a pivot
-    /// point rather than the origin, matching <c>Viewer._model_matrix</c>'s free-camera branch
-    /// (arrow keys adjust yaw/pitch; the model spins in place about its own bounds centre rather
-    /// than around world origin).
+    /// Yaw (about Z) then pitch (about X) - <c>Rz(yaw) * Rx(pitch)</c> - applied about a pivot point rather than the origin,
+    /// matching <c>Viewer._model_matrix</c>'s free-camera branch (arrow keys adjust yaw/pitch; the model spins in place about its
+    /// own bounds centre rather than around world origin).
     /// </summary>
     public static Vector4[] MakeYawPitchAboutPivot(float yawRadians, float pitchRadians, Vector3 pivot)
     {
@@ -50,20 +55,11 @@ public static class EulerRotation
     }
 
     /// <summary>
-    /// Generalises <see cref="MakeYawPitchAboutPivot"/> for <c>PlacedActor</c>'s full G/R/S
-    /// transform-gizmo support: adds Roll (a further LOCAL rotation about the object's own Z axis,
-    /// applied before yaw/pitch map it into world space - once composed this is equivalent to
-    /// spinning about the object's own current forward direction in world space, the same thing
-    /// <c>SceneCamera.Up()</c> achieves via a separate Rodrigues step for its own Roll) and
-    /// non-uniform Scale (applied in LOCAL space, i.e. R * S, so scaling doesn't also skew world
-    /// axes). Both rotation AND scale pivot about <paramref name="pivot"/> (so scaling/rotating in
-    /// place doesn't also shift the object - same "rotate about a fixed point" trick
-    /// <see cref="MakeYawPitchAboutPivot"/> already uses, just generalised to R*S instead of R
-    /// alone), with <paramref name="translation"/> added on top as an INDEPENDENT world-space
-    /// offset - not folded into the pivot itself, which would make the offset's effect a function
-    /// of the current rotation instead of a plain additive move. Reduces to
-    /// <see cref="MakeYawPitchAboutPivot"/>'s own result when roll=0, scale=(1,1,1) and
-    /// translation=0.
+    /// Generalises <see cref="MakeYawPitchAboutPivot"/> for <c>PlacedActor</c>'s full G/R/S transform-gizmo support: adds Roll (a
+    /// further LOCAL rotation about the object's own Z axis, applied before yaw/pitch map it into world space - once composed this
+    /// is equivalent to spinning about the object's own current forward direction in world space, the same thing
+    /// <c>SceneCamera.Up()</c> achieves via a separate Rodrigues step for its own Roll) and non-uniform Scale (applied in LOCAL
+    /// space, i.e. R * S, so scaling doesn't also skew world axes).
     /// </summary>
     public static Vector4[] MakeYawPitchRollScaleAboutPivot(float yawRadians, float pitchRadians, float rollRadians, Vector3 scale, Vector3 pivot, Vector3 translation)
     {
@@ -92,7 +88,12 @@ public static class EulerRotation
         ];
     }
 
-    /// <summary>The world-space direction of the object's own local Right/Up/Forward axes after a yaw-pitch-roll rotation - the rotation-only (pivot at origin, no scale/translation) case of <see cref="MakeYawPitchRollScaleAboutPivot"/>, used by anything (the transform gizmo's rotate rings, <c>PlacedActor.Basis</c>) that needs the object's own axes rather than a full vertex transform.</summary>
+    /// <summary>
+    /// The world-space direction of the object's own local Right/Up/Forward axes after a yaw-pitch-roll rotation - the
+    /// rotation-only (pivot at origin, no scale/translation) case of <see cref="MakeYawPitchRollScaleAboutPivot"/>, used by
+    /// anything (the transform gizmo's rotate rings, <c>PlacedActor.Basis</c>) that needs the object's own axes rather than a full
+    /// vertex transform.
+    /// </summary>
     public static (Vector3 Right, Vector3 Up, Vector3 Forward) YawPitchRollBasis(float yawRadians, float pitchRadians, float rollRadians)
     {
         var rows = MakeYawPitchRollScaleAboutPivot(yawRadians, pitchRadians, rollRadians, Vector3.One, Vector3.Zero, Vector3.Zero);

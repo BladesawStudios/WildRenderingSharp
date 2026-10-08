@@ -13,7 +13,6 @@ namespace WildRenderingSharp.Profiles.Totk.Terrain;
 /// <summary>Draws a host's terrain through the game's terrain programs: its G-buffer half, its water and its shadow.</summary>
 public sealed class TerrainRenderer(FrameServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene)
 {
-    /// <summary><c>cTex_ColorBuffer</c>'s unit in the terrain water program.</summary>
     const int WaterColorBufferUnit = 19;
 
     uint _underDepthProgram;
@@ -27,9 +26,9 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
     public bool Available => shading.Available;
 
     /// <summary>
-    /// The terrain's G-buffer half, after the actors': the linear depth and G-buffer under it are
-    /// copied first, for the soft edge where the ground meets something set into it, then the host
-    /// draws through the game's terrain program with a camera in the game's Y-up world.
+    /// The terrain's G-buffer half, after the actors': the linear depth and G-buffer under it are copied first, for the soft edge
+    /// where the ground meets something set into it, then the host draws through the game's terrain program with a camera in the
+    /// game's Y-up world.
     /// </summary>
     public void DrawGBuffer(ITerrainHost host, RenderTargets targets, Camera camera, CameraData terrainCamera)
     {
@@ -72,8 +71,8 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
     }
 
     /// <summary>
-    /// The host's water, through the game's water program: drawn into the G-buffer over the lit
-    /// opaque scene, or, when <paramref name="stamp"/>, marked in the pass-ID mask for <c>field_water</c>.
+    /// The host's water, through the game's water program: drawn into the G-buffer over the lit opaque scene, or, when <paramref
+    /// name="stamp"/>, marked in the pass-ID mask for <c>field_water</c>.
     /// </summary>
     public void DrawWater(ITerrainHost host, RenderTargets targets, Camera camera, bool stamp)
     {

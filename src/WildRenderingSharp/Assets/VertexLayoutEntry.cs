@@ -2,7 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>One entry of <c>vertex_layout</c>: an attribute's fixed byte offset/component count in <c>ExportTestBench</c>'s 192-byte interleaved vertex.</summary>
+/// <summary>
+/// One entry of <c>vertex_layout</c>: an attribute's fixed byte offset/component count in <c>ExportTestBench</c>'s 192-byte
+/// interleaved vertex.
+/// </summary>
 public sealed class VertexLayoutEntry
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";

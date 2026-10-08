@@ -4,13 +4,14 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// One thing a material anim writes: four bytes at <c>byte_offset</c> within the shader parameter
-/// <c>param</c>, either from a curve or as a fixed value.
+/// One thing a material anim writes: four bytes at <c>byte_offset</c> within the shader parameter <c>param</c>, either from a curve
+/// or as a fixed value.
 /// </summary>
 public sealed class MaterialAnimTarget
 {
     [JsonPropertyName("param")] public string Param { get; set; } = "";
-    /// <summary>The BFRES <c>ShaderParamType</c> name, for display - the evaluation never needs it (a curve's own type says whether it produces int or float bits, and a constant is raw bits either way).</summary>
+    // The BFRES ShaderParamType name, for display - the evaluation never needs it (a curve's own type says whether it produces
+    // int or float bits, and a constant is raw bits either way).
     [JsonPropertyName("param_type")] public string ParamType { get; set; } = "";
     /// <summary>Byte offset WITHIN the parameter (<c>AnimCurve.AnimDataOffset</c>): 0 for a plain float, 20 for a TexSrt's translate-Y, and so on.</summary>
     [JsonPropertyName("byte_offset")] public int ByteOffset { get; set; }
@@ -28,7 +29,10 @@ public sealed class MaterialAnimTarget
     [JsonPropertyName("frames")] public float[] Frames { get; set; } = [];
     [JsonPropertyName("keys")] public float[][] Keys { get; set; } = [];
 
-    /// <summary>The 32 bits this target writes at <paramref name="frame"/> - a constant's stored bits, or the curve's evaluated float/int reinterpreted as bits.</summary>
+    /// <summary>
+    /// The 32 bits this target writes at <paramref name="frame"/> - a constant's stored bits, or the curve's evaluated float/int
+    /// reinterpreted as bits.
+    /// </summary>
     public uint Bits(float frame)
     {
         if (ConstantBits is { } bits)

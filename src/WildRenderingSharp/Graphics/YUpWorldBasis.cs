@@ -3,8 +3,8 @@ using System.Numerics;
 namespace WildRenderingSharp.Graphics;
 
 /// <summary>
-/// The Y-up world the Wild games work in, reached from the renderer's Z-up one by a quarter turn:
-/// a Z-up <c>(x, y, z)</c> is <c>(x, z, -y)</c> here.
+/// The Y-up world the Wild games work in, reached from the renderer's Z-up one by a quarter turn: a Z-up <c>(x, y, z)</c> is <c>(x,
+/// z, -y)</c> here.
 /// </summary>
 /// <remarks>
 /// Shaders use world positions directly (water derives its texture coordinates from X and Z,

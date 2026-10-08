@@ -4,8 +4,9 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Persistent GL objects that would otherwise be reallocated every frame: named uniform buffers (rewritten in place rather than recreated) and the one attribute-less VAO every fullscreen pass draws
-/// through (the deferred vertex shaders synthesise position and UV from <c>gl_VertexID</c>).
+/// Persistent GL objects that would otherwise be reallocated every frame: named uniform buffers (rewritten in place rather than
+/// recreated) and the one attribute-less VAO every fullscreen pass draws through (the deferred vertex shaders synthesise position
+/// and UV from <c>gl_VertexID</c>).
 /// </summary>
 public sealed class GLResourceCache : IDisposable
 {

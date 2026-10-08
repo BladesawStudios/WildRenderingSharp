@@ -4,20 +4,27 @@ using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
-/// <summary>Runs each distinct deferred resolve program the loaded models need: an unmodified game shader per pass over a fullscreen quad it synthesises from <c>gl_VertexID</c>, composited into the running result only where the pass-ID mask names it.</summary>
+/// <summary>
+/// Runs each distinct deferred resolve program the loaded models need: an unmodified game shader per pass over a fullscreen quad it
+/// synthesises from <c>gl_VertexID</c>, composited into the running result only where the pass-ID mask names it.
+/// </summary>
 public sealed class DeferredResolvePass : IDisposable
 {
     readonly GL _gl;
     readonly uint _composeProgram;
     readonly uint _texPreFog, _texVolumeMask;
 
-    /// <summary><c>o_material_behave = 2</c> spans the whole field_* family, none of which runs correctly without the preshading passes and the undecoded Env tail; substituted with a logged fallback rather than rendering black.</summary>
+    /// <summary>
+    /// <c>o_material_behave = 2</c> spans the whole field_* family, none of which runs correctly without the preshading passes and
+    /// the undecoded Env tail; substituted with a logged fallback rather than rendering black.
+    /// </summary>
     public const string FieldFallbackPass = "chara_nonmetal";
 
-    /// <summary>The field passes that run their own program. <c>field_water</c> reads the same screen-space inputs as the chara passes plus <c>cTex_CubeEnvMap</c>; water was black because of its G-buffer half (see <see cref="SceneColorShapePass"/>), and lighting it as an opaque nonmetal surface was never right.</summary>
+    // The field passes that run their own program. field_water reads the same screen-space inputs as the chara passes plus
+    // cTex_CubeEnvMap; water was black because of its G-buffer half (see SceneColorShapePass), and lighting it as an opaque
+    // nonmetal surface was never right.
     static readonly HashSet<string> RealFieldPasses = ["field_water"];
 
-    /// <summary><c>cTex_CubeEnvMap</c>'s unit in the resolve programs that read it.</summary>
     const int CubeEnvMapUnit = 9;
 
     readonly uint _cubeEnvMap;
@@ -69,7 +76,10 @@ public sealed class DeferredResolvePass : IDisposable
         SetEnvironmentColor(new System.Numerics.Vector3(0.5f));
     }
 
-    /// <summary>Fills <c>cTex_CubeEnvMap</c>. No environment cube is rendered, so every face is the palette's sky colour, which is what an open-air reflection mostly shows.</summary>
+    /// <summary>
+    /// Fills <c>cTex_CubeEnvMap</c>. No environment cube is rendered, so every face is the palette's sky colour, which is what an
+    /// open-air reflection mostly shows.
+    /// </summary>
     public unsafe void SetEnvironmentColor(System.Numerics.Vector3 color)
     {
         _gl.BindTexture(TextureTarget.TextureCubeMap, _cubeEnvMap);
@@ -83,13 +93,10 @@ public sealed class DeferredResolvePass : IDisposable
     }
 
     /// <summary>
-    /// Resolves each distinct deferred-pass name to its compiled program (globbed by name, so a model resolving through a different pass just works) and its
-    /// material bytes, once per loaded model. A <c>field_*</c> pass is substituted with <see cref="FieldFallbackPass"/>.
+    /// Resolves each distinct deferred-pass name to its compiled program (globbed by name, so a model resolving through a different
+    /// pass just works) and its material bytes, once per loaded model. A <c>field_*</c> pass is substituted with <see
+    /// cref="FieldFallbackPass"/>.
     /// </summary>
-    /// <param name="deferredMaterialsDir">
-    /// Where <c>&lt;pass&gt;.gsys_material.bin</c> lives: shared across every model (see <c>BuildMaterialUbo.RunSystemDeferred</c>), since the bytes come from the
-    /// one system shader archive and <c>SystemModel.DeferredMain</c>. A missing file means the cache predates that step; the pass still draws, with an all-zero "Mat" block.
-    /// </param>
     public static List<ResolvedDeferredPass> ResolveDeferredPasses(
         GL gl, ShaderProgramCache programs, string decompiledDir, string deferredMaterialsDir, IEnumerable<string> passNames)
     {
@@ -134,13 +141,6 @@ public sealed class DeferredResolvePass : IDisposable
         return resolved;
     }
 
-    /// <param name="emissionScale">The Emission Scale control; 1 means the magnitude the material authored, because of <paramref name="exposure"/>.</param>
-    /// <param name="exposure">
-    /// The exposure <see cref="TonemapPass.RunExposureAndCompress"/> applies to this buffer afterwards, divided back out of the emission term so emission lands at its
-    /// authored magnitude. This renderer's exposure is a calibration standing in for lighting it does not compute (no preshading passes, cubemap IBL or light
-    /// pre-pass), but emission is authored in the game's units, so the lit-path correction blew every emissive surface past the highlight-compression ceiling:
-    /// Enemy_Giant's eye rendered flat white and Enemy_Dragon_Darkness's claws too hot. This is the separation <c>LightingContext.SceneGain</c> makes for the lit path.
-    /// </param>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ResolvedDeferredPass> passes,
         float emissionScale, float sceneGain, float exposure, Func<string, bool>? include = null, int claimEmptyPass = -1)
     {

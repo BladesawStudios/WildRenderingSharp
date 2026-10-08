@@ -1,13 +1,11 @@
 namespace WildRenderingSharp.Imaging;
 
 /// <summary>
-/// Writes a top-down RGBA float buffer (as produced by <c>RenderTargets.ReadPixelsFloatRgba</c>)
-/// as a Radiance RGBE (.hdr) file - the standard, widely-supported HDR image format, hand-written
-/// here since nothing in this codebase encoded one before. Format reference: the classic Radiance
-/// picture format (used by Blender, Photoshop, every HDR viewer) - a short ASCII header followed
-/// by scanlines of 4-byte RGBE (mantissa R/G/B + a shared power-of-two exponent byte), uncompressed
-/// (the "old" flat encoding, not the newer RLE scanline compression - simpler and universally
-/// readable, at the cost of a slightly larger file).
+/// Writes a top-down RGBA float buffer (as produced by <c>RenderTargets.ReadPixelsFloatRgba</c>) as a Radiance RGBE (.hdr) file -
+/// the standard, widely-supported HDR image format, hand-written here since nothing in this codebase encoded one before. Format
+/// reference: the classic Radiance picture format (used by Blender, Photoshop, every HDR viewer) - a short ASCII header followed by
+/// scanlines of 4-byte RGBE (mantissa R/G/B + a shared power-of-two exponent byte), uncompressed (the "old" flat encoding, not the
+/// newer RLE scanline compression - simpler and universally readable, at the cost of a slightly larger file).
 /// </summary>
 public static class HdrWriter
 {

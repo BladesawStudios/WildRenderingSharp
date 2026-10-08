@@ -4,11 +4,10 @@ using System.Text.Json.Serialization;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.matanim.json</c> - a shader PARAMETER animation,
-/// which is the single mechanism behind BFRES's <c>_fsp</c> (shader param), <c>_fcl</c> (colour)
-/// and <c>_fts</c> (texture SRT) anims alike. Every one of them writes 4-byte words into the
-/// material's <c>gsys_material</c> block; see <c>ShaderLibrary.CompileTool.ExportMaterialAnim</c>
-/// for the derivation and <see cref="WildRenderingSharp.Rendering.MaterialAnimPose"/> for the runtime.
+/// Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.matanim.json</c> - a shader PARAMETER animation, which is the single mechanism
+/// behind BFRES's <c>_fsp</c> (shader param), <c>_fcl</c> (colour) and <c>_fts</c> (texture SRT) anims alike. Every one of them
+/// writes 4-byte words into the material's <c>gsys_material</c> block; see <c>ShaderLibrary.CompileTool.ExportMaterialAnim</c> for
+/// the derivation and <see cref="WildRenderingSharp.Rendering.MaterialAnimPose"/> for the runtime.
 /// </summary>
 public sealed class MaterialAnimManifest : IAnimClip
 {

@@ -5,8 +5,8 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Draws blended materials forward, after the deferred resolve: a blended surface cannot go through the
-/// G-buffer, so the engine draws it with <c>gsys_assign_material</c> once the scene behind it is resolved.
+/// Draws blended materials forward, after the deferred resolve: a blended surface cannot go through the G-buffer, so the engine
+/// draws it with <c>gsys_assign_material</c> once the scene behind it is resolved.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -102,7 +102,10 @@ public sealed class ForwardPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    /// <summary>Like <see cref="FlipInto"/>, but floors the result at <paramref name="floorTex"/> instead of copying <paramref name="src"/> (see <c>FloorFragmentSource</c>).</summary>
+    /// <summary>
+    /// Like <see cref="FlipInto"/>, but floors the result at <paramref name="floorTex"/> instead of copying <paramref name="src"/>
+    /// (see <c>FloorFragmentSource</c>).
+    /// </summary>
     public void FlipIntoWithFloor(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, GpuTexture floorTex, bool flip)
     {
         _gl.UseProgram(_floorProgram);
@@ -113,7 +116,10 @@ public sealed class ForwardPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    /// <summary>Draws every actor's blended and force-forward shapes into the forward-resolved scene, rebinding each actor's skinning uniforms first.</summary>
+    /// <summary>
+    /// Draws every actor's blended and force-forward shapes into the forward-resolved scene, rebinding each actor's skinning
+    /// uniforms first.
+    /// </summary>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
     {
         var forwardGroups = groups
@@ -226,11 +232,8 @@ public sealed class ForwardPass : IDisposable
         _gl.BindTexture(target, handle);
     }
 
-    /// <summary>
-    /// <c>cTex_Proc3DNoise</c>: the 3D Worley and Perlin noise volume extracted from romfs when available,
-    /// else a flat mid-grey placeholder. Every effect branch sampling it expects a spatially varying value;
-    /// the placeholder makes them uniform.
-    /// </summary>
+    // cTex_Proc3DNoise: the 3D Worley and Perlin noise volume extracted from romfs when available, else a flat mid-grey
+    // placeholder. Every effect branch sampling it expects a spatially varying value; the placeholder makes them uniform.
     unsafe uint LoadRealNoiseVolumeOrFallback(GL gl, string? systemTexturesDirectory)
     {
         string? dataPath = systemTexturesDirectory is { } dir ? Path.Combine(dir, "Proc3DNoise.r8") : null;

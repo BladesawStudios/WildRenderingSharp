@@ -8,9 +8,10 @@ using WildRenderingSharp.Profiles.Totk.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
-/// A model is not one deferred pass: <c>o_material_behave</c> picks a different resolve program per material (the Master Sword is <c>chara_metal</c> throughout; a
-/// character can span <c>chara_nonmetal</c>, <c>chara_hair</c>, <c>chara_skin</c> and <c>chara_grossy</c>). The game separates them with stencil; this stamps each
-/// shape's pass as a small integer ID into an R8 target, and <see cref="DeferredResolvePass"/> composites each program only where the ID matches.
+/// A model is not one deferred pass: <c>o_material_behave</c> picks a different resolve program per material (the Master Sword is
+/// <c>chara_metal</c> throughout; a character can span <c>chara_nonmetal</c>, <c>chara_hair</c>, <c>chara_skin</c> and
+/// <c>chara_grossy</c>). The game separates them with stencil; this stamps each shape's pass as a small integer ID into an R8
+/// target, and <see cref="DeferredResolvePass"/> composites each program only where the ID matches.
 /// </summary>
 /// <remarks>
 /// The mask must be skinned, because the resolve is masked by it: a pixel the G-buffer wrote but the mask missed gets no resolve program and stays background.
@@ -22,19 +23,17 @@ public sealed class PassIdMaskPass : IDisposable
     readonly GL _gl;
     readonly uint _program;
 
-    /// <summary>The same program for a batch of placements: patched like a game shader (see <see cref="InstancedShaderPatch"/>), with the rigid branch reading the placement from the instance buffer instead of the per-actor <c>uMVP</c>.</summary>
+    // The same program for a batch of placements: patched like a game shader (see InstancedShaderPatch), with the rigid branch
+    // reading the placement from the instance buffer instead of the per-actor uMVP.
     readonly uint _instancedProgram;
     float _near, _far;
 
-    /// <summary>
-    /// Mirrors the compiled TotK vertex shader's skinning:
-    ///   - blend indices are FLOAT attributes carrying an integer bit pattern, unpacked with <c>floatBitsToInt(v) &amp; 0xFFFF</c> (the real shader reads a second index
-    ///     from the high half, which the exporter never packs);
-    ///   - <c>_Mtx</c> at binding 2 is a flat <c>vec4</c> array, three rows per bone (48 bytes), each dotted with <c>vec4(pos, 1)</c> for one output component,
-    ///     row-vector convention, as <see cref="Ubos.BonePaletteUbo"/> writes;
-    ///   - a skinned draw does not apply the shape transform separately: the model matrix is folded into every palette entry, so skinned vertices go through
-    ///     <c>uViewProj</c> and only <c>SKIN_COUNT == 0</c> (pose baked into the positions) uses <c>uMVP</c>.
-    /// </summary>
+    // Mirrors the compiled TotK vertex shader's skinning: - blend indices are FLOAT attributes carrying an integer bit pattern,
+    // unpacked with floatBitsToInt(v) & 0xFFFF (the real shader reads a second index from the high half, which the exporter
+    // never packs); - _Mtx at binding 2 is a flat vec4 array, three rows per bone (48 bytes), each dotted with vec4(pos, 1) for
+    // one output component, row-vector convention, as BonePaletteUbo writes; - a skinned draw does not apply the shape
+    // transform separately: the model matrix is folded into every palette entry, so skinned vertices go through uViewProj and
+    // only SKIN_COUNT == 0 (pose baked into the positions) uses uMVP.
     const string VertexSource = """
         #version 450 core
         layout (location = 0) in vec4 aPosition;
@@ -87,17 +86,13 @@ public sealed class PassIdMaskPass : IDisposable
         }
         """;
 
-    /// <summary>
-    /// Stamps the ID, but only where the G-buffer actually wrote a fragment. The mask needs exactly the G-buffer's visibility, and rasterising alone cannot give it: a
-    /// mask-mode material's alpha cutout lives in its Z-only program's discard, which this pass lacks, so it stamped whole uncut quads (Ganondorf_Miasma's masked hair
-    /// and miasma cards covered 47% more of the mask than the G-buffer and hid the eyes behind them).
-    /// Rather than reproduce the cutout, it reads the answer the G-buffer computed, its depth: a fragment is stamped only where its depth matches the G-buffer's, i.e.
-    /// where this shape is the surface the G-buffer kept, which inherits the cutout and the occlusion and lets whatever shows through a hole stamp its own ID.
-    /// Albedo alpha was tried instead, but it is a flag field (bit 0 gates emission) that 73 of a map section's G-buffer programs write as 0, so over half its static
-    /// objects got no ID and came out black.
-    /// The G-buffer is rasterised through the flipped projection and this pass through the true one, so the matching texel is at 1 - y (as in the compose step of
-    /// <c>DeferredResolvePass</c>); the flip changes only y, so depths compare directly, with a tolerance for this pass's skinning not matching the game's instruction for instruction.
-    /// </summary>
+    // Stamps the ID, but only where the G-buffer actually wrote a fragment. The mask needs exactly the G-buffer's visibility,
+    // and rasterising alone cannot give it: a mask-mode material's alpha cutout lives in its Z-only program's discard, which
+    // this pass lacks, so it stamped whole uncut quads (Ganondorf_Miasma's masked hair and miasma cards covered 47% more of the
+    // mask than the G-buffer and hid the eyes behind them). Rather than reproduce the cutout, it reads the answer the G-buffer
+    // computed, its depth: a fragment is stamped only where its depth matches the G-buffer's, i.e. where this shape is the
+    // surface the G-buffer kept, which inherits the cutout and the occlusion and lets whatever shows through a hole stamp its
+    // own ID.
     const string FragmentSource = """
         #version 450 core
         uniform float uId;
@@ -132,7 +127,6 @@ public sealed class PassIdMaskPass : IDisposable
         _instancedProgram = GLProgramBuilder.Build(gl, instanced, FragmentSource, "pass_id_mask_instanced");
     }
 
-    /// <summary>Ordered distinct deferred-pass names present in a shape list - pass i owns ID (i + 1) / 255.</summary>
     static int IndexOf(IReadOnlyList<string> list, string value)
     {
         for (int i = 0; i < list.Count; i++)
@@ -148,8 +142,10 @@ public sealed class PassIdMaskPass : IDisposable
               .OrderBy(p => p, StringComparer.Ordinal)
               .ToList();
 
-    /// <summary>Both matrices use the unflipped projection: the resolve consumes the ID buffer in true GL (lower-left) orientation, not the G-buffer's flipped one.</summary>
-    /// <param name="viewProjRows"><c>proj @ [view;0,0,0,1]</c>, shared across actors. Skinned shapes use it directly (their palette carries the actor's model transform); each actor's skin-count-0 shapes combine it with that actor's own model rows.</param>
+    /// <summary>
+    /// Both matrices use the unflipped projection: the resolve consumes the ID buffer in true GL (lower-left) orientation, not the
+    /// G-buffer's flipped one.
+    /// </summary>
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
         ReadOnlySpan<Vector4> viewProjRows, float near, float far)
     {

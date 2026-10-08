@@ -5,8 +5,8 @@ namespace WildRenderingSharp.Imaging;
 
 /// <summary>
 /// Encodes a raw top-down RGBA8 buffer (what <see cref="Hosting.SceneView.ReadOutputRgba8"/> and
-/// <c>RenderTargets.ReadPixelsRgba8</c> return) as a PNG - with no imaging dependency, so it works
-/// on every platform the renderer does.
+/// <c>RenderTargets.ReadPixelsRgba8</c> return) as a PNG - with no imaging dependency, so it works on every platform the renderer
+/// does.
 /// </summary>
 /// <remarks>
 /// Straight PNG: 8-bit RGBA, no interlace, every scanline with filter type 0, one IDAT of zlib
@@ -73,7 +73,6 @@ public static class PngWriter
         output.Write(crcBytes);
     }
 
-    /// <summary>The CRC-32 PNG specifies (ISO 3309, reflected 0xEDB88320), continued from <paramref name="crc"/>.</summary>
     static uint Crc(uint crc, ReadOnlySpan<byte> data)
     {
         foreach (byte b in data)

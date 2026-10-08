@@ -1,6 +1,9 @@
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>Vertex stages shared by the fullscreen effects: one oversized triangle generated from <c>gl_VertexID</c>, so no vertex buffer is needed. Draw three vertices.</summary>
+/// <summary>
+/// Vertex stages shared by the fullscreen effects: one oversized triangle generated from <c>gl_VertexID</c>, so no vertex buffer is
+/// needed. Draw three vertices.
+/// </summary>
 public static class FullscreenShaders
 {
     /// <summary>Writes <c>vUV</c> over [0, 1] across the screen.</summary>

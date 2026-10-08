@@ -3,8 +3,8 @@ using System.Numerics;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
-/// The real <c>agl::pfx::ColorCorrection</c> config from <c>postfx/master_field.baglccr</c> - the
-/// game's final grade, applied after <c>agl_hdr_compose</c>.
+/// The real <c>agl::pfx::ColorCorrection</c> config from <c>postfx/master_field.baglccr</c> - the game's final grade, applied after
+/// <c>agl_hdr_compose</c>.
 /// </summary>
 /// <remarks>
 /// WildRenderingSharp never read this, which matters for any comparison against a screenshot: the game's

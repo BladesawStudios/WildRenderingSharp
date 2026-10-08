@@ -6,10 +6,11 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
-/// Manual, individually verified corrections for game rendering behaviour the shader-driven pipeline cannot derive; see <see cref="Rendering.LightingContext.EnableKnownMaterialFixes"/>.
-/// Each fix is scoped to one named game asset and verified against observed behaviour, never a heuristic that could reach other materials. To add one: confirm the behaviour by
-/// observation, exhaust static analysis (shader logic, material data, variant resolution, the game's option-resolution code via Ghidra), then add a narrow correction with the
-/// same evidence trail.
+/// Manual, individually verified corrections for game rendering behaviour the shader-driven pipeline cannot derive; see <see
+/// cref="Rendering.LightingContext.EnableKnownMaterialFixes"/>. Each fix is scoped to one named game asset and verified against
+/// observed behaviour, never a heuristic that could reach other materials. To add one: confirm the behaviour by observation,
+/// exhaust static analysis (shader logic, material data, variant resolution, the game's option-resolution code via Ghidra), then
+/// add a narrow correction with the same evidence trail.
 /// </summary>
 public sealed class KnownMaterialFixes : IDisposable
 {
@@ -17,14 +18,11 @@ public sealed class KnownMaterialFixes : IDisposable
     readonly uint _program;
 
     /// <summary>
-    /// Cmn_Enemy_DungeonBoss_Eye_Alb (Enemy_Drake's and Enemy_MiasmaTentacle's/Gleeok's shared iris texture, sampler slot "_a0") is authored as a visibility mask for the eye's emission,
-    /// not diffuse albedo: observed in the game (the Gleeok boss), green marks where the glowing eye is visible and black where it is not.
-    /// The decompiled G-buffer shader (material_prog11146, Mt_Eye) is a UV-distortion blend that reads the texture as literal RGB with no masking relationship to its emission, and is
-    /// faithfully reproduced. The gap is that the normal resolve (diffuse lighting using this as albedo, plus emission) renders a green-tinted, doubled-brightness result instead of
-    /// emission gated by the mask.
-    /// No masking mechanism was found by static analysis: not in the shader text, not in the per-material static options (which differ from a working sibling, "Mt_Eye_OutSide", but
-    /// resolve to a different algorithm rather than a hidden gate), and not in the executable's option-resolution code (the mapping from option value to meaning is baked into each
-    /// compiled shader). So this is a hand-authored correction.
+    /// Cmn_Enemy_DungeonBoss_Eye_Alb (Enemy_Drake's and Enemy_MiasmaTentacle's/Gleeok's shared iris texture, sampler slot "_a0") is
+    /// authored as a visibility mask for the eye's emission, not diffuse albedo: observed in the game (the Gleeok boss), green
+    /// marks where the glowing eye is visible and black where it is not. The decompiled G-buffer shader (material_prog11146,
+    /// Mt_Eye) is a UV-distortion blend that reads the texture as literal RGB with no masking relationship to its emission, and is
+    /// faithfully reproduced.
     /// </summary>
     public const string EyeVisibilityMaskTextureName = "Cmn_Enemy_DungeonBoss_Eye_Alb";
 
@@ -116,9 +114,10 @@ public sealed class KnownMaterialFixes : IDisposable
     }
 
     /// <summary>
-    /// Redraws every shape <see cref="NeedsEyeVisibilityMaskFix"/> flags, with emission scaled by the green channel's brightness (a multiply, not a discard threshold) in place of the
-    /// wrong result the normal resolve produced. Runs into the same target as <see cref="ForwardPass"/> (<see cref="RenderTargets.Scene"/> and <see cref="RenderTargets.GBufferDepth"/>,
-    /// in the G-buffer's flipped orientation), so its output flows through the same exposure, tonemap and bloom chain. Depth-tested with a small polygon offset; see the comment in <see cref="Run"/>.
+    /// Redraws every shape <see cref="NeedsEyeVisibilityMaskFix"/> flags, with emission scaled by the green channel's brightness (a
+    /// multiply, not a discard threshold) in place of the wrong result the normal resolve produced. Runs into the same target as
+    /// <see cref="ForwardPass"/> (<see cref="RenderTargets.Scene"/> and <see cref="RenderTargets.GBufferDepth"/>, in the G-buffer's
+    /// flipped orientation), so its output flows through the same exposure, tonemap and bloom chain.
     /// </summary>
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups,
         ReadOnlySpan<Vector4> viewProjFlippedRows, float emissionScale, float exposure)

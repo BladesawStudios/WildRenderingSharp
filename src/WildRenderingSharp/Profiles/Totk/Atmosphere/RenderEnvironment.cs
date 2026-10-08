@@ -3,8 +3,8 @@ using WildRenderingSharp.Profiles.Totk.Terrain;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
-/// The world data a frame is lit by that comes from the romfs rather than a model: the environment palettes,
-/// the sky and cloud postfx baseline, the final colour grade, and the sky LUT.
+/// The world data a frame is lit by that comes from the romfs rather than a model: the environment palettes, the sky and cloud
+/// postfx baseline, the final colour grade, and the sky LUT.
 /// </summary>
 /// <remarks>
 /// Loaded straight from the romfs at runtime (BYML/AAMP, no BFRES), except the sky LUT, which the
@@ -21,7 +21,10 @@ public sealed class RenderEnvironment
 
     public CloudPostFx CloudPostFx { get; private set; } = CloudPostFx.Default;
 
-    /// <summary>The game's own final grade (<c>postfx/master_field.baglccr</c>) - see <see cref="WildRenderingSharp.Profiles.Totk.PostProcess.ColorCorrectionPass"/>.</summary>
+    /// <summary>
+    /// The game's own final grade (<c>postfx/master_field.baglccr</c>) - see <see
+    /// cref="WildRenderingSharp.Profiles.Totk.PostProcess.ColorCorrectionPass"/>.
+    /// </summary>
     public ColorCorrectionPostFx ColorCorrection { get; private set; } = ColorCorrectionPostFx.Default;
 
     /// <summary>The real sky-scattering LUT (<c>res/master_field.skybin</c>).</summary>

@@ -4,9 +4,11 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Produces the two screen-space buffers the deferred resolve shaders expect from the unimplemented <c>preshading_*</c> passes: <c>cTex_PreShadow</c> (sun visibility, Poisson-disc PCF against the shadow
-/// map) and <c>cTex_PreMisc</c> (an alchemy-style AO plus the diffuse N.L the <c>chara_*</c> resolve passes read from <c>.y</c>). Both decode the packed G-buffer normal with the Lambert-azimuthal scheme the
-/// game's shaders use. These two textures are this renderer's own; only their consumption (the game's resolve shader) is authentic.
+/// Produces the two screen-space buffers the deferred resolve shaders expect from the unimplemented <c>preshading_*</c> passes:
+/// <c>cTex_PreShadow</c> (sun visibility, Poisson-disc PCF against the shadow map) and <c>cTex_PreMisc</c> (an alchemy-style AO
+/// plus the diffuse N.L the <c>chara_*</c> resolve passes read from <c>.y</c>). Both decode the packed G-buffer normal with the
+/// Lambert-azimuthal scheme the game's shaders use. These two textures are this renderer's own; only their consumption (the game's
+/// resolve shader) is authentic.
 /// </summary>
 public sealed class ScreenSpaceShadowAndAoPass : IDisposable
 {
@@ -339,9 +341,6 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
         CascadeParams? Cascades = null);
 
     /// <summary>The cascades a frame's shadows come from - see <see cref="FrameRequest.ShadowCascades"/>.</summary>
-    /// <param name="ViewProj">Each cascade's light view-projection (row-major 4x4 rows, as <see cref="ShadowPass.LightMatrices.ViewProj"/>).</param>
-    /// <param name="TexelWorld">Each cascade's shadow texel size, in metres.</param>
-    /// <param name="Bias">Each cascade's depth bias, in its own light-depth units.</param>
     public sealed record CascadeParams(uint Texture, Vector4[][] ViewProj, float[] TexelWorld, float[] Bias);
 
     public void Run(GLResourceCache resources, RenderTargets targets, Params p)

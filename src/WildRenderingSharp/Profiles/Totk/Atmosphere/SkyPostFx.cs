@@ -4,7 +4,8 @@ using System.Text.Json;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
-/// The <c>agl::pfx::Sky</c> config the game loads at runtime: <c>postfx/master_field.baglsky</c> inside <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c> (a SARC of AAMP <c>.bagl*</c> files).
+/// The <c>agl::pfx::Sky</c> config the game loads at runtime: <c>postfx/master_field.baglsky</c> inside
+/// <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c> (a SARC of AAMP <c>.bagl*</c> files).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -16,7 +17,10 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 /// </remarks>
 public sealed class SkyPostFx
 {
-    /// <summary>Per-channel Rayleigh scattering coefficients (why the sky is blue). The field is unnamed in the AAMP hash table; <c>WildRenderingSharp.AampReader</c> resolves it by raw CRC32 hash.</summary>
+    /// <summary>
+    /// Per-channel Rayleigh scattering coefficients (why the sky is blue). The field is unnamed in the AAMP hash table;
+    /// <c>WildRenderingSharp.AampReader</c> resolves it by raw CRC32 hash.
+    /// </summary>
     public Vector3 RayleighScatteringCoeff = new(0.0041f, 0.0113f, 0.0284f);
     public float RayleighBaseHeight = 24f;
     public float MieBaseHeight = 2f;
@@ -40,7 +44,10 @@ public sealed class SkyPostFx
     public float ScatterFogHorz = 2.5f;
 
     // Adhoc fog: the coloured haze band at the horizon. Defaults are master_field.baglsky's authored values.
-    /// <summary>Exponent on the view ray's upward component, shaping how fast the band falls off with elevation. Never let this reach the shader as 0: it is a pow() exponent and pow(0,0) decompiles to exp2(-inf * 0) = NaN.</summary>
+    /// <summary>
+    /// Exponent on the view ray's upward component, shaping how fast the band falls off with elevation. Never let this reach the
+    /// shader as 0: it is a pow() exponent and pow(0,0) decompiles to exp2(-inf * 0) = NaN.
+    /// </summary>
     public float AdhocFogAttenSky = 0.7642950f;
     /// <summary>Fog scale at the ZENITH; the horizon end of the same mix is the density itself.</summary>
     public float AdhocFogAttenMinScaleSky = 0.3f;
@@ -54,7 +61,6 @@ public sealed class SkyPostFx
 
     public static readonly SkyPostFx Default = new();
 
-    /// <summary>Parses the <c>"sky"</c> object of the JSON <c>SkyPostFxJson.ParseToJson</c> produces.</summary>
     internal static SkyPostFx FromJson(JsonElement sky)
     {
         var result = new SkyPostFx();
@@ -101,7 +107,6 @@ public sealed class SkyPostFx
         return new Vector3(arr[0].GetSingle(), arr[1].GetSingle(), arr[2].GetSingle());
     }
 
-    /// <summary>The 4th component of a colour array; <c>adhoc_fog_color</c> carries the fog density there, not an opacity.</summary>
     internal static float ReadColorAlpha(JsonElement obj, string name, float fallback)
     {
         if (obj.ValueKind == JsonValueKind.Object && obj.TryGetProperty(name, out var v)

@@ -1,9 +1,6 @@
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>
-/// Measures what exposure the CURRENT scene actually needs, instead of leaving it a guessed
-/// constant.
-/// </summary>
+/// <summary>Measures what exposure the CURRENT scene actually needs, instead of leaving it a guessed constant.</summary>
 /// <remarks>
 /// <para>
 /// WildRenderingSharp's <c>Exposure</c> defaults to 2.5 while the real game authors <c>Exposure: 1.0</c> in its
@@ -37,10 +34,9 @@ public static class ExposureMeter
         int SampleCount);
 
     /// <summary>
-    /// Samples <paramref name="hdr"/> (pre-exposure) and returns the exposure that would put its
-    /// geometric mean luminance at <see cref="TargetGrey"/>.
+    /// Samples <paramref name="hdr"/> (pre-exposure) and returns the exposure that would put its geometric mean luminance at <see
+    /// cref="TargetGrey"/>.
     /// </summary>
-    /// <param name="stride">Sample every Nth pixel. The readback is the expensive part, and a mean over tens of thousands of samples is already far more stable than the eye can judge.</param>
     public static Result? Measure(RenderTargets targets, GpuTexture hdr, int stride = 4)
     {
         float[] px;

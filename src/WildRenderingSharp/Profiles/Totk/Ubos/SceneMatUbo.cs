@@ -4,16 +4,21 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>
-/// TotK <c>gsys_scene_material</c> ("SceneMat", decompiled as <c>fp_c13</c>), binding 10, 928 bytes. Every field's name and byte offset comes from the "material" shading model's BFSHA
-/// reflection (regenerate with <c>ShaderLibrary.CompileTool --dump-uniform-blocks</c>), so <see cref="Fields"/> is a complete transcription of it, and every field's default value is
-/// known too (see <see cref="BuildFromLighting"/>). Fields are addressed by byte offset (<see cref="Std140Block.GetFloatAt"/>, <see cref="Std140Block.SetVectorAt"/>) because several,
-/// such as <see cref="Fields.ConstXluShadowDiffuseAmbientScale"/>, sit at a reflection-reported offset that is not slot-aligned.
+/// TotK <c>gsys_scene_material</c> ("SceneMat", decompiled as <c>fp_c13</c>), binding 10, 928 bytes. Every field's name and byte
+/// offset comes from the "material" shading model's BFSHA reflection (regenerate with <c>ShaderLibrary.CompileTool
+/// --dump-uniform-blocks</c>), so <see cref="Fields"/> is a complete transcription of it, and every field's default value is known
+/// too (see <see cref="BuildFromLighting"/>). Fields are addressed by byte offset (<see cref="Std140Block.GetFloatAt"/>, <see
+/// cref="Std140Block.SetVectorAt"/>) because several, such as <see cref="Fields.ConstXluShadowDiffuseAmbientScale"/>, sit at a
+/// reflection-reported offset that is not slot-aligned.
 /// </summary>
 public sealed class SceneMatUbo : IUboBlock
 {
     public const int ByteSize = 928;
 
-    /// <summary>Byte offsets for all 88 uniforms the archive's reflection declares, named after the BFSHA symbol (including its spelling, e.g. "Repeeat") so the table can be diffed against the source dump.</summary>
+    /// <summary>
+    /// Byte offsets for all 88 uniforms the archive's reflection declares, named after the BFSHA symbol (including its spelling,
+    /// e.g. "Repeeat") so the table can be diffed against the source dump.
+    /// </summary>
     public static class Fields
     {
         public const int DynamicToonLightAdjustForDemo = 0;      // vec4 - MIDS scale, see BuildFromLighting
@@ -103,7 +108,10 @@ public sealed class SceneMatUbo : IUboBlock
         public const int DynamicDebug1 = 564;
         public const int DynamicDebug2 = 568;
         public const int DynamicDebug3 = 572;
-        /// <summary>float[88], 352 bytes (576..927) - the reflection's own catch-all tail. Index with <c>SceneShadingInfoExposureBase + 4*i</c>.</summary>
+        /// <summary>
+        /// float[88], 352 bytes (576..927) - the reflection's own catch-all tail. Index with <c>SceneShadingInfoExposureBase +
+        /// 4*i</c>.
+        /// </summary>
         public const int SceneShadingInfoExposureBase = 576;
     }
 
@@ -113,15 +121,6 @@ public sealed class SceneMatUbo : IUboBlock
     public int BindingIndex => (int)TotkBindings.SceneMaterial;
 
     /// <summary>Starts from the authored defaults for all 88 fields, then overlays the few the renderer drives from live lighting state.</summary>
-    /// <remarks>
-    /// The defaults come from a real model: <c>gsys::ModelScene::initialize_</c> loads <c>Model/SystemModel.SceneMaterial.bfres.mc</c> through <c>gsys::ModelNW::initialize</c> and
-    /// passes it into every render context's <c>setSceneMaterial</c> (found via Ghidra). Unlike Context and Env, which engine code writes by name every frame, most fields here,
-    /// especially every "Const" one, are that model's ("MasterMaterial") authored <c>ShaderParams</c>, read with <c>ShaderLibrary.CompileTool --dump-scene-material</c> (see
-    /// <c>BuildMaterialUbo.DumpSceneMaterial</c>) by the same name-join as a material's own block. All 88 matched by name.
-    /// This is what explains the Zonai "Blueprint" cyan bug: every <c>ConstBlueprint*</c> colour is a shade of green (e.g. <see cref="Fields.ConstBlueprintEmissionColor"/> =
-    /// (0.01, 1, 0.2)), and leaving them zero made the formula collapse to a negative result, which produced the pure cyan on Enemy_MiasmaTentacle's Mt_Skin once its forward
-    /// program ran (that material authors <c>p_blue_print_alpha = 1.0</c>).
-    /// </remarks>
     public static SceneMatUbo BuildFromLighting(
         Vector3 hemiSkyColor, Vector3 hemiGroundColor, float midScale, float highlightScale)
     {

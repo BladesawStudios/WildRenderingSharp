@@ -8,8 +8,8 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// Draws the sky with the game's <c>agl_sky_postfx_sky</c> program, sampling the baked inscatter
-/// table <see cref="SkyPrecomputePass"/> produces.
+/// Draws the sky with the game's <c>agl_sky_postfx_sky</c> program, sampling the baked inscatter table <see
+/// cref="SkyPrecomputePass"/> produces.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -21,7 +21,7 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// vec2  uv  = vec2(1.0 - acos(t) * (2.0/PI), d.y * 0.5 + 0.5);
 /// vec4  lut = texture(cTexBakedInscatter, uv);
 /// out.rgb   = mix(RenderInfo[6].xyz, lut.rgb * Context[13].x,
-///                 clamp(lut.a + RenderInfo[6].w, 0.0, 1.0));
+/// clamp(lut.a + RenderInfo[6].w, 0.0, 1.0));
 /// </code>
 /// <para>
 /// The vertex stage needs Context. It builds a view ray <c>v = (ndc.x * Context[0].x, ndc.y * Context[1].y, -1)</c>
@@ -42,7 +42,6 @@ public sealed class SkyPostFxPass : IDisposable
 
     readonly GL _gl;
     readonly uint _program;
-    /// <summary>The <c>USE_ADHOC_FOG=1</c> variant, a drop-in swap with identical inputs. 0 if an older cache predates its extraction.</summary>
     readonly uint _fogProgram;
     readonly uint _vao, _vbo;
 
@@ -100,7 +99,6 @@ public sealed class SkyPostFxPass : IDisposable
         gl.BindVertexArray(0);
     }
 
-    /// <summary>The 224-byte <c>Context</c> block (14 vec4). Only the slots this program reads are filled.</summary>
     internal static byte[] BuildContext(ReadOnlySpan<Vector4> viewInv3Rows, float tanHalfFovX,
         float tanHalfFovY, float intensity, AdhocFog fog = default)
     {
@@ -135,46 +133,9 @@ public sealed class SkyPostFxPass : IDisposable
     }
 
     /// <summary>The four values the <c>USE_ADHOC_FOG=1</c> sky program reads, resolved into the units it wants.</summary>
-    /// <param name="AttenSky">
-    /// The pow() exponent on the view ray's upward component. Must be strictly positive: the decompiled
-    /// program computes pow as <c>exp2(log2(up) * atten)</c>, so an exponent of 0 gives <c>exp2(-inf * 0)</c>,
-    /// NaN at the horizon. <see cref="Resolve"/> guarantees it.
-    /// </param>
-    /// <param name="Color">Fog colour in the sky's own HDR units; the shader mixes it in raw, with no intensity multiply of its own.</param>
     public readonly record struct AdhocFog(float AttenSky, float ZenithScale, float Density, Vector3 Color);
 
     /// <summary>Builds the fog parameters for a palette, in the sky's own HDR units.</summary>
-    /// <remarks>
-    /// <para>
-    /// Verified against a capture of the game's own sky draw, where Context reads
-    /// <c>[10] = 4.0, 0.5, 0.3, 0.089538</c> and <c>[11] = 0.585, 1.0, 0.806, 1.0</c>. <c>[11].xyz</c> is
-    /// <c>Prequel_MainField_Bluesky_3_Noon</c>'s <c>FogColor</c> bit-exactly, which confirms the slot and that the
-    /// colour goes in raw. <c>[10].x</c> is <c>adhoc_fog_atten_grd</c> (the ground pass's parameter, unread here)
-    /// and <c>[10].z</c> is <c>adhoc_fog_atten_minscale_sky</c>, both matching <c>master_field.baglsky</c>.
-    /// </para>
-    /// <para>
-    /// Two values come from the capture rather than the files. <c>[10].y</c> is 0.5, not the file's
-    /// <c>adhoc_fog_atten_sky</c> (0.764) nor the palette's <c>AfParam_attenuationForSky</c> (0); its CPU-side
-    /// derivation is unknown. And <c>[10].z</c> is the minscale raw, not scaled by the density.
-    /// </para>
-    /// <para>
-    /// The shader mixes from <c>[10].w</c> at the horizon to <c>[10].z</c> at the zenith. At noon 0.0895 &lt; 0.3,
-    /// so the pale fog sits mostly overhead; under a blood moon the palette authors <c>FogColor</c> alpha 0.6
-    /// &gt; 0.3, so the mix runs the other way and saturated colour piles at the horizon. One formula gives both looks.
-    /// </para>
-    /// <para>
-    /// The density (<c>[10].w</c>) derivation is unconfirmed. The palette's <c>FogColor</c> alpha is clearly it
-    /// where authored, but noon authors 0 while the capture shows 0.089538, so a floor comes from somewhere
-    /// unfound. Taking the larger of the two reproduces the noon frame and gives a blood moon its band; it
-    /// reconciles the evidence rather than deriving it.
-    /// </para>
-    /// </remarks>
-    /// <param name="normaliseHue">
-    /// Scale <c>FogColor</c> up to full brightness instead of passing it raw. The capture shows raw is what the
-    /// game binds, but authored magnitudes differ widely between palettes (<c>BloodyMoon_DarknessDragon</c>'s is
-    /// seventeen times darker than noon's), leaving a near-black horizon. Raw is faithful to the one measured
-    /// frame; normalised is faithful to what the palettes appear to mean.
-    /// </param>
     public static AdhocFog Resolve(EnvPalette palette, SkyPostFx postfx, float skyIntensity, float strength,
         bool normaliseHue = true)
     {
@@ -202,15 +163,12 @@ public sealed class SkyPostFxPass : IDisposable
     /// <summary>Context[10].w at the captured noon sky draw. That palette authors FogColor alpha 0, so this is a measured floor.</summary>
     public const float CapturedNoonDensity = 0.089538f;
 
-    /// <summary>Context[10].y at the captured sky draw, the elevation exponent. Neither the file's value (0.764) nor the palette's (0), so the measured value is used.</summary>
+    /// <summary>
+    /// Context[10].y at the captured sky draw, the elevation exponent. Neither the file's value (0.764) nor the palette's (0), so
+    /// the measured value is used.
+    /// </summary>
     public const float CapturedAttenSky = 0.5f;
 
-    /// <summary>The 112-byte <c>RenderInfo</c> block (7 vec4), confirmed against a capture.</summary>
-    /// <remarks>
-    /// The capture had <c>[6] = (0.5, 0.4, 0.3, 1)</c>, the palette's <c>GroundColor</c> with <c>.w = 1</c>. The
-    /// shader blends with <c>clamp(lut.a + [6].w, 0, 1)</c>, so 1 pins the weight and the table wins outright,
-    /// leaving the ground colour as the fallback.
-    /// </remarks>
     internal static byte[] BuildRenderInfo(SkyPostFx postfx, Vector3 sunWorldZUp, Vector3? fogColor = null,
         float paletteTint = 0f)
     {

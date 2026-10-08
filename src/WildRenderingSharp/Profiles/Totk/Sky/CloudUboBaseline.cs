@@ -1,8 +1,8 @@
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// The <c>agl_cloud</c> "Common" uniform block captured verbatim from a frame of the game (Ryujinx and RenderDoc, Colour Pass #40's near-dome draw, buffer 24637 bytes 6400-7168), the baseline
-/// <see cref="CloudDomePass"/> overlays live ROM-derived values onto.
+/// The <c>agl_cloud</c> "Common" uniform block captured verbatim from a frame of the game (Ryujinx and RenderDoc, Colour Pass #40's
+/// near-dome draw, buffer 24637 bytes 6400-7168), the baseline <see cref="CloudDomePass"/> overlays live ROM-derived values onto.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -50,6 +50,9 @@ static class CloudUboBaseline
         "0050C3460000C842000000000000000000000000000000000000000000000000",
     ];
 
-    /// <summary>The real <c>cZOffsetParam</c> (View block slot 12.x) from the same capture - a per-frame depth-bias value whose own source was never identified, so the real observed constant stands in.</summary>
+    /// <summary>
+    /// The real <c>cZOffsetParam</c> (View block slot 12.x) from the same capture - a per-frame depth-bias value whose own source
+    /// was never identified, so the real observed constant stands in.
+    /// </summary>
     public const float ZOffsetParam = 0.4777379035949707f;
 }

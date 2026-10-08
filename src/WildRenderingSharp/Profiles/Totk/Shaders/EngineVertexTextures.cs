@@ -3,8 +3,8 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
-/// Neutral stand-ins for the vertex textures the game's engine renders itself: no wind swell,
-/// grass pressed nowhere (the lie map is read as <c>2x - 1</c>, so 0.5 is no push), no thickness.
+/// Neutral stand-ins for the vertex textures the game's engine renders itself: no wind swell, grass pressed nowhere (the lie map is
+/// read as <c>2x - 1</c>, so 0.5 is no push), no thickness.
 /// </summary>
 public sealed class EngineVertexTextures(GL gl) : IDisposable
 {

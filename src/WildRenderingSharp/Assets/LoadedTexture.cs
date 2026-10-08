@@ -11,6 +11,9 @@ public sealed class LoadedTexture
     public required int Width { get; init; }
     public required int Height { get; init; }
 
-    /// <summary>The romfs texture name (e.g. "Cmn_Enemy_DungeonBoss_Eye_Alb"), so a pass can identify a specific asset, as <c>KnownMaterialFixes</c> does.</summary>
+    /// <summary>
+    /// The romfs texture name (e.g. "Cmn_Enemy_DungeonBoss_Eye_Alb"), so a pass can identify a specific asset, as
+    /// <c>KnownMaterialFixes</c> does.
+    /// </summary>
     public required string Name { get; init; }
 }

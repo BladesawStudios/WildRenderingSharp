@@ -4,8 +4,9 @@ using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Depth prepass (z-only, where a material has one) followed by the real G-buffer draw. The prepass carries the alpha-test discard several materials' G-buffer program lacks; the G-buffer draw then
-/// runs with depth func EQUAL so a texel the prepass cut away has no matching depth and is rejected, which is the engine's own opaque flow.
+/// Depth prepass (z-only, where a material has one) followed by the real G-buffer draw. The prepass carries the alpha-test discard
+/// several materials' G-buffer program lacks; the G-buffer draw then runs with depth func EQUAL so a texel the prepass cut away has
+/// no matching depth and is rejected, which is the engine's own opaque flow.
 /// </summary>
 /// <remarks>
 /// The caller must have the flipped-projection <c>Context</c> bound before <see cref="Run"/> (the G-buffer renders through NVN's upper-left-origin convention; later passes undo that).
@@ -88,7 +89,10 @@ public sealed class GBufferPass
 
     readonly List<(ulong Key, int Group, LoadedShape Shape)> _items = [];
 
-    /// <summary>Draws the shapes <paramref name="include"/> picks, every group's together, ordered by program and then material: hundreds of models share a few hundred programs, and drawn model by model each re-bound its program, uniforms and textures per shape, so the CPU spent longer issuing a frame than the card spent drawing it. A placed actor's shapes keep their order and go first; their per-actor uniforms make them unsortable.</summary>
+    // Draws the shapes include picks, every group's together, ordered by program and then material: hundreds of models share a
+    // few hundred programs, and drawn model by model each re-bound its program, uniforms and textures per shape, so the CPU
+    // spent longer issuing a frame than the card spent drawing it. A placed actor's shapes keep their order and go first; their
+    // per-actor uniforms make them unsortable.
     void DrawSorted(GLResourceCache resources, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs,
         Func<LoadedShape, bool> include, ShapeProgram which, string detailPrefix)
     {

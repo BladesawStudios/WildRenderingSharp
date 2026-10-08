@@ -3,8 +3,8 @@ using System.Numerics;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// A GL-convention (right-handed, column-vector) look-at camera. The view and projection matrices are returned as row arrays (see <see cref="Mat4Math"/>), not <see cref="Matrix4x4"/>,
-/// to keep the convention the rest of the pipeline expects.
+/// A GL-convention (right-handed, column-vector) look-at camera. The view and projection matrices are returned as row arrays (see
+/// <see cref="Mat4Math"/>), not <see cref="Matrix4x4"/>, to keep the convention the rest of the pipeline expects.
 /// </summary>
 public class Camera
 {

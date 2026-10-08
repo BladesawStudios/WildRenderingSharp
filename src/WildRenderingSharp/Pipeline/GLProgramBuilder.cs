@@ -4,7 +4,10 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>Compiles and links a vertex+fragment GLSL pair into a GL program - shared by <see cref="ShaderProgramCache"/> (decompiled game shaders) and every pass class's own small fullscreen-effect shaders.</summary>
+/// <summary>
+/// Compiles and links a vertex+fragment GLSL pair into a GL program - shared by <see cref="ShaderProgramCache"/> (decompiled game
+/// shaders) and every pass class's own small fullscreen-effect shaders.
+/// </summary>
 /// <remarks>
 /// Linked programs are kept on disk as driver binaries (<c>glGetProgramBinary</c>) in
 /// <see cref="BinaryCacheDirectory"/>, keyed by both sources and the driver's own identity, and
@@ -15,7 +18,10 @@ namespace WildRenderingSharp.Pipeline;
 /// </remarks>
 public static class GLProgramBuilder
 {
-    /// <summary>Where linked program binaries are kept, or null to always compile. <see cref="DeferredPipeline"/> sets it to <c>_glprograms</c> under the cache root when nothing else has.</summary>
+    /// <summary>
+    /// Where linked program binaries are kept, or null to always compile. <see cref="DeferredPipeline"/> sets it to
+    /// <c>_glprograms</c> under the cache root when nothing else has.
+    /// </summary>
     public static string? BinaryCacheDirectory { get; set; }
 
     public static uint Build(GL gl, string vertexSource, string fragmentSource, string label = "")
@@ -67,7 +73,6 @@ public static class GLProgramBuilder
 
     static string? _driverIdentity;
 
-    /// <summary>The file a pair's binary lives in, or null when there is no cache or the driver offers no binary formats.</summary>
     static string? BinaryCachePath(GL gl, string vertexSource, string fragmentSource)
     {
         if (BinaryCacheDirectory is not { } directory)

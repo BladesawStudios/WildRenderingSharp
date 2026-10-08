@@ -5,20 +5,22 @@ using System.Text.Json.Serialization;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// Deserialized <c>&lt;Model&gt;.skeleton.json</c>: everything needed to build the <c>BonePaletteUbo</c> at bind pose (via <see cref="WildRenderingSharp.Rendering.SkeletonPose.BindPoseWorldMatrices"/>)
-/// or at an animated pose given a <see cref="SkeletalAnimManifest"/>. The palette has two segments and <see cref="MatrixToBoneList"/> covers both (<see cref="SmoothCount"/> +
-/// <see cref="RigidCount"/> entries), while <see cref="InverseModelMatrices"/> is parallel to the smooth prefix only; see <c>BonePaletteUbo</c> for the Ghidra citations.
+/// Deserialized <c>&lt;Model&gt;.skeleton.json</c>: everything needed to build the <c>BonePaletteUbo</c> at bind pose (via <see
+/// cref="WildRenderingSharp.Rendering.SkeletonPose.BindPoseWorldMatrices"/>) or at an animated pose given a <see
+/// cref="SkeletalAnimManifest"/>. The palette has two segments and <see cref="MatrixToBoneList"/> covers both (<see
+/// cref="SmoothCount"/> + <see cref="RigidCount"/> entries), while <see cref="InverseModelMatrices"/> is parallel to the smooth
+/// prefix only; see <c>BonePaletteUbo</c> for the Ghidra citations.
 /// </summary>
 public sealed class SkeletonManifest
 {
-    /// <summary>See <see cref="SkeletonScalingMode"/>. Defaults to <see cref="SkeletonScalingMode.Standard"/> for a manifest exported before this field existed - the mode that matches the old unconditional walk.</summary>
+    // See SkeletonScalingMode. Defaults to Standard for a manifest exported before this field existed - the mode that matches
+    // the old unconditional walk.
     [JsonPropertyName("scaling_mode")] public SkeletonScalingMode ScalingMode { get; set; } = SkeletonScalingMode.Standard;
-    /// <summary>Length of the palette's smooth segment (<c>FSKL[0x3A]</c>), or -1 in a manifest exported before this field existed - read <see cref="SmoothCount"/> instead, which derives it in that case.</summary>
+    // Length of the palette's smooth segment (FSKL[0x3A]), or -1 in a manifest exported before this field existed - read
+    // SmoothCount instead, which derives it in that case.
     [JsonPropertyName("smooth_matrix_count")] public int SmoothMatrixCount { get; set; } = -1;
-    /// <summary>Length of the palette's rigid segment (<c>FSKL[0x3C]</c>), or -1 if not exported - read <see cref="RigidCount"/> instead.</summary>
     [JsonPropertyName("rigid_matrix_count")] public int RigidMatrixCount { get; set; } = -1;
     [JsonPropertyName("bones")] public List<BoneManifestEntry> Bones { get; set; } = [];
-    /// <summary>Palette slot -&gt; bone index (<c>BfresLibrary.Skeleton.MatrixToBoneList</c>), smooth slots first then rigid ones - <see cref="SmoothCount"/> + <see cref="RigidCount"/> entries in total.</summary>
     [JsonPropertyName("matrix_to_bone_list")] public List<int> MatrixToBoneList { get; set; } = [];
     /// <summary>Smooth slot -&gt; that bone's inverse bind matrix, 12 floats (3 rows of 4) each, parallel to the first <see cref="SmoothCount"/> entries of <see cref="MatrixToBoneList"/>.</summary>
     [JsonPropertyName("inverse_model_matrices")] public List<float[]> InverseModelMatrices { get; set; } = [];
@@ -32,7 +34,11 @@ public sealed class SkeletonManifest
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a skeleton manifest.");
     }
 
-    /// <summary>The length of the palette's smooth segment, clamped to what <see cref="MatrixToBoneList"/> can supply. A manifest exported before <see cref="SmoothMatrixCount"/> existed gets it counted off the bones' <see cref="BoneManifestEntry.SmoothMatrixIndex"/>, the same number, which also splits those manifests correctly.</summary>
+    /// <summary>
+    /// The length of the palette's smooth segment, clamped to what <see cref="MatrixToBoneList"/> can supply. A manifest exported
+    /// before <see cref="SmoothMatrixCount"/> existed gets it counted off the bones' <see
+    /// cref="BoneManifestEntry.SmoothMatrixIndex"/>, the same number, which also splits those manifests correctly.
+    /// </summary>
     public int SmoothCount
     {
         get
@@ -46,10 +52,10 @@ public sealed class SkeletonManifest
     public int RigidCount => MatrixToBoneList.Count - SmoothCount;
 
     /// <summary>
-    /// Converts each row of 12 floats (3 GPU-style rows of 4, translation in each row's 4th component, as <c>ExportTestBench.ExportSkeleton</c> writes) into a native row-vector
-    /// <see cref="System.Numerics.Matrix4x4"/> (translation in row 4), the form the bone-hierarchy math and <c>BonePaletteUbo.Build</c> use. This is the transpose of a naive row-major
-    /// read; getting it backwards silently drops every bone's translation. Exactly <see cref="SmoothCount"/> entries come back: an older manifest with one row per combined slot is
-    /// truncated to its smooth prefix, and one short of a few rows is padded with identity.
+    /// Converts each row of 12 floats (3 GPU-style rows of 4, translation in each row's 4th component, as
+    /// <c>ExportTestBench.ExportSkeleton</c> writes) into a native row-vector <see cref="System.Numerics.Matrix4x4"/> (translation
+    /// in row 4), the form the bone-hierarchy math and <c>BonePaletteUbo.Build</c> use. This is the transpose of a naive row-major
+    /// read; getting it backwards silently drops every bone's translation.
     /// </summary>
     public Matrix4x4[] InverseModelMatricesAsMatrices()
     {

@@ -5,9 +5,8 @@ using WildRenderingSharp.Profiles.Totk.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>
-/// Binds what the translated shaders expect regardless of the scene: the decompiler's support
-/// buffer, an empty storage buffer at binding 0, a zeroed block for orphaned bindings, and neutral
-/// stand-ins for the vertex textures the game's engine renders itself.
+/// Binds what the translated shaders expect regardless of the scene: the decompiler's support buffer, an empty storage buffer at
+/// binding 0, a zeroed block for orphaned bindings, and neutral stand-ins for the vertex textures the game's engine renders itself.
 /// </summary>
 public sealed class TotkFrameConstantsStage : IFrameStage, IDisposable
 {

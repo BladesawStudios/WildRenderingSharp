@@ -19,8 +19,8 @@ public sealed class TotkSettings
     public bool UseRealSkyShader { get; set; } = true;
 
     /// <summary>
-    /// The <c>USE_ADHOC_FOG</c> term. Off by default: verified against a capture, but it comes out as a
-    /// near-uniform haze rather than the horizon band it was written for.
+    /// The <c>USE_ADHOC_FOG</c> term. Off by default: verified against a capture, but it comes out as a near-uniform haze rather
+    /// than the horizon band it was written for.
     /// </summary>
     public bool UseSkyFog { get; set; }
 
@@ -33,8 +33,8 @@ public sealed class TotkSettings
     public float SkyPaletteTint { get; set; } = 1.0f;
 
     /// <summary>
-    /// Where the sky's brightest texel lands before the tonemap. Above 1 on purpose: the highlight
-    /// compression and HDR compose that follow bring it back, and aiming at 1 gives a flat sky.
+    /// Where the sky's brightest texel lands before the tonemap. Above 1 on purpose: the highlight compression and HDR compose that
+    /// follow bring it back, and aiming at 1 gives a flat sky.
     /// </summary>
     public float SkyHdrLevel { get; set; } = 1.8f;
 

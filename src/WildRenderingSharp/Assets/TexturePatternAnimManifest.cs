@@ -5,12 +5,10 @@ namespace WildRenderingSharp.Assets;
 
 /// <summary>
 /// Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.texpat.json</c>, written by
-/// <c>ShaderLibrary.CompileTool.ExportTexturePatternAnim</c> from a BFRES texture pattern anim
-/// (an FMAA with <c>TexturePatternCount &gt; 0</c>).
-///
-/// A texture pattern anim does not move or shade anything - it re-points a material's SAMPLER at a
-/// different texture per frame. See <c>ExportTexturePatternAnim</c> for the Ghidra citations behind
-/// that; <see cref="WildRenderingSharp.Rendering.TexturePatternPose"/> is the runtime that applies it.
+/// <c>ShaderLibrary.CompileTool.ExportTexturePatternAnim</c> from a BFRES texture pattern anim (an FMAA with <c>TexturePatternCount
+/// &gt; 0</c>). A texture pattern anim does not move or shade anything - it re-points a material's SAMPLER at a different texture
+/// per frame. See <c>ExportTexturePatternAnim</c> for the Ghidra citations behind that; <see
+/// cref="WildRenderingSharp.Rendering.TexturePatternPose"/> is the runtime that applies it.
 /// </summary>
 public sealed class TexturePatternAnimManifest : IAnimClip
 {
@@ -39,7 +37,10 @@ public sealed class TexturePatternAnimManifest : IAnimClip
                 .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             : [];
 
-    /// <summary>The <see cref="SamplerBinding"/> for one of this anim's textures as seen through one sampler - the shape <see cref="TextureCache"/> loads from. <paramref name="samplerKey"/> matters because the sRGB decision reads it.</summary>
+    /// <summary>
+    /// The <see cref="SamplerBinding"/> for one of this anim's textures as seen through one sampler - the shape <see
+    /// cref="TextureCache"/> loads from. <paramref name="samplerKey"/> matters because the sRGB decision reads it.
+    /// </summary>
     public SamplerBinding? BindingFor(int textureIndex, string samplerKey)
     {
         if (textureIndex < 0 || textureIndex >= Textures.Count)

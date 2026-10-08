@@ -1,22 +1,17 @@
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// Every clip of one kind that is currently applied, each on its own clock.
-///
-/// Several clips of the same kind genuinely do run together. Enemy_Dragon_Darkness has four
-/// separate <c>Weakness_0N_Death_ftp</c> anims, one per weak-point material, and showing more than
-/// one broken weak point means running more than one of them; likewise its shader parameter anims
-/// split across face, body and luminance, authored to be combined. The engine binds each animation
-/// resource independently for exactly this reason, so a channel is a SET, not a single selection.
-///
-/// Order matters where two clips write the same thing: they are applied in the order added, so a
-/// later one wins, matching the engine's own sequential ApplyTo.
+/// Every clip of one kind that is currently applied, each on its own clock. Several clips of the same kind genuinely do run
+/// together. Enemy_Dragon_Darkness has four separate <c>Weakness_0N_Death_ftp</c> anims, one per weak-point material, and showing
+/// more than one broken weak point means running more than one of them; likewise its shader parameter anims split across face, body
+/// and luminance, authored to be combined. The engine binds each animation resource independently for exactly this reason, so a
+/// channel is a SET, not a single selection. Order matters where two clips write the same thing: they are applied in the order
+/// added, so a later one wins, matching the engine's own sequential ApplyTo.
 /// </summary>
 public sealed class AnimChannel<T> where T : class, IAnimClip
 {
     readonly List<AnimSlot<T>> _slots = [];
 
-    /// <param name="stepped">Whether clips in this channel are dragged between whole frames rather than played - see <see cref="AnimSlot{T}.Stepped"/>.</param>
     public AnimChannel(bool stepped = false) => Stepped = stepped;
 
     public bool Stepped { get; }

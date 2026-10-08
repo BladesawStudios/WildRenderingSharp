@@ -4,8 +4,10 @@ using System.Text.RegularExpressions;
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
-/// Cleans one of <c>ShaderLibrary.CompileTool</c>'s decompiled <c>.vert</c>/<c>.frag</c> files so desktop GL will link it. The source targets a Tegra/NVN GLSL dialect that declares extensions desktop
-/// drivers lack, and the decompiler's array syntax for a single fragment output needs a small rewrite. Never edit shader logic here, only what keeps it from compiling: the shading math is evidence.
+/// Cleans one of <c>ShaderLibrary.CompileTool</c>'s decompiled <c>.vert</c>/<c>.frag</c> files so desktop GL will link it. The
+/// source targets a Tegra/NVN GLSL dialect that declares extensions desktop drivers lack, and the decompiler's array syntax for a
+/// single fragment output needs a small rewrite. Never edit shader logic here, only what keeps it from compiling: the shading math
+/// is evidence.
 /// </summary>
 public static class GlslSanitizer
 {
@@ -55,10 +57,17 @@ public static class GlslSanitizer
         return ShadowLodToGrad(cleaned);
     }
 
-    /// <summary>A fragment stage's writes to a storage buffer (<c>fp_s0.data[N] = 2u;</c>), in a quarter of the material programs and the deferred passes. They are the engine's feedback (which materials were seen), read by nothing here, but a fragment shader with a side effect cannot be depth-tested early, so the Z-only prepass saved nothing for those materials and millions of fragments a frame wrote the same few words: most of a 33 ms G-buffer pass. Binding 0 is also where instanced draws keep their bake table.</summary>
+    // A fragment stage's writes to a storage buffer (fp_s0.data[N] = 2u;), in a quarter of the material programs and the
+    // deferred passes. They are the engine's feedback (which materials were seen), read by nothing here, but a fragment shader
+    // with a side effect cannot be depth-tested early, so the Z-only prepass saved nothing for those materials and millions of
+    // fragments a frame wrote the same few words: most of a 33 ms G-buffer pass. Binding 0 is also where instanced draws keep
+    // their bake table.
     static readonly Regex FragmentStorageWrite = new(@"^[ \t]*fp_s\d+\.data\[[^\]\n]*\][ \t]*=(?!=)[^;\n]*;", RegexOptions.Compiled | RegexOptions.Multiline);
 
-    /// <summary>Textures the engine renders at runtime and foliage vertex shaders sample, which nothing in romfs supplies: <c>TexWindSwell</c>, <c>TexLieMap</c> (where grass is pressed flat) and <c>TexThickness</c>. Each shader numbers them its own way, and those units are where the resolve leaves G-buffer attachments bound, so foliage was bent by last frame's G-buffer (the wind droop term cubes it into spikes). They move to units of their own, where the pipeline keeps each one's neutral bound.</summary>
+    // Textures the engine renders at runtime and foliage vertex shaders sample, which nothing in romfs supplies: TexWindSwell,
+    // TexLieMap (where grass is pressed flat) and TexThickness. Each shader numbers them its own way, and those units are where
+    // the resolve leaves G-buffer attachments bound, so foliage was bent by last frame's G-buffer (the wind droop term cubes it
+    // into spikes). They move to units of their own, where the pipeline keeps each one's neutral bound.
     static readonly Regex EngineVertexTexture = new(
         @"layout\s*\(\s*binding\s*=\s*\d+\s*\)\s*uniform\s+sampler2D\s+(c\d+_(TexWindSwell|TexLieMap|TexThickness))\s*;", RegexOptions.Compiled);
 
@@ -72,16 +81,24 @@ public static class GlslSanitizer
         _ => ThicknessUnit,
     };
 
-    /// <summary>Where a block the decompiler numbered negatively ends up (see <see cref="NegativeBinding"/>). A zeroed buffer is kept bound here so what such a block reads is defined.</summary>
+    /// <summary>
+    /// Where a block the decompiler numbered negatively ends up (see <see cref="NegativeBinding"/>). A zeroed buffer is kept bound
+    /// here so what such a block reads is defined.
+    /// </summary>
     public const uint OrphanBlockBinding = Profiles.Totk.TotkBindings.Orphan;
 
-    /// <summary>The decompiler renumbers constant buffer N to binding N - 3, so the driver's own buffer (c0) comes out as <c>binding = -3</c>. NVIDIA lets that through, a stricter driver refuses the shader; nothing ever supplied that buffer, so its one read has always been of nothing.</summary>
+    // The decompiler renumbers constant buffer N to binding N - 3, so the driver's own buffer (c0) comes out as binding = -3.
+    // NVIDIA lets that through, a stricter driver refuses the shader; nothing ever supplied that buffer, so its one read has
+    // always been of nothing.
     static readonly Regex NegativeBinding = new(@"binding\s*=\s*-\d+", RegexOptions.Compiled);
 
     static readonly Regex ShadowSamplerDeclaration = new(
         @"\buniform\s+(sampler2DArrayShadow|samplerCubeShadow|samplerCubeArrayShadow)\s+(\w+)\s*;", RegexOptions.Compiled);
 
-    /// <summary><c>textureLod</c> on an array-shadow or cube-shadow sampler exists only through <c>GL_EXT_texture_shadow_lod</c>, which the decompiler asks for and this class strips. NVIDIA accepts the call anyway; Intel and AMD refuse the whole shader ("no matching overloaded function"). Core GLSL's <c>textureGrad</c> with zero derivatives takes the same coordinate and samples the same base level (a shadow map has only one), so the call is rewritten to that.</summary>
+    // textureLod on an array-shadow or cube-shadow sampler exists only through GL_EXT_texture_shadow_lod, which the decompiler
+    // asks for and this class strips. NVIDIA accepts the call anyway; Intel and AMD refuse the whole shader ("no matching
+    // overloaded function"). Core GLSL's textureGrad with zero derivatives takes the same coordinate and samples the same base
+    // level (a shadow map has only one), so the call is rewritten to that.
     static string ShadowLodToGrad(string source)
     {
         foreach (Match decl in ShadowSamplerDeclaration.Matches(source))
@@ -92,7 +109,6 @@ public static class GlslSanitizer
         return source;
     }
 
-    /// <summary>Every <c>textureLod(name, coord, lod)</c> becomes <c>textureGrad(name, coord, zero, zero)</c>, splitting arguments at top-level commas.</summary>
     static string RewriteCalls(string source, string sampler, string zero)
     {
         var call = new Regex(@"\btextureLod\s*\(\s*" + Regex.Escape(sampler) + @"\s*,");

@@ -5,8 +5,8 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Graphics;
 
 /// <summary>
-/// A viewpoint in the renderer's world, as the row arrays the rest of the renderer uses
-/// (see <see cref="Mat4Math"/>): view and inverse view have three rows, the projections four.
+/// A viewpoint in the renderer's world, as the row arrays the rest of the renderer uses (see <see cref="Mat4Math"/>): view and
+/// inverse view have three rows, the projections four.
 /// </summary>
 public readonly record struct CameraData(
     Vector4[] View, Vector4[] ViewProj, Vector4[] Proj, Vector4[] ViewInv,

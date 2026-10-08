@@ -6,8 +6,8 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// The game's baked lighting for placed static actors, read from a cache the preparer fills
-/// (<c>prepare-bake</c>; see <c>ShaderLibrary.CompileTool.ExportBake</c>).
+/// The game's baked lighting for placed static actors, read from a cache the preparer fills (<c>prepare-bake</c>; see
+/// <c>ShaderLibrary.CompileTool.ExportBake</c>).
 /// </summary>
 /// <remarks>
 /// Every static world object's material samples <c>bake0</c> at <c>aTexCoordBake</c> - the
@@ -46,7 +46,6 @@ public sealed class BakeLibrary : IDisposable
             return TileOfLocked(hash);
     }
 
-    /// <summary>Held for any use: a host may look bakes up on a loading thread.</summary>
     readonly object _sync = new();
 
     string? TileOfLocked(ulong hash)

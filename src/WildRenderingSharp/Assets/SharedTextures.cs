@@ -2,9 +2,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>
-/// Textures shared between models, counted by how many models hold each.
-/// </summary>
+/// <summary>Textures shared between models, counted by how many models hold each.</summary>
 /// <remarks>
 /// The preparer copies every texture a model uses into that model's own directory, and the common
 /// ones - <c>CmnTex_*</c> rock, wood, grass - are used by hundreds. With one
@@ -27,7 +25,6 @@ public sealed class SharedTextures : IDisposable
     internal static string Key(SamplerBinding s, bool srgb) =>
         $"{s.File}|{srgb}|{(s.CompSelect is { } c ? string.Join(',', c) : "-")}|{s.WrapU}|{s.WrapV}";
 
-    /// <summary>Takes another hold on the texture under <paramref name="key"/>, if there is one.</summary>
     internal bool TryAcquire(string key, out LoadedTexture texture)
     {
         lock (_byKey)
@@ -43,7 +40,6 @@ public sealed class SharedTextures : IDisposable
         }
     }
 
-    /// <summary>Adds a texture just loaded, held once.</summary>
     internal void Add(string key, LoadedTexture texture)
     {
         lock (_byKey)
@@ -53,14 +49,12 @@ public sealed class SharedTextures : IDisposable
         }
     }
 
-    /// <summary>Whether <paramref name="texture"/> is one of these.</summary>
     internal bool Owns(LoadedTexture texture)
     {
         lock (_byKey)
             return _keyOf.ContainsKey(texture);
     }
 
-    /// <summary>Lets go of one hold, deleting the texture with the last.</summary>
     internal void Release(LoadedTexture texture)
     {
         lock (_byKey)

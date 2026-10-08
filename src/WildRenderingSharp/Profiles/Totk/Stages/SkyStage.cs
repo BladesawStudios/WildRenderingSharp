@@ -8,9 +8,8 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere;
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>
-/// Paints the background into the HDR image before the resolve, which only writes pixels its
-/// pass-ID mask claims: the plain background, then the game's sky shader over it, the sun and moon
-/// sprites, and the cloud dome.
+/// Paints the background into the HDR image before the resolve, which only writes pixels its pass-ID mask claims: the plain
+/// background, then the game's sky shader over it, the sun and moon sprites, and the cloud dome.
 /// </summary>
 public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage, IDisposable
 {
@@ -41,13 +40,10 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             DrawClouds(frame);
     }
 
-    /// <summary>
-    /// The game's sky shader sampling the baked atmosphere. The table is in the game's own units, so
-    /// its intensity is scaled to land the brightest texel above 1 before the tonemap, which has the
-    /// headroom to bring it down; the palette's own sky brightness (relative to its default of 5)
-    /// then makes night palettes darker. The ground colour is mixed in unscaled by the shader, so it
-    /// arrives pre-scaled.
-    /// </summary>
+    // The game's sky shader sampling the baked atmosphere. The table is in the game's own units, so its intensity is scaled to
+    // land the brightest texel above 1 before the tonemap, which has the headroom to bring it down; the palette's own sky
+    // brightness (relative to its default of 5) then makes night palettes darker. The ground colour is mixed in unscaled by the
+    // shader, so it arrives pre-scaled.
     void DrawSky(FrameContext frame)
     {
         var lighting = frame.Lighting;
@@ -70,7 +66,6 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
     }
 
-    /// <summary>The sun and moon sprites, drawn after the sky and before the clouds so cloud occludes them.</summary>
     void DrawBodies(FrameContext frame)
     {
         var lighting = frame.Lighting;

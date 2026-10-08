@@ -4,10 +4,9 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// A material's render state as the engine's own RenderInfo strings (see
-/// <c>ExportManifest.RenderState</c>) - <c>mode == "custom"</c> means the blend/depth fields are
-/// authoritative rather than a named preset, which is how a translucent material (e.g.
-/// Enemy_Chuchu_Junior) declares its blending.
+/// A material's render state as the engine's own RenderInfo strings (see <c>ExportManifest.RenderState</c>) - <c>mode ==
+/// "custom"</c> means the blend/depth fields are authoritative rather than a named preset, which is how a translucent material
+/// (e.g. Enemy_Chuchu_Junior) declares its blending.
 /// </summary>
 public sealed class RenderState
 {
@@ -56,7 +55,10 @@ public sealed class RenderState
     static GLEnum Lookup(Dictionary<string, GLEnum> table, string? value, string fallbackKey) =>
         table.GetValueOrDefault(string.IsNullOrEmpty(value) ? fallbackKey : value, table[fallbackKey]);
 
-    /// <summary>GL blend factors/equations for this state, defaulting to a standard alpha blend when a field is unset - mirrors <c>blend_state</c>.</summary>
+    /// <summary>
+    /// GL blend factors/equations for this state, defaulting to a standard alpha blend when a field is unset - mirrors
+    /// <c>blend_state</c>.
+    /// </summary>
     public (BlendFuncs Funcs, BlendEquations Ops) ResolveBlendState() => (
         new BlendFuncs(
             Lookup(BlendFactors, RgbSrc, "src_alpha"), Lookup(BlendFactors, RgbDst, "one_minus_src_alpha"),

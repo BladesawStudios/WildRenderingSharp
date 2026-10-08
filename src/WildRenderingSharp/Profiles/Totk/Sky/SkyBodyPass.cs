@@ -197,7 +197,8 @@ public sealed class SkyBodyPass : IDisposable
         _gl.Disable(EnableCap.Blend);
     }
 
-    /// <summary>The requested phase, or the closest that loaded: <c>Etc_Moon_A_Alb.5</c> is authored in a TXTG format the extractor does not decode (0x107), and the nearest neighbour is a better failure than no moon.</summary>
+    // The requested phase, or the closest that loaded: Etc_Moon_A_Alb.5 is authored in a TXTG format the extractor does not
+    // decode (0x107), and the nearest neighbour is a better failure than no moon.
     int NearestAvailablePhase(int want)
     {
         if (_moonTex[want] != 0)

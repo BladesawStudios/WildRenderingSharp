@@ -5,8 +5,8 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>
-/// One frame's inputs and the results stages hand to later stages. Setup fills the camera, sun and
-/// draw groups; each later stage reads what it needs and records what it produces.
+/// One frame's inputs and the results stages hand to later stages. Setup fills the camera, sun and draw groups; each later stage
+/// reads what it needs and records what it produces.
 /// </summary>
 public sealed class FrameContext(FrameRequest request, RenderTargets targets, ShadowCache shadowCache, GpuTexture? shadowMapOverride)
 {

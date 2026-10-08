@@ -1,10 +1,12 @@
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// Bakes an authored TexSrt (mode, scaleX, scaleY, rotation, translateX, translateY) into the 2x2 rotate-scale matrix plus translation the compiled shader's <c>gsys_material</c> block stores. It is the
-/// runtime twin of <c>ShaderLibrary.CompileTool.BuildMaterialUbo.TexSrtBake</c>, whose remarks carry the Ghidra derivation (<c>nn::g3d2::MaterialObj::ConvertDirtyParams</c>'s per-kind callback table,
-/// dispatcher 0x7100072448, mode 0 baker 0x7100072860, mode 1 baker 0x7100072950). Duplicated rather than shared because this library takes no dependency on the offline BFRES and BFSHA tooling, and it
-/// is pure float math.
+/// Bakes an authored TexSrt (mode, scaleX, scaleY, rotation, translateX, translateY) into the 2x2 rotate-scale matrix plus
+/// translation the compiled shader's <c>gsys_material</c> block stores. It is the runtime twin of
+/// <c>ShaderLibrary.CompileTool.BuildMaterialUbo.TexSrtBake</c>, whose remarks carry the Ghidra derivation
+/// (<c>nn::g3d2::MaterialObj::ConvertDirtyParams</c>'s per-kind callback table, dispatcher 0x7100072448, mode 0 baker 0x7100072860,
+/// mode 1 baker 0x7100072950). Duplicated rather than shared because this library takes no dependency on the offline BFRES and
+/// BFSHA tooling, and it is pure float math.
 /// </summary>
 /// <remarks>
 /// <see cref="WildRenderingSharp.Rendering.MaterialAnimPose"/> needs it because a material-parameter animation can drive just one sub-field of a TexSrt (a scroll touching only translateY): the untouched

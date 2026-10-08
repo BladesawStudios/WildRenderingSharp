@@ -4,16 +4,16 @@ using SarcLibrary;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
-/// Loads every <c>game::wm::ResEnvPalette</c> from romfs plus the <c>IconCapture</c> and <c>UI</c> presets (which exist
-/// only in code), and resolves a palette by name the way <c>get_palette</c> does.
+/// Loads every <c>game::wm::ResEnvPalette</c> from romfs plus the <c>IconCapture</c> and <c>UI</c> presets (which exist only in
+/// code), and resolves a palette by name the way <c>get_palette</c> does.
 /// </summary>
 public sealed class EnvPaletteLibrary
 {
     readonly Dictionary<string, EnvPalette> _byName = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// The neutral studio preset (see <see cref="BuildStudioLightPreset"/>) and the default everything falls back to. Not a
-    /// romfs palette, so it exists with no romfs configured and a session opens on lighting that shows a model as it is.
+    /// The neutral studio preset (see <see cref="BuildStudioLightPreset"/>) and the default everything falls back to. Not a romfs
+    /// palette, so it exists with no romfs configured and a session opens on lighting that shows a model as it is.
     /// </summary>
     public const string StudioLightPaletteName = "StudioLight";
 
@@ -29,7 +29,10 @@ public sealed class EnvPaletteLibrary
 
     EnvPaletteLibrary() { }
 
-    /// <summary>Presets only, the safe starting point before a romfs path is configured. <see cref="Get"/> still works because the default is itself a preset.</summary>
+    /// <summary>
+    /// Presets only, the safe starting point before a romfs path is configured. <see cref="Get"/> still works because the default
+    /// is itself a preset.
+    /// </summary>
     public static EnvPaletteLibrary Empty()
     {
         var lib = new EnvPaletteLibrary();
@@ -45,12 +48,6 @@ public sealed class EnvPaletteLibrary
     /// some fields; those are flattened once here, with cycle protection, so every palette handed out is complete.
     /// </summary>
 
-    /// <summary>Merges a delta palette over its parent, recursing into nested maps.</summary>
-    /// <remarks>
-    /// A shallow merge silently loses data: BloodyMoon_DarknessDragon's Cloud1 carries only BacklightPower, IntensityBase
-    /// and IntensityHilight, so replacing the whole object drops the parent's cloud colours and the clouds render white
-    /// instead of deep red.
-    /// </remarks>
     static Dictionary<string, object?> DeepMerge(
         IReadOnlyDictionary<string, object?> parent, IReadOnlyDictionary<string, object?> child)
     {
@@ -142,7 +139,10 @@ public sealed class EnvPaletteLibrary
 
     void AddPreset(string name, Dictionary<string, object?> raw) => _byName[name] = new EnvPalette(name, raw);
 
-    /// <summary>Exact match, then case-insensitive, across the presets and then the loaded palettes, falling back to <see cref="DefaultPaletteName"/> (a built-in preset) rather than throwing.</summary>
+    /// <summary>
+    /// Exact match, then case-insensitive, across the presets and then the loaded palettes, falling back to <see
+    /// cref="DefaultPaletteName"/> (a built-in preset) rather than throwing.
+    /// </summary>
     public EnvPalette Get(string? name)
     {
         if (string.IsNullOrEmpty(name))
@@ -159,13 +159,10 @@ public sealed class EnvPaletteLibrary
         throw new KeyNotFoundException($"Unknown palette '{name}', and not even the built-in '{StudioLightPaletteName}' preset is loaded.");
     }
 
-    /// <summary>
-    /// Blank studio lighting: a neutral white key, an untinted ambient, and every grade, glow and tint off, so the model's
-    /// own albedo and emission are what you see. Every shipped palette omits <c>HemiSkyColor</c> and <c>HemiGroundColor</c>,
-    /// which sends <see cref="WildRenderingSharp.Profiles.Totk.Atmosphere.AmbientLighting"/> to its blue-sky fallback, so a neutral ambient
-    /// needs the pair declared. The magnitudes (BgDifIntensity 5.0, HemiIntensity 0.35) are the icon-capture preset's; only
-    /// the hues are neutralised.
-    /// </summary>
+    // Blank studio lighting: a neutral white key, an untinted ambient, and every grade, glow and tint off, so the model's own
+    // albedo and emission are what you see. Every shipped palette omits HemiSkyColor and HemiGroundColor, which sends
+    // AmbientLighting to its blue-sky fallback, so a neutral ambient needs the pair declared. The magnitudes (BgDifIntensity
+    // 5.0, HemiIntensity 0.35) are the icon-capture preset's; only the hues are neutralised.
     static Dictionary<string, object?> BuildStudioLightPreset() => new()
     {
         ["BgDifColor"] = new object?[] { 1.0, 1.0, 1.0, 1.0 },

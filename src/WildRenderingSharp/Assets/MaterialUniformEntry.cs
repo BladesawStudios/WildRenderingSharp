@@ -26,13 +26,10 @@ public sealed class MaterialUniformEntry
     /// </summary>
     [JsonPropertyName("used")] public bool? Used { get; set; }
 
-    /// <summary>
-    /// The material's AUTHORED (mode, scaleX, scaleY, rotation, translateX, translateY) for a
-    /// TexSrt/TexSrtEx-typed parameter only - null for every other type. This is the pre-bake form;
-    /// <see cref="MaterialAnimPose"/> needs it because an animation can drive just one sub-field
-    /// (a scroll anim touching only translateY, say) and has to re-bake the whole six-value set
-    /// every frame, using this as the baseline for whichever sub-fields the anim leaves untouched -
-    /// see that class's own remarks and <see cref="WildRenderingSharp.Rendering.TexSrtBake"/>.
-    /// </summary>
+    // The material's AUTHORED (mode, scaleX, scaleY, rotation, translateX, translateY) for a TexSrt/TexSrtEx-typed parameter
+    // only - null for every other type. This is the pre-bake form; MaterialAnimPose needs it because an animation can drive
+    // just one sub-field (a scroll anim touching only translateY, say) and has to re-bake the whole six-value set every frame,
+    // using this as the baseline for whichever sub-fields the anim leaves untouched - see that class's own remarks and
+    // TexSrtBake.
     [JsonPropertyName("raw_srt")] public float[]? RawSrt { get; set; }
 }

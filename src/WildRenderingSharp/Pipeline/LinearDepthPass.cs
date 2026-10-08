@@ -3,12 +3,11 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Builds <c>cTex_NormalizedLinearDepth</c> - <c>(viewZ - near) / (far - near)</c> - at full
-/// resolution from the G-buffer's hardware depth, then a half-resolution copy via a 4-tap
-/// <c>textureGather</c> min (matching <c>prog_nld</c>/<c>prog_nld_half</c>). Every consumer that
-/// reconstructs a view/world position (the shadow projection, the AO, the deferred resolve's own
-/// specular) reads this rather than the raw depth buffer, because the deferred passes decode it
-/// with <c>fma(sample, cCameraParam2.x, cCameraParam0.x)</c>, i.e. exactly this formula inverted.
+/// Builds <c>cTex_NormalizedLinearDepth</c> - <c>(viewZ - near) / (far - near)</c> - at full resolution from the G-buffer's
+/// hardware depth, then a half-resolution copy via a 4-tap <c>textureGather</c> min (matching
+/// <c>prog_nld</c>/<c>prog_nld_half</c>). Every consumer that reconstructs a view/world position (the shadow projection, the AO,
+/// the deferred resolve's own specular) reads this rather than the raw depth buffer, because the deferred passes decode it with
+/// <c>fma(sample, cCameraParam2.x, cCameraParam0.x)</c>, i.e. exactly this formula inverted.
 /// </summary>
 public sealed class LinearDepthPass : IDisposable
 {

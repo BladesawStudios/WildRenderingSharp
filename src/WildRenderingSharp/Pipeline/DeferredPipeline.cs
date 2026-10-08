@@ -8,10 +8,9 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Renders frames: owns the GL resources, render targets and shadow cache, and runs the stages
-/// its game profile defines. Every placed actor goes through this one instance, sharing the
-/// G-buffer and shadow map; each actor's skinning uniforms are rebound before its own draws
-/// (see <see cref="ActorDrawGroup"/>).
+/// Renders frames: owns the GL resources, render targets and shadow cache, and runs the stages its game profile defines. Every
+/// placed actor goes through this one instance, sharing the G-buffer and shadow map; each actor's skinning uniforms are rebound
+/// before its own draws (see <see cref="ActorDrawGroup"/>).
 /// </summary>
 public sealed class DeferredPipeline : IDisposable
 {
@@ -76,22 +75,18 @@ public sealed class DeferredPipeline : IDisposable
     public void Resize(int width, int height) => Targets.Resize(width, height);
 
     /// <summary>
-    /// Forces the shadow map to redraw on the next frame, for changes to which shapes cast that
-    /// neither the sun nor the actors' transforms reflect. Pass a secondary view's own cache to
-    /// invalidate that one instead of the main view's.
+    /// Forces the shadow map to redraw on the next frame, for changes to which shapes cast that neither the sun nor the actors'
+    /// transforms reflect. Pass a secondary view's own cache to invalidate that one instead of the main view's.
     /// </summary>
     public void InvalidateShadowCache(ShadowCache? cache = null) => (cache ?? _mainShadowCache).SunWorld = null;
 
     /// <summary>
-    /// Does the work that depends only on the environment, never the camera or the scene. Idempotent
-    /// and safe to call every frame from anywhere with a current GL context.
+    /// Does the work that depends only on the environment, never the camera or the scene. Idempotent and safe to call every frame
+    /// from anywhere with a current GL context.
     /// </summary>
     public void PrepareEnvironment(IFrameEnvironment environment) =>
         Graph.PrepareEnvironment(environment);
 
-    /// <param name="targetsOverride">Render into these targets instead of <see cref="Targets"/>, for a second view that keeps its own size.</param>
-    /// <param name="shadowCacheOverride">The shadow reuse state for this render. A second view needs its own; never share the main one.</param>
-    /// <param name="shadowMapOverride">A shadow map drawn elsewhere, used instead of drawing one.</param>
     public FrameResult RenderFrame(FrameRequest request, RenderTargets? targetsOverride = null, ShadowCache? shadowCacheOverride = null,
         GpuTexture? shadowMapOverride = null)
     {

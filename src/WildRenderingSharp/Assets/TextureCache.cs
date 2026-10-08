@@ -3,9 +3,9 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// Loads and caches textures by name so shapes sharing a texture share one GL object. Compressed block data is uploaded
-/// straight to the GPU (see <see cref="CompressedTextureFormat"/>); a texture in an unhandled format, or whose bin file is
-/// absent, is skipped rather than aborting the model.
+/// Loads and caches textures by name so shapes sharing a texture share one GL object. Compressed block data is uploaded straight to
+/// the GPU (see <see cref="CompressedTextureFormat"/>); a texture in an unhandled format, or whose bin file is absent, is skipped
+/// rather than aborting the model.
 /// </summary>
 public sealed class TextureCache : IDisposable
 {
@@ -17,8 +17,6 @@ public sealed class TextureCache : IDisposable
     readonly SharedTextures? _shared;
     bool _ownsExternal;
 
-    /// <param name="external">Where array samplers find a host's textures (see <see cref="ExternalTextures"/>); null binds them white.</param>
-    /// <param name="shared">Textures shared with other models' caches (see <see cref="SharedTextures"/>); null keeps them to this one.</param>
     public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null)
     {
         _gl = gl;
@@ -27,7 +25,10 @@ public sealed class TextureCache : IDisposable
         _shared = shared;
     }
 
-    /// <summary>Resolves every texture a shape's sampler list references, skipping unbound units and logging anything it can't load. Returns bindings ready to bind.</summary>
+    /// <summary>
+    /// Resolves every texture a shape's sampler list references, skipping unbound units and logging anything it can't load. Returns
+    /// bindings ready to bind.
+    /// </summary>
     public List<ShapeSampler> Resolve(IEnumerable<SamplerBinding> samplers)
     {
         var result = new List<ShapeSampler>();
@@ -51,12 +52,14 @@ public sealed class TextureCache : IDisposable
         return result;
     }
 
-    /// <summary>Loads (or returns the cached) texture for one binding; public so a texture pattern anim can pull in an alternate. Cached by name, so the first binding to ask decides the sRGB interpretation.</summary>
+    /// <summary>
+    /// Loads (or returns the cached) texture for one binding; public so a texture pattern anim can pull in an alternate. Cached by
+    /// name, so the first binding to ask decides the sRGB interpretation.
+    /// </summary>
     public LoadedTexture? Load(SamplerBinding s) => GetOrLoad(s);
 
     static bool? _anisotropy;
 
-    /// <summary>Anisotropic filtering is core only from GL 4.6; before that it is an extension nearly every desktop driver has.</summary>
     static bool SupportsAnisotropy(GL gl) =>
         _anisotropy ??= gl.IsExtensionPresent("GL_EXT_texture_filter_anisotropic") || gl.IsExtensionPresent("GL_ARB_texture_filter_anisotropic");
 
@@ -150,31 +153,9 @@ public sealed class TextureCache : IDisposable
         return loaded;
     }
 
-    /// <summary>
-    /// Applies the texture's component swizzle. NVN swizzles per texture descriptor, not by the format's channel count, so
-    /// GL's identity swizzle can disagree with what a shader expects from a missing channel. The authority is the TXTG
-    /// container's <c>CompSelect</c> bytes (<see cref="SamplerBinding.CompSelect"/>), in the Switch-Toolbox encoding
-    /// (<c>0=R, 1=G, 2=B, 3=A, 4=Zero, 5=One</c>); see <see cref="MapCompSelect"/>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This encoding was checked against raw romfs bytes: most textures carry the identity <c>[0,1,2,3]</c>, while unrelated
-    /// "Gn4" and "AO" mask textures across character models consistently carry <c>[0,1,1,1]</c>, the standard trick of packing
-    /// a second mask into a two-channel BC5's constant B and A. An encoding derived from a general BNTX header broke textures
-    /// corpus-wide and was reverted. Falls back to the old BC4-to-RRRR heuristic when a manifest predates the field.
-    /// </para>
-    /// <para>
-    /// Two regressions came from this mechanism. (1) BC4 has one stored channel but can carry <c>[0,1,1,1]</c>; mapping
-    /// index 1 to <c>GL_GREEN</c> reads the constant 0 GL defines for a RED-only format's G slot, so reads that should be
-    /// grayscale came out red. (2) Clamping every format's index to its channel count broke ordinary BC5 textures: GL's
-    /// natural fallback for BC5's missing B and A (0 and 1) already matches what shaders expect, and clamping replaced it
-    /// with a duplicated green.
-    /// </para>
-    /// <para>
-    /// The distinction: the game broadcasts a BC4 texture's one channel into all four slots, whereas GL gives (R,0,0,1), so
-    /// BC4 alone is overridden. BC5 and four-channel formats use the value literally, trusting GL's per-format channel semantics.
-    /// </para>
-    /// </remarks>
+    // Applies the texture's component swizzle. NVN swizzles per texture descriptor, not by the format's channel count, so GL's
+    // identity swizzle can disagree with what a shader expects from a missing channel. The authority is the TXTG container's
+    // CompSelect bytes (CompSelect), in the Switch-Toolbox encoding (0=R, 1=G, 2=B, 3=A, 4=Zero, 5=One); see MapCompSelect.
     void ApplySwizzle(SamplerBinding s)
     {
         bool isBc4 = s.Format.StartsWith("BC4", StringComparison.Ordinal);
@@ -197,7 +178,6 @@ public sealed class TextureCache : IDisposable
         }
     }
 
-    /// <param name="isBc4">BC4 has one stored channel and the game broadcasts it into every output slot, so any index 0-3 means that channel. Every other format uses the index literally.</param>
     static GLEnum MapCompSelect(int v, bool isBc4) => v switch
     {
         4 => GLEnum.Zero,
@@ -214,13 +194,10 @@ public sealed class TextureCache : IDisposable
         _ => GLEnum.Alpha,
     };
 
-    /// <summary>
-    /// Maps a GX2 wrap mode name (<see cref="SamplerBinding.WrapU"/>, <see cref="SamplerBinding.WrapV"/>) to GL. Null (an
-    /// older manifest) keeps repeat. GL has no per-variant equivalent of GX2's border-colour clamps without a border colour,
-    /// so all collapse to clamp-to-edge, which gives the "does not tile" behaviour that matters; the MirrorOnce variants
-    /// collapse the same way, since they stop reflecting after the first reflection. Plain strings rather than
-    /// <c>nameof</c> because this library has no BfresLibrary reference.
-    /// </summary>
+    // Maps a GX2 wrap mode name (WrapU, WrapV) to GL. Null (an older manifest) keeps repeat. GL has no per-variant equivalent
+    // of GX2's border-colour clamps without a border colour, so all collapse to clamp-to-edge, which gives the "does not tile"
+    // behaviour that matters; the MirrorOnce variants collapse the same way, since they stop reflecting after the first
+    // reflection.
     static GLEnum MapWrapMode(string? wrap) => wrap switch
     {
         null or "Wrap" => GLEnum.Repeat,
@@ -230,7 +207,6 @@ public sealed class TextureCache : IDisposable
 
     LoadedTexture? _white;
 
-    /// <summary>A 1x1 opaque white texture, made the first time a binding has nothing else.</summary>
     unsafe LoadedTexture White()
     {
         if (_white is { } white)

@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// One shape from a model's manifest - everything <c>WildRenderingSharp.Assets.ModelLoader</c> needs to
-/// draw it, with no BFRES/BNSH parsing of its own (that already happened offline in
-/// <c>ShaderLibrary.CompileTool</c>). See <c>ExportManifest.Run</c> for the writer.
+/// One shape from a model's manifest - everything <c>WildRenderingSharp.Assets.ModelLoader</c> needs to draw it, with no BFRES/BNSH
+/// parsing of its own (that already happened offline in <c>ShaderLibrary.CompileTool</c>). See <c>ExportManifest.Run</c> for the
+/// writer.
 /// </summary>
 public sealed class ShapeManifestEntry
 {
@@ -46,6 +46,5 @@ public sealed class ShapeManifestEntry
 
     [JsonPropertyName("render_state")] public RenderState RenderState { get; set; } = new();
 
-    /// <summary>Keys the loader does not know, kept for the game profile that wrote them.</summary>
     [JsonExtensionData] public Dictionary<string, JsonElement> Extensions { get; set; } = [];
 }

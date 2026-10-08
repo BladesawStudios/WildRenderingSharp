@@ -4,12 +4,11 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Bright-pass -> 4 downsampled+blurred levels -> weighted compose, feeding straight into
-/// <c>agl_hdr_compose</c>'s own <c>cBloom</c> sampler (so it lands in the game's own compose, not
-/// a separate effect bolted on afterwards). Mirrors <c>BLOOM_BRIGHT_SRC</c>/
-/// <c>BLOOM_BLUR_SRC</c>/<c>BLOOM_COMPOSE_SRC</c> and the bloom loop in <c>render_scene</c>
-/// exactly, including its slightly asymmetric level 0 (bright-pass only) vs. levels 1-3
-/// (one more blur-and-downsample step before the usual two-pass separable blur).
+/// Bright-pass -> 4 downsampled+blurred levels -> weighted compose, feeding straight into <c>agl_hdr_compose</c>'s own
+/// <c>cBloom</c> sampler (so it lands in the game's own compose, not a separate effect bolted on afterwards). Mirrors
+/// <c>BLOOM_BRIGHT_SRC</c>/ <c>BLOOM_BLUR_SRC</c>/<c>BLOOM_COMPOSE_SRC</c> and the bloom loop in <c>render_scene</c> exactly,
+/// including its slightly asymmetric level 0 (bright-pass only) vs. levels 1-3 (one more blur-and-downsample step before the usual
+/// two-pass separable blur).
 /// </summary>
 public sealed class BloomPass : IDisposable
 {

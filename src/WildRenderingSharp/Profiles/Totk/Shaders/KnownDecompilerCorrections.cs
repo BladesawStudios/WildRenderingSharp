@@ -3,7 +3,8 @@ using System.Text.RegularExpressions;
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>
-/// Patches one individually verified decompiler corruption. Deliberately not a general rule, and kept apart from <see cref="GlslSanitizer"/>, whose header forbids editing shader logic.
+/// Patches one individually verified decompiler corruption. Deliberately not a general rule, and kept apart from <see
+/// cref="GlslSanitizer"/>, whose header forbids editing shader logic.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -30,7 +31,11 @@ public static class KnownDecompilerCorrections
         @"(temp_\d+) \* 0\.0 - max\(min\(0\.0 - (temp_\d+), 25\.0\), 10\.0\) \+ -10\.0",
         RegexOptions.Compiled);
 
-    /// <summary>Wraps the confirmed always-negative sub-expression in <c>max(..., 0.0)</c> wherever it appears: floor a provably corrupted value at a sensible minimum rather than invent a replacement. The enclosing <c>fma(term, 0.0666667, temp_N)</c> then collapses to <c>temp_N</c>, always in [0,1], instead of a value that can only subtract.</summary>
+    /// <summary>
+    /// Wraps the confirmed always-negative sub-expression in <c>max(..., 0.0)</c> wherever it appears: floor a provably corrupted
+    /// value at a sensible minimum rather than invent a replacement. The enclosing <c>fma(term, 0.0666667, temp_N)</c> then
+    /// collapses to <c>temp_N</c>, always in [0,1], instead of a value that can only subtract.
+    /// </summary>
     public static string Apply(string source) =>
         CorruptedHeightTerm.Replace(source, "max($1 * 0.0 - max(min(0.0 - $2, 25.0), 10.0) + -10.0, 0.0)");
 }

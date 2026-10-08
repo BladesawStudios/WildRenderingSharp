@@ -5,18 +5,13 @@ using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Draws one shape's silhouette as a flat, alpha-blended overlay on the finished frame - the
-/// Material Inspector's "which object is this row" hover highlight. Draws directly into the
-/// FINAL tonemapped <see cref="RenderTargets.Ldr"/> buffer, with NO depth test at all, so it
-/// reads as sitting above literally everything - even something occluding the hovered object
-/// from the current view - rather than going through the whole deferred pipeline again (a hover
-/// highlight has to track the mouse instantly and cheaply, not wait on a full re-render) or being
-/// just another translucent layer that bloom/tonemapping could wash out or that nearer geometry
-/// could hide.
-///
-/// Reuses <c>PassIdMaskPass</c>'s own GPU-skinning vertex logic verbatim (see its remarks
-/// for why this must be skinned, not a bind-pose silhouette) so an animated shape's highlight
-/// tracks its actual posed silhouette.
+/// Draws one shape's silhouette as a flat, alpha-blended overlay on the finished frame - the Material Inspector's "which object is
+/// this row" hover highlight. Draws directly into the FINAL tonemapped <see cref="RenderTargets.Ldr"/> buffer, with NO depth test
+/// at all, so it reads as sitting above literally everything - even something occluding the hovered object from the current view -
+/// rather than going through the whole deferred pipeline again (a hover highlight has to track the mouse instantly and cheaply, not
+/// wait on a full re-render) or being just another translucent layer that bloom/tonemapping could wash out or that nearer geometry
+/// could hide. Reuses <c>PassIdMaskPass</c>'s own GPU-skinning vertex logic verbatim (see its remarks for why this must be skinned,
+/// not a bind-pose silhouette) so an animated shape's highlight tracks its actual posed silhouette.
 /// </summary>
 public sealed class HighlightOverlayPass : IDisposable
 {
@@ -86,15 +81,6 @@ public sealed class HighlightOverlayPass : IDisposable
         _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "highlight_overlay");
     }
 
-    /// <param name="mvpRows"><c>proj @ [view;0,0,0,1] @ model</c> - skin count 0 shapes.</param>
-    /// <param name="viewProjRows"><c>proj @ [view;0,0,0,1]</c> - skinned shapes (palette already includes the model transform). Same TRUE (unflipped) matrices <c>PassIdMaskPass</c> uses - <see cref="RenderTargets.Ldr"/> (where this draws) is in that same true orientation.</param>
-    /// <remarks>
-    /// No depth test at all, and drawn into the FINAL tonemapped <see cref="RenderTargets.Ldr"/>
-    /// buffer rather than anywhere earlier in the chain - "highlight this object" should mean
-    /// visible above literally everything (even something occluding it from this angle) and
-    /// untouched by exposure/bloom/tonemapping, not just another translucent layer competing with
-    /// the rest of the scene for the same treatment.
-    /// </remarks>
     public unsafe void Draw(GLResourceCache resources, RenderTargets targets, ActorDrawGroup owningActor, LoadedShape shape, ReadOnlySpan<Vector4> mvpRows, ReadOnlySpan<Vector4> viewProjRows, Vector4 color)
     {
         // A skinned highlighted shape reads its bone pose from _Mtx (binding 2) exactly like every

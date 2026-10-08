@@ -3,9 +3,9 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Every size-dependent render target the deferred pipeline uses, plus the fixed-size shadow map. Rebuilt when the
-/// viewport resizes. Framebuffers are two shared scratch objects repointed per pass with
-/// <c>glFramebufferTexture2D</c>, rather than one per texture combination.
+/// Every size-dependent render target the deferred pipeline uses, plus the fixed-size shadow map. Rebuilt when the viewport
+/// resizes. Framebuffers are two shared scratch objects repointed per pass with <c>glFramebufferTexture2D</c>, rather than one per
+/// texture combination.
 /// </summary>
 public sealed class RenderTargets : IDisposable
 {
@@ -32,9 +32,9 @@ public sealed class RenderTargets : IDisposable
     public GpuTexture AoTmp { get; private set; }
 
     /// <summary>
-    /// Per-pixel lighting for <c>cTex_DeferredLightPrePass</c> (binding 28), a <c>sampler2DArray</c> every <c>chara_*</c>
-    /// resolve shader samples at layer 0 for its main light colour (see <see cref="LightPrePass"/>). Two layers to match the
-    /// declared array size; only layer 0 has a confirmed reader, so layer 1 stays zero.
+    /// Per-pixel lighting for <c>cTex_DeferredLightPrePass</c> (binding 28), a <c>sampler2DArray</c> every <c>chara_*</c> resolve
+    /// shader samples at layer 0 for its main light colour (see <see cref="LightPrePass"/>). Two layers to match the declared array
+    /// size; only layer 0 has a confirmed reader, so layer 1 stays zero.
     /// </summary>
     public GpuTexture LightPrePassArray { get; private set; }
 
@@ -57,7 +57,10 @@ public sealed class RenderTargets : IDisposable
 
     GpuTexture? _underAlbedo, _underNormal, _underDepth;
 
-    /// <summary>Copies of the G-buffer albedo, normal and depth under the terrain, made the first time a frame has terrain and remade with the other targets.</summary>
+    /// <summary>
+    /// Copies of the G-buffer albedo, normal and depth under the terrain, made the first time a frame has terrain and remade with
+    /// the other targets.
+    /// </summary>
     public (GpuTexture Albedo, GpuTexture Normal, GpuTexture Depth) TerrainUnderCopies()
     {
         _underAlbedo ??= CreateColorTexture(Width, Height, InternalFormat.Rgba8, repeat: false, filterNearest: true);
@@ -66,7 +69,10 @@ public sealed class RenderTargets : IDisposable
         return (_underAlbedo.Value, _underNormal.Value, _underDepth.Value);
     }
 
-    /// <summary>A copy of G-buffer attachment 0 (<c>cTex_GBuffMaterialID</c>) for shapes drawn over the opaque G-buffer; see <c>SceneColorShapePass</c>.</summary>
+    /// <summary>
+    /// A copy of G-buffer attachment 0 (<c>cTex_GBuffMaterialID</c>) for shapes drawn over the opaque G-buffer; see
+    /// <c>SceneColorShapePass</c>.
+    /// </summary>
     public GpuTexture MaterialIdCopy { get; private set; }
 
     // Bloom pyramid: four levels, halved per level.
@@ -79,9 +85,9 @@ public sealed class RenderTargets : IDisposable
     public GpuTexture ShadowMap { get; }
     uint _shadowFbo;
 
-    /// <summary>Textures owned by the current viewport size, deleted and rebuilt on every <see cref="Resize"/>.</summary>
     readonly List<uint> _owned = [];
-    /// <summary>Textures that do not depend on the viewport and must survive a resize, like the shadow map. Kept in <see cref="_owned"/> they were deleted by the constructor's own Resize, leaving the shadow framebuffer incomplete.</summary>
+    // Textures that do not depend on the viewport and must survive a resize, like the shadow map. Kept in _owned they were
+    // deleted by the constructor's own Resize, leaving the shadow framebuffer incomplete.
     readonly List<uint> _ownedFixedSize = [];
     uint _scratchColorFbo, _scratchColorDepthFbo;
 
@@ -190,7 +196,10 @@ public sealed class RenderTargets : IDisposable
         }
     }
 
-    /// <summary>Retargets the shared single-color-attachment scratch framebuffer to <paramref name="target"/> and sets the viewport to its size.</summary>
+    /// <summary>
+    /// Retargets the shared single-color-attachment scratch framebuffer to <paramref name="target"/> and sets the viewport to its
+    /// size.
+    /// </summary>
     public void BindColorTarget(GpuTexture target)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorFbo);
@@ -198,7 +207,10 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, (uint)target.Width, (uint)target.Height);
     }
 
-    /// <summary>Retargets the shared color+depth scratch framebuffer - for the forward pass, which depth-tests against the G-buffer depth it was rasterised alongside.</summary>
+    /// <summary>
+    /// Retargets the shared color+depth scratch framebuffer - for the forward pass, which depth-tests against the G-buffer depth it
+    /// was rasterised alongside.
+    /// </summary>
     public void BindColorAndDepthTarget(GpuTexture color, GpuTexture depth)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorDepthFbo);
@@ -207,7 +219,10 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, (uint)color.Width, (uint)color.Height);
     }
 
-    /// <summary>Retargets the shared single-color-attachment scratch framebuffer to one LAYER of a texture array (e.g. <see cref="LightPrePassArray"/>) via <c>glFramebufferTextureLayer</c>, rather than a whole <c>Texture2D</c>.</summary>
+    /// <summary>
+    /// Retargets the shared single-color-attachment scratch framebuffer to one LAYER of a texture array (e.g. <see
+    /// cref="LightPrePassArray"/>) via <c>glFramebufferTextureLayer</c>, rather than a whole <c>Texture2D</c>.
+    /// </summary>
     public void BindColorTargetLayer(GpuTexture arrayTarget, int layer)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorFbo);
@@ -216,9 +231,9 @@ public sealed class RenderTargets : IDisposable
     }
 
     /// <summary>
-    /// Reads back the exact RGBA float value of one pixel, for a numeric probe of what a shader value is really doing: a
-    /// screenshot has been through exposure and the tonemap, so merely bright and extremely bright both look white. Read
-    /// from a scene-referred target like <c>Final</c>. <paramref name="x"/> and <paramref name="y"/> are bottom-left-origin GL pixels.
+    /// Reads back the exact RGBA float value of one pixel, for a numeric probe of what a shader value is really doing: a screenshot
+    /// has been through exposure and the tonemap, so merely bright and extremely bright both look white. Read from a scene-referred
+    /// target like <c>Final</c>.
     /// </summary>
     public unsafe System.Numerics.Vector4 ReadPixel(GpuTexture target, int x, int y)
     {
@@ -232,8 +247,8 @@ public sealed class RenderTargets : IDisposable
     }
 
     /// <summary>
-    /// Reads back a whole RGBA8 target as top-down rows (GL is bottom-left origin, flipped here). The bulk counterpart to
-    /// <see cref="ReadPixel"/>; only meaningful for a tonemapped 8-bit target like <c>Ldr</c>.
+    /// Reads back a whole RGBA8 target as top-down rows (GL is bottom-left origin, flipped here). The bulk counterpart to <see
+    /// cref="ReadPixel"/>; only meaningful for a tonemapped 8-bit target like <c>Ldr</c>.
     /// </summary>
     public unsafe byte[] ReadPixelsRgba8(GpuTexture target)
     {
@@ -329,7 +344,8 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, ShadowMapSize, ShadowMapSize);
     }
 
-    /// <summary>Reports an incomplete framebuffer when it is built, naming it. Checked once per construction because the status query can force a driver sync. An incomplete framebuffer discards every draw and clear into it.</summary>
+    // Reports an incomplete framebuffer when it is built, naming it. Checked once per construction because the status query can
+    // force a driver sync. An incomplete framebuffer discards every draw and clear into it.
     static void ValidateFramebuffer(GL gl, string name)
     {
         var status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
@@ -365,7 +381,6 @@ public sealed class RenderTargets : IDisposable
         return new GpuTexture(handle, width, height);
     }
 
-    /// <param name="resizeOwned">Whether this texture belongs to the current viewport size and should be destroyed on the next <see cref="Resize"/>. False for fixed-size targets, which outlive it.</param>
     GpuTexture CreateDepthTexture(int width, int height, bool resizeOwned = true, bool isShadowMap = false)
     {
         uint handle = _gl.GenTexture();

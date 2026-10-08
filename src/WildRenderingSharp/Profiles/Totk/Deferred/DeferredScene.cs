@@ -5,10 +5,7 @@ using WildRenderingSharp.Pipeline.Frame;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
-/// <summary>
-/// The deferred passes the loaded models (and a terrain host) need, resolved to compiled programs
-/// and material buffers.
-/// </summary>
+/// <summary>The deferred passes the loaded models (and a terrain host) need, resolved to compiled programs and material buffers.</summary>
 public sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirectories directories) : IDisposable
 {
     /// <summary>The pass that lights geometry no actor stamped - the terrain's.</summary>
@@ -16,7 +13,6 @@ public sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirec
 
     public const string WaterPass = "field_water";
 
-    /// <summary>Passes a terrain host needs that no actor stamps - kept across scene changes.</summary>
     readonly List<string> _hostPasses = [];
 
     IReadOnlyList<LoadedModel> _models = [];

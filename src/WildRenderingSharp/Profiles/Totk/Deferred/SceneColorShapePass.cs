@@ -4,8 +4,8 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
-/// G-buffer shapes whose program reads the lit scene behind them - water above all - drawn the
-/// way the game draws them: after the opaque scene is lit, over a copy of it.
+/// G-buffer shapes whose program reads the lit scene behind them - water above all - drawn the way the game draws them: after the
+/// opaque scene is lit, over a copy of it.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -58,15 +58,9 @@ public sealed class SceneColorShapePass : IDisposable
     public static bool Any(IReadOnlyList<ActorDrawGroup> groups) => groups.Any(g => g.Shapes.Any(s => s.ReadsSceneColor));
 
     /// <summary>
-    /// Copies the lit opaque scene into <see cref="RenderTargets.Behind"/> as <c>cTex_ColorBuffer</c>,
-    /// and attachment 0 into <see cref="RenderTargets.MaterialIdCopy"/> as <c>cTex_GBuffMaterialID</c>.
+    /// Copies the lit opaque scene into <see cref="RenderTargets.Behind"/> as <c>cTex_ColorBuffer</c>, and attachment 0 into <see
+    /// cref="RenderTargets.MaterialIdCopy"/> as <c>cTex_GBuffMaterialID</c>.
     /// </summary>
-    /// <param name="emissionUnits">
-    /// What turns <see cref="RenderTargets.Final"/>'s values into the units emission is authored
-    /// in. The compose step divides emission by the exposure and multiplies by the Emission Scale
-    /// (see <see cref="DeferredResolvePass.Run"/>), so a refracted pixel lands at the brightness of
-    /// the scene it shows only if the copy carries the inverse of that.
-    /// </param>
     public void CopyInputs(GLResourceCache resources, RenderTargets targets, float emissionUnits)
     {
         _gl.Disable(EnableCap.DepthTest);
@@ -83,8 +77,8 @@ public sealed class SceneColorShapePass : IDisposable
     }
 
     /// <summary>
-    /// Draws these shapes into the G-buffer, over the opaque depth. The flipped-projection
-    /// <c>Context</c> must be bound at binding 1, as for <see cref="GBufferPass"/>.
+    /// Draws these shapes into the G-buffer, over the opaque depth. The flipped-projection <c>Context</c> must be bound at binding
+    /// 1, as for <see cref="GBufferPass"/>.
     /// </summary>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
     {

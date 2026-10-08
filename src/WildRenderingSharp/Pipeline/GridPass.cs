@@ -4,9 +4,11 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Blender-style ground reference grid: this renderer's own small utility shader (not a decompiled game shader), a single large quad at world Z=0 with a procedural, distance-faded, anti-aliased pattern.
-/// Drawn into <see cref="RenderTargets.Scene"/>, depth-tested against <see cref="RenderTargets.GBufferDepth"/> so opaque geometry occludes it, in the same Y-flipped space <c>ForwardPass</c> and
-/// <c>KnownMaterialFixes</c> draw into, so it takes the flipped view-projection. Runs before the forward pass so blended materials draw over it, with no depth write of its own.
+/// Blender-style ground reference grid: this renderer's own small utility shader (not a decompiled game shader), a single large
+/// quad at world Z=0 with a procedural, distance-faded, anti-aliased pattern. Drawn into <see cref="RenderTargets.Scene"/>,
+/// depth-tested against <see cref="RenderTargets.GBufferDepth"/> so opaque geometry occludes it, in the same Y-flipped space
+/// <c>ForwardPass</c> and <c>KnownMaterialFixes</c> draw into, so it takes the flipped view-projection. Runs before the forward
+/// pass so blended materials draw over it, with no depth write of its own.
 /// </summary>
 public sealed class GridPass : IDisposable
 {
@@ -85,9 +87,6 @@ public sealed class GridPass : IDisposable
         gl.BindVertexArray(0);
     }
 
-    /// <param name="viewProjRows"><c>proj @ [view;0,0,0,1]</c> in the same Y-flipped space <see cref="RenderTargets.Scene"/> is in: the flipped view-projection, not the unflipped camera matrix.</param>
-    /// <param name="cameraPos">World-space eye position, for the distance fade.</param>
-    /// <param name="extent">Half-width of the ground quad and the fade's falloff distance.</param>
     public unsafe void Run(RenderTargets targets, ReadOnlySpan<Vector4> viewProjRows, Vector3 cameraPos, float extent)
     {
         targets.BindColorAndDepthTarget(targets.Scene, targets.GBufferDepth);
@@ -113,8 +112,8 @@ public sealed class GridPass : IDisposable
         _gl.Disable(EnableCap.Blend);
     }
 
-    /// <summary>The minor grid cell's world size for a quad extent: a power of ten chosen to keep the number of cells across the plane roughly constant whatever the model's scale.</summary>
-    /// <remarks>The divisor is chosen so every model that clamps to the 20-unit minimum extent or just above it (the Master Sword's 0.74 radius through Bokoblin's 2.5) resolves to exactly 1.0; only scenes big enough to alias into a solid sheet get a coarser grid.</remarks>
+    // The minor grid cell's world size for a quad extent: a power of ten chosen to keep the number of cells across the plane
+    // roughly constant whatever the model's scale.
     internal static float MinorCellFor(float extent) =>
         MathF.Max(1e-3f, MathF.Pow(10f, MathF.Floor(MathF.Log10(MathF.Max(extent, 1e-3f) / 20f))));
 

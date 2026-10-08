@@ -1,9 +1,8 @@
 namespace WildRenderingSharp;
 
 /// <summary>
-/// Where prepared data lives on disk - the one contract between the offline half
-/// (<c>WildRenderingSharp.Preparation</c>, which writes it) and the live half (this assembly,
-/// which reads it and parses nothing else).
+/// Where prepared data lives on disk - the one contract between the offline half (<c>WildRenderingSharp.Preparation</c>, which
+/// writes it) and the live half (this assembly, which reads it and parses nothing else).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -41,7 +40,10 @@ public sealed record CacheLayout(string Root)
     /// <summary>The precomputed sky-scattering LUT (<c>res/master_field.skybin</c>).</summary>
     public string SkyData => Path.Combine(Root, "_sky_data");
 
-    /// <summary>The game's baked lighting for placed actors: the hash-to-tile index and each exported tile (see <see cref="Assets.BakeLibrary"/>).</summary>
+    /// <summary>
+    /// The game's baked lighting for placed actors: the hash-to-tile index and each exported tile (see <see
+    /// cref="Assets.BakeLibrary"/>).
+    /// </summary>
     public string Bake => Path.Combine(Root, "_bake");
 
     /// <summary>A prepared model's own directory.</summary>
@@ -55,6 +57,5 @@ public sealed record CacheLayout(string Root)
     public bool IsPrepared(string resolvedModelName) => File.Exists(ManifestPath(resolvedModelName));
 
     /// <summary>True once the shared system assets the pipeline cannot be constructed without are present.</summary>
-    /// <remarks>The pipeline links <c>agl_hdr_compose</c> in its constructor, so that file is the hard requirement; everything else degrades.</remarks>
     public bool HasSystemAssets => File.Exists(Path.Combine(Shaders, "agl_hdr_compose.vert"));
 }

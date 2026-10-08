@@ -2,14 +2,19 @@ using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>One texture binding from a shape's <c>samplers</c>, <c>zonly_samplers</c> or <c>material_samplers</c> manifest list: a shader sampler unit joined through the material's sampler assignment to the exported texture file. See <c>ExportManifest.BuildSamplers</c>.</summary>
+/// <summary>
+/// One texture binding from a shape's <c>samplers</c>, <c>zonly_samplers</c> or <c>material_samplers</c> manifest list: a shader
+/// sampler unit joined through the material's sampler assignment to the exported texture file. See
+/// <c>ExportManifest.BuildSamplers</c>.
+/// </summary>
 public sealed class SamplerBinding
 {
     [JsonPropertyName("unit")] public int Unit { get; set; }
     [JsonPropertyName("key")] public string Key { get; set; } = "";
     [JsonPropertyName("assigned")] public string Assigned { get; set; } = "";
     [JsonPropertyName("texture")] public string Texture { get; set; } = "";
-    /// <summary>File name relative to the data directory, or empty if the texture failed to export (e.g. an unsupported format); the manifest still lists the binding so it can be logged.</summary>
+    // File name relative to the data directory, or empty if the texture failed to export (e.g. an unsupported format); the
+    // manifest still lists the binding so it can be logged.
     [JsonPropertyName("file")] public string File { get; set; } = "";
     [JsonPropertyName("format")] public string Format { get; set; } = "";
     [JsonPropertyName("width")] public int Width { get; set; }
@@ -22,11 +27,10 @@ public sealed class SamplerBinding
     /// </summary>
     [JsonPropertyName("comp_select")] public int[]? CompSelect { get; set; }
 
-    /// <summary>
-    /// The authored GX2 wrap mode for this sampler's U/V axes (<c>GX2TexClamp</c>'s names: "Wrap", "Mirror", "Clamp", "ClampBorder", "ClampToEdge", ...; see <c>ExportManifest.BuildSamplers</c>), applied in
-    /// <c>TextureCache.MapWrapMode</c>. Hardcoding GL_REPEAT made textures the game clamps (an eye iris scrolled by a texture-SRT anim) tile once animated UVs left 0..1. Null on a manifest prepared before
-    /// the field existed, which falls back to Wrap.
-    /// </summary>
+    // The authored GX2 wrap mode for this sampler's U/V axes (GX2TexClamp's names: "Wrap", "Mirror", "Clamp", "ClampBorder",
+    // "ClampToEdge", ...; see ExportManifest.BuildSamplers), applied in TextureCache.MapWrapMode. Hardcoding GL_REPEAT made
+    // textures the game clamps (an eye iris scrolled by a texture-SRT anim) tile once animated UVs left 0..1. Null on a
+    // manifest prepared before the field existed, which falls back to Wrap.
     [JsonPropertyName("wrap_u")] public string? WrapU { get; set; }
     [JsonPropertyName("wrap_v")] public string? WrapV { get; set; }
 }

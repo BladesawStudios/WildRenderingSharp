@@ -2,9 +2,7 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Graphics;
 
-/// <summary>
-/// Turns what the renderer holds (its own world) into what a game's shaders expect to read.
-/// </summary>
+/// <summary>Turns what the renderer holds (its own world) into what a game's shaders expect to read.</summary>
 public interface IWorldBasis
 {
     /// <summary>Rows written for a point in the renderer's world, as rows for a point in the game's.</summary>

@@ -5,11 +5,10 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Renders the shadow map by feeding the REAL G-buffer vertex shader a light-space
-/// <c>Context</c> - no separate depth shader is needed, since the vertex stage transforms by
-/// <c>cViewProj</c> regardless of which pass is running and this FBO has no colour attachment.
-/// Blended shapes are included (they still cast a shadow even though they're excluded from the
-/// deferred G-buffer). Mirrors the shadow-map half of <c>render_scene</c>/<c>build_light_matrices</c>.
+/// Renders the shadow map by feeding the REAL G-buffer vertex shader a light-space <c>Context</c> - no separate depth shader is
+/// needed, since the vertex stage transforms by <c>cViewProj</c> regardless of which pass is running and this FBO has no colour
+/// attachment. Blended shapes are included (they still cast a shadow even though they're excluded from the deferred G-buffer).
+/// Mirrors the shadow-map half of <c>render_scene</c>/<c>build_light_matrices</c>.
 /// </summary>
 public sealed class ShadowPass
 {
@@ -51,8 +50,10 @@ public sealed class ShadowPass
         return new LightMatrices(view[..3], proj, viewProj);
     }
 
-    /// <summary>Draws every placed actor's shapes into the SAME shadow target (every actor casts/receives shadows together, correctly), rebinding each actor's own skinning UBOs (<see cref="ActorDrawGroup"/>) before its own shapes.</summary>
-    /// <param name="cascade">The cascade layer to draw into (<see cref="RenderTargets.ShadowCascades"/>), or -1 for the single shadow map.</param>
+    /// <summary>
+    /// Draws every placed actor's shapes into the SAME shadow target (every actor casts/receives shadows together, correctly),
+    /// rebinding each actor's own skinning UBOs (<see cref="ActorDrawGroup"/>) before its own shapes.
+    /// </summary>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs, int cascade = -1)
     {
         if (cascade >= 0)

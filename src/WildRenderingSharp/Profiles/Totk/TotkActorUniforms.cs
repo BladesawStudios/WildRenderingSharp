@@ -38,7 +38,6 @@ static class TotkActorUniforms
             skeleton.InverseModelMatricesAsMatrices(), PlacementAsMatrix(placement));
     }
 
-    /// <summary>Rows with translation in each row's W, as a row-vector matrix - what the palette's skin-then-model multiply needs.</summary>
     static Matrix4x4 PlacementAsMatrix(Vector4[] rows) => new(
         rows[0].X, rows[1].X, rows[2].X, 0,
         rows[0].Y, rows[1].Y, rows[2].Y, 0,

@@ -4,8 +4,8 @@ using WildRenderingSharp.Hosting;
 namespace WildRenderingSharp.Preparation;
 
 /// <summary>
-/// The <c>--prepare</c> pipeline called in-process: the same three steps in the same order as <c>ShaderLibrary.CompileTool.Program</c>'s
-/// <c>--prepare</c> branch, plus the shared system assets every model needs.
+/// The <c>--prepare</c> pipeline called in-process: the same three steps in the same order as
+/// <c>ShaderLibrary.CompileTool.Program</c>'s <c>--prepare</c> branch, plus the shared system assets every model needs.
 /// </summary>
 /// <remarks>
 /// Everything is static and writes only under the <see cref="CacheLayout"/> it is given. Mod layering is ShaderLibrary's process-wide
@@ -27,11 +27,10 @@ public static class ModelPreparer
         }
     }
 
-    /// <summary>Applies ShaderLibrary's runtime patches to its vendored BfresLibrary (see <c>BfresLibraryPatches.cs</c>) and points its external string table at the romfs. Idempotent.</summary>
-    /// <remarks>
-    /// Must run before any BFRES or BFSHA is parsed, including the system deferred materials, the first thing a fresh cache builds: without the
-    /// patches that build crashes on BfresLibrary's duplicate RenderInfo key bug, and without the string table a V10 material's name cannot be resolved.
-    /// </remarks>
+    /// <summary>
+    /// Applies ShaderLibrary's runtime patches to its vendored BfresLibrary (see <c>BfresLibraryPatches.cs</c>) and points its
+    /// external string table at the romfs. Idempotent.
+    /// </summary>
     public static void EnsureBfresReady(string romfsRoot)
     {
         ExternalBinaryStringTable.RomfsRoot = romfsRoot ?? "";
@@ -44,17 +43,19 @@ public static class ModelPreparer
         }
     }
 
-    /// <summary>Layers mod romfs folders over the base romfs, highest priority first. Replacement is per file; see <see cref="RomfsOverlay"/>.</summary>
+    /// <summary>
+    /// Layers mod romfs folders over the base romfs, highest priority first. Replacement is per file; see <see
+    /// cref="RomfsOverlay"/>.
+    /// </summary>
     public static void SetModRomfsLayers(IEnumerable<string> romfsLayers) => RomfsOverlay.SetModRoots(romfsLayers);
 
     /// <summary>The mod romfs layers currently in effect, highest priority first.</summary>
     public static IReadOnlyList<string> ModRomfsLayers => RomfsOverlay.ModRoots;
 
-    /// <summary>Every shared asset the live pipeline needs, built once into <paramref name="cache"/>. Each step is skipped if its output exists.</summary>
-    /// <remarks>
-    /// <c>agl_hdr_compose</c> is the hard requirement: the pipeline links it at construction. Everything else degrades (a missing deferred
-    /// material renders against zeros, a missing cloud shader leaves that pass unavailable), but all of it makes the frame match the game.
-    /// </remarks>
+    /// <summary>
+    /// Every shared asset the live pipeline needs, built once into <paramref name="cache"/>. Each step is skipped if its output
+    /// exists.
+    /// </summary>
     public static void EnsureSystemAssets(string romfsRoot, CacheLayout cache, Action<string>? log = null)
     {
         if (string.IsNullOrEmpty(romfsRoot) || !Directory.Exists(romfsRoot))
@@ -86,7 +87,6 @@ public static class ModelPreparer
         });
     }
 
-    /// <summary>Runs one system-asset step, isolating its failure so one broken extraction does not cost the host every asset after it.</summary>
     static void Step(Action<string>? log, string name, Action step)
     {
         try
@@ -101,10 +101,10 @@ public static class ModelPreparer
     }
 
     /// <summary>
-    /// System shaders such as <c>agl_hdr_compose</c>, the final tonemap every model needs, are not produced by <see cref="Prepare"/>. They come from
-    /// agl's shader archives (<c>Shader/ApplicationPackage.Nin_NX_NVN.release.sarc.zs</c> -&gt; <c>AglShader.sharcb</c>), a different container and
-    /// decompile path than material shaders; see <see cref="TestAglShader.ExtractHdrCompose"/>. The pipeline loads <c>agl_hdr_compose</c> at
-    /// construction, so a directory missing it throws out of the constructor.
+    /// System shaders such as <c>agl_hdr_compose</c>, the final tonemap every model needs, are not produced by <see
+    /// cref="Prepare"/>. They come from agl's shader archives (<c>Shader/ApplicationPackage.Nin_NX_NVN.release.sarc.zs</c> -&gt;
+    /// <c>AglShader.sharcb</c>), a different container and decompile path than material shaders; see <see
+    /// cref="TestAglShader.ExtractHdrCompose"/>.
     /// </summary>
     public static void EnsureSystemShaders(string romfsRoot, string decompiledDirectory)
     {
@@ -118,13 +118,9 @@ public static class ModelPreparer
     }
 
     /// <summary>
-    /// Builds the shared deferred-resolve gsys_material blocks once, if missing (see <c>BuildMaterialUbo.RunSystemDeferred</c>). Without them every
-    /// deferred-resolve pass (chara_skin, chara_hair, chara_eye, chara_grossy, chara_nonmetal, chara_metal) runs against an all-zero material block.
-    /// One shared archive and model, so it is built once whichever creature is loaded.
-    /// Also ensures those passes' compiled programs exist in <paramref name="decompiledDirectory"/>: <c>ResolveDeferredPasses</c> looks for
-    /// <c>deferred_&lt;pass&gt;_prog*_extracted.frag/vert</c> and skips a pass entirely if absent, which renders nothing for it. They come from a
-    /// different decompile path (<c>TestSystemShading</c> resolves each pass's program index against <c>system.bfsha</c> and
-    /// <c>SystemModel.DeferredMain.bfres.mc</c>), and each cache is checked independently.
+    /// Builds the shared deferred-resolve gsys_material blocks once, if missing (see <c>BuildMaterialUbo.RunSystemDeferred</c>).
+    /// Without them every deferred-resolve pass (chara_skin, chara_hair, chara_eye, chara_grossy, chara_nonmetal, chara_metal) runs
+    /// against an all-zero material block.
     /// </summary>
     public static void EnsureSystemDeferredMaterials(string romfsRoot, string deferredMaterialsDirectory, string decompiledDirectory)
     {
@@ -153,9 +149,10 @@ public static class ModelPreparer
     }
 
     /// <summary>
-    /// Extracts static assets behind "system" texture names once, if missing; currently <c>cTex_Proc3DNoise</c>, a 3D Worley and Perlin noise volume
-    /// (<c>TexToGo/3DWorleyPerlinNoise_Fi.bntx.zs</c>). Every other system sampler the shaders reference is a dynamic render target (shadow cascades,
-    /// sky scattering, the Depths' darkness maps, terrain streaming) with no romfs file to extract.
+    /// Extracts static assets behind "system" texture names once, if missing; currently <c>cTex_Proc3DNoise</c>, a 3D Worley and
+    /// Perlin noise volume (<c>TexToGo/3DWorleyPerlinNoise_Fi.bntx.zs</c>). Every other system sampler the shaders reference is a
+    /// dynamic render target (shadow cascades, sky scattering, the Depths' darkness maps, terrain streaming) with no romfs file to
+    /// extract.
     /// </summary>
     public static void EnsureSystemTextures(string romfsRoot, string systemTexturesDirectory)
     {
@@ -167,12 +164,6 @@ public static class ModelPreparer
     }
 
     /// <summary>Installs the cloud masks, preferring the shipped captured ones over a romfs guess.</summary>
-    /// <remarks>
-    /// The romfs path stays as a fallback but is known to be wrong: it picks textures by name (<c>PolarSphereMappingNoise_Fi</c>, <c>VolumeMist03</c>)
-    /// and both were disproved against a capture of the game's cloud draw (correlation about 0.01). It runs only if the shipped files are missing, so a
-    /// build without them degrades instead of losing clouds. Guarded on <c>CloudNoiseBlend.r8</c>, not <c>CloudBase.r8</c>, which the old
-    /// two-texture extraction also wrote. See <c>res/cloud/README.md</c>.
-    /// </remarks>
     public static void EnsureCloudTextures(string romfsRoot, string systemTexturesDirectory)
     {
         if (File.Exists(Path.Combine(systemTexturesDirectory, "CloudNoiseBlend.r8")))
@@ -191,7 +182,6 @@ public static class ModelPreparer
         SystemTextures.ExtractCloudTextures(romfsRoot, systemTexturesDirectory);
     }
 
-    /// <summary>Where the captured masks can be: beside this assembly (the preparer's output), then beside the host executable.</summary>
     static IEnumerable<string> ShippedCloudMaskDirectories()
     {
         if (Path.GetDirectoryName(typeof(ModelPreparer).Assembly.Location) is { Length: > 0 } assemblyDir)
@@ -199,7 +189,10 @@ public static class ModelPreparer
         yield return Path.Combine(AppContext.BaseDirectory, "res", "cloud");
     }
 
-    /// <summary>Extracts the real sky-scattering LUT once, if missing - see <see cref="SkyBinTexture"/>'s own remarks for what it is and how it was found.</summary>
+    /// <summary>
+    /// Extracts the real sky-scattering LUT once, if missing - see <see cref="SkyBinTexture"/>'s own remarks for what it is and how
+    /// it was found.
+    /// </summary>
     public static void EnsureSkyBinData(string romfsRoot, string skyDataDirectory)
     {
         if (File.Exists(Path.Combine(skyDataDirectory, "sky_lut.bin")))
@@ -209,7 +202,11 @@ public static class ModelPreparer
         SkyBinTexture.ExtractMasterField(romfsRoot, skyDataDirectory);
     }
 
-    /// <summary>Extracts <c>agl::fx::Cloud</c>'s <c>cloud</c> program (from <c>Lib/agl/agl_resource.Nin_NX_NVN.release.sarc.zs</c> -&gt; <c>agl_technique.sharcb</c>) once, if missing; see <see cref="TestAglShader.ExtractCloudShader"/>. One shared shader whichever model is loaded.</summary>
+    /// <summary>
+    /// Extracts <c>agl::fx::Cloud</c>'s <c>cloud</c> program (from <c>Lib/agl/agl_resource.Nin_NX_NVN.release.sarc.zs</c> -&gt;
+    /// <c>agl_technique.sharcb</c>) once, if missing; see <see cref="TestAglShader.ExtractCloudShader"/>. One shared shader
+    /// whichever model is loaded.
+    /// </summary>
     public static void EnsureCloudShader(string romfsRoot, string decompiledDirectory)
     {
         if (File.Exists(Path.Combine(decompiledDirectory, "agl_cloud.frag")))
@@ -221,7 +218,10 @@ public static class ModelPreparer
         TestAglShader.ExtractCloudShader(romfsRoot, decompiledDirectory);
     }
 
-    /// <summary>Extracts the real procedural noise generator that bakes the "cloud_noise" texture <c>agl_cloud</c> reads once, if missing - see <see cref="TestAglShader.ExtractCloudNoiseShader"/>.</summary>
+    /// <summary>
+    /// Extracts the real procedural noise generator that bakes the "cloud_noise" texture <c>agl_cloud</c> reads once, if missing -
+    /// see <see cref="TestAglShader.ExtractCloudNoiseShader"/>.
+    /// </summary>
     public static void EnsureCloudNoiseShader(string romfsRoot, string decompiledDirectory)
     {
         if (File.Exists(Path.Combine(decompiledDirectory, "agl_noise_cloud.frag")))
@@ -233,7 +233,10 @@ public static class ModelPreparer
         TestAglShader.ExtractCloudNoiseShader(romfsRoot, decompiledDirectory);
     }
 
-    /// <summary>Extracts the sun disc and the eight moon-phase sprites once into the shared system-texture cache - see <c>SkyBodyPass</c> for what they are and why they are sprites.</summary>
+    /// <summary>
+    /// Extracts the sun disc and the eight moon-phase sprites once into the shared system-texture cache - see <c>SkyBodyPass</c>
+    /// for what they are and why they are sprites.
+    /// </summary>
     public static void EnsureSkyBodyTextures(string romfsRoot, string systemTexturesDirectory)
     {
         if (File.Exists(Path.Combine(systemTexturesDirectory, "Moon8.rg8")))
@@ -258,8 +261,8 @@ public static class ModelPreparer
     }
 
     /// <summary>
-    /// Extracts the real <c>agl::pfx::Sky</c> programs (per-frame postfx plus the whole Bruneton
-    /// precompute chain), if missing - see <see cref="TestAglShader.ExtractSkyPostFxShaders"/>.
+    /// Extracts the real <c>agl::pfx::Sky</c> programs (per-frame postfx plus the whole Bruneton precompute chain), if missing -
+    /// see <see cref="TestAglShader.ExtractSkyPostFxShaders"/>.
     /// </summary>
     public static void EnsureSkyShaders(string romfsRoot, string decompiledDirectory)
     {
@@ -274,15 +277,15 @@ public static class ModelPreparer
     }
 
     /// <summary>
-    /// The model an actor name resolves to - what the cache directory and every exported file are
-    /// named after - without preparing anything. A name with no actor pack resolves to itself.
+    /// The model an actor name resolves to - what the cache directory and every exported file are named after - without preparing
+    /// anything. A name with no actor pack resolves to itself.
     /// </summary>
     public static string ResolveModelName(string romfsRoot, string actorOrModelName) =>
         ActorInfo.Resolve(romfsRoot, actorOrModelName)?.ModelName ?? actorOrModelName;
 
     /// <summary>
-    /// Prepares <paramref name="actorOrModelName"/> unless the cache already holds an up-to-date
-    /// copy (see <see cref="IsUpToDate"/>), returning the resolved model name either way.
+    /// Prepares <paramref name="actorOrModelName"/> unless the cache already holds an up-to-date copy (see <see
+    /// cref="IsUpToDate"/>), returning the resolved model name either way.
     /// </summary>
     public static string PrepareIfNeeded(string romfsRoot, string actorOrModelName, CacheLayout cache,
         Action<string>? log = null, bool importAnims = true, bool force = false)
@@ -297,17 +300,10 @@ public static class ModelPreparer
     }
 
     /// <summary>
-    /// Prepares many actors at once, <paramref name="parallelism"/> models at a time, sharing one
-    /// parsed shader archive (<see cref="SharedBfsha"/>) and the decompiled programs between them.
-    /// The caller has already called <see cref="EnsureSystemAssets"/> and set the mod layers.
+    /// Prepares many actors at once, <paramref name="parallelism"/> models at a time, sharing one parsed shader archive (<see
+    /// cref="SharedBfsha"/>) and the decompiled programs between them. The caller has already called <see
+    /// cref="EnsureSystemAssets"/> and set the mod layers.
     /// </summary>
-    /// <param name="onBegin">Called as each name starts - lets a supervising process work out which name was in flight if a native crash takes the process down.</param>
-    /// <param name="onOutcome">Called as each name finishes, successfully or not.</param>
-    /// <remarks>
-    /// Names that resolve to the same model are serialised on that model, so its directory never
-    /// has two writers; the second normally finds it up to date and returns at once. An exception
-    /// fails only its own name.
-    /// </remarks>
     public static void PrepareMany(string romfsRoot, IReadOnlyList<string> actorOrModelNames, CacheLayout cache, int parallelism,
         Action<string>? onBegin, Action<PrepareOutcome> onOutcome, bool importAnims = true, bool force = false,
         CancellationToken cancellationToken = default)
@@ -339,13 +335,6 @@ public static class ModelPreparer
 
     static string OneLine(string message) => string.Join(' ', message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)).Trim();
 
-    /// <param name="cacheRoot">The cache root; the resolved model's files land in <c>&lt;cacheRoot&gt;/&lt;resolvedModelName&gt;/</c>.</param>
-    /// <param name="actorOrModelName">
-    /// An actor name (e.g. "Enemy_Dragon_Darkness", preferred: <see cref="ActorInfo.Resolve"/> reads <c>Pack/Actor/&lt;name&gt;.pack.zs</c>, which names the
-    /// model file and its skeletal-anim archives) or a bare model name for something with no actor pack, which falls back to guessing by pack prefix
-    /// (<see cref="RomfsPaths.ModelFile"/>, <see cref="ExportTestBench.ExportExternalAnims"/>).
-    /// </param>
-    /// <returns>The resolved model name used for every exported file and the cache subdirectory; it can differ from the input (e.g. "Enemy_Chuchu_Junior" -&gt; "Enemy_Chuchu_Junior.Chuchu_Plain_Junior").</returns>
     public static string Prepare(string romfsRoot, string actorOrModelName, string cacheRoot, string decompiledDirectory, Action<string>? log = null, bool importAnims = true)
     {
         // Every romfs lookup goes through RomfsOverlay; recording them lets IsUpToDate notice that toggling a mod changes which file would win.
@@ -357,7 +346,9 @@ public static class ModelPreparer
 
     const string SourceStampFile = "romfs_sources.json";
 
-    /// <summary>Bumped when preparation starts producing something an earlier model could be missing, so <see cref="IsUpToDate"/> sends it through again. 2: the model's own <c>&lt;Project&gt;.anim.bfres</c> joins the anim archives. 3: every level of detail is exported. 4: .bntx textures export (CmnTex_BakeDefault). 5: textures export their whole mip chain.</summary>
+    // Bumped when preparation starts producing something an earlier model could be missing, so IsUpToDate sends it through
+    // again. 2: the model's own <Project>.anim.bfres joins the anim archives. 3: every level of detail is exported. 4: .bntx
+    // textures export (CmnTex_BakeDefault). 5: textures export their whole mip chain.
     const int PreparationVersion = 5;
 
     sealed record SourceStampEntry(string? Path, long Size, long MTime);
@@ -384,10 +375,10 @@ public static class ModelPreparer
     }
 
     /// <summary>
-    /// False if the prepared model was built from different romfs files than the current root and mod set would supply: a mod toggled that touches one of
-    /// its files, or a mod file edited. Only files the prepare looked up are checked, so toggling an unrelated mod costs nothing.
+    /// False if the prepared model was built from different romfs files than the current root and mod set would supply: a mod
+    /// toggled that touches one of its files, or a mod file edited. Only files the prepare looked up are checked, so toggling an
+    /// unrelated mod costs nothing.
     /// </summary>
-    /// <remarks>A cache predating this check has no stamp and is trusted only while no mods are active. A stamp from an older <see cref="PreparationVersion"/> is never up to date.</remarks>
     public static bool IsUpToDate(string romfsRoot, string dataDirectory)
     {
         string stampPath = Path.Combine(dataDirectory, SourceStampFile);
@@ -452,11 +443,10 @@ public static class ModelPreparer
         return modelName;
     }
 
-    /// <summary>
-    /// The animation archives to export from: those the actor's pack names, plus the model's own <c>&lt;Project&gt;.anim.bfres</c> when the pack does not
-    /// name it. The pack lists only the animation packs, and the model's archive holds the rest (a horse's coat and eye variants, a Boss Bokoblin's colour
-    /// patterns), so without it those texture-pattern clips never reach the cache. Null, for an actor with no pack, leaves ShaderLibrary to guess by prefix, which includes it.
-    /// </summary>
+    // The animation archives to export from: those the actor's pack names, plus the model's own <Project>.anim.bfres when the
+    // pack does not name it. The pack lists only the animation packs, and the model's archive holds the rest (a horse's coat
+    // and eye variants, a Boss Bokoblin's colour patterns), so without it those texture-pattern clips never reach the cache.
+    // Null, for an actor with no pack, leaves ShaderLibrary to guess by prefix, which includes it.
     static List<string>? AnimArchives(string romfsRoot, ActorInfo.Resolved? actor, string modelName)
     {
         if (actor is null)
@@ -469,7 +459,9 @@ public static class ModelPreparer
         return packs;
     }
 
-    /// <summary>Copies the actor's Havok Cloth (<c>.bphcl</c>) and Phive Helper Bone (<c>.bphhb</c>) files out of its pack into the model's cache directory. The renderer does not simulate them, but a host that does can read them beside the model (see <c>RenderActor.ModifyPose</c>).</summary>
+    // Copies the actor's Havok Cloth (.bphcl) and Phive Helper Bone (.bphhb) files out of its pack into the model's cache
+    // directory. The renderer does not simulate them, but a host that does can read them beside the model (see
+    // RenderActor.ModifyPose).
     private static void ExtractPhysics(string romfsRoot, string actorOrModelName, string modelName, string dataDirectory, Action<string>? log)
     {
         bool foundAny = false;

@@ -4,10 +4,7 @@ using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
-/// <summary>
-/// Makes a decompiled game vertex shader draw many placements in one instanced call, without
-/// changing anything it computes.
-/// </summary>
+/// <summary>Makes a decompiled game vertex shader draw many placements in one instanced call, without changing anything it computes.</summary>
 /// <remarks>
 /// <para>
 /// The game issues one draw per placed model shape: each draw rebinds the shape's own
@@ -69,7 +66,6 @@ public static class InstancedShaderPatch
         return source.TrimEnd() + "\n\n" + wrapper;
     }
 
-    /// <summary>Where the opening run of preprocessor directives, blank lines and comments ends.</summary>
     static int EndOfDirectives(string source)
     {
         int pos = 0;
@@ -136,7 +132,6 @@ public static class InstancedShaderPatch
         return source.Remove(m.Index, m.Length);
     }
 
-    /// <summary>Rewrites every <c>name.data[expr]</c> to <c>function(int(expr))</c>, matching brackets so an index that itself indexes something stays whole.</summary>
     static string RedirectReads(string source, string instanceName, string function)
     {
         string token = instanceName + ".data[";

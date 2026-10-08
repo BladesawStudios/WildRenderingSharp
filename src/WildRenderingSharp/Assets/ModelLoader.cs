@@ -6,7 +6,10 @@ using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>Turns a <see cref="ModelManifest"/> into a ready-to-draw <see cref="LoadedModel"/>: GL buffers, VAOs, textures and material buffers for every shape. It parses no BFRES or BNSH itself; that happened offline in <c>ShaderLibrary.CompileTool</c>.</summary>
+/// <summary>
+/// Turns a <see cref="ModelManifest"/> into a ready-to-draw <see cref="LoadedModel"/>: GL buffers, VAOs, textures and material
+/// buffers for every shape. It parses no BFRES or BNSH itself; that happened offline in <c>ShaderLibrary.CompileTool</c>.
+/// </summary>
 public sealed class ModelLoader
 {
     readonly GL _gl;
@@ -18,7 +21,6 @@ public sealed class ModelLoader
     /// <summary>Textures shared with other models (see <see cref="Assets.SharedTextures"/>); null loads this model's own.</summary>
     public SharedTextures? SharedTextures { get; init; }
 
-    /// <param name="external">A host's shared textures - see <see cref="ExternalTextures"/>.</param>
     public ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
     {
         _gl = gl;
@@ -28,21 +30,18 @@ public sealed class ModelLoader
     }
 
     /// <summary>
-    /// Uploads only what the model's programs read, for a model drawn only in its bind pose, such as a map's static objects. Attributes no program
-    /// of a shape reads are left out of its vertex buffer (the exported vertex carries every attribute, 192 bytes). A smooth-skinned shape also drops
-    /// its blend weights and indices when the bind-pose palette is the identity in every smooth slot, as it is for a model whose inverse binds match
-    /// its skeleton: every vertex then lands on the same matrix, so they are replaced by one shared "all on slot 0" vertex.
+    /// Uploads only what the model's programs read, for a model drawn only in its bind pose, such as a map's static objects.
+    /// Attributes no program of a shape reads are left out of its vertex buffer (the exported vertex carries every attribute, 192
+    /// bytes).
     /// </summary>
     public bool CompactVertices { get; init; }
 
-    /// <summary>Leaves the vertex arrays to <see cref="LoadedModel.FinishOnRenderThread"/>, for a load on a worker thread with its own context: buffers, textures and programs are shared between contexts, vertex arrays are not.</summary>
+    /// <summary>
+    /// Leaves the vertex arrays to <see cref="LoadedModel.FinishOnRenderThread"/>, for a load on a worker thread with its own
+    /// context: buffers, textures and programs are shared between contexts, vertex arrays are not.
+    /// </summary>
     public bool DeferVertexArrays { get; init; }
 
-    /// <param name="modelName">The model to load.</param>
-    /// <param name="enableKnownDecompilerCorrections">
-    /// Gates the forward-program regex of <c>KnownDecompilerCorrections</c> alongside <see cref="Profiles.Totk.Atmosphere.TotkSettings.EnableKnownMaterialFixes"/>, to A/B
-    /// whether the offline decompiler's DebugMode already fixes that bug. Takes effect on (re)load only, since programs are compiled here.
-    /// </param>
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
     {
         var manifest = ModelManifest.Load(Path.Combine(_dataDirectory, $"{modelName}.manifest.json"));
@@ -206,7 +205,6 @@ public sealed class ModelLoader
         };
     }
 
-    /// <summary>Position is always the vertex's first vec4 (see <c>ExportTestBench</c>'s fixed interleaved layout) regardless of which attributes a given program actually samples.</summary>
     static void AccumulateBounds(byte[] vertexBytes, int stride, ref Vector3 lo, ref Vector3 hi, List<Vector3> allPositions)
     {
         int count = vertexBytes.Length / stride;
@@ -220,12 +218,10 @@ public sealed class ModelLoader
         }
     }
 
-    /// <summary>
-    /// Binds each attribute of the manifest's fixed layout at its location, for every location this linked program reads (a linked program
-    /// drops inputs its code never reads). Matched by location, not name: the programs declare inputs at the exporter's locations but not
-    /// always under its names (location 3 is <c>aU254</c> to the layout and <c>aTexCoordBake</c> to 356 programs; location 10 is
-    /// <c>aTexCoord2</c> to some and <c>aNormal0</c> to others).
-    /// </summary>
+    // Binds each attribute of the manifest's fixed layout at its location, for every location this linked program reads (a
+    // linked program drops inputs its code never reads). Matched by location, not name: the programs declare inputs at the
+    // exporter's locations but not always under its names (location 3 is aU254 to the layout and aTexCoordBake to 356 programs;
+    // location 10 is aTexCoord2 to some and aNormal0 to others).
     unsafe uint BuildVertexArray(uint program, List<VertexLayoutEntry> layout, int stride, uint vbo, uint ibo, bool constantSkin = false)
     {
         uint vao = _gl.GenVertexArray();
@@ -251,7 +247,6 @@ public sealed class ModelLoader
 
     static readonly string[] BlendAttributes = ["aBlendWeight0", "aBlendWeight1", "aBlendIndex0", "aBlendIndex1"];
 
-    /// <summary>The locations of every vertex input <paramref name="program"/> actually reads.</summary>
     HashSet<int> ActiveLocations(uint program)
     {
         var locations = new HashSet<int>();
@@ -266,7 +261,9 @@ public sealed class ModelLoader
         return locations;
     }
 
-    /// <summary>The attributes a shape's vertex buffer must carry: whatever any of its programs reads, plus position and, for a skinned shape, the blend attributes the pass-ID stamp skins with - less those, when they are replaced by the shared constant vertex.</summary>
+    // The attributes a shape's vertex buffer must carry: whatever any of its programs reads, plus position and, for a skinned
+    // shape, the blend attributes the pass-ID stamp skins with - less those, when they are replaced by the shared constant
+    // vertex.
     HashSet<string> UsedAttributes(List<VertexLayoutEntry> layout, int skinCount, bool constantSkin, params uint[] programs)
     {
         var used = new HashSet<string> { "aPosition" };
@@ -286,7 +283,6 @@ public sealed class ModelLoader
         return used;
     }
 
-    /// <summary>The vertices with only the <paramref name="used"/> attributes, packed in their original order.</summary>
     static (List<VertexLayoutEntry> Layout, int Stride, byte[] Bytes) Compact(List<VertexLayoutEntry> layout, int stride, byte[] bytes, HashSet<string> used)
     {
         var kept = layout.Where(e => used.Contains(e.Name)).OrderBy(e => e.Offset).ToList();
@@ -308,7 +304,9 @@ public sealed class ModelLoader
         return (packed, newStride, result);
     }
 
-    /// <summary>Binds the blend attributes to one shared vertex holding all weight on palette slot 0, through a divisor no instance count reaches so every vertex of every instance reads element 0 (the instancing shaders address instances through their own uniform, never a base instance).</summary>
+    // Binds the blend attributes to one shared vertex holding all weight on palette slot 0, through a divisor no instance count
+    // reaches so every vertex of every instance reads element 0 (the instancing shaders address instances through their own
+    // uniform, never a base instance).
     unsafe void BindConstantSkin(Func<string, int> location)
     {
         uint buffer = ConstantSkinBuffer(_gl);
@@ -324,7 +322,6 @@ public sealed class ModelLoader
         }
     }
 
-    /// <summary>The one constant-skin vertex per GL context, made on first use and kept for the context's life (64 bytes).</summary>
     static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GL, StrongBox<uint>> ConstantSkinBuffers = new();
 
     static uint ConstantSkinBuffer(GL gl)
@@ -344,7 +341,6 @@ public sealed class ModelLoader
         return box.Value;
     }
 
-    /// <summary>True when every smooth slot of the bind-pose palette is the identity - see <see cref="CompactVertices"/>.</summary>
     static bool SmoothPaletteIsIdentity(SkeletonManifest? skeleton)
     {
         if (skeleton is null)
@@ -363,7 +359,9 @@ public sealed class ModelLoader
         return true;
     }
 
-    /// <summary>Position and the four blend attributes the pass-ID stamp skins with, at the locations the pass-ID shader declares (the manifest layout already assigns them, so they are found by name). The stamp needs the same silhouette and depth as the real draw, so it has to skin too.</summary>
+    // Position and the four blend attributes the pass-ID stamp skins with, at the locations the pass-ID shader declares (the
+    // manifest layout already assigns them, so they are found by name). The stamp needs the same silhouette and depth as the
+    // real draw, so it has to skin too.
     static readonly string[] PassIdAttributes = ["aPosition", "aBlendWeight0", "aBlendWeight1", "aBlendIndex0", "aBlendIndex1"];
 
     unsafe uint BuildPassIdVao(List<VertexLayoutEntry> layout, int stride, uint vbo, uint ibo, bool constantSkin = false)
@@ -389,7 +387,6 @@ public sealed class ModelLoader
         return vao;
     }
 
-    /// <summary>The pass-ID shader's own fixed blend locations (<c>PassIdMaskPass</c>).</summary>
     static int PassIdLocation(string name) => name switch
     {
         "aBlendWeight0" => 4,

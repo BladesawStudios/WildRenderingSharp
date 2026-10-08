@@ -3,9 +3,7 @@ using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
-/// <summary>
-/// TotK <c>gsys_environment</c> ("Env", decompiled as <c>fp_c9</c>), binding 6, 1328 bytes.
-/// </summary>
+/// <summary>TotK <c>gsys_environment</c> ("Env", decompiled as <c>fp_c9</c>), binding 6, 1328 bytes.</summary>
 /// <remarks>
 /// Bytes 0..415 are confirmed three ways: declaration records alongside the BFSHA, an exact field-for-field match
 /// against Splatoon 3's labelled <c>gsys_environment</c>, and every read below byte 416 across all 23 deferred passes
@@ -50,24 +48,32 @@ public sealed class EnvUbo : IUboBlock
 
         // TotK extension (bytes 416..1327): only fields with a confirmed read site.
 
-        /// <summary>Verified in chara_metal (prog 6): a world-height-based attenuation of the half-lambert ambient term. .x/.y are clamp curve params; .z = 1 disables it for any height, the neutral used here. Not screen-space AO.</summary>
+        /// <summary>
+        /// Verified in chara_metal (prog 6): a world-height-based attenuation of the half-lambert ambient term. .x/.y are clamp
+        /// curve params; .z = 1 disables it for any height, the neutral used here. Not screen-space AO.
+        /// </summary>
         public const int AmbientHeightAttenuation = 47;
         /// <summary>Only read by the (unimplemented) preshading_* passes: .y = shadow depth bias.</summary>
         public const int ShadowDepthBias = 50;
         /// <summary>Only read by preshading_*: .xy = shadow-map tile dimensions, packed as ints via floatBitsToInt.</summary>
         public const int ShadowMapDimensions = 52;
-        /// <summary>Verified: prog 6's alpha output multiplies by <c>1 - exp2(log2(0) * this.z) * this.w</c>. <c>.z</c> must be nonzero (see <see cref="PowExponentSlots"/>) for the term to collapse to 0 and leave alpha untouched.</summary>
+        /// <summary>
+        /// Verified: prog 6's alpha output multiplies by <c>1 - exp2(log2(0) * this.z) * this.w</c>. <c>.z</c> must be nonzero (see
+        /// <see cref="PowExponentSlots"/>) for the term to collapse to 0 and leave alpha untouched.
+        /// </summary>
         public const int Unknown70 = 70;
-        /// <summary>Verified: volume-mask tint on the ambient. <c>cTex_VolumeMask.z * this.w</c> lerps ambient.rgb toward <c>ambient.rgb * this.xyz</c>; <c>.w = 0</c> is the neutral for an all-zero <c>cTex_VolumeMask</c>.</summary>
+        /// <summary>
+        /// Verified: volume-mask tint on the ambient. <c>cTex_VolumeMask.z * this.w</c> lerps ambient.rgb toward <c>ambient.rgb *
+        /// this.xyz</c>; <c>.w = 0</c> is the neutral for an all-zero <c>cTex_VolumeMask</c>.
+        /// </summary>
         public const int VolumeMaskTint = 81;
     }
 
     /// <summary>
-    /// Every (slot, component) the decompiled shaders use as a <c>pow(x, k)</c> exponent, found by scanning for
-    /// <c>exp2(log2(expr) * slot.component)</c>. Left at zero, <c>k = 0</c> evaluates <c>exp2(-inf * 0)</c> = NaN whenever
-    /// the base is 0, rather than <c>pow(x, 0) = 1</c>. (18,1) and (21,1) are the fog damp fields
-    /// (<c>cWorldFogMaskDamp</c>, <c>cFogFxDamp</c>), which are genuinely read as exponents too; the rest are
-    /// placeholders in the undecoded extension.
+    /// Every (slot, component) the decompiled shaders use as a <c>pow(x, k)</c> exponent, found by scanning for <c>exp2(log2(expr)
+    /// * slot.component)</c>. Left at zero, <c>k = 0</c> evaluates <c>exp2(-inf * 0)</c> = NaN whenever the base is 0, rather than
+    /// <c>pow(x, 0) = 1</c>. (18,1) and (21,1) are the fog damp fields (<c>cWorldFogMaskDamp</c>, <c>cFogFxDamp</c>), which are
+    /// genuinely read as exponents too; the rest are placeholders in the undecoded extension.
     /// </summary>
     public static readonly (int Slot, int Component)[] PowExponentSlots =
     {
@@ -81,7 +87,10 @@ public sealed class EnvUbo : IUboBlock
     public string Name => "Env";
     public int BindingIndex => (int)TotkBindings.Environment;
 
-    /// <summary>Packs the fields the deferred resolve passes (chara_metal, chara_nonmetal) read, with defaults for the unimplemented preshading-only fields. The hemisphere colours arrive resolved, keeping this class palette-agnostic.</summary>
+    /// <summary>
+    /// Packs the fields the deferred resolve passes (chara_metal, chara_nonmetal) read, with defaults for the unimplemented
+    /// preshading-only fields. The hemisphere colours arrive resolved, keeping this class palette-agnostic.
+    /// </summary>
     public static EnvUbo BuildFromLighting(
         Vector3 sunDirView, Vector3 sunDirWorld, Vector3 sunColor,
         Vector3 hemiSkyColor, Vector3 hemiGroundColor,

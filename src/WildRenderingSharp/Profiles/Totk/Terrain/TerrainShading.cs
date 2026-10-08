@@ -7,8 +7,8 @@ using WildRenderingSharp.Profiles.Totk.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
 /// <summary>
-/// What a host draws its terrain with when the renderer shades it: the game's own terrain fragment
-/// programs, linked with the host's vertex stage, and the hooks inside a frame where it draws.
+/// What a host draws its terrain with when the renderer shades it: the game's own terrain fragment programs, linked with the host's
+/// vertex stage, and the hooks inside a frame where it draws.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -44,7 +44,6 @@ public sealed partial class TerrainShading : IDisposable
     /// <summary>The flat varying a host's vertex stage writes the tile's array layer to.</summary>
     public const string TileLayerVarying = "wrs_tile_layer";
 
-    /// <summary>Its location.</summary>
     public const int TileLayerLocation = 15;
 
     public const int NormalUnit = 17, MaterialUnit = 18, MaterialLinearUnit = 19, BakeUnit = 20, AlbedoArrayUnit = 13, CombinedArrayUnit = 14;
@@ -61,8 +60,8 @@ public sealed partial class TerrainShading : IDisposable
     public bool Available => File.Exists(Path.Combine(_shadersDir, "terrain_prog2_extracted.frag"));
 
     /// <summary>
-    /// Links the game's terrain G-buffer program <paramref name="program"/> (2, or the coarser 32
-    /// and 62) with <paramref name="hostVertexSource"/>.
+    /// Links the game's terrain G-buffer program <paramref name="program"/> (2, or the coarser 32 and 62) with <paramref
+    /// name="hostVertexSource"/>.
     /// </summary>
     public uint LinkGBufferProgram(string hostVertexSource, int program = 2)
     {
@@ -90,7 +89,6 @@ public sealed partial class TerrainShading : IDisposable
         return at < 0 ? source : source.Insert(at, declaration);
     }
 
-    /// <summary>The terrain model's default <c>gsys_material</c>, bound at 8 while the terrain draws.</summary>
     internal uint MaterialBuffer
     {
         get

@@ -14,8 +14,8 @@ public readonly record struct PresentGrade(float Saturation, float Brightness, f
 }
 
 /// <summary>
-/// A game's per-frame environment data (palette, sky, clouds, grade). The renderer carries it without knowing
-/// its shape; a profile's stages read the concrete type.
+/// A game's per-frame environment data (palette, sky, clouds, grade). The renderer carries it without knowing its shape; a
+/// profile's stages read the concrete type.
 /// </summary>
 public interface IFrameEnvironment
 {

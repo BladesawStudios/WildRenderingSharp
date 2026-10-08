@@ -3,8 +3,8 @@ using WildRenderingSharp.Pipeline.Frame;
 namespace WildRenderingSharp.Graphics;
 
 /// <summary>
-/// Everything that differs between games' shader interfaces: how the renderer's neutral frame data
-/// becomes the uniform blocks their shaders read, where each is bound, and the stages of the frame.
+/// Everything that differs between games' shader interfaces: how the renderer's neutral frame data becomes the uniform blocks their
+/// shaders read, where each is bound, and the stages of the frame.
 /// </summary>
 public interface IGameProfile
 {

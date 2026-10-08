@@ -2,10 +2,7 @@ using WildRenderingSharp.Hosting;
 
 namespace WildRenderingSharp.Preparation;
 
-/// <summary>
-/// <see cref="IModelPreparer"/> on a background thread of this process, through
-/// <see cref="ModelPreparer"/>.
-/// </summary>
+/// <summary><see cref="IModelPreparer"/> on a background thread of this process, through <see cref="ModelPreparer"/>.</summary>
 /// <remarks>
 /// Only for hosts that do not load their own BfresLibrary build - this loads ShaderLibrary's. See
 /// <see cref="IModelPreparer"/>'s remarks, and <see cref="OutOfProcessPreparer"/> otherwise.

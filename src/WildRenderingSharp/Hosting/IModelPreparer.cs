@@ -1,8 +1,6 @@
 namespace WildRenderingSharp.Hosting;
 
-/// <summary>
-/// The offline half of the renderer, behind one seam so a host can choose how it runs.
-/// </summary>
+/// <summary>The offline half of the renderer, behind one seam so a host can choose how it runs.</summary>
 /// <remarks>
 /// <para>
 /// Preparation reads BFRES/BFSHA through ShaderLibrary, which carries its own vendored
@@ -17,22 +15,19 @@ namespace WildRenderingSharp.Hosting;
 public interface IModelPreparer
 {
     /// <summary>
-    /// Builds the shared, model-independent assets the pipeline needs (system shaders, deferred
-    /// materials, system textures, sky LUT, cloud/sky/lens-flare programs), skipping anything
-    /// already present. Must have completed before a <see cref="Pipeline.DeferredPipeline"/> is constructed.
+    /// Builds the shared, model-independent assets the pipeline needs (system shaders, deferred materials, system textures, sky
+    /// LUT, cloud/sky/lens-flare programs), skipping anything already present. Must have completed before a <see
+    /// cref="Pipeline.DeferredPipeline"/> is constructed.
     /// </summary>
     Task EnsureSystemAssetsAsync(string romfsRoot, CacheLayout cache, Action<string>? log = null, CancellationToken cancellationToken = default);
 
     /// <summary>Prepares one actor or model, or confirms it is already up to date.</summary>
-    /// <returns>The RESOLVED model name - what <see cref="Assets.ModelLoader"/> and <see cref="CacheLayout.ModelDirectory"/> take.</returns>
     Task<string> PrepareAsync(PrepareRequest request, Action<string>? log = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Prepares every name in <paramref name="request"/>, several at a time, building the system
-    /// assets first. One failing - even one that takes its worker process down - fails only itself.
+    /// Prepares every name in <paramref name="request"/>, several at a time, building the system assets first. One failing - even
+    /// one that takes its worker process down - fails only itself.
     /// </summary>
-    /// <param name="onOutcome">Called once per name as it finishes, from a background thread, in no particular order.</param>
-    /// <returns>Every outcome, once all have finished.</returns>
     Task<IReadOnlyList<PrepareOutcome>> PrepareManyAsync(PrepareBatchRequest request, Action<PrepareOutcome>? onOutcome = null,
         Action<string>? log = null, CancellationToken cancellationToken = default);
 }

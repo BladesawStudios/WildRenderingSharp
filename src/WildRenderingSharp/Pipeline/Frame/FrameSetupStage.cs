@@ -36,10 +36,8 @@ public sealed class FrameSetupStage(FrameServices services) : IFrameStage
             environment.VolumeMaskColor, environment.VolumeMaskIntensity, RenderTargets.ShadowMapSize,
             frame.Lighting.MidScale, frame.Lighting.HighlightScale);
 
-    /// <summary>
-    /// Each actor gets its own group, with uniforms built fresh from its placement and pose, and
-    /// its shapes filtered fresh so toggling a shape takes effect on the next frame.
-    /// </summary>
+    // Each actor gets its own group, with uniforms built fresh from its placement and pose, and its shapes filtered fresh so
+    // toggling a shape takes effect on the next frame.
     void BuildGroups(FrameContext frame)
     {
         var profile = services.Profile;

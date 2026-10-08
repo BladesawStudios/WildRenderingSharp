@@ -7,9 +7,8 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// Fills <c>targets.Final</c> with the requested <see cref="BackgroundMode"/> before the deferred
-/// resolve, which only writes pixels its pass-ID mask claims, so whatever is left here survives
-/// wherever no actor covers.
+/// Fills <c>targets.Final</c> with the requested <see cref="BackgroundMode"/> before the deferred resolve, which only writes pixels
+/// its pass-ID mask claims, so whatever is left here survives wherever no actor covers.
 /// </summary>
 /// <remarks>
 /// <see cref="BackgroundMode.Color"/> and <see cref="BackgroundMode.Transparent"/> are a plain clear.
@@ -26,10 +25,9 @@ public sealed class BackgroundPass : IDisposable
     readonly uint _skyProgram;
 
     /// <summary>
-    /// What a palette-authored sky colour is scaled by, on top of <c>SceneGain</c>, to survive the
-    /// exposure multiply that follows. A calibration, not measured data: the game renders at exposure
-    /// 1 and the renderer at a larger stand-in, so anything painted into <c>targets.Final</c>
-    /// pre-divides by roughly that.
+    /// What a palette-authored sky colour is scaled by, on top of <c>SceneGain</c>, to survive the exposure multiply that follows.
+    /// A calibration, not measured data: the game renders at exposure 1 and the renderer at a larger stand-in, so anything painted
+    /// into <c>targets.Final</c> pre-divides by roughly that.
     /// </summary>
     public const float SkyColorAnchor = 0.03f;
 
@@ -255,12 +253,6 @@ public sealed class BackgroundPass : IDisposable
         _skyProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, SkyFragmentSource, "background_sky");
     }
 
-    /// <param name="viewInv3Rows">The camera's inverse view, three affine rows.</param>
-    /// <param name="tanHalf">(tan(fovX/2), tan(fovY/2)).</param>
-    /// <param name="sceneGain"><see cref="LightingContext.SceneGain"/>, which the sky's intensity anchors to.</param>
-    /// <param name="postfx">The sky baseline from romfs; null uses <see cref="SkyPostFx.Default"/>.</param>
-    /// <param name="cloudPostFx">The cloud baseline from romfs; null uses <see cref="CloudPostFx.Default"/>.</param>
-    /// <param name="atmosphereIntensity">The live multiplier on the scattering integral's brightness.</param>
     public void Run(GLResourceCache resources, RenderTargets targets, BackgroundMode mode, Vector3 color,
         Vector3 sunWorld, EnvPalette palette, ReadOnlySpan<Vector4> viewInv3Rows, Vector2 tanHalf, float sceneGain,
         SkyPostFx? postfx = null, CloudPostFx? cloudPostFx = null, float atmosphereIntensity = 1f)
@@ -344,11 +336,8 @@ public sealed class BackgroundPass : IDisposable
         }
     }
 
-    /// <summary>
-    /// Uploads one layer's uniforms: the palette's colour, intensity and backlight fields plus the
-    /// postfx <c>CloudParamN</c> alpha threshold, multiplier and density (a separate, static source).
-    /// <paramref name="index"/> is 0 or 1.
-    /// </summary>
+    // Uploads one layer's uniforms: the palette's colour, intensity and backlight fields plus the postfx CloudParamN alpha
+    // threshold, multiplier and density (a separate, static source). index is 0 or 1.
     void SetCloudLayer(int index, EnvPalette.CloudLayer layer, CloudPostFxLayer postfxLayer)
     {
         string p = $"uCloud{index}";

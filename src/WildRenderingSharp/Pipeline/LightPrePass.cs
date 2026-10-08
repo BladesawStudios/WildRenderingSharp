@@ -4,25 +4,20 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Produces layer 0 of <c>cTex_DeferredLightPrePass</c> (binding 28, <c>sampler2DArray</c>) - the
-/// real light-accumulation buffer every <c>chara_*</c> deferred resolve shader samples for its own
-/// main light colour (immediately converted to a luminance value that drives further shading -
-/// confirmed by reading chara_metal/chara_skin/chara_nonmetal/chara_grossy directly, all four
-/// identical: <c>texture(cTex_DeferredLightPrePass, vec3(u, v, 0)).xyz</c>). Was a flat (0,0,0,0)
-/// constant before this pass existed - every material sampling it got literally zero light,
-/// independent of anything else WildRenderingSharp computed, which is very likely the dominant reason the
-/// whole pipeline needed a blanket 10x exposure crutch (see <c>DeferredResolvePass.Run</c>'s own
-/// remarks: "no preshading passes, no cubemap IBL, no light pre-pass").
-///
-/// HONEST SCOPE: this is a genuine, if deliberately simplified, stand-in for that missing pre-pass
-/// - a single directional sun term plus a hemisphere ambient lerp, using the SAME real palette data
-/// (<c>sunColor</c>/<c>hemiSky</c>/<c>hemiGround</c>) every other real light source in this pipeline
-/// already uses. It is NOT the real game's light pre-pass: the genuine one also accumulates up to
-/// ~144 real per-region local point/area lights (<c>LocationalLightRig</c> entries found in TotK's
-/// own <c>envobj/master_field.baglenv</c>) and real dynamic reflection-probe cubemap IBL
-/// (<c>envobj/common.baglcube</c> - confirmed a runtime-rendered probe system, not a static asset
-/// WildRenderingSharp can just load). Neither of those is implemented here - this narrows the gap from
-/// "identically zero" to "a plausible directional-plus-ambient estimate," not to parity.
+/// Produces layer 0 of <c>cTex_DeferredLightPrePass</c> (binding 28, <c>sampler2DArray</c>) - the real light-accumulation buffer
+/// every <c>chara_*</c> deferred resolve shader samples for its own main light colour (immediately converted to a luminance value
+/// that drives further shading - confirmed by reading chara_metal/chara_skin/chara_nonmetal/chara_grossy directly, all four
+/// identical: <c>texture(cTex_DeferredLightPrePass, vec3(u, v, 0)).xyz</c>). Was a flat (0,0,0,0) constant before this pass existed
+/// - every material sampling it got literally zero light, independent of anything else WildRenderingSharp computed, which is very
+/// likely the dominant reason the whole pipeline needed a blanket 10x exposure crutch (see <c>DeferredResolvePass.Run</c>'s own
+/// remarks: "no preshading passes, no cubemap IBL, no light pre-pass"). HONEST SCOPE: this is a genuine, if deliberately
+/// simplified, stand-in for that missing pre-pass - a single directional sun term plus a hemisphere ambient lerp, using the SAME
+/// real palette data (<c>sunColor</c>/<c>hemiSky</c>/<c>hemiGround</c>) every other real light source in this pipeline already
+/// uses. It is NOT the real game's light pre-pass: the genuine one also accumulates up to ~144 real per-region local point/area
+/// lights (<c>LocationalLightRig</c> entries found in TotK's own <c>envobj/master_field.baglenv</c>) and real dynamic
+/// reflection-probe cubemap IBL (<c>envobj/common.baglcube</c> - confirmed a runtime-rendered probe system, not a static asset
+/// WildRenderingSharp can just load). Neither of those is implemented here - this narrows the gap from "identically zero" to "a
+/// plausible directional-plus-ambient estimate," not to parity.
 /// </summary>
 public sealed class LightPrePass : IDisposable
 {

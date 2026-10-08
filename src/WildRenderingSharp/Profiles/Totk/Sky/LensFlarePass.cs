@@ -6,7 +6,8 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// The game's lens flare: <c>agl::pfx::Glare</c>'s <c>flare_filter_flare</c> program, decompiled out of <c>agl_technique_pfx.sharcb</c>.
+/// The game's lens flare: <c>agl::pfx::Glare</c>'s <c>flare_filter_flare</c> program, decompiled out of
+/// <c>agl_technique_pfx.sharcb</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -14,10 +15,10 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// </para>
 /// <code>
 /// vertex:    ghost = (0.5 - uv) * C[0].x          a step from this pixel toward screen centre
-///            gl_Position.xy = in_attr0.xy * 2.0   half-unit quad, same convention as the sky pass
+/// gl_Position.xy = in_attr0.xy * 2.0   half-unit quad, same convention as the sky pass
 /// fragment:  sum  = src(uv) + src(uv + g*2) + src(uv + g*4) + src(uv + g*6)
-///            halo = src(uv + normalize(g) * C[1].w * 2)
-///            out  = (sum + halo * C[1].xyz) * C[3].xyz
+/// halo = src(uv + normalize(g) * C[1].w * 2)
+/// out  = (sum + halo * C[1].xyz) * C[3].xyz
 /// </code>
 /// <para>
 /// So <c>C[0].x</c> is the ghost spacing, <c>C[1].xyz</c> and <c>.w</c> the halo's tint and radius, and <c>C[3].xyz</c> the overall intensity. The ghost count is
@@ -145,7 +146,6 @@ public sealed class LensFlarePass : IDisposable
         Console.WriteLine("[LensFlarePass] real agl_flare_filter_flare linked (4 ghosts + halo).");
     }
 
-    /// <summary>The 192-byte <c>RegisterUBO</c>, filled at the offsets the decompiled program reads.</summary>
     internal static byte[] BuildRegisterUbo(float ghostSpacing, Vector3 haloTint, float haloRadius, Vector3 intensity)
     {
         var buf = new byte[192];

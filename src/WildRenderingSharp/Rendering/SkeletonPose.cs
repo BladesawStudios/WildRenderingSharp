@@ -4,7 +4,8 @@ using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// Walks a <see cref="SkeletonManifest"/>'s hierarchy into per-bone world matrices, at bind pose or (given a <see cref="SkeletalAnimManifest"/> and a frame) at an animated pose.
+/// Walks a <see cref="SkeletonManifest"/>'s hierarchy into per-bone world matrices, at bind pose or (given a <see
+/// cref="SkeletalAnimManifest"/> and a frame) at an animated pose.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,7 +28,11 @@ namespace WildRenderingSharp.Rendering;
 /// </remarks>
 public static class SkeletonPose
 {
-    /// <summary>A bone's resolved local transform for one frame - the inputs <see cref="World"/> composes. <see cref="Scale"/> is kept separately (rather than folded into <see cref="Rotation"/>) because Maya's segment scale compensate needs a PARENT'S local scale on its own.</summary>
+    /// <summary>
+    /// A bone's resolved local transform for one frame - the inputs <see cref="World"/> composes. <see cref="Scale"/> is kept
+    /// separately (rather than folded into <see cref="Rotation"/>) because Maya's segment scale compensate needs a PARENT'S local
+    /// scale on its own.
+    /// </summary>
     public readonly record struct BoneLocal(Vector3 Scale, Matrix4x4 Rotation, Vector3 Translation);
 
     public static Matrix4x4[] BindPoseWorldMatrices(SkeletonManifest skel)
@@ -41,7 +46,10 @@ public static class SkeletonPose
         return World(skel, locals, sscOverride: null);
     }
 
-    /// <summary>The same walk with every bone that has a matching <see cref="BoneAnimManifestEntry"/> getting its local TRS overridden by the anim's base values plus its curves at <paramref name="frame"/>. A bone the anim does not touch keeps its bind pose.</summary>
+    /// <summary>
+    /// The same walk with every bone that has a matching <see cref="BoneAnimManifestEntry"/> getting its local TRS overridden by
+    /// the anim's base values plus its curves at <paramref name="frame"/>. A bone the anim does not touch keeps its bind pose.
+    /// </summary>
     public static Matrix4x4[] AnimatedWorldMatrices(SkeletonManifest skel, SkeletalAnimManifest anim, float frame)
     {
         var byName = new Dictionary<string, BoneAnimManifestEntry>(anim.BoneAnims.Count, StringComparer.Ordinal);
@@ -79,8 +87,11 @@ public static class SkeletonPose
         return ssc;
     }
 
-    /// <summary>Composes per-bone local transforms into world matrices down the hierarchy, honouring <see cref="SkeletonManifest.ScalingMode"/>. Parents precede children in a BFRES skeleton, so one forward pass suffices; a bone whose parent does not precede it is treated as a root.</summary>
-    /// <param name="sscOverride">Per-bone segment-scale-compensate flags to use instead of the skeleton's own (an anim can override them); null to use <see cref="BoneManifestEntry.SegmentScaleCompensate"/>.</param>
+    /// <summary>
+    /// Composes per-bone local transforms into world matrices down the hierarchy, honouring <see
+    /// cref="SkeletonManifest.ScalingMode"/>. Parents precede children in a BFRES skeleton, so one forward pass suffices; a bone
+    /// whose parent does not precede it is treated as a root.
+    /// </summary>
     public static Matrix4x4[] World(SkeletonManifest skel, BoneLocal[] locals, bool[]? sscOverride)
     {
         var mode = skel.ScalingMode;
@@ -112,7 +123,11 @@ public static class SkeletonPose
         return world;
     }
 
-    /// <summary>Divides a world matrix's three basis rows by <paramref name="scale"/>.x/y/z, leaving the translation row alone: the segment-scale-compensate step <c>CalculateWorldImpl&lt;CalculateWorldMaya&gt;</c> applies to a bone's parent before composing.</summary>
+    /// <summary>
+    /// Divides a world matrix's three basis rows by <paramref name="scale"/>.x/y/z, leaving the translation row alone: the
+    /// segment-scale-compensate step <c>CalculateWorldImpl&lt;CalculateWorldMaya&gt;</c> applies to a bone's parent before
+    /// composing.
+    /// </summary>
     public static Matrix4x4 DescaleRows(Matrix4x4 m, Vector3 scale)
     {
         if (scale.X == 1f && scale.Y == 1f && scale.Z == 1f)
@@ -179,7 +194,10 @@ public static class SkeletonPose
         return new BoneLocal(scale, rotation, translate);
     }
 
-    /// <summary>Delegates to <see cref="AnimCurveEval"/>, shared by every kind of animation played; the maths and its Ghidra derivation live there.</summary>
+    /// <summary>
+    /// Delegates to <see cref="AnimCurveEval"/>, shared by every kind of animation played; the maths and its Ghidra derivation live
+    /// there.
+    /// </summary>
     public static float EvaluateCurve(AnimCurveManifestEntry curve, float frame) =>
         AnimCurveEval.EvaluateFloat(curve.CurveType, curve.StartFrame, curve.EndFrame,
             curve.Scale, curve.Offset, curve.Frames, curve.Keys, frame);

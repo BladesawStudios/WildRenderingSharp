@@ -4,9 +4,10 @@ using System.Text.Json;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
-/// One <c>CloudParamN</c> block of <c>postfx/master_field.baglclwd</c>: the per-layer parameters of the <c>agl::fx::Cloud</c> billboard-dome shading model, every field (see
-/// <c>WildRenderingSharp.AampReader.SkyPostFxJson.ParseObject</c>, which dumps the object generically). Names match the AAMP names exactly, including the "m" prefix and the
-/// authored typo "Distotion", so they cross-reference the decompiled <c>agl_cloud.vert</c>/<c>.frag</c> and its uniform reflection without a mapping table.
+/// One <c>CloudParamN</c> block of <c>postfx/master_field.baglclwd</c>: the per-layer parameters of the <c>agl::fx::Cloud</c>
+/// billboard-dome shading model, every field (see <c>WildRenderingSharp.AampReader.SkyPostFxJson.ParseObject</c>, which dumps the
+/// object generically). Names match the AAMP names exactly, including the "m" prefix and the authored typo "Distotion", so they
+/// cross-reference the decompiled <c>agl_cloud.vert</c>/<c>.frag</c> and its uniform reflection without a mapping table.
 /// </summary>
 /// <remarks>
 /// <c>CloudParam2</c> is byte-identical to <c>CloudParam1</c>, so <see cref="CloudPostFx"/> exposes two layers. The <c>*No</c> and <c>*No_Blend</c> fields are slot indices into a small

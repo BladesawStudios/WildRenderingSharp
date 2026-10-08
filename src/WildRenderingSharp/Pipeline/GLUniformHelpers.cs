@@ -6,7 +6,10 @@ namespace WildRenderingSharp.Pipeline;
 /// <summary>Small GL helpers shared by the passes: uniform setting, interface-block and sampler assignment, and texture sampling state.</summary>
 public static class GLUniformHelpers
 {
-    /// <summary>Points one of a program's interface blocks at a binding. False if the compiler dropped the block as unused, which is informative rather than fatal.</summary>
+    /// <summary>
+    /// Points one of a program's interface blocks at a binding. False if the compiler dropped the block as unused, which is
+    /// informative rather than fatal.
+    /// </summary>
     public static bool BindUniformBlock(this GL gl, uint program, string name, uint binding)
     {
         uint index = gl.GetUniformBlockIndex(program, name);
@@ -40,7 +43,10 @@ public static class GLUniformHelpers
         gl.Uniform1(gl.GetUniformLocation(program, uniform), unit);
     }
 
-    /// <summary>Uploads a 4-row matrix (see <c>Mat4Math</c>'s remarks on the row representation) with GL's own transpose flag, so no manual transposition is needed at the call site.</summary>
+    /// <summary>
+    /// Uploads a 4-row matrix (see <c>Mat4Math</c>'s remarks on the row representation) with GL's own transpose flag, so no manual
+    /// transposition is needed at the call site.
+    /// </summary>
     public static void SetMat4(this GL gl, uint program, string name, ReadOnlySpan<Vector4> rows)
     {
         Span<float> flat = stackalloc float[16];

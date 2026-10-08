@@ -214,7 +214,6 @@ public sealed class GLHostState : IDisposable
         DrainErrors(gl);
     }
 
-    /// <summary>Bounded, because a lost context reports GL_CONTEXT_LOST from every call forever.</summary>
     static void DrainErrors(GL gl)
     {
         for (int i = 0; i < 32 && gl.GetError() != GLEnum.NoError; i++) { }

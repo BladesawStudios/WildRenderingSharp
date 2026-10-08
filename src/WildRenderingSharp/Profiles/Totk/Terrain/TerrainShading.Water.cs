@@ -58,10 +58,8 @@ public sealed partial class TerrainShading
     /// <summary>Where the host binds its water and height arrays, and where <c>WaterAlb</c> goes - off the fragment stage's units.</summary>
     public const int TeraWaterUnit = 30, TeraHeightUnit = 31, WaterAlbUnit = 29;
 
-    /// <summary>The G-buffer depth the stamp program compares against.</summary>
     internal const int StampDepthUnit = 28;
 
-    /// <summary>The stamp program's block: <c>(pass id, near, far, -)</c>, <c>(1/width, 1/height, -, -)</c>.</summary>
     internal const uint StampBinding = Profiles.Totk.TotkBindings.TerrainWaterStamp;
 
     const string WaterProgramName = "terrain_water_prog98";
@@ -147,10 +145,8 @@ public sealed partial class TerrainShading
         }
         """;
 
-    /// <summary>
-    /// Binds the water's material (8) and textures, once they are loaded - the first call starts
-    /// decoding them off the render thread and returns false until they are ready.
-    /// </summary>
+    // Binds the water's material (8) and textures, once they are loaded - the first call starts decoding them off the render
+    // thread and returns false until they are ready.
     internal bool BindWater()
     {
         if (_waterNrm == 0)
@@ -199,7 +195,8 @@ public sealed partial class TerrainShading
         GLDiagnostics.Check(_gl, "terrain water textures");
     }
 
-    /// <summary>An array with a full mip chain, generated - the export carries mip 0, and ripples tiled across a lake shimmer without one.</summary>
+    // An array with a full mip chain, generated - the export carries mip 0, and ripples tiled across a lake shimmer without
+    // one.
     unsafe uint Chain(byte[] data, int width, int height, int layers, SizedInternalFormat format, PixelFormat pixels)
     {
         uint texture = _gl.GenTexture();

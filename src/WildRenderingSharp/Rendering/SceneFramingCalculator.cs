@@ -3,16 +3,14 @@ using System.Numerics;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// TotK model scales vary enormously - the Master Sword's bounding sphere has radius 0.74, the
-/// Light Dragon's is 694, a factor of 940 - so every world-unit constant tuned against the sword
-/// (near/far planes, AO radius, shadow bias, and the orbit camera's own dolly-distance clamp) is
-/// re-derived per model as a FRACTION of its own radius. The fractions are exactly the sword's own
-/// tuned values divided by the sword's radius, so framing the sword reproduces its numbers bit for
-/// bit. Mirrors <c>render_deferred_master_sword.py</c>'s <c>SWORD_RADIUS</c>/<c>*_FRAC</c>
-/// constants and <c>frame_model</c> - <c>viewer.py</c>'s own <c>self.dist</c> clamp
-/// (<c>max(0.4, min(12.0, ...))</c>) is hardcoded to the sword's scale and was never rescaled per
-/// model, which is why panning/dollying on anything bigger than the sword reads as "stuck" (the
-/// distance can never grow past a value that's tiny relative to the model).
+/// TotK model scales vary enormously - the Master Sword's bounding sphere has radius 0.74, the Light Dragon's is 694, a factor of
+/// 940 - so every world-unit constant tuned against the sword (near/far planes, AO radius, shadow bias, and the orbit camera's own
+/// dolly-distance clamp) is re-derived per model as a FRACTION of its own radius. The fractions are exactly the sword's own tuned
+/// values divided by the sword's radius, so framing the sword reproduces its numbers bit for bit. Mirrors
+/// <c>render_deferred_master_sword.py</c>'s <c>SWORD_RADIUS</c>/<c>*_FRAC</c> constants and <c>frame_model</c> - <c>viewer.py</c>'s
+/// own <c>self.dist</c> clamp (<c>max(0.4, min(12.0, ...))</c>) is hardcoded to the sword's scale and was never rescaled per model,
+/// which is why panning/dollying on anything bigger than the sword reads as "stuck" (the distance can never grow past a value
+/// that's tiny relative to the model).
 /// </summary>
 public static class SceneFramingCalculator
 {

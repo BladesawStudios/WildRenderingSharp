@@ -24,13 +24,11 @@ public static class AmbientLighting
     const float AmbientSkyScale = 1.80f;
     const float AmbientGroundScale = 1.20f;
 
-    /// <summary>The Mie amplifier of the reference daylight palette, so a palette matching it contributes an equal share of haze and blue rather than an arbitrary one.</summary>
+    // The Mie amplifier of the reference daylight palette, so a palette matching it contributes an equal share of haze and blue
+    // rather than an arbitrary one.
     const float ReferenceMieAmplifier = 12.0f;
-    /// <summary>Likewise for Rayleigh: the reference daylight palette's own amplifier is the unit.</summary>
     const float ReferenceRayleighAmplifier = 1.0f;
 
-    /// <param name="ambientScale">The ambient slider. The palette's <see cref="EnvPalette.AmbientScale"/> multiplies it rather than replacing it.</param>
-    /// <param name="postfx">The <c>agl::pfx::Sky</c> baseline from romfs; null uses <see cref="SkyPostFx.Default"/>.</param>
     public static (Vector3 Sky, Vector3 Ground) ResolveHemisphereColors(EnvPalette palette, float ambientScale, SkyPostFx? postfx = null)
     {
         postfx ??= SkyPostFx.Default;
@@ -48,18 +46,6 @@ public static class AmbientLighting
     }
 
     /// <summary>The colour of the directional light hitting actors.</summary>
-    /// <remarks>
-    /// <para>
-    /// The hue comes from <c>SkySunColor</c>, the palette's authored sun. Lighting actors with <c>BgDifColor * BgDifIntensity</c> was wrong: BgDif is the background diffuse (the
-    /// sky's colour), and the two differ on strongly coloured suns. On <c>BloodyMoon_DarknessDragon</c> the sun is (1, 0.140, 0.158) but BgDifColor (1, 0.297, 0.214), more than
-    /// twice the green, which lit the actor orange. At noon they nearly coincide, which is why it went unnoticed.
-    /// </para>
-    /// <para>
-    /// The magnitude stays with BgDif: every exposure decision was calibrated against it, and <c>SkySunColorIntensity</c> is on a different scale (18 at noon against BgDifIntensity
-    /// 9; 1 on the dragon palette against 2). It is the same hue-from-one-field, brightness-from-another split the sky tint uses for FogColor. <c>SkySunColorNoUse</c> falls back
-    /// to BgDif's hue.
-    /// </para>
-    /// </remarks>
     public static Vector3 SunColor(EnvPalette palette)
     {
         Vector3 hue = palette.SkySunColorNoUse ? Normalize(palette.BgDifColor) : Normalize(palette.SkySunColor);
@@ -68,7 +54,11 @@ public static class AmbientLighting
         return hue * magnitude;
     }
 
-    /// <summary>The sky's colour for this palette, normalised to a hue (max component 1) so the caller owns the magnitude. Rayleigh and Mie are weighted by the palette's amplifiers rather than summed, which would let a blood moon's 256x Mie blow the ambient out 20x.</summary>
+    /// <summary>
+    /// The sky's colour for this palette, normalised to a hue (max component 1) so the caller owns the magnitude. Rayleigh and Mie
+    /// are weighted by the palette's amplifiers rather than summed, which would let a blood moon's 256x Mie blow the ambient out
+    /// 20x.
+    /// </summary>
     public static Vector3 SkyHue(EnvPalette palette, SkyPostFx? postfx = null)
     {
         Vector3 rayleigh = Normalize((postfx ?? SkyPostFx.Default).RayleighScatteringCoeff);
@@ -91,7 +81,6 @@ public static class AmbientLighting
     /// <summary>A colour reduced to its hue, for callers that own the magnitude themselves (the sun sprite, the horizon fog colour).</summary>
     public static Vector3 NormaliseHue(Vector3 c) => Normalize(c);
 
-    /// <summary>Scales a colour so its largest component is 1, leaving pure black alone. Hue only - magnitude is the caller's business.</summary>
     static Vector3 Normalize(Vector3 c)
     {
         float max = MathF.Max(c.X, MathF.Max(c.Y, c.Z));

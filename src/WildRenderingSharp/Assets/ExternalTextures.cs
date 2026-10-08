@@ -2,10 +2,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>
-/// Textures a host supplies by name instead of each model carrying its own - the terrain's
-/// material arrays above all.
-/// </summary>
+/// <summary>Textures a host supplies by name instead of each model carrying its own - the terrain's material arrays above all.</summary>
 /// <remarks>
 /// <para>
 /// Objects that blend into the ground (<c>_Bld</c>, <c>_Seal</c>, grass fields) sample the
@@ -51,8 +48,8 @@ public sealed class ExternalTextures : IDisposable
     }
 
     /// <summary>
-    /// Supplies <paramref name="name"/> as a host's texture array. The host keeps ownership and
-    /// must call this again (or <see cref="Clear"/>) before deleting it.
+    /// Supplies <paramref name="name"/> as a host's texture array. The host keeps ownership and must call this again (or <see
+    /// cref="Clear"/>) before deleting it.
     /// </summary>
     public void Set(string name, uint handle)
     {

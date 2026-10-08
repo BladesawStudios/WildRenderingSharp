@@ -4,8 +4,8 @@ using System.Text;
 namespace WildRenderingSharp.Hosting;
 
 /// <summary>
-/// Runs <c>WildRenderingSharp.Preparation</c> as a child process - see <see cref="IModelPreparer"/>
-/// for when a host needs this rather than preparing in-process.
+/// Runs <c>WildRenderingSharp.Preparation</c> as a child process - see <see cref="IModelPreparer"/> for when a host needs this
+/// rather than preparing in-process.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,7 +25,6 @@ public sealed class OutOfProcessPreparer : IModelPreparer
 
     public string ExecutablePath { get; }
 
-    /// <param name="executablePath">The preparer, or null for the default <c>wrs-prepare</c> folder beside this process.</param>
     public OutOfProcessPreparer(string? executablePath = null)
     {
         ExecutablePath = executablePath ?? DefaultExecutablePath();
@@ -70,14 +69,6 @@ public sealed class OutOfProcessPreparer : IModelPreparer
         return result ?? throw new InvalidOperationException($"The preparer finished without naming the model it prepared for '{request.ActorOrModelName}'.");
     }
 
-    /// <remarks>
-    /// One worker process prepares the batch, several models at a time, sharing one parsed shader
-    /// archive between them - far cheaper than a process per model, which re-parsed it every time.
-    /// A native decoder can still abort the whole worker. When that happens every name it had
-    /// already finished stays finished; the names it had begun but not finished are retried one at
-    /// a time in their own worker, which pins the crash on the one actually responsible, and
-    /// everything not yet begun goes to a fresh worker.
-    /// </remarks>
     public async Task<IReadOnlyList<PrepareOutcome>> PrepareManyAsync(PrepareBatchRequest request, Action<PrepareOutcome>? onOutcome = null,
         Action<string>? log = null, CancellationToken cancellationToken = default)
     {
@@ -191,9 +182,9 @@ public sealed class OutOfProcessPreparer : IModelPreparer
     }
 
     /// <summary>
-    /// Exports the baked lighting of <paramref name="tiles"/> into <see cref="CacheLayout.Bake"/>
-    /// (see <see cref="Assets.BakeLibrary"/>), building the hash-to-tile index first if the cache
-    /// has none - pass no tiles to build just that. Returns the tiles that failed.
+    /// Exports the baked lighting of <paramref name="tiles"/> into <see cref="CacheLayout.Bake"/> (see <see
+    /// cref="Assets.BakeLibrary"/>), building the hash-to-tile index first if the cache has none - pass no tiles to build just
+    /// that. Returns the tiles that failed.
     /// </summary>
     public async Task<IReadOnlyList<string>> PrepareBakeAsync(string romfsRoot, CacheLayout cache, IEnumerable<string> tiles,
         Action<string>? onTileDone = null, Action<string>? log = null, CancellationToken cancellationToken = default)
@@ -240,7 +231,6 @@ public sealed class OutOfProcessPreparer : IModelPreparer
         return true;
     }
 
-    /// <summary>Runs the preparer with <paramref name="arguments"/>, handing every output line to <paramref name="onLine"/>; returns its exit code.</summary>
     async Task<int> RunProcessAsync(IReadOnlyList<string> arguments, Action<string> onLine, CancellationToken cancellationToken)
     {
         using var process = new Process { StartInfo = StartInfo(arguments), EnableRaisingEvents = true };

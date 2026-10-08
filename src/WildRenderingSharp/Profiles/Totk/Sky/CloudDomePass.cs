@@ -9,8 +9,8 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// Draws the game's own <c>agl_cloud</c> program on the procedural cloud dome
-/// (<see cref="CloudDomeMesh"/>, ported from <c>Cloud::initVertex_</c>).
+/// Draws the game's own <c>agl_cloud</c> program on the procedural cloud dome (<see cref="CloudDomeMesh"/>, ported from
+/// <c>Cloud::initVertex_</c>).
 /// </summary>
 /// <remarks>
 /// The program's two uniform blocks have no name table. Their layout was recovered by capturing a
@@ -56,7 +56,6 @@ public sealed class CloudDomePass : IDisposable
         void main() { oCol = texture(tCloud, vUV); }
         """;
 
-    /// <summary>Ensures the offscreen cloud target matches the requested resolution.</summary>
     unsafe void EnsureCloudTarget(int width, int height)
     {
         if (width == _cloudW && height == _cloudH && _cloudTex != 0)
@@ -130,7 +129,6 @@ public sealed class CloudDomePass : IDisposable
         _scatterTex = CreatePlaceholderTexture(gl, 0.05f);
     }
 
-    /// <summary>Cloud colours for a palette that authors none, from the ROM's <c>master_field.baglclwd</c>.</summary>
     static EnvPalette.CloudLayer FallbackCloudLayer(CloudPostFxLayer layer) => new(
         Present: true,
         BacklightPower: layer.BacklightPower,
@@ -143,11 +141,8 @@ public sealed class CloudDomePass : IDisposable
         IntensityShadow: layer.ShadowColorIntensity);
 
 
-    /// <summary>
-    /// The <c>Common</c> block read from the game's own cloud draw in a capture. The assembled block
-    /// is compared against the listed slots once per session so a discrepancy announces itself; the
-    /// remaining slots are legitimately per-palette or per-camera.
-    /// </summary>
+    // The Common block read from the game's own cloud draw in a capture. The assembled block is compared against the listed
+    // slots once per session so a discrepancy announces itself; the remaining slots are legitimately per-palette or per-camera.
     static readonly (int Slot, float X, float Y, float Z, float W)[] CapturedCommon =
     [
         (1, -0.0825223f, -1.03371f, 1.29866f, 4f),
@@ -170,7 +165,6 @@ public sealed class CloudDomePass : IDisposable
         (46, 25000f, 100f, 0f, 0f),
     ];
 
-    /// <summary>Logs every compared slot where the assembled block differs from the game's own.</summary>
     static void ReportCommonBlockDrift(byte[] common)
     {
         var bad = new List<string>();
@@ -192,14 +186,6 @@ public sealed class CloudDomePass : IDisposable
     }
 
 
-    /// <summary>
-    /// The projection with its far plane pushed out past the dome, leaving field of view and near plane alone.
-    /// </summary>
-    /// <remarks>
-    /// The dome is far larger than the default far plane, and depth clamping alone did not keep it
-    /// from being clipped. Safe because this pass does not depth-test. The near plane is recovered
-    /// from the matrix: for the standard GL form A = -(f+n)/(f-n) and B = -2fn/(f-n), so n = B/(A-1).
-    /// </remarks>
     static Vector4[] WidenFarPlane(ReadOnlySpan<Vector4> projRows, float wantedFar)
     {
         var rows = projRows.ToArray();
@@ -217,10 +203,8 @@ public sealed class CloudDomePass : IDisposable
         return rows;
     }
 
-    /// <summary>
-    /// Uploads an extracted single-channel mask as an R8 texture swizzled to RRRR, as the game's BC4
-    /// textures are, or a flat stand-in if the file is missing.
-    /// </summary>
+    // Uploads an extracted single-channel mask as an R8 texture swizzled to RRRR, as the game's BC4 textures are, or a flat
+    // stand-in if the file is missing.
     static unsafe uint LoadMaskOrFallback(GL gl, string? systemTexturesDirectory, string name, float fallbackValue)
     {
         if (string.IsNullOrEmpty(systemTexturesDirectory))
@@ -266,11 +250,6 @@ public sealed class CloudDomePass : IDisposable
         return tex;
     }
 
-    /// <param name="palette">Supplies the cloud colours and fog terms.</param>
-    /// <param name="cameraEye">The dome is re-centred on it every frame.</param>
-    /// <param name="sunWorld">The sun direction in the renderer's Z-up world.</param>
-    /// <param name="brightness">Multiplier on the authored cloud colour; 1 is as authored.</param>
-    /// <param name="exposure">The exposure applied to this buffer later, divided back out of the cloud colour.</param>
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
         CloudPostFxShared shared, CloudPostFxLayer layer,
         ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows, Vector3 cameraEye, Vector3 sunWorld,
@@ -395,11 +374,8 @@ public sealed class CloudDomePass : IDisposable
         _gl.BindTexture(TextureTarget.Texture2D, tex);
     }
 
-    /// <summary>
-    /// The 768-byte <c>Common</c> block: the captured baseline with every identified slot overwritten
-    /// from live data (see <see cref="CloudUboBaseline"/> for what is left alone).
-    /// </summary>
-    /// <param name="skyColorGain">Scales the radiance terms to the renderer's exposure.</param>
+    // The 768-byte Common block: the captured baseline with every identified slot overwritten from live data (see
+    // CloudUboBaseline for what is left alone).
     internal static byte[] BuildCommonBlock(EnvPalette palette, EnvPalette.CloudLayer cloud,
         CloudPostFxShared shared, CloudPostFxLayer layer, Vector3 sunWorld,
         float scroll1X, float scroll1Y, float scroll2X, float scroll2Y,
@@ -474,10 +450,6 @@ public sealed class CloudDomePass : IDisposable
         return buf;
     }
 
-    /// <summary>
-    /// The 256-byte <c>View</c> block: <c>cViewMat</c> (slots 4-7, view and dome placement
-    /// pre-combined, as the capture shows), <c>cProjMat</c> (8-11) and <c>cZOffsetParam</c> (12.x).
-    /// </summary>
     static byte[] BuildViewBlock(ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows,
         Vector3 cameraEye, CloudPostFxLayer layer, float skyHeightAboveCamera, float domeScale)
     {

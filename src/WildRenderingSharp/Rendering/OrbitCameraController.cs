@@ -2,7 +2,10 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Rendering;
 
-/// <summary>Orbit, pan and first-person-fly camera rig feeding a <see cref="Camera"/>'s Eye and Target. Input handling and the model's own rotation stay in the host; this class only knows the rig.</summary>
+/// <summary>
+/// Orbit, pan and first-person-fly camera rig feeding a <see cref="Camera"/>'s Eye and Target. Input handling and the model's own
+/// rotation stay in the host; this class only knows the rig.
+/// </summary>
 public class OrbitCameraController
 {
     public float Yaw { get; set; }
@@ -11,7 +14,10 @@ public class OrbitCameraController
     public Vector3 Target { get; set; }
     public Vector3 Up { get; set; } = new(0, 0, 1);
 
-    /// <summary>Dolly clamp range - set from <see cref="SceneFramingCalculator"/> per model, since a fixed sword-scale range makes anything bigger "stick" at max zoom-out.</summary>
+    /// <summary>
+    /// Dolly clamp range - set from <see cref="SceneFramingCalculator"/> per model, since a fixed sword-scale range makes anything
+    /// bigger "stick" at max zoom-out.
+    /// </summary>
     public float MinDistance { get; set; } = 0.4f;
     public float MaxDistance { get; set; } = 12f;
 
@@ -26,7 +32,10 @@ public class OrbitCameraController
         return new Vector3(cp * MathF.Cos(yaw), cp * MathF.Sin(yaw), MathF.Sin(pitch));
     }
 
-    /// <summary>Sets Yaw/Pitch/Distance/Target so the rig currently looks from <paramref name="eye"/> at <paramref name="target"/> - used once, after framing a newly-loaded model.</summary>
+    /// <summary>
+    /// Sets Yaw/Pitch/Distance/Target so the rig currently looks from <paramref name="eye"/> at <paramref name="target"/> - used
+    /// once, after framing a newly-loaded model.
+    /// </summary>
     public void FrameTo(Vector3 eye, Vector3 target)
     {
         Target = target;

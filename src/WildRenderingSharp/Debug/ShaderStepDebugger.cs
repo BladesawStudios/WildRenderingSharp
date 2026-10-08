@@ -3,8 +3,9 @@ using System.Text.RegularExpressions;
 namespace WildRenderingSharp.Debug;
 
 /// <summary>
-/// Instruments a decompiled fragment shader so one chosen intermediate (<c>temp_N</c>, in the decompiler's numbering) is shown as the final pixel colour instead of the shader's output.
-/// This is a text-level splice, not a GPU stepper: it works because these shaders are plain GLSL with one assignment per line.
+/// Instruments a decompiled fragment shader so one chosen intermediate (<c>temp_N</c>, in the decompiler's numbering) is shown as
+/// the final pixel colour instead of the shader's output. This is a text-level splice, not a GPU stepper: it works because these
+/// shaders are plain GLSL with one assignment per line.
 /// </summary>
 /// <remarks>
 /// A <c>temp_N</c> can be written more than once along the same executed path ("give it a default, then maybe overwrite it a few lines later" is common), so an early return at the first assignment shows
@@ -24,12 +25,17 @@ public static class ShaderStepDebugger
         @"^(?<indent>[ \t]*)temp_(?<n>\d+)\s*=(?!=)",
         RegexOptions.Compiled);
 
-    /// <summary>Every real fragment output the shader declares (a G-buffer program has several: albedo, normal and emission at different locations). The override must overwrite all of them, or the value shows only on whichever attachment comes first in the file.</summary>
+    // Every real fragment output the shader declares (a G-buffer program has several: albedo, normal and emission at different
+    // locations). The override must overwrite all of them, or the value shows only on whichever attachment comes first in the
+    // file.
     static readonly Regex OutputDeclRegex = new(
         @"^\s*layout\s*\(location\s*=\s*\d+\)\s*out\s+vec4\s+(\w+(?:\[0\])?)\s*;",
         RegexOptions.Multiline);
 
-    /// <summary>Every <c>temp_N</c> local's declared GLSL type, keyed by N - found by scanning the whole file for bare declaration lines (an assignment line always has an <c>=</c> right after the name, so it never matches this).</summary>
+    /// <summary>
+    /// Every <c>temp_N</c> local's declared GLSL type, keyed by N - found by scanning the whole file for bare declaration lines (an
+    /// assignment line always has an <c>=</c> right after the name, so it never matches this).
+    /// </summary>
     public static Dictionary<int, string> ParseTempTypes(string fragSource)
     {
         var types = new Dictionary<int, string>();
@@ -42,8 +48,10 @@ public static class ShaderStepDebugger
         return types;
     }
 
-    /// <summary>Returns the instrumented raw source (still needs <c>GlslSanitizer.Clean</c> and compilation, like any decompiled shader) plus every <c>temp_N</c> that got a hook, sorted ascending, for a step-through UI.</summary>
-    /// <param name="suppressDiscard">When true, every bare <c>discard;</c> becomes a no-op. Otherwise a value computed right before a discard that would fire can never be inspected, since the shader exits before the override block runs. Only matters once a real target is picked.</param>
+    /// <summary>
+    /// Returns the instrumented raw source (still needs <c>GlslSanitizer.Clean</c> and compilation, like any decompiled shader)
+    /// plus every <c>temp_N</c> that got a hook, sorted ascending, for a step-through UI.
+    /// </summary>
     public static string Instrument(string fragSource, out List<int> availableTargets, bool suppressDiscard = false)
     {
         var types = ParseTempTypes(fragSource);

@@ -15,8 +15,8 @@ public class LightingContext
     public float SunAzimuth { get; set; }
 
     /// <summary>
-    /// Multiplies the HDR frame before the tonemap. Chosen by hand: the games author 1.0 against
-    /// lighting this renderer lacks (local lights, probe IBL).
+    /// Multiplies the HDR frame before the tonemap. Chosen by hand: the games author 1.0 against lighting this renderer lacks
+    /// (local lights, probe IBL).
     /// </summary>
     public float Exposure { get; set; } = 2.5f;
 

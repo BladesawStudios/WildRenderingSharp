@@ -10,7 +10,6 @@ public static class SkyPostFxLibrary
     static (SkyPostFx Sky, CloudPostFx Cloud, ColorCorrectionPostFx ColorCorrection)? _cached;
 
 
-    /// <summary>Reads the generic <c>color_correction</c> object into <see cref="ColorCorrectionPostFx"/>.</summary>
     static ColorCorrectionPostFx ColorCorrectionFromJson(JsonElement el)
     {
         var cc = new ColorCorrectionPostFx();

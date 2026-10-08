@@ -4,7 +4,10 @@ using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Profiles.Totk.PostProcess;
 
-/// <summary>The game's final grade, <c>agl::pfx::ColorCorrection</c> driven by <c>postfx/master_field.baglccr</c>, applied after <c>agl_hdr_compose</c>.</summary>
+/// <summary>
+/// The game's final grade, <c>agl::pfx::ColorCorrection</c> driven by <c>postfx/master_field.baglccr</c>, applied after
+/// <c>agl_hdr_compose</c>.
+/// </summary>
 /// <remarks>
 /// <para>
 /// It matters for every comparison against the game: a screenshot is a graded image. The most visible field is <c>saturation = 1.175</c>, so the game is about 17.5% more saturated than its raw render.

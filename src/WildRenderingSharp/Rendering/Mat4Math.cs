@@ -3,8 +3,9 @@ using System.Numerics;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// 4x4 matrix helpers over an array of 4 row vectors, the representation used by the camera and UBO-building code, rather than <see cref="Matrix4x4"/> directly: that type's row-vector convention
-/// (translation in <c>M41..M43</c>) does not match the column-vector GL convention these matrices use, and mixing the two invites a transpose bug. <see cref="Matrix4x4"/> is still used internally
+/// 4x4 matrix helpers over an array of 4 row vectors, the representation used by the camera and UBO-building code, rather than <see
+/// cref="Matrix4x4"/> directly: that type's row-vector convention (translation in <c>M41..M43</c>) does not match the column-vector
+/// GL convention these matrices use, and mixing the two invites a transpose bug. <see cref="Matrix4x4"/> is still used internally
 /// as a convention-agnostic multiply and invert engine.
 /// </summary>
 public static class Mat4Math

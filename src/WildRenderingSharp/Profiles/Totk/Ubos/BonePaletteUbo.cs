@@ -4,10 +4,11 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>
-/// TotK's skinning matrix palette (the engine's <c>g3d_SkeletonUniformBlock</c>, the shader symbol <c>_Mtx</c>), binding 2. 48 bytes per matrix: a mat3x4 of three vec4
-/// rows, row-vector convention (a vertex is <c>v * M</c>; composition is "apply the first operand, then the second"; see <c>Mat4Math.Multiply</c> and
-/// <c>SkeletonPose</c>). The vertex shader unpacks two 16-bit bone indices per blend-index float and indexes this block directly, so an index is a plain array index
-/// into <see cref="Build"/>'s output, not a byte offset.
+/// TotK's skinning matrix palette (the engine's <c>g3d_SkeletonUniformBlock</c>, the shader symbol <c>_Mtx</c>), binding 2. 48
+/// bytes per matrix: a mat3x4 of three vec4 rows, row-vector convention (a vertex is <c>v * M</c>; composition is "apply the first
+/// operand, then the second"; see <c>Mat4Math.Multiply</c> and <c>SkeletonPose</c>). The vertex shader unpacks two 16-bit bone
+/// indices per blend-index float and indexes this block directly, so an index is a plain array index into <see cref="Build"/>'s
+/// output, not a byte offset.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -42,10 +43,6 @@ public sealed class BonePaletteUbo : IUboBlock
     BonePaletteUbo(byte[] data) => _data = data;
 
     /// <summary>Builds the two-segment palette described above.</summary>
-    /// <param name="boneWorld">Every bone's current world matrix (bind pose or animated), indexed by bone id.</param>
-    /// <param name="matrixToBoneList">Palette slot to bone id (<c>Skeleton.MatrixToBoneList</c>), combined: the first <paramref name="inverseModelMatrices"/>.Length entries are the smooth segment and the rest the rigid segment.</param>
-    /// <param name="inverseModelMatrices">Smooth slot to that bone's inverse bind matrix. Its length defines where the rigid segment starts, so it must be exactly the smooth count; <c>SkeletonManifest.InverseModelMatricesAsMatrices</c> guarantees that.</param>
-    /// <param name="modelTransform">Right-multiplied onto every matrix (skin, then model): the model's free rotation, which the shaders do not fold in separately for a skinned draw (<c>GsysShape.cTransform</c> is read only at <c>SKIN_COUNT == 0</c>). Defaults to identity.</param>
     public static BonePaletteUbo Build(
         ReadOnlySpan<Matrix4x4> boneWorld,
         ReadOnlySpan<int> matrixToBoneList,
@@ -84,12 +81,11 @@ public sealed class BonePaletteUbo : IUboBlock
         return new BonePaletteUbo(data);
     }
 
-    /// <summary>
-    /// <paramref name="m"/> is a <see cref="System.Numerics.Matrix4x4"/> composed the native .NET way: row-vector convention, translation in row 4 (M41-M43). The GPU "rows"
-    /// convention used everywhere else here (<c>Mat4Math</c>, <c>EulerRotation</c>, <c>Std140Block.WriteRows</c>) packs translation into the W of each of the first three rows,
-    /// which is the transpose of <paramref name="m"/>, so each GPU row here is a column of <paramref name="m"/>. Getting this backwards drops translation from every bone matrix
-    /// while leaving rotation and scale intact, which looks like a corrupt pose rather than nothing moving.
-    /// </summary>
+    // m is a Matrix4x4 composed the native .NET way: row-vector convention, translation in row 4 (M41-M43). The GPU "rows"
+    // convention used everywhere else here (Mat4Math, EulerRotation, Std140Block.WriteRows) packs translation into the W of
+    // each of the first three rows, which is the transpose of m, so each GPU row here is a column of m. Getting this backwards
+    // drops translation from every bone matrix while leaving rotation and scale intact, which looks like a corrupt pose rather
+    // than nothing moving.
     static void WriteMatrix(byte[] data, int slot, in Matrix4x4 m)
     {
         var block = new Std140Block(BytesPerBone);
@@ -97,7 +93,11 @@ public sealed class BonePaletteUbo : IUboBlock
         block.ToByteArray().CopyTo(data, slot * BytesPerBone);
     }
 
-    /// <summary>Tiles one mat3x4 (identity, or <paramref name="modelRows"/> if given) across every bone slot in a <paramref name="byteSize"/> buffer. The fallback for a model with no bones: skinned positions are transformed through this block, not <see cref="ShapeMatrixUbo"/>, so a rotated model needs its rows here. <see cref="Build"/> is the path for anything skinned.</summary>
+    /// <summary>
+    /// Tiles one mat3x4 (identity, or <paramref name="modelRows"/> if given) across every bone slot in a <paramref
+    /// name="byteSize"/> buffer. The fallback for a model with no bones: skinned positions are transformed through this block, not
+    /// <see cref="ShapeMatrixUbo"/>, so a rotated model needs its rows here.
+    /// </summary>
     public static BonePaletteUbo FillIdentity(ReadOnlySpan<Vector4> modelRows = default, int byteSize = DefaultByteSize)
     {
         Span<Vector4> rows = stackalloc Vector4[3];

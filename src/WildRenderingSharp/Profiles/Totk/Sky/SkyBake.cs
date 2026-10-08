@@ -6,8 +6,8 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// Runs the atmosphere precompute once per palette. The bake depends only on the atmosphere's
-/// authored parameters, so it needs no camera and no scene, and its lookup tables serve every frame.
+/// Runs the atmosphere precompute once per palette. The bake depends only on the atmosphere's authored parameters, so it needs no
+/// camera and no scene, and its lookup tables serve every frame.
 /// </summary>
 public sealed class SkyBake(FrameServices services) : IDisposable
 {
@@ -19,10 +19,8 @@ public sealed class SkyBake(FrameServices services) : IDisposable
     public uint BakedInscatter => _precompute.BakedInscatter;
 
     /// <summary>
-    /// Bakes for <paramref name="palette"/> unless this palette and tint were already baked. Keyed
-    /// on the palette's name, not on floats read back out of it, because a bake is hundreds of draw
-    /// calls and must not repeat on float noise. The tint is baked into the table, so it is part of
-    /// the key, quantised so dragging a slider does not rebake on every step.
+    /// Bakes for <paramref name="palette"/> unless this palette and tint were already baked. Keyed on the palette's name, not on
+    /// floats read back out of it, because a bake is hundreds of draw calls and must not repeat on float noise.
     /// </summary>
     public void Ensure(SkyPostFx postFx, EnvPalette? palette, string? paletteName, float tint)
     {
@@ -42,11 +40,9 @@ public sealed class SkyBake(FrameServices services) : IDisposable
         _precompute.Verify();
     }
 
-    /// <summary>
-    /// The fog colour's hue, normalised to its brightest channel. Fog is the better source than the
-    /// background colour: a palette with no Rayleigh scattering has a sky that is effectively dense
-    /// fog, and its fog colour is the red or amber the background colour only approximates.
-    /// </summary>
+    // The fog colour's hue, normalised to its brightest channel. Fog is the better source than the background colour: a palette
+    // with no Rayleigh scattering has a sky that is effectively dense fog, and its fog colour is the red or amber the
+    // background colour only approximates.
     static Vector3 TintColor(EnvPalette? palette, float tintStep)
     {
         Vector3 fog = palette?.FogColor ?? Vector3.One;

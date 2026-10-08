@@ -7,9 +7,9 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Hosting;
 
 /// <summary>
-/// An offscreen view of a scene: renders a <see cref="FrameRequest"/> through a <see cref="DeferredPipeline"/> and composites
-/// the result (supersample downfilter, the palette's colour correction, sRGB encode, FXAA) into an RGBA8 texture the host
-/// displays however it likes.
+/// An offscreen view of a scene: renders a <see cref="FrameRequest"/> through a <see cref="DeferredPipeline"/> and composites the
+/// result (supersample downfilter, the palette's colour correction, sRGB encode, FXAA) into an RGBA8 texture the host displays
+/// however it likes.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -58,7 +58,10 @@ public sealed class SceneView : IDisposable
 
     public DeferredPipeline Pipeline => _pipeline;
 
-    /// <summary>2x supersampling by default. Pulling it once looked like a fix for black bands on thin geometry, but the cause was bit-packed G-buffer attachments filtering linearly (fixed in <see cref="RenderTargets"/>).</summary>
+    /// <summary>
+    /// 2x supersampling by default. Pulling it once looked like a fix for black bands on thin geometry, but the cause was
+    /// bit-packed G-buffer attachments filtering linearly (fixed in <see cref="RenderTargets"/>).
+    /// </summary>
     public AntiAliasingMode AntiAliasing { get; set; } = AntiAliasingMode.Supersample2x;
 
     public SceneViewMode Mode { get; set; } = SceneViewMode.Final;
@@ -83,7 +86,11 @@ public sealed class SceneView : IDisposable
     /// <summary>The last frame rendered, for re-presenting or probing without re-rendering.</summary>
     public FrameResult? LastFrame { get; private set; }
 
-    /// <summary>The last frame's depth for a host compositing it into its own scene: standard GL [0, 1] depth through the request camera's projection, 1 where nothing was drawn, at the render size (<see cref="Supersample"/> times the output), stored upside down relative to <see cref="OutputTexture"/>.</summary>
+    /// <summary>
+    /// The last frame's depth for a host compositing it into its own scene: standard GL [0, 1] depth through the request camera's
+    /// projection, 1 where nothing was drawn, at the render size (<see cref="Supersample"/> times the output), stored upside down
+    /// relative to <see cref="OutputTexture"/>.
+    /// </summary>
     public uint DepthTexture => Targets.GBufferDepth.Handle;
 
     /// <summary>True when <see cref="OutputTexture"/> holds its top row first (the raw G-buffer-space modes) - see the class remarks.</summary>
@@ -95,11 +102,9 @@ public sealed class SceneView : IDisposable
         : (new Vector2(0, 1), new Vector2(1, 0));
 
     /// <summary>
-    /// Renders one frame at <paramref name="width"/>x<paramref name="height"/> (output pixels; the
-    /// render itself is <see cref="Supersample"/> times that) and composites it into
-    /// <see cref="OutputTexture"/>.
+    /// Renders one frame at <paramref name="width"/>x<paramref name="height"/> (output pixels; the render itself is <see
+    /// cref="Supersample"/> times that) and composites it into <see cref="OutputTexture"/>.
     /// </summary>
-    /// <param name="shadowMapOverride">Reuse another view's shadow map instead of drawing one - the shadow map depends on the scene and the sun, never the camera, so a secondary view of the same scene can take the main view's.</param>
     public FrameResult Render(FrameRequest request, int width, int height, GpuTexture? shadowMapOverride = null)
     {
         width = Math.Max(1, width);
@@ -119,7 +124,10 @@ public sealed class SceneView : IDisposable
         return frame;
     }
 
-    /// <summary>Re-composites <see cref="LastFrame"/> into <see cref="OutputTexture"/> after a change of <see cref="Mode"/> or FXAA. A change of supersampling needs a new render.</summary>
+    /// <summary>
+    /// Re-composites <see cref="LastFrame"/> into <see cref="OutputTexture"/> after a change of <see cref="Mode"/> or FXAA. A
+    /// change of supersampling needs a new render.
+    /// </summary>
     public void Present()
     {
         if (LastFrame is not { } frame || _lastGrade is not { } grade)
@@ -177,7 +185,6 @@ public sealed class SceneView : IDisposable
     }
 
     /// <summary>The exact HDR value under a point of the view, before exposure and tonemap, which a graded image cannot answer.</summary>
-    /// <param name="uvTopLeft">0..1 within the displayed image, top-left origin.</param>
     public Vector4? ProbeHdr(Vector2 uvTopLeft)
     {
         if (LastFrame is not { } frame)
@@ -205,7 +212,10 @@ public sealed class SceneView : IDisposable
         return flipped;
     }
 
-    /// <summary>The last frame's linear HDR buffer, before exposure and tonemap, as top-down RGBA float rows at the render resolution, for an <c>.hdr</c> export without the viewer's exposure baked in.</summary>
+    /// <summary>
+    /// The last frame's linear HDR buffer, before exposure and tonemap, as top-down RGBA float rows at the render resolution, for
+    /// an <c>.hdr</c> export without the viewer's exposure baked in.
+    /// </summary>
     public float[]? ReadHdrRgba(out int width, out int height)
     {
         width = height = 0;
@@ -216,7 +226,10 @@ public sealed class SceneView : IDisposable
         return Targets.ReadPixelsFloatRgba(frame.Final);
     }
 
-    /// <summary>Renders one frame at an arbitrary size and returns it as top-down RGBA8, leaving the view's size and last frame as they were. Honours <see cref="AntiAliasing"/>.</summary>
+    /// <summary>
+    /// Renders one frame at an arbitrary size and returns it as top-down RGBA8, leaving the view's size and last frame as they
+    /// were. Honours <see cref="AntiAliasing"/>.
+    /// </summary>
     public byte[] RenderToRgba8(FrameRequest request, int width, int height)
     {
         var restore = (_width, _height, LastFrame, _lastGrade, _lastBackground);
@@ -231,7 +244,10 @@ public sealed class SceneView : IDisposable
         }
     }
 
-    /// <summary>The HDR counterpart of <see cref="RenderToRgba8"/> - rendered without supersampling, so the result is exactly <paramref name="width"/>x<paramref name="height"/>.</summary>
+    /// <summary>
+    /// The HDR counterpart of <see cref="RenderToRgba8"/> - rendered without supersampling, so the result is exactly <paramref
+    /// name="width"/>x<paramref name="height"/>.
+    /// </summary>
     public float[] RenderToHdr(FrameRequest request, int width, int height)
     {
         var restore = (_width, _height, LastFrame, _lastGrade, _lastBackground);
@@ -293,7 +309,10 @@ public sealed class SceneView : IDisposable
         return texture;
     }
 
-    /// <summary>Shrinks the render targets and outputs to almost nothing, returning their memory (a large window at 2x supersampling runs past a gigabyte). The next <see cref="Render"/> grows them back.</summary>
+    /// <summary>
+    /// Shrinks the render targets and outputs to almost nothing, returning their memory (a large window at 2x supersampling runs
+    /// past a gigabyte). The next <see cref="Render"/> grows them back.
+    /// </summary>
     public void ReleaseTargets()
     {
         Targets.Resize(8, 8);
