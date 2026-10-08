@@ -6,18 +6,15 @@ using SarcLibrary;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// A <c>game::wm::ResEnvPalette</c> record - the per-time-of-day/weather parameter set the
-/// runtime actually feeds the renderer, loaded straight from romfs (<c>Pack/EnvPalette.pack.zs</c>
-/// -&gt; <c>WorldMgr/ResEnvPalette/*.bgyml</c> - see <see cref="EnvPaletteLibrary.LoadFromRomfs"/>).
-///
-/// The source data is genuinely loosely typed (some palettes omit fields others have and instead
-/// inherit them via <c>$parent</c>, already resolved by the time this class sees them; colours
-/// come through as a <c>{R,G,B,A}</c> map, not a fixed schema) so this wraps a plain key/value bag
-/// rather than a rigid schema, with named accessors for exactly the fields the render pipeline
-/// consumes. Two presets - <c>IconCapture</c>/<c>UI</c> - exist only in code (no romfs bgyml for
-/// either) and use a plain <c>[r,g,b,a]</c> array for colours instead; <see cref="TryGetColor"/>
-/// accepts both shapes.
+/// A <c>game::wm::ResEnvPalette</c> record: the per-time-of-day and weather parameter set the runtime feeds the
+/// renderer, loaded from romfs (<c>Pack/EnvPalette.pack.zs</c>; see <see cref="EnvPaletteLibrary.LoadFromRomfs"/>).
 /// </summary>
+/// <remarks>
+/// The source data is loosely typed: some palettes omit fields others have and inherit them through <c>$parent</c>
+/// (resolved before this class sees them), and colours arrive as a <c>{R,G,B,A}</c> map. So this wraps a plain
+/// key/value bag with named accessors for the fields the renderer reads. The <c>IconCapture</c> and <c>UI</c> presets
+/// exist only in code and use <c>[r,g,b,a]</c> arrays; <see cref="TryGetColor"/> accepts both shapes.
+/// </remarks>
 public sealed class EnvPalette
 {
     readonly IReadOnlyDictionary<string, object?> _raw;
@@ -30,7 +27,7 @@ public sealed class EnvPalette
         _raw = raw;
     }
 
-    /// <summary>Every field name this palette carries after <c>$parent</c> inheritance is flattened - for diagnostics and for auditing which authored values the pipeline does and does not consume.</summary>
+    /// <summary>Every field name this palette carries after <c>$parent</c> inheritance, for auditing which authored values the renderer consumes.</summary>
     public IReadOnlyCollection<string> Keys => _raw.Keys.ToArray();
 
     public bool TryGetFloat(string key, out float value)
@@ -55,9 +52,7 @@ public sealed class EnvPalette
     {
         if (_raw.TryGetValue(key, out var raw))
         {
-            // The two hardcoded presets (IconCapture/UI) use a plain [r,g,b,a] array; every real
-            // romfs ResEnvPalette stores a colour as a {R,G,B,A} map instead (see FromByml) -
-            // support both rather than picking one and breaking the other.
+            // The code-defined presets use [r,g,b,a] arrays; romfs palettes use a {R,G,B,A} map (see FromByml).
             if (raw is object?[] { Length: >= 3 } arr)
             {
                 float w = arr.Length >= 4 ? ToFloat(arr[3]) : 1f;
@@ -84,7 +79,7 @@ public sealed class EnvPalette
         _ => 0f,
     };
 
-    // ---- named accessors for the fields the pipeline actually reads ----
+    // Named accessors for the fields the renderer reads.
 
     static Vector3 Xyz(Vector4 v) => new(v.X, v.Y, v.Z);
 
@@ -96,64 +91,51 @@ public sealed class EnvPalette
     public Vector3 HemiGroundColor => Xyz(GetColor("HemiGroundColor", Vector4.Zero));
     public float HemiIntensity => GetFloat("HemiIntensity", 1.0f);
 
-    /// <summary>
-    /// A direct multiplier on the hemisphere ambient, authored by 44 of the 131 shipped palettes
-    /// (absent = 1.0, the neutral). Multiplies - does not replace - the viewer's own ambient
-    /// slider, so a palette that declares it shifts the ambient without taking the control away.
-    /// </summary>
+    /// <summary>A direct multiplier on the hemisphere ambient, authored by 44 of the 131 shipped palettes (absent = 1.0). Multiplies the ambient slider rather than replacing it.</summary>
     public float AmbientScale => GetFloat("AmbientScale", 1f);
 
-    // ---- sky scattering: what the game feeds its own sky shader, and what WildRenderingSharp uses to
-    // approximate the sky irradiance the hemisphere ambient should be (see AmbientLighting).
+    // Sky scattering: what the game feeds its own sky shader, and what the ambient approximation uses (see AmbientLighting).
 
     /// <summary>How much blue Rayleigh scattering this sky has: 1.0 at overworld noon, 0.25 at night, 0.0 under a blood moon.</summary>
     public float SkyRayleighAmplifier => GetFloat("SkyRParam_rayleigh_amplifier", 1f);
     /// <summary>How much sun-coloured Mie haze this sky has: 12 at overworld noon, 0 at night, 256 under a blood moon.</summary>
     public float SkyMieAmplifier => GetFloat("SkyRParam_mie_amplifier", 0f);
-    /// <summary>The Mie phase asymmetry. Carried for completeness; the ambient approximation uses only the amplifiers and the sun colour.</summary>
+    /// <summary>The Mie phase asymmetry. The ambient approximation uses only the amplifiers and the sun colour.</summary>
     public float SkyMieSymmetrical => GetFloat("SkyRParam_mie_symmetrical", 0f);
-    /// <summary>The sun's own colour as the SKY sees it - the tint of the Mie haze term, and a different field from <see cref="BgDifColor"/>, which is the directional light that hits surfaces.</summary>
+    /// <summary>The sun colour as the sky sees it, tinting the Mie haze. Distinct from <see cref="BgDifColor"/>, the directional light that hits surfaces.</summary>
     public Vector3 SkySunColor => Xyz(GetColor("SkySunColor", new Vector4(1, 1, 1, 1)));
     public float SkySunColorIntensity => GetFloat("SkySunColorIntensity", 1f);
     /// <summary>The palette's own "ignore my SkySunColor" switch.</summary>
     public bool SkySunColorNoUse => GetBool("SkySunColorNoUse", false);
 
-    /// <summary>The palette's own authored distance-fog colour - also used by <c>Pipeline.BackgroundPass</c> as the real-data horizon haze tint for the TotK Sky background (real atmospheric games blend toward their fog colour near the horizon; this is that same authored value, not an invented one).</summary>
+    /// <summary>The palette's distance-fog colour, also used by <c>BackgroundPass</c> as the horizon haze tint.</summary>
     public Vector3 FogColor => Xyz(GetColor("FogColor", new Vector4(0.6f, 0.75f, 1f, 0f)));
 
-    /// <summary>The palette's own authored fog far distance. Confirmed real: a captured frame's own cloud-shader constant buffer holds <c>1/FogEnd</c> (1/300 for the palette that capture used) - see <see cref="Pipeline.CloudDomePass"/>.</summary>
+    /// <summary>The palette's fog far distance. A captured cloud-shader constant buffer holds <c>1/FogEnd</c> (1/300 for that capture's palette); see <c>CloudDomePass</c>.</summary>
     public float FogEnd => GetFloat("FogEnd", 300f);
     public float FogStart => GetFloat("FogStart", 0f);
 
-    /// <summary>
-    /// <c>FogColor</c>'s alpha - the adhoc-fog DENSITY, and the palette's real on/off for the
-    /// horizon haze band. Noon authors 0 (clear sky, no band); BloodyMoon_DarknessDragon authors
-    /// 0.6 with a pure-red <c>FogColor</c>, which is the band the game shows under a blood moon.
-    /// </summary>
+    /// <summary><c>FogColor</c>'s alpha: the adhoc-fog density and the palette's on/off for the horizon haze band. Noon authors 0; BloodyMoon_DarknessDragon authors 0.6 with a pure-red <c>FogColor</c>.</summary>
     public float FogDensity => GetColor("FogColor", new Vector4(0.6f, 0.75f, 1f, 0f)).W;
 
-    /// <summary>"Af" = Adhoc Fog - these are the per-palette counterparts of <c>master_field.baglsky</c>'s own <c>adhoc_fog_atten_sky</c>/<c>_grd</c>. See <c>SkyPostFxPass</c> for how the sky one is applied (and what about it is still unconfirmed).</summary>
+    /// <summary>"Af" is adhoc fog: per-palette counterparts of <c>master_field.baglsky</c>'s <c>adhoc_fog_atten_sky</c> and <c>_grd</c>. See <c>SkyPostFxPass</c>.</summary>
     public float AdhocFogAttenSky => GetFloat("AfParam_attenuationForSky", 1f);
     public float AdhocFogAttenGrd => GetFloat("AfParam_attenuationForGrd", 4f);
 
-    /// <summary>Height fog, authored per palette (<c>YFogColor</c>/<c>YFogStart</c>). Parsed but not yet consumed - see CLAUDE.md.</summary>
+    /// <summary>Height fog (<c>YFogColor</c>, <c>YFogStart</c>). Parsed but not yet consumed.</summary>
     public Vector3 YFogColor => Xyz(GetColor("YFogColor", Vector4.Zero));
     public float YFogDensity => GetColor("YFogColor", Vector4.Zero).W;
     public float YFogStart => GetFloat("YFogStart", 0f);
-    /// <summary>Real authored scatter-fog attenuation (<c>SfParam_attenuation</c>) - confirmed present verbatim in a real captured cloud-shader constant buffer.</summary>
+    /// <summary>Scatter-fog attenuation (<c>SfParam_attenuation</c>), present verbatim in a captured cloud-shader constant buffer.</summary>
     public float ScatterFogAttenuation => GetFloat("SfParam_attenuation", 40f);
-    /// <summary>Real authored scatter-fog horizon exponent (<c>SfParam_horizontal</c>) - likewise confirmed verbatim in a real capture.</summary>
+    /// <summary>Scatter-fog horizon exponent (<c>SfParam_horizontal</c>), likewise confirmed in a capture.</summary>
     public float ScatterFogHorizontal => GetFloat("SfParam_horizontal", 2.5f);
 
     /// <summary>
-    /// One of the palette's two authored cloud layers (<c>Cloud0</c>/<c>Cloud1</c> - see
-    /// <see cref="Cloud0"/>/<see cref="Cloud1"/>) - real authored per-preset cloud shading data:
-    /// a classic 3-way gradient (shadow/base/hilight, each with its own colour AND intensity) plus
-    /// a backlight term for when the sun sits behind the cloud. <see cref="Present"/> is false when
-    /// the layer is either entirely absent from this palette OR explicitly disabled via its own
-    /// <c>Cloud0NoUse</c>/<c>Cloud1NoUse</c> switch (both real, authored per-palette - e.g. a clear
-    /// "Bluesky" noon preset authors real Cloud0 data but sets <c>Cloud0NoUse: true</c>, so only
-    /// its Cloud1 layer is actually meant to show).
+    /// One of a palette's two cloud layers (<see cref="Cloud0"/>, <see cref="Cloud1"/>): a three-way gradient (shadow,
+    /// base, hilight, each with colour and intensity) plus a backlight term for when the sun is behind the cloud.
+    /// <see cref="Present"/> is false when the layer is absent or disabled by its <c>Cloud0NoUse</c> / <c>Cloud1NoUse</c>
+    /// switch (a clear noon preset authors Cloud0 data but sets <c>Cloud0NoUse</c>).
     /// </summary>
     public readonly record struct CloudLayer(
         bool Present, float BacklightPower,
@@ -185,12 +167,9 @@ public sealed class EnvPalette
     public Vector3 VolumeMaskColor => Xyz(GetColor("VolumeMaskColor", Vector4.Zero));
     public float VolumeMaskIntensity => GetFloat("VolumeMaskIntensity", 0f);
     /// <summary>
-    /// The palette's own "ignore my VolumeMaskColor" switch. Honoured, though note the tint it
-    /// gates is inert in WildRenderingSharp for a different reason: the resolve passes apply it as
-    /// <c>cTex_VolumeMask.z * Env[81].w</c>, and WildRenderingSharp binds an all-zero 1x1 VolumeMask texture
-    /// (the correct neutral for "not inside a fog/indoor volume"), so the .z factor is 0 whatever
-    /// the palette says. Driving it for real needs the volume-mask buffer the game's own indoor
-    /// system fills, which WildRenderingSharp does not render.
+    /// The palette's "ignore my VolumeMaskColor" switch. The tint it gates is inert regardless: the resolve applies it as
+    /// <c>cTex_VolumeMask.z * Env[81].w</c> and an all-zero 1x1 volume mask is bound, since the game's indoor system that
+    /// fills it is not rendered.
     /// </summary>
     public bool VolumeMaskColorNoUse => GetBool("VolumeMaskColorNoUse", false);
 
@@ -204,7 +183,7 @@ public sealed class EnvPalette
     public float ColorCorrectBrightness => GetFloat("CC_Brightness", 1.0f);
     public float ColorCorrectGamma => GetFloat("CC_Gamma", 1.0f);
 
-    /// <summary>Parses one JSON value into the plain-CLR-object bag <see cref="EnvPalette"/> reads from - used only by the two hardcoded presets below now that real palettes load straight from romfs (<see cref="EnvPaletteLibrary.LoadFromRomfs"/>).</summary>
+    /// <summary>Parses one JSON value into the plain-object bag <see cref="EnvPalette"/> reads, for the two code-defined presets.</summary>
     internal static object? FromJson(JsonElement el) => el.ValueKind switch
     {
         JsonValueKind.String => el.GetString(),
@@ -216,11 +195,7 @@ public sealed class EnvPalette
         _ => null,
     };
 
-    /// <summary>
-    /// Parses one <c>BymlLibrary.Byml</c> node into the same plain-CLR-object bag - a colour comes
-    /// through as a <c>{R,G,B,A}</c> map (not an array like the JSON presets use), which is why
-    /// <see cref="TryGetColor"/> accepts both shapes.
-    /// </summary>
+    /// <summary>Parses one <c>Byml</c> node into the same bag. A colour is a <c>{R,G,B,A}</c> map, which is why <see cref="TryGetColor"/> accepts both shapes.</summary>
     internal static object? FromByml(Byml node) => node.Type switch
     {
         BymlNodeType.String => node.GetString(),
@@ -238,25 +213,20 @@ public sealed class EnvPalette
 }
 
 /// <summary>
-/// Loads every <c>game::wm::ResEnvPalette</c> straight out of romfs (<c>Pack/EnvPalette.pack.zs</c>
-/// -&gt; <c>WorldMgr/ResEnvPalette/*.bgyml</c>, via <c>TotkCommon</c>/<c>SarcLibrary</c>/
-/// <c>BymlLibrary</c>) plus the two hardcoded icon-capture presets (<c>IconCapture</c>/<c>UI</c> -
-/// these exist only in code, romfs has no equivalent bgyml for them), and resolves a palette by
-/// name the same fuzzy way <c>get_palette</c> does.
+/// Loads every <c>game::wm::ResEnvPalette</c> from romfs plus the <c>IconCapture</c> and <c>UI</c> presets (which exist
+/// only in code), and resolves a palette by name the way <c>get_palette</c> does.
 /// </summary>
 public sealed class EnvPaletteLibrary
 {
     readonly Dictionary<string, EnvPalette> _byName = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// WildRenderingSharp's own neutral studio preset (see <see cref="BuildStudioLightPreset"/>) and the
-    /// default everything falls back to. Deliberately NOT a romfs palette: it exists with no romfs
-    /// configured at all, and a shader-suite session should open on lighting that shows a model as
-    /// it is rather than on a time-of-day grade someone has to recognise and undo first.
+    /// The neutral studio preset (see <see cref="BuildStudioLightPreset"/>) and the default everything falls back to. Not a
+    /// romfs palette, so it exists with no romfs configured and a session opens on lighting that shows a model as it is.
     /// </summary>
     public const string StudioLightPaletteName = "StudioLight";
 
-    /// <summary>The romfs palette the game itself uses for overworld noon - the reference to compare a studio render against, and what <see cref="StudioLightPaletteName"/> replaced as the startup default.</summary>
+    /// <summary>The romfs palette the game uses for overworld noon, the reference to compare a studio render against.</summary>
     public const string ReferenceDaylightPaletteName = "Prequel_MainField_Bluesky_3_Noon";
 
     public const string DefaultPaletteName = StudioLightPaletteName;
@@ -268,11 +238,7 @@ public sealed class EnvPaletteLibrary
 
     EnvPaletteLibrary() { }
 
-    /// <summary>
-    /// Presets only, no romfs data - the safe starting point before a romfs path is configured.
-    /// <see cref="Get"/> keeps working here, because <see cref="DefaultPaletteName"/> is itself one
-    /// of these presets rather than a romfs palette that may not have loaded.
-    /// </summary>
+    /// <summary>Presets only, the safe starting point before a romfs path is configured. <see cref="Get"/> still works because the default is itself a preset.</summary>
     public static EnvPaletteLibrary Empty()
     {
         var lib = new EnvPaletteLibrary();
@@ -283,27 +249,16 @@ public sealed class EnvPaletteLibrary
     }
 
     /// <summary>
-    /// Loads every ResEnvPalette from <paramref name="romfsRoot"/>. Returns <see cref="Empty"/>
-    /// (with a log line, not an exception) if <c>Pack/EnvPalette.pack.zs</c> isn't found there -
-    /// romfs root not yet configured, or pointed at the wrong folder.
-    ///
-    /// Many palettes are deltas: <c>$parent</c> names another ResEnvPalette (by its romfs path,
-    /// e.g. <c>Work/WorldMgr/ResEnvPalette/Ganondorf_Castle_1....gyml</c>) whose OWN fields this
-    /// one inherits, overriding only the handful it actually declares - resolved here once at
-    /// load time (with cycle protection) so every <see cref="EnvPalette"/> this library hands out
-    /// already has its complete, flattened field set.
+    /// Loads every ResEnvPalette from <paramref name="romfsRoot"/>, or returns <see cref="Empty"/> (with a log line) if
+    /// <c>Pack/EnvPalette.pack.zs</c> is not there. Delta palettes name another palette in <c>$parent</c> and override only
+    /// some fields; those are flattened once here, with cycle protection, so every palette handed out is complete.
     /// </summary>
 
-    /// <summary>
-    /// Merges a delta palette over its parent, RECURSING into nested maps.
-    /// </summary>
+    /// <summary>Merges a delta palette over its parent, recursing into nested maps.</summary>
     /// <remarks>
-    /// A shallow merge is wrong here and quietly so. Delta palettes routinely override only a
-    /// couple of fields of a nested object - BloodyMoon_DarknessDragon's Cloud1 carries just
-    /// BacklightPower/IntensityBase/IntensityHilight - so replacing the whole object throws away
-    /// every field the delta did not mention, including all three of the parent's cloud COLOURS.
-    /// Those then fall back to (1,1,1) and the clouds render white instead of the authored deep
-    /// red. Nothing errors; the palette simply loses data.
+    /// A shallow merge silently loses data: BloodyMoon_DarknessDragon's Cloud1 carries only BacklightPower, IntensityBase
+    /// and IntensityHilight, so replacing the whole object drops the parent's cloud colours and the clouds render white
+    /// instead of deep red.
     /// </remarks>
     static Dictionary<string, object?> DeepMerge(
         IReadOnlyDictionary<string, object?> parent, IReadOnlyDictionary<string, object?> child)
@@ -381,8 +336,7 @@ public sealed class EnvPaletteLibrary
 
         foreach (string name in rawByName.Keys)
         {
-            // Presets win a name collision: StudioLight/IconCapture/UI are WildRenderingSharp's own and must
-            // stay exactly what BuildXPreset says, whatever a romfs pack happens to be called.
+            // Presets win a name collision: they must stay exactly what their builders say, whatever a romfs pack is called.
             if (lib._byName.ContainsKey(name))
             {
                 Console.WriteLine($"[EnvPaletteLibrary] romfs palette '{name}' shadows a built-in preset - keeping the preset.");
@@ -397,13 +351,7 @@ public sealed class EnvPaletteLibrary
 
     void AddPreset(string name, Dictionary<string, object?> raw) => _byName[name] = new EnvPalette(name, raw);
 
-    /// <summary>
-    /// Mirrors <c>get_palette</c>: exact match, then case-insensitive, across the presets first and
-    /// then the loaded palettes, falling back to <see cref="DefaultPaletteName"/> - which is the
-    /// built-in <see cref="StudioLightPaletteName"/> preset and therefore always present, even with
-    /// no romfs configured yet - rather than throwing. A missing or not-yet-configured romfs
-    /// shouldn't be able to crash rendering.
-    /// </summary>
+    /// <summary>Exact match, then case-insensitive, across the presets and then the loaded palettes, falling back to <see cref="DefaultPaletteName"/> (a built-in preset) rather than throwing.</summary>
     public EnvPalette Get(string? name)
     {
         if (string.IsNullOrEmpty(name))
@@ -421,17 +369,11 @@ public sealed class EnvPaletteLibrary
     }
 
     /// <summary>
-    /// Blank studio lighting: a neutral white key, a neutral untinted ambient, and every grade,
-    /// glow and tint switched off. Not a real game palette and not pretending to be one - the
-    /// point is that nothing here colours or reshapes what the model itself contributes, so a
-    /// material's own albedo/emission is what you are looking at.
-    ///
-    /// Every shipped romfs palette omits <c>HemiSkyColor</c>/<c>HemiGroundColor</c> entirely, which
-    /// sends <see cref="WildRenderingSharp.Rendering.AmbientLighting"/> to its blue-sky Rayleigh fallback
-    /// - so a neutral ambient is only reachable by declaring the pair explicitly, as this does.
-    /// The magnitudes (BgDifIntensity 5.0, HemiIntensity 0.35) are the shipped icon-capture
-    /// preset's, which are already calibrated against this pipeline's exposure; only the hues are
-    /// neutralised.
+    /// Blank studio lighting: a neutral white key, an untinted ambient, and every grade, glow and tint off, so the model's
+    /// own albedo and emission are what you see. Every shipped palette omits <c>HemiSkyColor</c> and <c>HemiGroundColor</c>,
+    /// which sends <see cref="WildRenderingSharp.Rendering.AmbientLighting"/> to its blue-sky fallback, so a neutral ambient
+    /// needs the pair declared. The magnitudes (BgDifIntensity 5.0, HemiIntensity 0.35) are the icon-capture preset's; only
+    /// the hues are neutralised.
     /// </summary>
     static Dictionary<string, object?> BuildStudioLightPreset() => new()
     {

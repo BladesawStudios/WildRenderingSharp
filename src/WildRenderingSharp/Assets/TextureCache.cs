@@ -11,25 +11,20 @@ public sealed class LoadedTexture
     public required int Width { get; init; }
     public required int Height { get; init; }
 
-    /// <summary>The real romfs texture name (e.g. "Cmn_Enemy_DungeonBoss_Eye_Alb") - lets a pass identify a specific known asset by name, such as <see cref="WildRenderingSharp.Pipeline.KnownMaterialFixes"/>.</summary>
+    /// <summary>The romfs texture name (e.g. "Cmn_Enemy_DungeonBoss_Eye_Alb"), so a pass can identify a specific asset, as <c>KnownMaterialFixes</c> does.</summary>
     public required string Name { get; init; }
 }
 
 /// <summary>
-/// One resolved texture binding on a shape: the shader unit, the SAMPLER KEY it was bound through
-/// (e.g. "_a0"/"_e0"), and the texture itself. The key is carried because a texture pattern anim
-/// re-points a sampler BY KEY - that is what <c>PatternAnimInfo.Name</c> names - so the draw has to
-/// know which of a shape's units corresponds to which sampler.
+/// One resolved texture binding on a shape: the shader unit, the sampler key it was bound through (e.g. "_a0"), and the
+/// texture. The key is carried because a texture pattern anim re-points a sampler by key.
 /// </summary>
 public readonly record struct ShapeSampler(int Unit, string Key, LoadedTexture Texture);
 
 /// <summary>
-/// Loads and caches textures by name so shapes sharing a texture share one GL object - mirrors
-/// <c>load_shapes</c>'s <c>tex_cache</c>. Uploads compressed block data straight to the GPU (see
-/// <see cref="CompressedTextureFormat"/>'s remarks); a texture whose format this codebase doesn't
-/// handle, or whose bin file is simply absent (the manifest still lists the binding so it can be
-/// logged), is skipped rather than aborting the whole model - matching
-/// <c>ExportTestBench</c>/<c>load_texture</c>'s existing behavior for the same gap.
+/// Loads and caches textures by name so shapes sharing a texture share one GL object. Compressed block data is uploaded
+/// straight to the GPU (see <see cref="CompressedTextureFormat"/>); a texture in an unhandled format, or whose bin file is
+/// absent, is skipped rather than aborting the model.
 /// </summary>
 public sealed class TextureCache : IDisposable
 {
@@ -57,13 +52,10 @@ public sealed class TextureCache : IDisposable
         var result = new List<ShapeSampler>();
         foreach (var s in samplers)
         {
-            // Bound to plain white when the texture could not be found or loaded, rather than left
-            // unbound: an unbound unit reads whatever the last draw left on it, which is how a
-            // missing baked-lighting texture once turned every static world object black instead of
-            // showing up as missing.
+            // Bound to white when the texture is missing: an unbound unit reads whatever the last draw left on it, which once turned every static world object black.
             if (ExternalTextures.IsArraySampler(s.Key))
             {
-                // Never the model's own one-layer copy - see ExternalTextures.
+                // Never the model's own one-layer copy (see ExternalTextures).
                 if (_external is null)
                 {
                     _external = new ExternalTextures(_gl);
@@ -78,7 +70,7 @@ public sealed class TextureCache : IDisposable
         return result;
     }
 
-    /// <summary>Loads (or returns the cached) texture for one binding - public so a texture pattern anim can pull in an alternate texture no material currently binds. Cached by texture NAME, so the first binding to ask for a given texture decides its sRGB interpretation; every real pattern anim drives one sampler slot consistently, so that is the same decision either way.</summary>
+    /// <summary>Loads (or returns the cached) texture for one binding; public so a texture pattern anim can pull in an alternate. Cached by name, so the first binding to ask decides the sRGB interpretation.</summary>
     public LoadedTexture? Load(SamplerBinding s) => GetOrLoad(s);
 
     static bool? _anisotropy;
@@ -117,20 +109,14 @@ public sealed class TextureCache : IDisposable
         byte[] raw = File.ReadAllBytes(path);
         bool srgb = CompressedTextureFormat.IsSrgb(s.Format, s.Key, s.Assigned, s.Texture);
 
-        // Start from an empty error queue so the check below can only be about THIS upload. A
-        // texture pattern anim loads its alternates on demand mid-frame, right after the render
-        // pipeline has run, so without this the first such upload reports whatever the pipeline
-        // left pending - which is how a texture came to be blamed for an error that only
-        // framebuffer operations can raise. See GLDiagnostics.
+        // Start from an empty error queue so the check below is about this upload: alternates load on demand mid-frame, after the pipeline ran.
         GLDiagnostics.CheckPending(_gl, $"uploading texture '{s.Texture}'");
         var internalFormat = srgb ? info.Value.FormatSrgb : info.Value.Format;
 
         uint handle = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, handle);
 
-        // The file is the texture's mip chain back to back, as the game ships it - or mip 0 alone
-        // from a cache prepared before chains were exported. Levels are read for as long as the
-        // file holds another whole one.
+        // The file is the mip chain back to back, or mip 0 alone from an older cache; levels are read for as long as another whole one remains.
         int levels = 0;
         for (int offset = 0, w = s.Width, h = s.Height; ; w = Math.Max(1, w / 2), h = Math.Max(1, h / 2))
         {
@@ -140,9 +126,7 @@ public sealed class TextureCache : IDisposable
             var level = new ReadOnlySpan<byte>(raw, offset, length);
             if (info.Value.AstcFootprint is { } footprint)
             {
-                // No guaranteed desktop GL/driver support for ASTC - decode to plain RGBA on the CPU
-                // and upload uncompressed rather than risk glCompressedTexImage2D silently failing on
-                // hardware without GL_KHR_texture_compression_astc_ldr.
+                // ASTC has no guaranteed desktop support: decode to RGBA on the CPU rather than risk a silent upload failure.
                 byte[] rgba = CompressedTextureFormat.DecodeAstc(level.ToArray(), w, h, footprint, srgb);
                 unsafe
                 {
@@ -165,16 +149,13 @@ public sealed class TextureCache : IDisposable
 
         ApplySwizzle(s);
 
-        // Exactly the levels uploaded: a chain the exporter cut short (a tail mip it could not
-        // deswizzle) is still complete up to its last level. Without the chain - mip 0 only, as
-        // every texture was until chains were exported - a tiled texture seen at a distance
-        // shimmers into moire: the streaks across water and the striped far-off rocks.
-        // glGenerateMipmap is no substitute, having no defined behaviour for compressed formats.
+        // Exactly the levels uploaded (an exporter may cut a chain short). Without the chain a tiled texture shimmers at
+        // distance; glGenerateMipmap is undefined for compressed formats.
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, Math.Max(0, levels - 1));
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
             (int)(levels > 1 ? GLEnum.LinearMipmapLinear : GLEnum.Linear));
-        // Surfaces seen edge-on - water, a field of ground - blur to mush under trilinear alone.
+        // Surfaces seen edge-on blur under trilinear alone.
         if (levels > 1 && SupportsAnisotropy(_gl))
             _gl.TexParameter(TextureTarget.Texture2D, (TextureParameterName)GLEnum.TextureMaxAnisotropy, 8f);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
@@ -189,67 +170,30 @@ public sealed class TextureCache : IDisposable
     }
 
     /// <summary>
-    /// NVN configures a per-texture component swizzle - it's a property of the game's own texture
-    /// descriptor, not something the compressed format's channel count implies on its own, so
-    /// desktop GL's default identity swizzle can silently disagree with what a real shader expects
-    /// to read from a "missing" channel. The real, authoritative source is the TXTG container's own
-    /// <c>CompSelect</c> bytes (<see cref="SamplerBinding.CompSelect"/>), applied here as a genuine
-    /// per-component GL swizzle using the ORIGINAL Switch-Toolbox-derived encoding
-    /// (<c>0=R,1=G,2=B,3=A,4=Zero,5=One</c>) - see <see cref="MapCompSelect"/>.
-    ///
-    /// This encoding is deliberately NOT the one a later Ghidra trace derived (against a general
-    /// BNTX/BRTI header) and applied project-wide, which was reverted after it broke textures
-    /// broadly across the corpus. Cross-checked directly against raw romfs bytes (bypassing
-    /// <c>TxtgTexture</c>'s own parser) for several real textures: under THIS encoding, the
-    /// overwhelming majority carry the trivial identity <c>[0,1,2,3]</c> - a genuine no-op, since
-    /// applying R&lt;-R,G&lt;-G,B&lt;-B,A&lt;-A reproduces GL's own default swizzle exactly, compressed
-    /// format or not - confirmed on both a known-good BC5 texture (Enemy_Drake's/
-    /// Enemy_MiasmaTentacle's shared iris mask, "Cmn_Enemy_DungeonBoss_Eye_Alb") and, separately, on
-    /// "Npc_Ganondorf_Miasma_Body_Gn5" (whose own always-black-albedo bug turned out NOT to be a
-    /// swizzle problem at all - its comp_select really is identity; see that shape's own
-    /// investigation notes). Meanwhile several real "Gn4"/"AO"-style mask textures across UNRELATED
-    /// character models (Npc_Zelda_Face_Gn4, Npc_Zelda_AncientHyrule_Face_Gn4, Link_Head_AO,
-    /// Npc_Ganondorf_Miasma_Face_Gn4, MiasmaTentacle_L_Soul_Gn4,
-    /// Npc_Ganondorf_Mummy_Battle_Soul_Gn4) consistently carry the genuinely non-trivial
-    /// <c>[0,1,1,1]</c> - "B and A both source real channel G", a standard trick for packing a
-    /// second mask into a 2-channel BC5's otherwise-constant B/A reads. That the same non-default
-    /// value shows up identically on unrelated assets across unrelated models is what makes this
-    /// encoding trustworthy where the earlier one wasn't (which broke EVERY texture, not just the
-    /// ones it was meant to fix).
-    ///
-    /// Falls back to the old format-based BC4-&gt;RRRR heuristic only when a manifest predates this
-    /// field entirely (<see cref="SamplerBinding.CompSelect"/> is null).
-    ///
-    /// CONFIRMED BROKEN AND FIXED once already this session, then OVER-corrected and fixed again -
-    /// two separate real regressions from this same mechanism, so read both before touching it a
-    /// third time:
-    ///
-    /// (1) `Npc_Ganondorf_Miasma_Noise_Gn4` (used in the exact alpha-test formula gating
-    /// `Botom_Back__Mt_Body_Miasma_Lower`'s visibility) is BC4 (ONE real stored channel) but carries
-    /// comp_select `[0,1,1,1]` - the same "source real channel G into B and A" pattern that's
-    /// genuinely correct on a 2-channel BC5 texture. Naively mapping index 1 to `GL_GREEN` on a
-    /// BC4/RED-only format doesn't read real data: OpenGL's own base-internal-format conversion
-    /// table defines a RED-only format's G/B slots as the constant 0 BEFORE swizzling even sees
-    /// them, so the shader's G/B/A reads all silently became 0 instead of the real, intended
-    /// R-channel broadcast (confirmed live via the G-buffer step debugger: a texture read that
-    /// should have shown as grayscale showed as pure red instead).
-    ///
-    /// (2) The first fix for (1) clamped EVERY format's comp_select index to its real channel count,
-    /// not just BC4's - which broke BC5 textures with the ordinary identity `[0,1,2,3]` (Zelda's
-    /// hair, confirmed live): BC5's OWN natural GL fallback for its non-existent B/A channels (0 and
-    /// 1) is already exactly what every real shader in this corpus expects - that's the whole reason
-    /// the "Cmn_Enemy_DungeonBoss_Eye_Alb" case (BC5, comp_select `[0,1,2,3]`) was already correct
-    /// with a literal, unclamped mapping. Clamping index 2/3 down to `GL_GREEN` on a BC5 texture
-    /// replaced that correct (0,1) fallback with a wrong duplicated-green read instead.
-    ///
-    /// The actual distinction: BC4's REAL hardware/game convention broadcasts its one channel into
-    /// all four slots, which is NOT what GL's own RED-format default does (GL gives (R,0,0,1), the
-    /// game wants (R,R,R,R)) - so BC4 alone needs a special-cased override. BC5's natural GL default
-    /// ((R,G,0,1) for a two-component format) already matches the game's own convention, so BC5 (and
-    /// every genuinely 4-channel format) uses the comp_select value LITERALLY with no clamping at
-    /// all, trusting GL's own per-format channel semantics to supply the right constant for any
-    /// index the format doesn't physically have.
+    /// Applies the texture's component swizzle. NVN swizzles per texture descriptor, not by the format's channel count, so
+    /// GL's identity swizzle can disagree with what a shader expects from a missing channel. The authority is the TXTG
+    /// container's <c>CompSelect</c> bytes (<see cref="SamplerBinding.CompSelect"/>), in the Switch-Toolbox encoding
+    /// (<c>0=R, 1=G, 2=B, 3=A, 4=Zero, 5=One</c>); see <see cref="MapCompSelect"/>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This encoding was checked against raw romfs bytes: most textures carry the identity <c>[0,1,2,3]</c>, while unrelated
+    /// "Gn4" and "AO" mask textures across character models consistently carry <c>[0,1,1,1]</c>, the standard trick of packing
+    /// a second mask into a two-channel BC5's constant B and A. An encoding derived from a general BNTX header broke textures
+    /// corpus-wide and was reverted. Falls back to the old BC4-to-RRRR heuristic when a manifest predates the field.
+    /// </para>
+    /// <para>
+    /// Two regressions came from this mechanism. (1) BC4 has one stored channel but can carry <c>[0,1,1,1]</c>; mapping
+    /// index 1 to <c>GL_GREEN</c> reads the constant 0 GL defines for a RED-only format's G slot, so reads that should be
+    /// grayscale came out red. (2) Clamping every format's index to its channel count broke ordinary BC5 textures: GL's
+    /// natural fallback for BC5's missing B and A (0 and 1) already matches what shaders expect, and clamping replaced it
+    /// with a duplicated green.
+    /// </para>
+    /// <para>
+    /// The distinction: the game broadcasts a BC4 texture's one channel into all four slots, whereas GL gives (R,0,0,1), so
+    /// BC4 alone is overridden. BC5 and four-channel formats use the value literally, trusting GL's per-format channel semantics.
+    /// </para>
+    /// </remarks>
     void ApplySwizzle(SamplerBinding s)
     {
         bool isBc4 = s.Format.StartsWith("BC4", StringComparison.Ordinal);
@@ -272,13 +216,13 @@ public sealed class TextureCache : IDisposable
         }
     }
 
-    /// <param name="isBc4">BC4 has exactly one real stored channel, and the game's own convention for it is to broadcast that channel into every output slot - ANY comp_select index in 0-3 means "the one real channel," never a literal G/B/A. Every other format uses the index literally.</param>
+    /// <param name="isBc4">BC4 has one stored channel and the game broadcasts it into every output slot, so any index 0-3 means that channel. Every other format uses the index literally.</param>
     static GLEnum MapCompSelect(int v, bool isBc4) => v switch
     {
         4 => GLEnum.Zero,
         5 => GLEnum.One,
         >= 0 and <= 3 => isBc4 ? GLEnum.Red : MapRealChannel(v),
-        _ => GLEnum.Red, // not observed in real data - default to the texture's own first channel rather than silently injecting a constant.
+        _ => GLEnum.Red, // not observed in real data; defaults to the texture's first channel instead of injecting a constant
     };
 
     static GLEnum MapRealChannel(int v) => v switch
@@ -290,28 +234,17 @@ public sealed class TextureCache : IDisposable
     };
 
     /// <summary>
-    /// <see cref="SamplerBinding.WrapU"/>/<see cref="SamplerBinding.WrapV"/> carry GX2TexClamp's
-    /// own names (see <c>ExportManifest.BuildSamplers</c>) - every material texture used to be
-    /// uploaded with GL_REPEAT hardcoded regardless of what the game actually authored here, which
-    /// is why a texture the game clamps (an eye iris scrolled by a texture-SRT anim, in
-    /// particular) visibly tiled once its UV moved outside 0..1. Null (an older manifest, prepared
-    /// before this field existed) keeps that same old unconditional-repeat behaviour rather than
-    /// guessing. GX2 has several border-colour clamp variants (Clamp/ClampBorder/ClampHalfBorder/
-    /// ClampToEdge) that desktop GL has no per-variant equivalent for without also plumbing a real
-    /// border colour through - all of them collapse to GL_CLAMP_TO_EDGE here, which is the
-    /// "doesn't tile" behaviour that actually matters for this bug and a reasonable stand-in for
-    /// the rest. Likewise the MirrorOnce* variants collapse to GL_CLAMP_TO_EDGE rather than
-    /// GL_MIRRORED_REPEAT - GX2's "mirror once" clamps after the first reflection, which reads as
-    /// "don't keep tiling" for a scrolled UV far outside 0..1, not "keep mirroring forever."
+    /// Maps a GX2 wrap mode name (<see cref="SamplerBinding.WrapU"/>, <see cref="SamplerBinding.WrapV"/>) to GL. Null (an
+    /// older manifest) keeps repeat. GL has no per-variant equivalent of GX2's border-colour clamps without a border colour,
+    /// so all collapse to clamp-to-edge, which gives the "does not tile" behaviour that matters; the MirrorOnce variants
+    /// collapse the same way, since they stop reflecting after the first reflection. Plain strings rather than
+    /// <c>nameof</c> because this library has no BfresLibrary reference.
     /// </summary>
-    // Plain string literals, not nameof(GX2TexClamp...) - WildRenderingSharp deliberately has no
-    // BfresLibrary reference at all (see CLAUDE.md: "Parses no BFRES/BFSHA of its own"); the
-    // manifest's wrap_u/wrap_v strings are just GX2TexClamp's ToString() from the offline side.
     static GLEnum MapWrapMode(string? wrap) => wrap switch
     {
         null or "Wrap" => GLEnum.Repeat,
         "Mirror" => GLEnum.MirroredRepeat,
-        _ => GLEnum.ClampToEdge, // Clamp, ClampBorder, ClampHalfBorder, ClampToEdge, MirrorOnce, MirrorOnceBorder, MirrorOnceHalfBorder
+        _ => GLEnum.ClampToEdge, // Clamp, ClampBorder, ClampHalfBorder, ClampToEdge and the MirrorOnce variants
     };
 
     LoadedTexture? _white;
