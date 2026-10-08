@@ -65,9 +65,15 @@ The renderer carries a game's palette, sky, cloud and grade data as an opaque `I
 (`FrameRequest.Environment`). TotK's is `TotkEnvironment` in `Profiles/Totk/Atmosphere`, along with
 `EnvPalette`, `SkyPostFx` and the rest of its data models; a profile's stages read the concrete type.
 
-Still shared between games, and so still TotK-shaped: the prepared-model manifest format, and
-`LightingContext`, which holds both neutral display state (exposure, sun, bloom) and TotK sky and
-cloud settings. Where BotW differs, those are the next things to move behind the profile.
+`LightingContext` holds only what every game reads: exposure, sun, scales, background mode. A game's own
+live settings sit beside it (`WildRenderer.Totk` is a `TotkSettings`) and travel on its environment.
+
+The prepared-model manifest carries what every game needs. Keys the loader does not know are kept in
+`ShapeManifestEntry.Extensions`, surface as `LoadedShape.Tags`, and the profile reads them through its own
+accessors (`LoadedShape.DeferredPass()` for TotK).
+
+AAMP files are read with the AampSharp submodule (`vendor/AampSharp`), which any code can reference; a
+profile decides which fields it takes from them (`PostFxAamp` for TotK).
 
 ## Tests
 

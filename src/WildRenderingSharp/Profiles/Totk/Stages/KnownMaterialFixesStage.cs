@@ -13,7 +13,7 @@ public sealed class KnownMaterialFixesStage(FrameServices services, DeferredScen
     public void Run(FrameContext frame)
     {
         var lighting = frame.Lighting;
-        if (!lighting.EnableKnownMaterialFixes || !scene.NeedsKnownMaterialFixes)
+        if (!frame.TotkEnvironment().Settings.EnableKnownMaterialFixes || !scene.NeedsKnownMaterialFixes)
             return;
 
         var targets = frame.Targets;

@@ -13,17 +13,18 @@ public sealed class LensFlareStage(FrameServices services) : IFrameStage, IDispo
     public void Run(FrameContext frame)
     {
         var lighting = frame.Lighting;
-        if (!lighting.UseLensFlare)
+        var settings = frame.TotkEnvironment().Settings;
+        if (!settings.UseLensFlare)
             return;
 
         _lensFlare.Run(services.Resources, frame.Targets, frame.Targets.Final, new LensFlarePass.Params(
-            Threshold: lighting.LensFlareThreshold,
-            GhostSpacing: lighting.LensFlareGhostSpacing,
+            Threshold: settings.LensFlareThreshold,
+            GhostSpacing: settings.LensFlareGhostSpacing,
             HaloTint: Vector3.One,
-            HaloRadius: lighting.LensFlareHaloRadius,
-            Intensity: Vector3.One * lighting.LensFlareIntensity,
+            HaloRadius: settings.LensFlareHaloRadius,
+            Intensity: Vector3.One * settings.LensFlareIntensity,
             Exposure: lighting.Exposure,
-            SkyOnly: lighting.LensFlareSkyOnly));
+            SkyOnly: settings.LensFlareSkyOnly));
         GLDiagnostics.CheckPass(services.Gl, "lens flare");
     }
 

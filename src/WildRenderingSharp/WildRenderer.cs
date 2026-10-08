@@ -50,6 +50,7 @@ public sealed class WildRenderer : IDisposable
     public string? RomfsRoot { get; }
     public RenderEnvironment Environment { get; }
     public LightingContext Lighting { get; } = new();
+    public TotkSettings Totk { get; } = new();
     public DeferredPipeline Pipeline { get; }
 
     /// <summary>The main view <see cref="Render"/> draws into.</summary>
@@ -98,7 +99,7 @@ public sealed class WildRenderer : IDisposable
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
             // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
-            Pipeline.PrepareEnvironment(Environment.Resolve(Lighting.PaletteName), Lighting);
+            Pipeline.PrepareEnvironment(Environment.Resolve(Totk));
         }
     }
 
@@ -172,7 +173,7 @@ public sealed class WildRenderer : IDisposable
             SharedTextures = SharedTextures,
             DeferVertexArrays = true,
         };
-        var model = loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Lighting.EnableKnownMaterialFixes);
+        var model = loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Totk.EnableKnownMaterialFixes);
         foreach (var shape in model.Shapes)
             ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
         _gl.Finish();
@@ -200,7 +201,7 @@ public sealed class WildRenderer : IDisposable
             CompactVertices = CompactModelVertices,
             SharedTextures = SharedTextures,
         };
-        return loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Lighting.EnableKnownMaterialFixes);
+        return loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Totk.EnableKnownMaterialFixes);
     }
 
     /// <summary>Loads a prepared model and places it, standing upright at the origin.</summary>
@@ -356,7 +357,7 @@ public sealed class WildRenderer : IDisposable
         foreach (var actor in _actors)
             actor.ApplyMaterialAnimations(_gl);
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
-        return new FrameRequest(camera, Lighting, Environment.Resolve(Lighting.PaletteName, Terrain), inputs,
+        return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain), inputs,
             AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades);
     }
 

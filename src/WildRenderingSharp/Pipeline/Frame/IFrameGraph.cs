@@ -11,7 +11,7 @@ public interface IFrameGraph : IDisposable
     void SetScene(IReadOnlyList<LoadedModel> models);
 
     /// <summary>Does the work that depends only on the environment, never the camera or the scene. Safe to call every frame.</summary>
-    void PrepareEnvironment(IFrameEnvironment environment, LightingContext lighting);
+    void PrepareEnvironment(IFrameEnvironment environment);
 
     void Run(FrameContext frame);
 }

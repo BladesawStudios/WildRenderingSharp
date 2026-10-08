@@ -7,7 +7,6 @@ using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Sky;
 using WildRenderingSharp.Profiles.Totk.Stages;
 using WildRenderingSharp.Profiles.Totk.Terrain;
-using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Profiles.Totk;
 
@@ -59,10 +58,10 @@ public sealed class TotkFrameGraph : IFrameGraph
 
     public void SetScene(IReadOnlyList<LoadedModel> models) => _scene.Set(models);
 
-    public void PrepareEnvironment(IFrameEnvironment environment, LightingContext lighting)
+    public void PrepareEnvironment(IFrameEnvironment environment)
     {
         var totk = (TotkEnvironment)environment;
-        _skyBake.Ensure(totk.SkyPostFx, totk.Palette, lighting.PaletteName, lighting.SkyPaletteTint);
+        _skyBake.Ensure(totk.SkyPostFx, totk.Palette, totk.Settings.PaletteName, totk.Settings.SkyPaletteTint);
     }
 
     public void Run(FrameContext frame)

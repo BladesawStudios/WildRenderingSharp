@@ -11,11 +11,13 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 /// </summary>
 public sealed class TotkEnvironment(
     EnvPalette palette, SkyPostFx? skyPostFx = null, CloudPostFx? cloudPostFx = null,
-    SkyBinLut? skyBin = null, ColorCorrectionPostFx? colorCorrection = null, ITerrainHost? terrain = null) : IFrameEnvironment
+    SkyBinLut? skyBin = null, ColorCorrectionPostFx? colorCorrection = null, ITerrainHost? terrain = null,
+    TotkSettings? settings = null) : IFrameEnvironment
 {
     /// <summary>A host whose terrain is shaded with the game's terrain programs, or null.</summary>
     public ITerrainHost? Terrain { get; } = terrain;
 
+    public TotkSettings Settings { get; } = settings ?? new();
     public EnvPalette Palette { get; } = palette;
     public SkyPostFx SkyPostFx { get; } = skyPostFx ?? SkyPostFx.Default;
     public CloudPostFx CloudPostFx { get; } = cloudPostFx ?? CloudPostFx.Default;

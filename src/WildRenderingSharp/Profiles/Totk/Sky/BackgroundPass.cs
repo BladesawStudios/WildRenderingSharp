@@ -13,12 +13,12 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// </summary>
 /// <remarks>
 /// <see cref="BackgroundMode.Color"/> and <see cref="BackgroundMode.Transparent"/> are a plain clear.
-/// <see cref="BackgroundMode.TotkSky"/> ray-marches a single-scattering Rayleigh and Mie atmosphere per
+/// <see cref="BackgroundMode.Sky"/> ray-marches a single-scattering Rayleigh and Mie atmosphere per
 /// pixel, with a horizon fog blend and a sun disc. The game bakes the same model into precomputed
 /// scattering textures (<c>agl::pfx::Sky</c>, after Bruneton and Neyret 2008) from the
 /// <c>master_field.baglsky</c> parameters; its shaders are not available, so this evaluates the model
 /// live. The game's own sky shader draws over it when enabled (see <c>SkyStage</c>).
-/// Brightness is anchored to <c>SceneGain</c> and scaled by <see cref="LightingContext.AtmosphereIntensity"/>.
+/// Brightness is anchored to <c>SceneGain</c> and scaled by <see cref="TotkSettings.AtmosphereIntensity"/>.
 /// </remarks>
 public sealed class BackgroundPass : IDisposable
 {
@@ -277,7 +277,7 @@ public sealed class BackgroundPass : IDisposable
                 _gl.Clear(ClearBufferMask.ColorBufferBit);
                 break;
 
-            case BackgroundMode.TotkSky:
+            case BackgroundMode.Sky:
                 // Anchored to the SceneGain-corrected BgDifIntensity, the magnitude the lit path targets.
                 float intensityScale = palette.BgDifIntensity * sceneGain * SkyColorAnchor;
                 Vector3 sunDiscColor = palette.SkySunColorNoUse

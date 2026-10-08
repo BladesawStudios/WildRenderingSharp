@@ -23,20 +23,21 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     {
         var lighting = frame.Lighting;
         var environment = frame.TotkEnvironment();
+        var settings = environment.Settings;
 
         _background.Run(services.Resources, frame.Targets, lighting.Background, lighting.BackgroundColor, frame.SunWorld,
             environment.Palette, frame.Cam.ViewInv, frame.Cam.TanHalf, lighting.SceneGain, environment.SkyPostFx, environment.CloudPostFx,
-            lighting.AtmosphereIntensity);
+            settings.AtmosphereIntensity);
         GLDiagnostics.CheckPass(services.Gl, "background");
 
-        if (lighting.Background != BackgroundMode.TotkSky)
+        if (lighting.Background != BackgroundMode.Sky)
             return;
 
-        if (lighting.UseRealSkyShader && _skyPostFx.Available)
+        if (settings.UseRealSkyShader && _skyPostFx.Available)
             DrawSky(frame);
-        if (lighting.ShowSun || lighting.ShowMoon)
+        if (settings.ShowSun || settings.ShowMoon)
             DrawBodies(frame);
-        if (lighting.UseRealCloudDome)
+        if (settings.UseRealCloudDome)
             DrawClouds(frame);
     }
 
@@ -51,20 +52,21 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     {
         var lighting = frame.Lighting;
         var environment = frame.TotkEnvironment();
+        var settings = environment.Settings;
         var palette = environment.Palette;
         var cam = frame.Cam;
 
         float paletteBrightness = palette.BgDifIntensity / 5.0f;
-        float intensity = lighting.AtmosphereIntensity * paletteBrightness * lighting.SkyHdrLevel
+        float intensity = settings.AtmosphereIntensity * paletteBrightness * settings.SkyHdrLevel
             / (SkyPrecomputePass.NormalisedPeak * MathF.Max(1e-4f, lighting.Exposure));
         Vector3 groundColor = palette.BgDifColor * intensity;
-        var fog = lighting.UseSkyFog
-            ? SkyPostFxPass.Resolve(palette, environment.SkyPostFx, intensity, lighting.SkyFogStrength, lighting.SkyFogNormaliseHue)
+        var fog = settings.UseSkyFog
+            ? SkyPostFxPass.Resolve(palette, environment.SkyPostFx, intensity, settings.SkyFogStrength, settings.SkyFogNormaliseHue)
             : default;
 
         _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter,
             cam.ViewInv, cam.Aspect, cam.TanHalfFovY, frame.SunWorld, environment.SkyPostFx, intensity, groundColor,
-            lighting.SkyPaletteTint, fog);
+            settings.SkyPaletteTint, fog);
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
     }
 
@@ -73,6 +75,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     {
         var lighting = frame.Lighting;
         var environment = frame.TotkEnvironment();
+        var settings = environment.Settings;
         var palette = environment.Palette;
         var cam = frame.Cam;
 
@@ -81,14 +84,14 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, cam.ViewInv, cam.Aspect, cam.TanHalfFovY,
             new SkyBodyPass.Params(
                 SunDirZUp: frame.SunWorld,
-                MoonDirZUp: SunDirection.FromElevationAzimuth(lighting.MoonElevation, lighting.MoonAzimuth),
-                SunColor: sunHue * lighting.SunSpriteIntensity,
-                MoonColor: Vector3.One * lighting.MoonSpriteIntensity,
-                SunAngularRadius: float.DegreesToRadians(lighting.SunAngularRadiusDegrees),
-                MoonAngularRadius: float.DegreesToRadians(lighting.MoonAngularRadiusDegrees),
-                MoonPhase: lighting.MoonPhase,
-                DrawSun: lighting.ShowSun,
-                DrawMoon: lighting.ShowMoon));
+                MoonDirZUp: SunDirection.FromElevationAzimuth(settings.MoonElevation, settings.MoonAzimuth),
+                SunColor: sunHue * settings.SunSpriteIntensity,
+                MoonColor: Vector3.One * settings.MoonSpriteIntensity,
+                SunAngularRadius: float.DegreesToRadians(settings.SunAngularRadiusDegrees),
+                MoonAngularRadius: float.DegreesToRadians(settings.MoonAngularRadiusDegrees),
+                MoonPhase: settings.MoonPhase,
+                DrawSun: settings.ShowSun,
+                DrawMoon: settings.ShowMoon));
         GLDiagnostics.CheckPass(services.Gl, "sky bodies");
     }
 
@@ -96,13 +99,14 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     {
         var lighting = frame.Lighting;
         var environment = frame.TotkEnvironment();
+        var settings = environment.Settings;
         var palette = environment.Palette;
         var cam = frame.Cam;
 
         _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, environment.CloudPostFx.Layer0,
             cam.View, cam.Proj, frame.Camera.Eye, frame.SunWorld,
-            lighting.CloudBrightness, lighting.Exposure, lighting.AnimateClouds, lighting.CloudFade, palette.FogColor,
-            lighting.CloudResolutionScale, bake.BakedInscatter);
+            settings.CloudBrightness, lighting.Exposure, settings.AnimateClouds, settings.CloudFade, palette.FogColor,
+            settings.CloudResolutionScale, bake.BakedInscatter);
         GLDiagnostics.CheckPass(services.Gl, "cloud dome");
     }
 

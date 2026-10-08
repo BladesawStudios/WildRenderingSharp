@@ -27,7 +27,7 @@ public sealed class ResolveStage(
 
         bool hasSceneColorShapes = SceneColorShapePass.Any(frame.Groups);
         var sceneColorPasses = hasSceneColorShapes
-            ? frame.Groups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass).ToHashSet(StringComparer.Ordinal)
+            ? frame.Groups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass()).ToHashSet(StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);
 
         // The host's water reads the lit scene too, and is lit by its own pass.

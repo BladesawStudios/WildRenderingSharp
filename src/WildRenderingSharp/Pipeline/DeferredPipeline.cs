@@ -86,8 +86,8 @@ public sealed class DeferredPipeline : IDisposable
     /// Does the work that depends only on the environment, never the camera or the scene. Idempotent
     /// and safe to call every frame from anywhere with a current GL context.
     /// </summary>
-    public void PrepareEnvironment(IFrameEnvironment environment, LightingContext lighting) =>
-        Graph.PrepareEnvironment(environment, lighting);
+    public void PrepareEnvironment(IFrameEnvironment environment) =>
+        Graph.PrepareEnvironment(environment);
 
     /// <param name="targetsOverride">Render into these targets instead of <see cref="Targets"/>, for a second view that keeps its own size.</param>
     /// <param name="shadowCacheOverride">The shadow reuse state for this render. A second view needs its own; never share the main one.</param>
@@ -98,7 +98,7 @@ public sealed class DeferredPipeline : IDisposable
         Timer.BeginFrame();
         ShapeDrawing.TakeCounts();
         ShadowCounts = default;
-        PrepareEnvironment(request.Environment, request.Lighting);
+        PrepareEnvironment(request.Environment);
 
         if (_models.Count == 0 || (request.Actors.Count == 0 && (request.Instances ?? []).Count == 0))
             throw new InvalidOperationException("No actors placed - call SetScene first.");

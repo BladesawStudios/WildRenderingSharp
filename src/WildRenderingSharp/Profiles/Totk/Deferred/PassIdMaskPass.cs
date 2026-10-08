@@ -142,7 +142,7 @@ public sealed class PassIdMaskPass : IDisposable
     }
 
     public static List<string> DistinctPasses(IEnumerable<LoadedShape> shapes) =>
-        shapes.Select(s => s.DeferredPass)
+        shapes.Select(s => s.DeferredPass())
               .Where(p => !string.IsNullOrEmpty(p))
               .Distinct()
               .OrderBy(p => p, StringComparer.Ordinal)
@@ -178,9 +178,9 @@ public sealed class PassIdMaskPass : IDisposable
 
             foreach (var sh in group.Shapes)
             {
-                if (string.IsNullOrEmpty(sh.DeferredPass))
+                if (string.IsNullOrEmpty(sh.DeferredPass()))
                     continue;
-                int index = IndexOf(passes, sh.DeferredPass);
+                int index = IndexOf(passes, sh.DeferredPass());
                 if (index < 0)
                     continue;
                 _gl.Uniform1(idLocation, (index + 1) / 255f);
@@ -223,9 +223,9 @@ public sealed class PassIdMaskPass : IDisposable
 
             foreach (var sh in group.Shapes)
             {
-                if (string.IsNullOrEmpty(sh.DeferredPass))
+                if (string.IsNullOrEmpty(sh.DeferredPass()))
                     continue;
-                int index = IndexOf(passes, sh.DeferredPass);
+                int index = IndexOf(passes, sh.DeferredPass());
                 if (index < 0)
                     continue;
                 _gl.Uniform1(id, (index + 1) / 255f);

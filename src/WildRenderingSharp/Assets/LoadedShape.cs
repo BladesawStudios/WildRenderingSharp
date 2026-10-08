@@ -9,7 +9,7 @@ public sealed class LoadedShape
 {
     public required string Name { get; init; }
     public required string Material { get; init; }
-    public required string DeferredPass { get; init; }
+    public IReadOnlyDictionary<string, string> Tags { get; init; } = new Dictionary<string, string>();
     public required bool AlphaTest { get; init; }
     public required bool Blend { get; init; }
     public required RenderState RenderState { get; init; }

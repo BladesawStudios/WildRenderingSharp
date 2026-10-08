@@ -34,9 +34,9 @@ public sealed class RenderEnvironment
         (SkyPostFx, CloudPostFx, ColorCorrection) = SkyPostFxLibrary.LoadFromRomfs(romfsRoot);
     }
 
-    /// <summary>The environment for the named palette, with the game's static sky, cloud and grade settings.</summary>
-    public TotkEnvironment Resolve(string paletteName, ITerrainHost? terrain = null) =>
-        new(Palettes.Get(paletteName), SkyPostFx, CloudPostFx, SkyBin, ColorCorrection, terrain);
+    /// <summary>The environment for the palette <paramref name="settings"/> names, with the game's static sky, cloud and grade settings.</summary>
+    public TotkEnvironment Resolve(TotkSettings settings, ITerrainHost? terrain = null) =>
+        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, SkyBin, ColorCorrection, terrain, settings);
 
     /// <summary>Reloads the sky LUT from the cache, where the preparer put it.</summary>
     public void LoadSkyBin(CacheLayout cache) => SkyBin = SkyBinLut.LoadFromCache(cache.SkyData);

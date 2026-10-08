@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline;
 
@@ -39,7 +40,7 @@ public sealed class ModelLoader
 
     /// <param name="modelName">The model to load.</param>
     /// <param name="enableKnownDecompilerCorrections">
-    /// Gates the forward-program regex of <c>KnownDecompilerCorrections</c> alongside <see cref="Rendering.LightingContext.EnableKnownMaterialFixes"/>, to A/B
+    /// Gates the forward-program regex of <c>KnownDecompilerCorrections</c> alongside <see cref="Profiles.Totk.Atmosphere.TotkSettings.EnableKnownMaterialFixes"/>, to A/B
     /// whether the offline decompiler's DebugMode already fixes that bug. Takes effect on (re)load only, since programs are compiled here.
     /// </param>
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
@@ -135,7 +136,8 @@ public sealed class ModelLoader
                 CastsShadow = !hideNormalPass && sh.RenderState.DepthWriteEnabled,
                 Name = sh.Name,
                 Material = sh.Material,
-                DeferredPass = sh.DeferredPass,
+                Tags = sh.Extensions.Where(e => e.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number)
+                    .ToDictionary(e => e.Key, e => e.Value.ToString()),
                 AlphaTest = sh.AlphaTest,
                 Blend = sh.RenderState.Blend,
                 RenderState = sh.RenderState,
@@ -178,7 +180,7 @@ public sealed class ModelLoader
                     shape.PassIdVao = BuildPassIdVao(vaoLayout, vaoStride, vbo, ibo, vaoConstantSkin);
                 });
             }
-            Console.WriteLine($"  {sh.Name}: {sh.GBufferShader}, {gbufferSamplers.Count} textures, pass={sh.DeferredPass}");
+            Console.WriteLine($"  {sh.Name}: {sh.GBufferShader}, {gbufferSamplers.Count} textures");
         }
 
         if (shapes.Count == 0)

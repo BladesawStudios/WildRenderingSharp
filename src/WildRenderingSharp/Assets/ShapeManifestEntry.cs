@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Assets;
@@ -11,7 +12,6 @@ public sealed class ShapeManifestEntry
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("material")] public string Material { get; set; } = "";
-    [JsonPropertyName("shading_model")] public string ShadingModel { get; set; } = "";
     [JsonPropertyName("vertex_file")] public string VertexFile { get; set; } = "";
     [JsonPropertyName("index_file")] public string IndexFile { get; set; } = "";
     [JsonPropertyName("index_count")] public int IndexCount { get; set; }
@@ -38,9 +38,6 @@ public sealed class ShapeManifestEntry
 
     /// <summary>Path, relative to the data directory, of this material's resolved material block bytes.</summary>
     [JsonPropertyName("material_ubo")] public string MaterialFile { get; set; } = "";
-    [JsonPropertyName("o_material_behave")] public string MaterialBehave { get; set; } = "";
-    /// <summary>Which <c>SystemModel.DeferredMain</c> resolve pass this shape's material resolves through (empty if unmapped).</summary>
-    [JsonPropertyName("deferred_pass")] public string DeferredPass { get; set; } = "";
 
     [JsonPropertyName("samplers")] public List<SamplerBinding> Samplers { get; set; } = [];
     [JsonPropertyName("zonly_samplers")] public List<SamplerBinding> ZOnlySamplers { get; set; } = [];
@@ -48,4 +45,7 @@ public sealed class ShapeManifestEntry
     [JsonPropertyName("material_samplers")] public List<SamplerBinding> MaterialSamplers { get; set; } = [];
 
     [JsonPropertyName("render_state")] public RenderState RenderState { get; set; } = new();
+
+    /// <summary>Keys the loader does not know, kept for the game profile that wrote them.</summary>
+    [JsonExtensionData] public Dictionary<string, JsonElement> Extensions { get; set; } = [];
 }
