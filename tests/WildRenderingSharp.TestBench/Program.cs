@@ -10,7 +10,7 @@ using WildRenderingSharp.TestBench;
 // Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline.
 //
 //   WildRenderingSharp.TestBench --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>]
-//                                [--size <px>] [--background sky|color]
+//                                [--size <px>] [--background sky|color] [--palette <name>] [--sun <elevation radians>]
 //
 // Exit codes: 0 rendered, 1 failure, 2 bad command line, 3 game has no profile yet, 4 the image is blank.
 
@@ -19,7 +19,7 @@ string Option(string key, string fallback) => options.TryGetValue(key, out var v
 
 if (!options.TryGetValue("romfs", out var romfs) || !options.TryGetValue("actor", out var actorName))
 {
-    Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] [--background sky|color]");
+    Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] [--background sky|color] [--palette <name>] [--sun <elevation radians>]");
     return 2;
 }
 
@@ -58,6 +58,14 @@ Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(St
 var renderer = new WildRenderer(gl, cache, romfs, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
 renderer.AddActor(model);
+if (options.TryGetValue("palette", out var palette))
+    renderer.Totk.PaletteName = palette;
+if (options.TryGetValue("atmosphere", out var atmosphere))
+    renderer.Totk.AtmosphereIntensity = float.Parse(atmosphere);
+if (options.TryGetValue("sun", out var sun))
+    renderer.Lighting.SunElevation = float.Parse(sun);
+if (options.TryGetValue("list-palettes", out _))
+    Console.WriteLine("palettes: " + string.Join(", ", renderer.Environment.Palettes.Names.Order()));
 
 var camera = new Camera();
 var (center, radius) = renderer.FrameFor(camera);
