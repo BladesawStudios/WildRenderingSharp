@@ -27,17 +27,6 @@ public sealed class BloomPass : IDisposable
     public static readonly Vector3 ComposeColor = new(1.0f, 0.935f, 0.833f);
     public static readonly Vector3 Balance = Vector3.One;
 
-    const string QuadVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     const string BrightFragmentSource = """
         #version 450 core
         uniform sampler2D t; uniform vec3 uBalance; uniform float uThreshold, uClamp;
@@ -81,9 +70,9 @@ public sealed class BloomPass : IDisposable
     public BloomPass(GL gl)
     {
         _gl = gl;
-        _brightProgram = GLProgramBuilder.Build(gl, QuadVertexSource, BrightFragmentSource, "bloom_bright");
-        _blurProgram = GLProgramBuilder.Build(gl, QuadVertexSource, BlurFragmentSource, "bloom_blur");
-        _composeProgram = GLProgramBuilder.Build(gl, QuadVertexSource, ComposeFragmentSource, "bloom_compose");
+        _brightProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, BrightFragmentSource, "bloom_bright");
+        _blurProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, BlurFragmentSource, "bloom_blur");
+        _composeProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, ComposeFragmentSource, "bloom_compose");
     }
 
     public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture hdrSource, float threshold, float clamp, float intensity)

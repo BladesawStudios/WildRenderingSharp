@@ -22,17 +22,6 @@ public sealed class TonemapPass : IDisposable
     public const float HdrCompressKnee = 0.8f;
     public const float HdrCompressCeil = 1.0f;
 
-    const string QuadVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     const string ExposureFragmentSource = """
         #version 450 core
         uniform sampler2D t; uniform float k; in vec2 vUV; out vec4 fragColor;
@@ -62,8 +51,8 @@ public sealed class TonemapPass : IDisposable
     public TonemapPass(GL gl)
     {
         _gl = gl;
-        _exposureProgram = GLProgramBuilder.Build(gl, QuadVertexSource, ExposureFragmentSource, "exposure");
-        _compressProgram = GLProgramBuilder.Build(gl, QuadVertexSource, CompressFragmentSource, "hdr_compress");
+        _exposureProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, ExposureFragmentSource, "exposure");
+        _compressProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, CompressFragmentSource, "hdr_compress");
 
         // hdr_compose's vertex shader is attribute-driven, unlike the fullscreen-triangle passes above: in_attr0 is a half-size position it doubles into clip space, in_attr1 the UV.
         float[] quad =

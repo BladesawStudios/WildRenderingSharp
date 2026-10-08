@@ -3,6 +3,7 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
@@ -39,24 +40,12 @@ public sealed class CloudDomePass : IDisposable
     bool _dumped;
     string _lastColourKey = "";
     readonly Stopwatch _clock = Stopwatch.StartNew();
-    double _lastElapsedSeconds;
 
     // Clouds render into a smaller target and are composited up: the program is large, the dome
     // covers most of the screen, and the cost is pure fill rate.
     uint _cloudFbo, _cloudTex, _compositeProgram;
     int _cloudW, _cloudH;
 
-
-    // An oversized fullscreen triangle, drawn as a three-vertex list.
-    const string CompositeVert = """
-        #version 330 core
-        out vec2 vUV;
-        void main()
-        {
-            vUV = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-            gl_Position = vec4(vUV * 2.0 - 1.0, 0.0, 1.0);
-        }
-        """;
 
     const string CompositeFrag = """
         #version 330 core
@@ -81,10 +70,7 @@ public sealed class CloudDomePass : IDisposable
         // HDR: exposure is applied downstream.
         _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, (uint)_cloudW, (uint)_cloudH, 0,
             PixelFormat.Rgba, PixelType.Float, null);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        _gl.SetSampling(TextureTarget.Texture2D, GLEnum.Linear, GLEnum.ClampToEdge);
     }
 
     public unsafe CloudDomePass(GL gl, ShaderProgramCache programs, string? systemTexturesDirectory = null)
@@ -101,18 +87,18 @@ public sealed class CloudDomePass : IDisposable
             patchFragment: CloudDistanceFade.PatchFragment);
 
         // The shader's per-stage console binding indices collide across stages, so each block is rebound explicitly.
-        bool fragCommon = BindBlock("_fp_c3", CommonBinding);
-        bool vertCommon = BindBlock("_vp_c4", CommonBinding);
-        bool vertView = BindBlock("_vp_c3", ViewBinding);
+        bool fragCommon = _gl.BindUniformBlock(_program, "_fp_c3", CommonBinding);
+        bool vertCommon = _gl.BindUniformBlock(_program, "_vp_c4", CommonBinding);
+        bool vertView = _gl.BindUniformBlock(_program, "_vp_c3", ViewBinding);
         Console.WriteLine($"[CloudDomePass] real agl_cloud linked - uniform blocks rebound: " +
             $"Common(frag)={fragCommon}, Common(vert)={vertCommon}, View(vert)={vertView}");
 
         _gl.UseProgram(_program);
-        SetSamplerUnit("fp_t_tcb_A", 0); // cBaseTexture
-        SetSamplerUnit("fp_t_tcb_E", 1); // cBaseTexture_Blend
-        SetSamplerUnit("fp_t_tcb_8", 2); // cNoiseTexture
-        SetSamplerUnit("fp_t_tcb_C", 3); // cNoiseTexture_Blend
-        SetSamplerUnit("vp_t_tcb_8", 4); // cScatterTexture (vertex stage)
+        _gl.SetSamplerUnit(_program, "fp_t_tcb_A", 0); // cBaseTexture
+        _gl.SetSamplerUnit(_program, "fp_t_tcb_E", 1); // cBaseTexture_Blend
+        _gl.SetSamplerUnit(_program, "fp_t_tcb_8", 2); // cNoiseTexture
+        _gl.SetSamplerUnit(_program, "fp_t_tcb_C", 3); // cNoiseTexture_Blend
+        _gl.SetSamplerUnit(_program, "vp_t_tcb_8", 4); // cScatterTexture (vertex stage)
 
         // A unit dome: the game folds the world scale into the matrices it uploads, so scaling the mesh too would apply it twice.
         Vector3[] verts = CloudDomeMesh.BuildVertices(CloudDomeMesh.NearRings);
@@ -230,23 +216,6 @@ public sealed class CloudDomePass : IDisposable
         return rows;
     }
 
-    /// <summary>Points one of the shader's interface blocks at a binding. False if the compiler dropped the block as unused.</summary>
-    bool BindBlock(string name, uint binding)
-    {
-        uint idx = _gl.GetUniformBlockIndex(_program, name);
-        if (idx == 0xFFFFFFFFu)
-            return false;
-        _gl.UniformBlockBinding(_program, idx, binding);
-        return true;
-    }
-
-    void SetSamplerUnit(string name, int unit)
-    {
-        int loc = _gl.GetUniformLocation(_program, name);
-        if (loc >= 0)
-            _gl.Uniform1(loc, unit);
-    }
-
     /// <summary>
     /// Uploads an extracted single-channel mask as an R8 texture swizzled to RRRR, as the game's BC4
     /// textures are, or a flat stand-in if the file is missing.
@@ -279,10 +248,7 @@ public sealed class CloudDomePass : IDisposable
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureSwizzleG, (int)GLEnum.Red);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureSwizzleB, (int)GLEnum.Red);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureSwizzleA, (int)GLEnum.Red);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.Repeat);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.Repeat);
+        gl.SetSampling(TextureTarget.Texture2D, GLEnum.Linear, GLEnum.Repeat);
         Console.WriteLine($"[CloudDomePass] loaded real {name} mask ({w}x{h}) from the system-texture cache.");
         return tex;
     }
@@ -295,10 +261,7 @@ public sealed class CloudDomePass : IDisposable
         byte[] pixel = [v, v, v, 255];
         fixed (byte* p = pixel)
             gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba8, 1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte, p);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.Repeat);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.Repeat);
+        gl.SetSampling(TextureTarget.Texture2D, GLEnum.Linear, GLEnum.Repeat);
         return tex;
     }
 
@@ -310,7 +273,7 @@ public sealed class CloudDomePass : IDisposable
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
         CloudPostFxShared shared, CloudPostFxLayer layer,
         ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows, Vector3 cameraEye, Vector3 sunWorld,
-        float farPlane, float sceneGain, float brightness, float exposure, bool animate,
+        float brightness, float exposure, bool animate,
         CloudFadeSettings fade, Vector3 skyColor, float resolutionScale, uint scatterTexture)
     {
         if (_program == 0 || !layer.IsEnable)
@@ -321,8 +284,6 @@ public sealed class CloudDomePass : IDisposable
                   : FallbackCloudLayer(layer);
 
         double now = _clock.Elapsed.TotalSeconds;
-        float deltaSeconds = _lastElapsedSeconds == 0 ? 0f : (float)(now - _lastElapsedSeconds);
-        _lastElapsedSeconds = now;
         // Scrolls at the base texture's authored speed, measured against wall-clock time so the
         // offset is right whenever a frame is drawn (the viewport only redraws on input).
         if (animate)
@@ -334,7 +295,6 @@ public sealed class CloudDomePass : IDisposable
         float scroll1Y = layer.BaseTexScrollSpdY * _animSeconds;
         float scroll2X = scroll1X;
         float scroll2Y = scroll1Y;
-        _ = deltaSeconds;
 
         // The renderer's world is Z-up, so altitude is Z.
         float skyHeightAboveCamera = MathF.Max(1f, layer.SkyHeight - cameraEye.Z);
@@ -342,12 +302,10 @@ public sealed class CloudDomePass : IDisposable
         // Drawn at the dome's true size, which the shader's distance fades are calibrated against.
         // Depth clamping stands in for the game's disabled far clip.
         const float domeScale = 1f;
-        _ = farPlane;
 
         // The game renders under its own exposure, this buffer is multiplied by the renderer's later,
         // so it is divided back out to keep the authored cloud colour at its authored magnitude.
         float skyColorGain = brightness / MathF.Max(1e-4f, exposure);
-        _ = sceneGain;
         byte[] common = BuildCommonBlock(palette, cloud, shared, layer, sunWorld,
             scroll1X, scroll1Y, scroll2X, scroll2Y, skyHeightAboveCamera, skyColorGain);
 
@@ -414,7 +372,7 @@ public sealed class CloudDomePass : IDisposable
 
         // Composite over the scene with the game's blend.
         if (_compositeProgram == 0)
-            _compositeProgram = GLProgramBuilder.Build(_gl, CompositeVert, CompositeFrag, "cloud_composite");
+            _compositeProgram = GLProgramBuilder.Build(_gl, FullscreenShaders.Vertex330, CompositeFrag, "cloud_composite");
 
         targets.BindColorTarget(targets.Final);
         _gl.Enable(EnableCap.Blend);
@@ -447,71 +405,70 @@ public sealed class CloudDomePass : IDisposable
         float skyHeightAboveCamera, float skyColorGain)
     {
         byte[] buf = CloudUboBaseline.Common();
-        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).AsSpan().CopyTo(buf.AsSpan(slot * 16 + comp * 4));
-        void F3(int slot, Vector3 v) { F(slot, 0, v.X); F(slot, 1, v.Y); F(slot, 2, v.Z); }
+        var u = new UniformWriter(buf);
 
         // Per-layer scalars from master_field.baglclwd.
-        F(1, 3, layer.NoiseScale1);
-        F(2, 0, layer.NoiseScale2);
-        F(2, 1, layer.NoiseDensity1);
-        F(2, 2, layer.NoiseDensity2);
-        F(2, 3, layer.EmbossWidth);
-        F(3, 0, layer.EmbossDensity);
-        F(3, 1, layer.HilightPower);
-        F(3, 2, layer.ShadowPower);
-        F(3, 3, layer.HighlightRange);
-        F(4, 0, layer.HighlightAmbient);
-        F(4, 3, layer.BacklightParam1);
-        F(7, 0, layer.FarUVPow);
-        F(7, 1, layer.FarUVMul);
-        F(7, 2, layer.FarDensityChgStart);
-        F(7, 3, layer.FarDensityChgEnd);
-        F(8, 0, layer.FarDensityChgPower);
-        F(8, 1, layer.FarAlphaChgStart);
-        F(8, 2, layer.FarAlphaChgEnd);
+        u.Set(1, 3, layer.NoiseScale1);
+        u.Set(2, 0, layer.NoiseScale2);
+        u.Set(2, 1, layer.NoiseDensity1);
+        u.Set(2, 2, layer.NoiseDensity2);
+        u.Set(2, 3, layer.EmbossWidth);
+        u.Set(3, 0, layer.EmbossDensity);
+        u.Set(3, 1, layer.HilightPower);
+        u.Set(3, 2, layer.ShadowPower);
+        u.Set(3, 3, layer.HighlightRange);
+        u.Set(4, 0, layer.HighlightAmbient);
+        u.Set(4, 3, layer.BacklightParam1);
+        u.Set(7, 0, layer.FarUVPow);
+        u.Set(7, 1, layer.FarUVMul);
+        u.Set(7, 2, layer.FarDensityChgStart);
+        u.Set(7, 3, layer.FarDensityChgEnd);
+        u.Set(8, 0, layer.FarDensityChgPower);
+        u.Set(8, 1, layer.FarAlphaChgStart);
+        u.Set(8, 2, layer.FarAlphaChgEnd);
         // 8.w (the far alpha power) keeps its captured value: the authored -0.5 disagrees with the -1 the game runs.
 
         // Zeroed so the distance fade decides alpha; a non-zero data[45].x is a constant floor under it.
-        F(45, 0, 0f);
-        F(25, 3, layer.ScatterHeight);
-        F(26, 1, layer.SunOccChkSize);
-        F(26, 2, layer.FarDistotionChgStart);
-        F(26, 3, layer.FarDistotionChgEnd);
+        u.Set(45, 0, 0f);
+        u.Set(25, 3, layer.ScatterHeight);
+        u.Set(26, 1, layer.SunOccChkSize);
+        u.Set(26, 2, layer.FarDistotionChgStart);
+        u.Set(26, 3, layer.FarDistotionChgEnd);
 
         // Shared postfx. data[25].y is the last factor the shader applies, so the gain goes there;
         // data[25].z stays the unscaled reciprocal so the fog term scales the same way.
-        F(25, 1, shared.CloudColorScale * skyColorGain);
-        F(25, 2, shared.CloudColorScale > 1e-6f ? 1f / shared.CloudColorScale : 0f);
+        u.Set(25, 1, shared.CloudColorScale * skyColorGain);
+        u.Set(25, 2, shared.CloudColorScale > 1e-6f ? 1f / shared.CloudColorScale : 0f);
 
         // Per-palette shading: xyz = colour * intensity, w = the raw intensity. Only the radiance terms
         // carry the gain; the shader reads .w structurally, so scaling it would change the cloud's shape.
-        F3(28, cloud.ColorBase * cloud.IntensityBase);
-        F(28, 3, cloud.IntensityBase);
-        F3(29, cloud.ColorHilight * cloud.IntensityHilight);
-        F(29, 3, cloud.IntensityHilight);
-        F3(30, cloud.ColorShadow * cloud.IntensityShadow);
-        F(30, 3, cloud.IntensityShadow);
-        F3(31, cloud.ColorBackLight); // no intensity of its own - BacklightPower is a separate term
-        F(31, 3, 0f);
+        u.Set(28, cloud.ColorBase * cloud.IntensityBase);
+        u.Set(28, 3, cloud.IntensityBase);
+        u.Set(29, cloud.ColorHilight * cloud.IntensityHilight);
+        u.Set(29, 3, cloud.IntensityHilight);
+        u.Set(30, cloud.ColorShadow * cloud.IntensityShadow);
+        u.Set(30, 3, cloud.IntensityShadow);
+        u.Set(31, cloud.ColorBackLight); // no intensity of its own - BacklightPower is a separate term
+        u.Set(31, 3, 0f);
 
         // Fog and scatter terms.
-        F3(36, palette.FogColor);
-        F(37, 0, palette.FogEnd > 1e-6f ? 1f / palette.FogEnd : 0f);
-        F(41, 0, palette.ScatterFogAttenuation);
-        F(41, 1, palette.ScatterFogHorizontal);
+        u.Set(36, palette.FogColor);
+        u.Set(37, 0, palette.FogEnd > 1e-6f ? 1f / palette.FogEnd : 0f);
+        u.Set(41, 0, palette.ScatterFogAttenuation);
+        u.Set(41, 1, palette.ScatterFogHorizontal);
 
         // The dome's direction matrix is a diagonal (scale, height above the camera, scale) in the
         // dome's own Y-up frame, which the shader also forwards as the surface's up-ness. The height is
         // relative to the camera so the apex stays at the authored altitude, as the capture shows.
-        F(32, 0, layer.SkyScale); F(32, 1, 0f); F(32, 2, 0f);
-        F(33, 0, 0f); F(33, 1, skyHeightAboveCamera); F(33, 2, 0f);
-        F(34, 0, 0f); F(34, 1, 0f); F(34, 2, layer.SkyScale);
+        u.Set(32, 0, layer.SkyScale); u.Set(32, 1, 0f); u.Set(32, 2, 0f);
+        u.Set(33, 0, 0f); u.Set(33, 1, skyHeightAboveCamera); u.Set(33, 2, 0f);
+        u.Set(34, 0, 0f); u.Set(34, 1, 0f); u.Set(34, 2, layer.SkyScale);
 
         // Negated and Y-up: the slot holds the direction light travels, per the capture.
-        F(42, 0, -sunWorld.X); F(42, 1, -sunWorld.Z); F(42, 2, -sunWorld.Y);
+        u.Set(42, 0, -sunWorld.X); u.Set(42, 1, -sunWorld.Z); u.Set(42, 2, -sunWorld.Y);
 
         // Time-integrated UV scroll for the base and base-blend pairs.
-        F(6, 0, scroll1X); F(6, 1, scroll1Y); F(6, 2, scroll2X); F(6, 3, scroll2Y);
+        u.Set(6, 0, scroll1X); u.Set(6, 1, scroll1Y); u.Set(6, 2, scroll2X); u.Set(6, 3, scroll2Y);
 
         return buf;
     }
@@ -539,23 +496,10 @@ public sealed class CloudDomePass : IDisposable
         Vector4[] view4 = viewRows.Length == 3 ? Mat4Math.ToMat4(viewRows) : viewRows.ToArray();
         Vector4[] viewModel = Mat4Math.Multiply(view4, model);
 
-        WriteRows(buf, 4, viewModel);
-        WriteRows(buf, 8, projRows);
-        BitConverter.GetBytes(CloudUboBaseline.ZOffsetParam).AsSpan().CopyTo(buf.AsSpan(12 * 16));
+        new UniformWriter(buf).SetRows(4, viewModel);
+        new UniformWriter(buf).SetRows(8, projRows);
+        new UniformWriter(buf).Set(12, 0, CloudUboBaseline.ZOffsetParam);
         return buf;
-    }
-
-    static void WriteRows(byte[] buf, int startSlot, ReadOnlySpan<Vector4> rows)
-    {
-        for (int r = 0; r < 4 && r < rows.Length; r++)
-        {
-            Vector4 row = rows[r];
-            int off = (startSlot + r) * 16;
-            BitConverter.GetBytes(row.X).AsSpan().CopyTo(buf.AsSpan(off));
-            BitConverter.GetBytes(row.Y).AsSpan().CopyTo(buf.AsSpan(off + 4));
-            BitConverter.GetBytes(row.Z).AsSpan().CopyTo(buf.AsSpan(off + 8));
-            BitConverter.GetBytes(row.W).AsSpan().CopyTo(buf.AsSpan(off + 12));
-        }
     }
 
     public void Dispose()

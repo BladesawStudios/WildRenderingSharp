@@ -3,6 +3,7 @@ using WildRenderingSharp.Rendering;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Profiles.Totk.Shaders;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
@@ -140,10 +141,10 @@ public sealed class SkyPrecomputePass : IDisposable
             _programs[name] = prog;
 
             uint c4 = UsesRenderInfo.Contains(name) ? RenderInfoBinding : ConfigBinding;
-            BindBlock(prog, "_fp_c3", SizeInfoBinding);
-            BindBlock(prog, "_vp_c3", SizeInfoBinding);
-            BindBlock(prog, "_fp_c4", c4);
-            BindBlock(prog, "_vp_c4", c4);
+            _gl.BindUniformBlock(prog, "_fp_c3", SizeInfoBinding);
+            _gl.BindUniformBlock(prog, "_vp_c3", SizeInfoBinding);
+            _gl.BindUniformBlock(prog, "_fp_c4", c4);
+            _gl.BindUniformBlock(prog, "_vp_c4", c4);
 
             _gl.UseProgram(prog);
             AssignSamplerUnits(prog, name);
@@ -191,31 +192,31 @@ public sealed class SkyPrecomputePass : IDisposable
             case "agl_sky_irradiance_step3":            // cTexDeltaSR
             case "agl_sky_copy_irradiance_step0":       // cTexDeltaE
             case "agl_sky_bake_inscatter":              // cTexInscatter
-                SetSamplerUnit(prog, "fp_t_tcb_8", 0);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_8", 0);
                 break;
 
             case "agl_sky_irradiance_step2":            // SR@0, SM@1
             case "agl_sky_copy_inscatter_step1":        // SR@0, SM@1
             case "agl_sky_inscatter_step2":             // T@0, deltaJ@1
-                SetSamplerUnit(prog, "fp_t_tcb_8", 0);
-                SetSamplerUnit(prog, "fp_t_tcb_A", 1);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_8", 0);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_A", 1);
                 break;
 
             case "agl_sky_copy_inscatter_step2":        // cTexDeltaSR only
-                SetSamplerUnit(prog, "fp_t_tcb_8", 0);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_8", 0);
                 break;
 
             case "agl_sky_delta_inscatter_step2":       // T@0, E@1, SR@2, SM@3
-                SetSamplerUnit(prog, "fp_t_tcb_8", 0);
-                SetSamplerUnit(prog, "fp_t_tcb_A", 1);
-                SetSamplerUnit(prog, "fp_t_tcb_C", 2);
-                SetSamplerUnit(prog, "fp_t_tcb_E", 3);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_8", 0);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_A", 1);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_C", 2);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_E", 3);
                 break;
 
             case "agl_sky_delta_inscatter_step3":       // T@0, E@1, SR@2
-                SetSamplerUnit(prog, "fp_t_tcb_8", 0);
-                SetSamplerUnit(prog, "fp_t_tcb_A", 1);
-                SetSamplerUnit(prog, "fp_t_tcb_C", 2);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_8", 0);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_A", 1);
+                _gl.SetSamplerUnit(prog, "fp_t_tcb_C", 2);
                 break;
         }
     }
@@ -241,47 +242,28 @@ public sealed class SkyPrecomputePass : IDisposable
         gl.BindTexture(TextureTarget.Texture3D, tex);
         gl.TexImage3D(TextureTarget.Texture3D, 0, InternalFormat.Rgba16f, (uint)w, (uint)h, (uint)d, 0,
             PixelFormat.Rgba, PixelType.Float, null);
-        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        gl.SetSampling(TextureTarget.Texture3D, GLEnum.Linear, GLEnum.ClampToEdge);
         gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapR, (int)GLEnum.ClampToEdge);
         return tex;
-    }
-
-    bool BindBlock(uint program, string name, uint binding)
-    {
-        uint idx = _gl.GetUniformBlockIndex(program, name);
-        if (idx == 0xFFFFFFFFu)
-            return false;
-        _gl.UniformBlockBinding(program, idx, binding);
-        return true;
-    }
-
-    void SetSamplerUnit(uint program, string name, int unit)
-    {
-        int loc = _gl.GetUniformLocation(program, name);
-        if (loc >= 0)
-            _gl.Uniform1(loc, unit);
     }
 
     /// <summary>The 144-byte <c>SizeInfo</c> blob, reproducing the game's own bound contents exactly.</summary>
     internal static byte[] BuildSizeInfo()
     {
         var buf = new byte[144];
-        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).CopyTo(buf, slot * 16 + comp * 4);
+        var u = new UniformWriter(buf);
         void Dims(int slot, int w, int h)
         {
-            F(slot, 0, w); F(slot, 1, h);
-            F(slot, 2, 1f / w); F(slot, 3, 1f / h);
+            u.Set(slot, 0, w); u.Set(slot, 1, h);
+            u.Set(slot, 2, 1f / w); u.Set(slot, 3, 1f / h);
         }
         // (n, 1/n, 1/(n-1), 1/(n/2 - 1)): texel-centre remap constants for a full and a half-resolution walk.
         void Axis(int slot, int n)
         {
-            F(slot, 0, n);
-            F(slot, 1, 1f / n);
-            F(slot, 2, 1f / (n - 1));
-            F(slot, 3, 1f / (n / 2 - 1));
+            u.Set(slot, 0, n);
+            u.Set(slot, 1, 1f / n);
+            u.Set(slot, 2, 1f / (n - 1));
+            u.Set(slot, 3, 1f / (n / 2 - 1));
         }
 
         Dims(0, TransmittanceW, TransmittanceH);
@@ -292,8 +274,8 @@ public sealed class SkyPrecomputePass : IDisposable
         Axis(5, ResMuS);
         Axis(6, ResNu);
         Axis(7, ResR);
-        F(8, 0, Rg);
-        F(8, 1, Rt);
+        u.Set(8, 0, Rg);
+        u.Set(8, 1, Rt);
         return buf;
     }
 
@@ -326,18 +308,18 @@ public sealed class SkyPrecomputePass : IDisposable
         for (int i = 0; i < BakeRenderInfoBaseline.Length && i * 4 + 4 <= buf.Length; i++)
             BitConverter.GetBytes(BakeRenderInfoBaseline[i]).CopyTo(buf, i * 4);
 
-        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).CopyTo(buf, slot * 16 + comp * 4);
+        var u = new UniformWriter(buf);
 
         var br = postfx.RayleighScatteringCoeff;
-        F(0, 0, br.X); F(0, 1, br.Y); F(0, 2, br.Z); F(0, 3, postfx.MieScatteringCoeff);
+        u.Set(0, 0, br.X); u.Set(0, 1, br.Y); u.Set(0, 2, br.Z); u.Set(0, 3, postfx.MieScatteringCoeff);
 
         // Y-up, like every other agl sky and cloud input.
         Vector3 sun = new(sunWorldZUp.X, sunWorldZUp.Z, sunWorldZUp.Y);
         if (sun.LengthSquared() > 1e-12f) sun = Vector3.Normalize(sun);
-        F(2, 0, sun.X); F(2, 1, sun.Y); F(2, 2, sun.Z);
+        u.Set(2, 0, sun.X); u.Set(2, 1, sun.Y); u.Set(2, 2, sun.Z);
 
         var g = postfx.GroundColor;
-        F(6, 0, g.X); F(6, 1, g.Y); F(6, 2, g.Z); F(6, 3, 1f);
+        u.Set(6, 0, g.X); u.Set(6, 1, g.Y); u.Set(6, 2, g.Z); u.Set(6, 3, 1f);
         return buf;
     }
 
@@ -363,22 +345,22 @@ public sealed class SkyPrecomputePass : IDisposable
         float rayleighAmplifier = 1f, float mieAmplifier = 1f)
     {
         var buf = new byte[48];
-        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).CopyTo(buf, slot * 16 + comp * 4);
+        var u = new UniformWriter(buf);
 
         // The palette's amplifiers scale the coefficients, which is what changes the sky's colour per palette (a red moon, a storm).
         var br = postfx.RayleighScatteringCoeff * rayleighAmplifier;
-        F(0, 0, br.X);
-        F(0, 1, br.Y);
-        F(0, 2, br.Z);
-        F(0, 3, postfx.MieScatteringCoeff * mieAmplifier);
-        F(1, 1, postfx.RayleighBaseHeight);
-        F(1, 2, postfx.MieBaseHeight);
+        u.Set(0, 0, br.X);
+        u.Set(0, 1, br.Y);
+        u.Set(0, 2, br.Z);
+        u.Set(0, 3, postfx.MieScatteringCoeff * mieAmplifier);
+        u.Set(1, 1, postfx.RayleighBaseHeight);
+        u.Set(1, 2, postfx.MieBaseHeight);
 
         var (dmin, dmax, dminp, dmaxp) = SliceGeometry(layer);
-        F(2, 0, dmin);
-        F(2, 1, dmax);
-        F(2, 2, dminp);
-        F(2, 3, dmaxp);
+        u.Set(2, 0, dmin);
+        u.Set(2, 1, dmax);
+        u.Set(2, 2, dminp);
+        u.Set(2, 3, dmaxp);
         return buf;
     }
 

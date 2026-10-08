@@ -3,6 +3,7 @@ using WildRenderingSharp.Rendering;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Profiles.Totk.Shaders;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
@@ -59,23 +60,21 @@ public sealed class SkyPostFxPass : IDisposable
         }
 
         _program = programs.Load("agl_sky_postfx_sky");
-        bool vctx = BindBlock("_vp_c4", ContextBinding);     // Context, vertex stage (location 1)
-        bool fctx = BindBlock("_fp_c3", ContextBinding);     // Context, pixel stage  (location 0)
-        bool frin = BindBlock("_fp_c4", RenderInfoBinding);  // RenderInfo, pixel stage
+        bool vctx = _gl.BindUniformBlock(_program, "_vp_c4", ContextBinding);     // Context, vertex stage (location 1)
+        bool fctx = _gl.BindUniformBlock(_program, "_fp_c3", ContextBinding);     // Context, pixel stage  (location 0)
+        bool frin = _gl.BindUniformBlock(_program, "_fp_c4", RenderInfoBinding);  // RenderInfo, pixel stage
         _gl.UseProgram(_program);
-        int loc = _gl.GetUniformLocation(_program, "fp_t_tcb_8");   // cTexBakedInscatter
-        if (loc >= 0) _gl.Uniform1(loc, 0);
+        _gl.SetSamplerUnit(_program, "fp_t_tcb_8", 0);   // cTexBakedInscatter
 
         // The adhoc-fog variant declares the same blocks and sampler (it adds only pixel bytecode), so it needs the same rebinding.
         if (programs.Exists("agl_sky_postfx_sky_fog"))
         {
             _fogProgram = programs.Load("agl_sky_postfx_sky_fog");
-            BindBlockOn(_fogProgram, "_vp_c4", ContextBinding);
-            BindBlockOn(_fogProgram, "_fp_c3", ContextBinding);
-            BindBlockOn(_fogProgram, "_fp_c4", RenderInfoBinding);
+            _gl.BindUniformBlock(_fogProgram, "_vp_c4", ContextBinding);
+            _gl.BindUniformBlock(_fogProgram, "_fp_c3", ContextBinding);
+            _gl.BindUniformBlock(_fogProgram, "_fp_c4", RenderInfoBinding);
             _gl.UseProgram(_fogProgram);
-            int fogLoc = _gl.GetUniformLocation(_fogProgram, "fp_t_tcb_8");
-            if (fogLoc >= 0) _gl.Uniform1(fogLoc, 0);
+            _gl.SetSamplerUnit(_fogProgram, "fp_t_tcb_8", 0);
         }
 
         Console.WriteLine($"[SkyPostFxPass] real agl_sky_postfx_sky linked - blocks rebound: " +
@@ -101,39 +100,25 @@ public sealed class SkyPostFxPass : IDisposable
         gl.BindVertexArray(0);
     }
 
-    bool BindBlock(string name, uint binding) => BindBlockOn(_program, name, binding);
-
-    bool BindBlockOn(uint program, string name, uint binding)
-    {
-        uint idx = _gl.GetUniformBlockIndex(program, name);
-        if (idx == 0xFFFFFFFFu)
-            return false;
-        _gl.UniformBlockBinding(program, idx, binding);
-        return true;
-    }
-
-    /// <summary>The renderer's Z-up vector as the Y-up one every agl sky and cloud shader expects.</summary>
-    static Vector3 ToYUp(Vector3 v) => new(v.X, v.Z, v.Y);
-
     /// <summary>The 224-byte <c>Context</c> block (14 vec4). Only the slots this program reads are filled.</summary>
     internal static byte[] BuildContext(ReadOnlySpan<Vector4> viewInv3Rows, float tanHalfFovX,
         float tanHalfFovY, float intensity, AdhocFog fog = default)
     {
         var buf = new byte[224];
-        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).CopyTo(buf, slot * 16 + comp * 4);
+        var u = new UniformWriter(buf);
 
         // View ray basis: v = (ndc.x * [0].x, ndc.y * [1].y, -1).
-        F(0, 0, tanHalfFovX);
-        F(1, 1, tanHalfFovY);
-        F(2, 3, -1f);
+        u.Set(0, 0, tanHalfFovX);
+        u.Set(1, 1, tanHalfFovY);
+        u.Set(2, 3, -1f);
 
         // Camera-to-world rotation dotted row-wise against v, in the form BackgroundPass uses; Z-up to Y-up swaps which row feeds .y and .z.
-        void Row(int slot, Vector4 r) { F(slot, 0, r.X); F(slot, 1, r.Y); F(slot, 2, r.Z); }
+        void Row(int slot, Vector4 r) { u.Set(slot, 0, r.X); u.Set(slot, 1, r.Y); u.Set(slot, 2, r.Z); }
         Row(4, viewInv3Rows[0]);   // -> x
         Row(5, viewInv3Rows[2]);   // Z-up z becomes Y-up y
         Row(6, viewInv3Rows[1]);   // Z-up y becomes Y-up z
 
-        F(13, 0, intensity);
+        u.Set(13, 0, intensity);
 
         // Adhoc fog (slots 10 and 11), recovered by diffing which slots the USE_ADHOC_FOG=1 variant newly reads:
         //     master = sqrt(clamp([10].w * 4, 0, 1))                       (vertex -> in_attr1.x)
@@ -142,10 +127,10 @@ public sealed class SkyPostFxPass : IDisposable
         //     rgb    = mix(skyColour, [11].xyz, scale * master)
         // A colour that saturates at the horizon and thins toward the zenith: the haze band. The three
         // scalars and the colour match adhoc_fog_atten_minscale_sky, adhoc_fog_atten_sky and adhoc_fog_color.
-        F(10, 1, fog.AttenSky);
-        F(10, 2, fog.ZenithScale);
-        F(10, 3, fog.Density);
-        F(11, 0, fog.Color.X); F(11, 1, fog.Color.Y); F(11, 2, fog.Color.Z);
+        u.Set(10, 1, fog.AttenSky);
+        u.Set(10, 2, fog.ZenithScale);
+        u.Set(10, 3, fog.Density);
+        u.Set(11, 0, fog.Color.X); u.Set(11, 1, fog.Color.Y); u.Set(11, 2, fog.Color.Z);
         return buf;
     }
 
@@ -230,22 +215,22 @@ public sealed class SkyPostFxPass : IDisposable
         float paletteTint = 0f)
     {
         var buf = new byte[112];
-        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).CopyTo(buf, slot * 16 + comp * 4);
+        var u = new UniformWriter(buf);
 
         var br = postfx.RayleighScatteringCoeff;
-        F(0, 0, br.X); F(0, 1, br.Y); F(0, 2, br.Z); F(0, 3, postfx.MieScatteringCoeff);
+        u.Set(0, 0, br.X); u.Set(0, 1, br.Y); u.Set(0, 2, br.Z); u.Set(0, 3, postfx.MieScatteringCoeff);
 
-        Vector3 sun = ToYUp(sunWorldZUp);
+        Vector3 sun = SkyAxes.ToYUp(sunWorldZUp);
         if (sun.LengthSquared() > 1e-12f) sun = Vector3.Normalize(sun);
-        F(2, 0, sun.X); F(2, 1, sun.Y); F(2, 2, sun.Z);
+        u.Set(2, 0, sun.X); u.Set(2, 1, sun.Y); u.Set(2, 2, sun.Z);
 
         // The palette's FogColor when it has one, so the colour the table blends toward tracks the palette.
         var g = fogColor ?? postfx.GroundColor;
-        F(6, 0, g.X); F(6, 1, g.Y); F(6, 2, g.Z);
+        u.Set(6, 0, g.X); u.Set(6, 1, g.Y); u.Set(6, 2, g.Z);
         // [6].w is the shader's blend bias: it computes clamp(lut.a + [6].w). 1 pins the weight so the table
         // wins, as in the capture (the game bakes per palette). One table is baked here, so lowering this lets
         // the palette's colour through by exactly that amount; 0 is the game's behaviour.
-        F(6, 3, 1f - Math.Clamp(paletteTint, 0f, 1f));
+        u.Set(6, 3, 1f - Math.Clamp(paletteTint, 0f, 1f));
         return buf;
     }
 

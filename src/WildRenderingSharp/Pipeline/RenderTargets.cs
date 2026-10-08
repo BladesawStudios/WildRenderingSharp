@@ -308,10 +308,7 @@ public sealed class RenderTargets : IDisposable
             PixelFormat.DepthComponent, PixelType.Float, null);
         _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureCompareMode, (int)GLEnum.CompareRefToTexture);
         _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureCompareFunc, (int)GLEnum.Lequal);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        _gl.SetSampling(TextureTarget.Texture2DArray, GLEnum.Linear, GLEnum.ClampToEdge);
         _ownedFixedSize.Add(handle);
         _cascadeFbo = _gl.GenFramebuffer();
         return new GpuTexture(handle, CascadeSize, CascadeSize);
@@ -365,10 +362,7 @@ public sealed class RenderTargets : IDisposable
         uint handle = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2DArray, handle);
         _gl.TexImage3D(TextureTarget.Texture2DArray, 0, format, (uint)width, (uint)height, (uint)layers, 0, PixelFormat.Rgba, PixelType.Float, null);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        _gl.SetSampling(TextureTarget.Texture2DArray, GLEnum.Linear, GLEnum.ClampToEdge);
         _owned.Add(handle);
         return new GpuTexture(handle, width, height);
     }

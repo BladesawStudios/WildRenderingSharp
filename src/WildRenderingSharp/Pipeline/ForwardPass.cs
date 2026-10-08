@@ -31,17 +31,6 @@ public sealed class ForwardPass : IDisposable
     readonly uint _texWhite, _texVolumeMask, _texNoise3D, _texArrayWhite, _texShadowCascadeArray;
     static readonly int[] WhiteNeutralUnits = [7, 11, 13, 14, 15, 31];
 
-    const string QuadVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     const string FlipFragmentSource = """
         #version 450 core
         uniform sampler2D t;
@@ -80,8 +69,8 @@ public sealed class ForwardPass : IDisposable
     public unsafe ForwardPass(GL gl, string? systemTexturesDirectory = null)
     {
         _gl = gl;
-        _flipProgram = GLProgramBuilder.Build(gl, QuadVertexSource, FlipFragmentSource, "flip_blit");
-        _floorProgram = GLProgramBuilder.Build(gl, QuadVertexSource, FloorFragmentSource, "flip_blit_floor");
+        _flipProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FlipFragmentSource, "flip_blit");
+        _floorProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FloorFragmentSource, "flip_blit_floor");
 
         _texWhite = CreateConstTexture2D(1, 1, 1, 1);
         _texVolumeMask = CreateConstTexture2D(0, 0, 0, 0);

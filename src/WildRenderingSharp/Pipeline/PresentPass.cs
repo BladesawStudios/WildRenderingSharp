@@ -13,17 +13,6 @@ public sealed class PresentPass : IDisposable
     readonly GL _gl;
     readonly uint _program;
 
-    const string QuadVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     const string FragmentSource = """
         #version 450 core
         uniform sampler2D t; uniform int uMode; uniform int uSS; uniform vec2 uTexel;
@@ -70,7 +59,7 @@ public sealed class PresentPass : IDisposable
     public PresentPass(GL gl)
     {
         _gl = gl;
-        _program = GLProgramBuilder.Build(gl, QuadVertexSource, FragmentSource, "present_blit");
+        _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "present_blit");
     }
 
     /// <summary><paramref name="hdrPreview"/> switches to the Reinhard-tonemapped raw-HDR view; normally false, presenting the tonemapped LDR result.</summary>

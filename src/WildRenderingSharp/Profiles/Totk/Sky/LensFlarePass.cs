@@ -2,6 +2,7 @@ using System.Numerics;
 using WildRenderingSharp.Rendering;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
@@ -53,17 +54,6 @@ public sealed class LensFlarePass : IDisposable
 
     public bool Available => _program != 0;
     bool _logged;
-
-    // The bright-pass is this renderer's own trivial shader; only the flare itself is the game's. Squaring the excess above the threshold keeps a merely bright sky from producing ghosts while a sun disc still does.
-    const string BrightVert = """
-        #version 330 core
-        out vec2 vUV;
-        void main()
-        {
-            vUV = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-            gl_Position = vec4(vUV * 2.0 - 1.0, 0.0, 1.0);
-        }
-        """;
 
     const string BrightFrag = """
         #version 330 core
@@ -125,14 +115,13 @@ public sealed class LensFlarePass : IDisposable
 
         _program = programs.Load("agl_flare_filter_flare");
         // RegisterUBO is at location 0 in both stages, so it decompiles to vp_c3 and fp_c3: one block under two names once linked, the same collision CloudDomePass and SkyPostFxPass correct.
-        BindBlock("_vp_c3", RegisterBinding);
-        BindBlock("_fp_c3", RegisterBinding);
+        _gl.BindUniformBlock(_program, "_vp_c3", RegisterBinding);
+        _gl.BindUniformBlock(_program, "_fp_c3", RegisterBinding);
         _gl.UseProgram(_program);
-        int loc = _gl.GetUniformLocation(_program, "fp_t_tcb_8"); // cSrc
-        if (loc >= 0) _gl.Uniform1(loc, 0);
+        _gl.SetSamplerUnit(_program, "fp_t_tcb_8", 0); // cSrc
 
-        _brightProgram = GLProgramBuilder.Build(gl, BrightVert, BrightFrag, "lens_flare_bright");
-        _blurProgram = GLProgramBuilder.Build(gl, BrightVert, BlurFrag, "lens_flare_blur");
+        _brightProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, BrightFrag, "lens_flare_bright");
+        _blurProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, BlurFrag, "lens_flare_blur");
 
         // in_attr0 is the half-unit position (the vertex does gl_Position.xy = in_attr0.xy * 2.0) and in_attr1 the uv, unlike the sky pass's position-only quad.
         Span<float> quad =
@@ -157,21 +146,14 @@ public sealed class LensFlarePass : IDisposable
         Console.WriteLine("[LensFlarePass] real agl_flare_filter_flare linked (4 ghosts + halo).");
     }
 
-    void BindBlock(string name, uint binding)
-    {
-        uint idx = _gl.GetUniformBlockIndex(_program, name);
-        if (idx != 0xFFFFFFFFu)
-            _gl.UniformBlockBinding(_program, idx, binding);
-    }
-
     /// <summary>The 192-byte <c>RegisterUBO</c>, filled at the offsets the decompiled program reads.</summary>
     internal static byte[] BuildRegisterUbo(float ghostSpacing, Vector3 haloTint, float haloRadius, Vector3 intensity)
     {
         var buf = new byte[192];
-        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).CopyTo(buf, slot * 16 + comp * 4);
-        F(0, 0, ghostSpacing);
-        F(1, 0, haloTint.X); F(1, 1, haloTint.Y); F(1, 2, haloTint.Z); F(1, 3, haloRadius);
-        F(3, 0, intensity.X); F(3, 1, intensity.Y); F(3, 2, intensity.Z);
+        var u = new UniformWriter(buf);
+        u.Set(0, 0, ghostSpacing);
+        u.Set(1, 0, haloTint.X); u.Set(1, 1, haloTint.Y); u.Set(1, 2, haloTint.Z); u.Set(1, 3, haloRadius);
+        u.Set(3, 0, intensity.X); u.Set(3, 1, intensity.Y); u.Set(3, 2, intensity.Z);
         return buf;
     }
 

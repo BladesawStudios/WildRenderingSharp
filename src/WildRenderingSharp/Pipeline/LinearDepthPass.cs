@@ -15,17 +15,6 @@ public sealed class LinearDepthPass : IDisposable
     readonly GL _gl;
     readonly uint _fullProgram, _halfProgram;
 
-    const string QuadVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     const string FullFragmentSource = """
         #version 450 core
         uniform sampler2D tex_depth;
@@ -52,8 +41,8 @@ public sealed class LinearDepthPass : IDisposable
     public LinearDepthPass(GL gl)
     {
         _gl = gl;
-        _fullProgram = GLProgramBuilder.Build(gl, QuadVertexSource, FullFragmentSource, "linear_depth_full");
-        _halfProgram = GLProgramBuilder.Build(gl, QuadVertexSource, HalfFragmentSource, "linear_depth_half");
+        _fullProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FullFragmentSource, "linear_depth_full");
+        _halfProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, HalfFragmentSource, "linear_depth_half");
     }
 
     public void Run(GLResourceCache resources, RenderTargets targets, float near, float far)

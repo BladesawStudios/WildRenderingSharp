@@ -31,17 +31,6 @@ public sealed class BackgroundPass : IDisposable
     /// </summary>
     public const float SkyColorAnchor = 0.03f;
 
-    const string SkyVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     // Z-up world: "up" is worldDir.z. Everything keys off worldDir alone, a pure function of the
     // camera's rotation, so the sky sits at infinity and only turning the camera moves it.
     const string SkyFragmentSource = """
@@ -261,7 +250,7 @@ public sealed class BackgroundPass : IDisposable
     public BackgroundPass(GL gl)
     {
         _gl = gl;
-        _skyProgram = GLProgramBuilder.Build(gl, SkyVertexSource, SkyFragmentSource, "background_sky");
+        _skyProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, SkyFragmentSource, "background_sky");
     }
 
     /// <param name="viewInv3Rows">The camera's inverse view, three affine rows.</param>

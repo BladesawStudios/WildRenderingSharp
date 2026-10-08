@@ -39,7 +39,7 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         // Nothing under the terrain is pushed out to effectively infinity, so a scene whose far plane
         // sits just past the ground does not fade the terrain into the empty G-buffer beneath it.
         _underDepthProgram = _underDepthProgram != 0 ? _underDepthProgram
-            : GLProgramBuilder.Build(Gl, UnderDepthVertex, UnderDepthFragment, "terrain_under_depth");
+            : GLProgramBuilder.Build(Gl, FullscreenShaders.Vertex450, UnderDepthFragment, "terrain_under_depth");
         Gl.Disable(EnableCap.DepthTest);
         Gl.Disable(EnableCap.Blend);
         targets.BindColorTarget(underDepth);
@@ -142,18 +142,6 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         Gl.ActiveTexture(TextureUnit.Texture0 + unit);
         Gl.BindTexture(TextureTarget.Texture2D, handle);
     }
-
-    const string UnderDepthVertex = """
-        #version 450 core
-        out vec2 vUV;
-        void main()
-        {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
 
     const string UnderDepthFragment = """
         #version 450 core

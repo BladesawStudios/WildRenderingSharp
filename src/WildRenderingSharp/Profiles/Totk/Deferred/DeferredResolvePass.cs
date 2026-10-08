@@ -26,17 +26,6 @@ public sealed class DeferredResolvePass : IDisposable
 
     readonly uint _cubeEnvMap;
 
-    const string QuadVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     const string ComposeFragmentSource = """
         #version 450 core
         uniform sampler2D t;         // one pass's fullscreen resolve
@@ -77,7 +66,7 @@ public sealed class DeferredResolvePass : IDisposable
     public DeferredResolvePass(GL gl)
     {
         _gl = gl;
-        _composeProgram = GLProgramBuilder.Build(gl, QuadVertexSource, ComposeFragmentSource, "mask_compose");
+        _composeProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, ComposeFragmentSource, "mask_compose");
         _texPreFog = CreateConstTexture2D(0f, 0f, 0f, 0f);
         _texVolumeMask = CreateConstTexture2D(0f, 0f, 0f, 0f);
         _cubeEnvMap = _gl.GenTexture();

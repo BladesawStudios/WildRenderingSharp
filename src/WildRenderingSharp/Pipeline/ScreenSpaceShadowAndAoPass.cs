@@ -17,17 +17,6 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
     public const float AoStrength = 0.85f;
     public const float ShadowBiasWorld = 0.0015f;
 
-    const string QuadVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     const string PreshadowFragmentSource = """
         #version 450 core
         uniform sampler2D tex_nld;
@@ -335,12 +324,12 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
     public ScreenSpaceShadowAndAoPass(GL gl)
     {
         _gl = gl;
-        _preshadowProgram = GLProgramBuilder.Build(gl, QuadVertexSource, PreshadowFragmentSource, "preshadow");
-        _preshadingFilterProgram = GLProgramBuilder.Build(gl, QuadVertexSource, PreshadingFilterFragmentSource, "preshading_filter");
-        _preshadingReduceProgram = GLProgramBuilder.Build(gl, QuadVertexSource, PreshadingReduceFilterFragmentSource, "preshading_reduce");
-        _preshadingUpsampleProgram = GLProgramBuilder.Build(gl, QuadVertexSource, PreshadingUpsampleFragmentSource, "preshading_upsample");
-        _aoProgram = GLProgramBuilder.Build(gl, QuadVertexSource, AoFragmentSource, "ao");
-        _blurProgram = GLProgramBuilder.Build(gl, QuadVertexSource, BlurFragmentSource, "ao_blur");
+        _preshadowProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, PreshadowFragmentSource, "preshadow");
+        _preshadingFilterProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, PreshadingFilterFragmentSource, "preshading_filter");
+        _preshadingReduceProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, PreshadingReduceFilterFragmentSource, "preshading_reduce");
+        _preshadingUpsampleProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, PreshadingUpsampleFragmentSource, "preshading_upsample");
+        _aoProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, AoFragmentSource, "ao");
+        _blurProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, BlurFragmentSource, "ao_blur");
     }
 
     public readonly record struct Params(

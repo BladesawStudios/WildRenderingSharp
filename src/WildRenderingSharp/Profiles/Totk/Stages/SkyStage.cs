@@ -96,7 +96,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var cam = frame.Cam;
 
         _cloudDome.Run(services.Resources, frame.Targets, palette, frame.CloudPostFx.Shared, frame.CloudPostFx.Layer0,
-            cam.View, cam.Proj, frame.Camera.Eye, frame.SunWorld, frame.Camera.FarPlane, lighting.SceneGain,
+            cam.View, cam.Proj, frame.Camera.Eye, frame.SunWorld,
             lighting.CloudBrightness, lighting.Exposure, lighting.AnimateClouds, lighting.CloudFade, palette.FogColor,
             lighting.CloudResolutionScale, bake.BakedInscatter);
         GLDiagnostics.CheckPass(services.Gl, "cloud dome");

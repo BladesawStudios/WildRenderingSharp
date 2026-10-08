@@ -33,16 +33,6 @@ public sealed class SkyBodyPass : IDisposable
     public bool SunAvailable => _sunTex != 0;
     public bool MoonAvailable => _moonTex[0] != 0;
 
-    const string VertexSource = """
-        #version 330 core
-        out vec2 vUV;
-        void main()
-        {
-            vUV = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-            gl_Position = vec4(vUV * 2.0 - 1.0, 0.0, 1.0);
-        }
-        """;
-
     const string FragmentSource = """
         #version 330 core
         in vec2 vUV;
@@ -109,7 +99,7 @@ public sealed class SkyBodyPass : IDisposable
     public SkyBodyPass(GL gl, string? systemTexturesDirectory)
     {
         _gl = gl;
-        _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "sky_body");
+        _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "sky_body");
         if (string.IsNullOrEmpty(systemTexturesDirectory) || !Directory.Exists(systemTexturesDirectory))
         {
             Console.WriteLine("[SkyBodyPass] no system-texture directory - sun/moon unavailable until extraction runs.");
@@ -156,9 +146,6 @@ public sealed class SkyBodyPass : IDisposable
         return tex;
     }
 
-    /// <summary>The renderer's Z-up vector as the Y-up one the sky passes work in.</summary>
-    static Vector3 ToYUp(Vector3 v) => new(v.X, v.Z, v.Y);
-
     public readonly record struct Params(
         Vector3 SunDirZUp, Vector3 MoonDirZUp,
         Vector3 SunColor, Vector3 MoonColor,
@@ -198,8 +185,8 @@ public sealed class SkyBodyPass : IDisposable
         if (loc >= 0) _gl.UniformMatrix3(loc, 1, false, m);
 
         _gl.SetVec2(_program, "uTanHalf", new Vector2(aspect * tanHalfFovY, tanHalfFovY));
-        _gl.SetVec3(_program, "uSunDir", Normalise(ToYUp(p.SunDirZUp)));
-        _gl.SetVec3(_program, "uMoonDir", Normalise(ToYUp(p.MoonDirZUp)));
+        _gl.SetVec3(_program, "uSunDir", Normalise(SkyAxes.ToYUp(p.SunDirZUp)));
+        _gl.SetVec3(_program, "uMoonDir", Normalise(SkyAxes.ToYUp(p.MoonDirZUp)));
         _gl.SetVec3(_program, "uSunColor", p.SunColor);
         _gl.SetVec3(_program, "uMoonColor", p.MoonColor);
         _gl.SetFloat(_program, "uSunRadius", MathF.Max(1e-4f, p.SunAngularRadius));

@@ -26,16 +26,6 @@ public sealed class ColorCorrectionPass : IDisposable
     uint _scratchTex, _scratchFbo;
     int _scratchW, _scratchH;
 
-    const string VertexSource = """
-        #version 330 core
-        out vec2 vUV;
-        void main()
-        {
-            vUV = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-            gl_Position = vec4(vUV * 2.0 - 1.0, 0.0, 1.0);
-        }
-        """;
-
     // Rec.709 luminance, the weighting the rest of the pipeline uses for perceived brightness, so saturation pivots around real luminance rather than a flat average.
     const string BlitFragmentSource = """
         #version 330 core
@@ -109,8 +99,8 @@ public sealed class ColorCorrectionPass : IDisposable
     public ColorCorrectionPass(GL gl)
     {
         _gl = gl;
-        _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "color_correction");
-        _blitProgram = GLProgramBuilder.Build(gl, VertexSource, BlitFragmentSource, "color_correction_blit");
+        _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "color_correction");
+        _blitProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, BlitFragmentSource, "color_correction_blit");
     }
 
     /// <summary>Grades <paramref name="target"/> in place. Returns false if the grade is a no-op.</summary>
@@ -169,10 +159,7 @@ public sealed class ColorCorrectionPass : IDisposable
         // Matches Ldr's Rgba32f: the grade runs on tonemapped but still float data, and a narrower scratch would quantise it.
         _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba32f, (uint)_scratchW, (uint)_scratchH, 0,
             PixelFormat.Rgba, PixelType.Float, null);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        _gl.SetSampling(TextureTarget.Texture2D, GLEnum.Nearest, GLEnum.ClampToEdge);
     }
 
     public void Dispose()

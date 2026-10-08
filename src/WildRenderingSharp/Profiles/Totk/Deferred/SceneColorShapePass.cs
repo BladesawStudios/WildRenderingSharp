@@ -36,17 +36,6 @@ public sealed class SceneColorShapePass : IDisposable
     /// <summary>The units the game's programs read these from - fixed by their own bindings.</summary>
     public const int MaterialIdUnit = 2, LinearDepthUnit = 4, LinearDepthHalfUnit = 5, ColorBufferUnit = 27;
 
-    const string QuadVertexSource = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
-
     const string CopyFragmentSource = """
         #version 450 core
         uniform sampler2D t;
@@ -63,7 +52,7 @@ public sealed class SceneColorShapePass : IDisposable
     public SceneColorShapePass(GL gl)
     {
         _gl = gl;
-        _copyProgram = GLProgramBuilder.Build(gl, QuadVertexSource, CopyFragmentSource, "scene_color_copy");
+        _copyProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, CopyFragmentSource, "scene_color_copy");
     }
 
     /// <summary>Whether any group has a shape this pass draws.</summary>

@@ -1,5 +1,6 @@
 using System.Numerics;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
@@ -111,13 +112,13 @@ public static class CloudDistanceFade
         Vector3 extents, Vector3 skyColor)
     {
         var buf = new byte[48];
-        void F(int slot, int comp, float v) => BitConverter.GetBytes(v).CopyTo(buf, slot * 16 + comp * 4);
-        F(0, 0, MathF.Max(0f, startDistance));
-        F(0, 1, MathF.Max(0f, ramp));
-        F(0, 2, exponential ? 1f : 0f);
-        F(0, 3, strength);
-        F(1, 0, extents.X); F(1, 1, extents.Y); F(1, 2, extents.Z);
-        F(2, 0, skyColor.X); F(2, 1, skyColor.Y); F(2, 2, skyColor.Z);
+        var u = new UniformWriter(buf);
+        u.Set(0, 0, MathF.Max(0f, startDistance));
+        u.Set(0, 1, MathF.Max(0f, ramp));
+        u.Set(0, 2, exponential ? 1f : 0f);
+        u.Set(0, 3, strength);
+        u.Set(1, 0, extents.X); u.Set(1, 1, extents.Y); u.Set(1, 2, extents.Z);
+        u.Set(2, 0, skyColor.X); u.Set(2, 1, skyColor.Y); u.Set(2, 2, skyColor.Z);
         return buf;
     }
 }
