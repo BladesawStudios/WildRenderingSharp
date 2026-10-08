@@ -56,7 +56,6 @@ public static class ModelPreparer
         Step(log, "lens flare", () => EnsureLensFlareShaders(romfsRoot, cache.Shaders));
         Step(log, "sky LUT", () => EnsureSkyBinData(romfsRoot, cache.SkyData));
         Step(log, "cloud shader", () => EnsureCloudShader(romfsRoot, cache.Shaders));
-        Step(log, "cloud noise shader", () => EnsureCloudNoiseShader(romfsRoot, cache.Shaders));
         Step(log, "sky shaders", () => EnsureSkyShaders(romfsRoot, cache.Shaders));
         Step(log, "terrain water", () =>
         {
@@ -131,27 +130,11 @@ public static class ModelPreparer
 
     public static void EnsureCloudTextures(string romfsRoot, string systemTexturesDirectory)
     {
-        if (File.Exists(Path.Combine(systemTexturesDirectory, "CloudNoiseBlend.r8")))
+        if (TotkCloudMasks.IsInstalled(systemTexturesDirectory))
             return;
-
-        foreach (string shipped in ShippedCloudMaskDirectories())
-        {
-            if (SystemTextures.InstallCapturedCloudMasks(shipped, systemTexturesDirectory))
-                return;
-        }
-
         if (string.IsNullOrEmpty(romfsRoot) || !Directory.Exists(romfsRoot))
             return;
-        Console.WriteLine("[ModelPreparer] shipped cloud masks missing - falling back to the romfs " +
-            "name-guess, which is known to bind the wrong textures (see res/cloud/README.md).");
-        SystemTextures.ExtractCloudTextures(romfsRoot, systemTexturesDirectory);
-    }
-
-    static IEnumerable<string> ShippedCloudMaskDirectories()
-    {
-        if (Path.GetDirectoryName(typeof(ModelPreparer).Assembly.Location) is { Length: > 0 } assemblyDir)
-            yield return Path.Combine(assemblyDir, "res", "cloud");
-        yield return Path.Combine(AppContext.BaseDirectory, "res", "cloud");
+        TotkCloudMasks.Install(romfsRoot, systemTexturesDirectory);
     }
 
     public static void EnsureSkyBinData(string romfsRoot, string skyDataDirectory)
@@ -172,17 +155,6 @@ public static class ModelPreparer
 
         Directory.CreateDirectory(decompiledDirectory);
         TestAglShader.ExtractCloudShader(romfsRoot, decompiledDirectory);
-    }
-
-    public static void EnsureCloudNoiseShader(string romfsRoot, string decompiledDirectory)
-    {
-        if (File.Exists(Path.Combine(decompiledDirectory, "agl_noise_cloud.frag")))
-            return;
-        if (string.IsNullOrEmpty(romfsRoot) || !Directory.Exists(romfsRoot))
-            return;
-
-        Directory.CreateDirectory(decompiledDirectory);
-        TestAglShader.ExtractCloudNoiseShader(romfsRoot, decompiledDirectory);
     }
 
     public static void EnsureSkyBodyTextures(string romfsRoot, string systemTexturesDirectory)

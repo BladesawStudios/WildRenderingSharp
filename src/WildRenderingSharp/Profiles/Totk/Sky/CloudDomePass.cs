@@ -18,11 +18,20 @@ public sealed class CloudDomePass : IDisposable
     const uint ViewBinding = 21;
     const int ViewBytes = 256;
 
+    public const int MaskCount = 3;
+
+    // Slot choices of the draw captured from the game. In game they come from the weather's cloud parameters (PrequelPrCloud),
+    // not the postfx file, whose defaults (0, 2, 1, 1) select differently; the weather data is not read here.
+    const int BaseSlot = 0, BaseBlendSlot = 0, NoiseSlot = 1, NoiseBlendSlot = 2;
+
+    public static string MaskFileName(int slot) => $"CloudMask{slot}";
+
     readonly GL _gl;
     readonly uint _program;
     readonly uint _vao, _vbo, _ibo;
     readonly int _indexCount;
-    readonly uint _baseTex, _noiseTex, _noiseBlendTex, _scatterTex;
+    readonly uint[] _masks = new uint[MaskCount];
+    readonly uint _scatterTex;
 
     // Holds an already time-integrated offset, not the raw scroll speed, as the vertex shader expects.
     float _animSeconds;
@@ -102,12 +111,10 @@ public sealed class CloudDomePass : IDisposable
             gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(indices.Length * sizeof(int)), p, BufferUsageARB.StaticDraw);
         gl.BindVertexArray(0);
 
-        // The game's own cloud masks, extracted by the preparer (not romfs assets; see res/cloud/README.md).
+        // The three masks the game registers in its cloud texture table, extracted from the romfs by the preparer.
         // A missing mask degrades the cloud's shape instead of failing.
-        _baseTex = LoadMaskOrFallback(gl, systemTexturesDirectory, "CloudBase", 0.65f);
-        _noiseTex = LoadMaskOrFallback(gl, systemTexturesDirectory, "CloudNoise", 0.5f);
-        // Distinct from the first noise mask: the game binds one texture to both base slots but different ones to the two noise slots.
-        _noiseBlendTex = LoadMaskOrFallback(gl, systemTexturesDirectory, "CloudNoiseBlend", 0.5f);
+        for (int slot = 0; slot < MaskCount; slot++)
+            _masks[slot] = LoadMaskOrFallback(gl, systemTexturesDirectory, MaskFileName(slot), slot == 0 ? 0.65f : 0.5f);
         // Dark placeholder for when the sky bake produced nothing: the value is added to the cloud colour, so white would brighten every cloud.
         _scatterTex = CreatePlaceholderTexture(gl, 0.05f);
     }
@@ -321,10 +328,10 @@ public sealed class CloudDomePass : IDisposable
             skyColor), CloudDistanceFade.Binding);
         resources.Ubo("cloud_view", view, ViewBinding);
 
-        BindTexture(0, _baseTex);
-        BindTexture(1, _baseTex);
-        BindTexture(2, _noiseTex);
-        BindTexture(3, _noiseBlendTex);
+        BindTexture(0, _masks[BaseSlot]);
+        BindTexture(1, _masks[BaseBlendSlot]);
+        BindTexture(2, _masks[NoiseSlot]);
+        BindTexture(3, _masks[NoiseBlendSlot]);
         // The atmosphere's scattered light, which the fragment shader adds to the cloud colour: the sky bake's table when available.
         BindTexture(4, scatterTexture != 0 ? scatterTexture : _scatterTex);
 
@@ -465,9 +472,8 @@ public sealed class CloudDomePass : IDisposable
         _gl.DeleteVertexArray(_vao);
         _gl.DeleteBuffer(_vbo);
         _gl.DeleteBuffer(_ibo);
-        _gl.DeleteTexture(_baseTex);
-        _gl.DeleteTexture(_noiseTex);
-        _gl.DeleteTexture(_noiseBlendTex);
+        foreach (uint mask in _masks)
+            _gl.DeleteTexture(mask);
         _gl.DeleteTexture(_scatterTex);
     }
 }

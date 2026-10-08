@@ -31,6 +31,12 @@
     <ProjectReference Include="$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Syroot.NintenTools.NSW.Bntx">
+      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\Syroot.NintenTools.NSW.Bntx.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
   <!--
     MeshCodec's CLI decoder for the .bfres.mc container (see ShaderLibrary's TestMaterialDump for
     why it shells out rather than reimplementing the codec). ShaderLibrary finds it relative to its
@@ -39,12 +45,6 @@
   -->
   <ItemGroup>
     <Content Include="..\..\vendor\MeshCodec\meshcodec_cli.exe" Link="meshcodec_cli.exe" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <!-- The captured cloud masks ship with the preparer; see res/cloud/README.md for why this is the
-       one place game data is checked in rather than extracted, and how to remove it. -->
-  <ItemGroup>
-    <Content Include="..\..\res\cloud\*.bc4" Link="res\cloud\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

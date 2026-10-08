@@ -6,12 +6,7 @@ Reverse-engineering findings and format history that used to live in XML doc com
 
 **`public static void EnsureCloudTextures(string romfsRoot, string systemTexturesDirectory)`**
 
-Installs the cloud masks, preferring the shipped captured ones over a romfs guess.
-
-The romfs path stays as a fallback but is known to be wrong: it picks textures by name (`PolarSphereMappingNoise_Fi`, `VolumeMist03`)
-and both were disproved against a capture of the game's cloud draw (correlation about 0.01). It runs only if the shipped files are missing, so a
-build without them degrades instead of losing clouds. Guarded on `CloudNoiseBlend.r8`, not `CloudBase.r8`, which the old
-two-texture extraction also wrote. See `res/cloud/README.md`.
+Superseded by `TotkCloudMasks`, which reads the real assets (below). The old name-guess extraction and the captured BC4 copies are gone.
 
 **`public static bool IsUpToDate(string romfsRoot, string dataDirectory)`**
 
@@ -173,11 +168,22 @@ One `CloudParamN` block of `postfx/master_field.baglclwd`: the per-layer paramet
 `WildRenderingSharp.AampReader.SkyPostFxJson.ParseObject`, which dumps the object generically). Names match the AAMP names exactly, including the "m" prefix and the
 authored typo "Distotion", so they cross-reference the decompiled `agl_cloud.vert`/`.frag` and its uniform reflection without a mapping table.
 
-`CloudParam2` is byte-identical to `CloudParam1`, so `CloudPostFx` exposes two layers. The `*No` and `*No_Blend` fields are slot indices into a small
-fixed array, not names. Traced via Ghidra, index 1 (both `NoiseTextureNo` and `NoiseTextureNoBlend` are always 1) resolves through a runtime
-name-to-texture dispatcher (`FUN_71008da38c`) to a texture named `"cloud_noise"`, which is baked by the `noise_cloud` shading model in
-`agl_technique_proc.sharcb` (see `TestAglShader.ExtractCloudNoiseShader`), not loaded from romfs. Indices 0 and 2 (the base texture) are static romfs assets whose
-filenames were not found; treat them as unconfirmed.
+`CloudParam2` is byte-identical to `CloudParam1`, so `CloudPostFx` exposes two layers. The `*No` and `*No_Blend` fields are slot indices into the cloud's
+texture table (defaults 0, 2, 1, 1 for base, blended base, noise, blended noise).
+
+## Cloud dome masks
+
+`cBaseTexture`, `cNoiseTexture` and their blend slots are three 512x512 BC4 textures in the BNTX at offset 0x1000 of `collect.genvres`, inside
+`Env/GameScene.Nin_NX_NVN.genvb.zs` (a SARC; the zstd needs the game's dictionary). `FUN_71010865ec`, registered as a `ModelSceneExtension`
+callback (hash 0x11247be8) that runs after the env binary loads, copies them into the cloud's table (`Cloud+0x5688`, stride 0x10, count at `Cloud+0x5780`)
+in this order: slot 0 `cloudtexture03` (the wispy base), slot 1 `cloudtexture02` (soft round blobs, tileable), slot 2 `cloudtexture04` (the base pattern on a
+different tone curve). They are byte-identical to a GPU capture of a real cloud draw once deswizzled. `mUseProcedualTexture` is false, so none of the
+`noise_*` programs in `agl_technique_proc.sharcb` are involved; they have no CPU callers for the cloud.
+
+The captured draw bound slots 0, 0, 1, 2 for base, blended base, noise and blended noise. The postfx file's own defaults are 0, 2, 1, 1; in game the weather's
+`PrequelPrCloud` parameters choose the indices.
+
+`TexToGo/cloud_noise.txtg` (64x64 BC4) is unrelated: the scene material samples it as `cTex_DeferredCloudNoise` for cloud shadows on terrain.
 
 ## WildRenderingSharp/Profiles/Totk/Deferred/KnownMaterialFixes.cs
 
