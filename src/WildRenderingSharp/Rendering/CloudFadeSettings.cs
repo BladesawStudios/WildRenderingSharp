@@ -1,7 +1,7 @@
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// WildRenderingSharp's own distance fade for the cloud dome - see <see cref="Pipeline.CloudDistanceFade"/> for
+/// WildRenderingSharp's own distance fade for the cloud dome - see <c>CloudDistanceFade</c> for
 /// why it exists alongside the game's own (which has never produced a visible falloff here).
 /// </summary>
 /// <param name="StartDistance">World units at which the fade begins. The dome is ~26500 across, so

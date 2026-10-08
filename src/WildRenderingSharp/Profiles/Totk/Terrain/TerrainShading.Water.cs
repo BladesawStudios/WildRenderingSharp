@@ -49,7 +49,7 @@ namespace WildRenderingSharp.Profiles.Totk.Terrain;
 /// The renderer binds the rest: <c>Context</c> in the game's world, <c>Env</c>, the water
 /// material, its textures, and what the fragment stage reads of the frame - the lit scene it
 /// refracts, the material IDs and linear depth under it. Like actor water it draws after the
-/// opaque scene is lit (see <see cref="SceneColorShapePass"/>), and is then marked for
+/// opaque scene is lit (see <see cref="Deferred.SceneColorShapePass"/>), and is then marked for
 /// <c>field_water</c> by drawing the same geometry again with <see cref="LinkWaterStampProgram"/>.
 /// </para>
 /// </remarks>

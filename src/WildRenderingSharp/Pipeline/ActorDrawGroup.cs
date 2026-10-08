@@ -24,7 +24,7 @@ public enum ShapeProgram
 /// </summary>
 /// <remarks>
 /// A group with a <see cref="Batch"/> is instead every placement of one model at once: its shapes
-/// draw through their instanced programs (<see cref="InstancedShaderPatch"/>), once per visible run
+/// draw through their instanced programs (<c>InstancedShaderPatch</c>), once per visible run
 /// rather than once per placement. Passes do not need to know which kind they hold - they bind with
 /// <see cref="BindUbos"/> and draw with <see cref="Draw"/>.
 /// </remarks>

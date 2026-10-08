@@ -27,7 +27,7 @@ public sealed class ModelManifest
     /// <summary>
     /// Finds every prepared model under a cache root - one subdirectory per model
     /// (<c>&lt;cacheRoot&gt;/&lt;ModelName&gt;/&lt;ModelName&gt;.manifest.json</c>, written by
-    /// <see cref="WildRenderingSharp.Preparation.ModelPreparer"/>), rather than every model's files sharing one flat
+    /// <c>ModelPreparer</c>), rather than every model's files sharing one flat
     /// directory - which is what let two models' same-named shapes/textures clobber each other.
     /// </summary>
     public static IEnumerable<string> ListAvailableModels(string cacheRoot) =>

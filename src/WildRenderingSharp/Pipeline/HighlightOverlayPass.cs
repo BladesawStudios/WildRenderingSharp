@@ -14,7 +14,7 @@ namespace WildRenderingSharp.Pipeline;
 /// just another translucent layer that bloom/tonemapping could wash out or that nearer geometry
 /// could hide.
 ///
-/// Reuses <see cref="PassIdMaskPass"/>'s own GPU-skinning vertex logic verbatim (see its remarks
+/// Reuses <c>PassIdMaskPass</c>'s own GPU-skinning vertex logic verbatim (see its remarks
 /// for why this must be skinned, not a bind-pose silhouette) so an animated shape's highlight
 /// tracks its actual posed silhouette.
 /// </summary>
@@ -87,7 +87,7 @@ public sealed class HighlightOverlayPass : IDisposable
     }
 
     /// <param name="mvpRows"><c>proj @ [view;0,0,0,1] @ model</c> - skin count 0 shapes.</param>
-    /// <param name="viewProjRows"><c>proj @ [view;0,0,0,1]</c> - skinned shapes (palette already includes the model transform). Same TRUE (unflipped) matrices <see cref="PassIdMaskPass"/> uses - <see cref="RenderTargets.Ldr"/> (where this draws) is in that same true orientation.</param>
+    /// <param name="viewProjRows"><c>proj @ [view;0,0,0,1]</c> - skinned shapes (palette already includes the model transform). Same TRUE (unflipped) matrices <c>PassIdMaskPass</c> uses - <see cref="RenderTargets.Ldr"/> (where this draws) is in that same true orientation.</param>
     /// <remarks>
     /// No depth test at all, and drawn into the FINAL tonemapped <see cref="RenderTargets.Ldr"/>
     /// buffer rather than anywhere earlier in the chain - "highlight this object" should mean

@@ -26,7 +26,7 @@ public class LightingContext
     public float AtmosphereIntensity { get; set; } = 1.0f;
 
     /// <summary>
-    /// Draw the game's <c>agl_cloud</c> program (<see cref="Pipeline.CloudDomePass"/>) instead of the FBM
+    /// Draw the game's <c>agl_cloud</c> program (<c>CloudDomePass</c>) instead of the FBM
     /// approximation in <see cref="Pipeline.BackgroundPass"/>. The program's uniform block is populated where a
     /// capture confirmed the offset; its masks are the game's own textures (not romfs assets, see <c>res/cloud/README.md</c>).
     /// </summary>
@@ -86,7 +86,7 @@ public class LightingContext
     /// <summary>Advance the cloud dome's noise-scroll offsets over time. Off freezes them.</summary>
     public bool AnimateClouds { get; set; } = true;
 
-    /// <summary>The renderer's own distance fade for the cloud dome; see <see cref="Pipeline.CloudDistanceFade"/>.</summary>
+    /// <summary>The renderer's own distance fade for the cloud dome; see <c>CloudDistanceFade</c>.</summary>
     public CloudFadeSettings CloudFade { get; set; } = new();
 
     /// <summary>How much of the palette's own colour bleeds into the sky shader's result, 0-1.</summary>
@@ -142,8 +142,8 @@ public class LightingContext
     /// Manual, individually verified corrections for game behaviour the shader-driven pipeline cannot derive:
     /// cases where the correctly decompiled shader and correctly read material data still do not reproduce the
     /// game's result, and investigation found no mechanism that explains the gap. See
-    /// <see cref="Pipeline.KnownMaterialFixes"/> for each fix. Also gates the forward-program regex of
-    /// <see cref="Pipeline.KnownDecompilerCorrections"/> through <c>ModelLoader.Load</c>'s
+    /// <c>KnownMaterialFixes</c> for each fix. Also gates the forward-program regex of
+    /// <c>KnownDecompilerCorrections</c> through <c>ModelLoader.Load</c>'s
     /// <c>enableKnownDecompilerCorrections</c>, to A/B whether the offline decompiler's DebugMode already fixes
     /// that bug. On by default; each fix is scoped narrowly by exact texture, material or program role.
     /// </summary>

@@ -31,7 +31,7 @@ public sealed class PassIdMaskPass : IDisposable
     ///   - blend indices are FLOAT attributes carrying an integer bit pattern, unpacked with <c>floatBitsToInt(v) &amp; 0xFFFF</c> (the real shader reads a second index
     ///     from the high half, which the exporter never packs);
     ///   - <c>_Mtx</c> at binding 2 is a flat <c>vec4</c> array, three rows per bone (48 bytes), each dotted with <c>vec4(pos, 1)</c> for one output component,
-    ///     row-vector convention, as <see cref="BonePaletteUbo"/> writes;
+    ///     row-vector convention, as <see cref="Ubos.BonePaletteUbo"/> writes;
     ///   - a skinned draw does not apply the shape transform separately: the model matrix is folded into every palette entry, so skinned vertices go through
     ///     <c>uViewProj</c> and only <c>SKIN_COUNT == 0</c> (pose baked into the positions) uses <c>uMVP</c>.
     /// </summary>

@@ -61,7 +61,7 @@ public sealed class SkyPostFx
 
     public static readonly SkyPostFx Default = new();
 
-    /// <summary>Parses the <c>"sky"</c> object of the JSON <see cref="WildRenderingSharp.AampReader.SkyPostFxJson.ParseToJson"/> produces.</summary>
+    /// <summary>Parses the <c>"sky"</c> object of the JSON <c>SkyPostFxJson.ParseToJson</c> produces.</summary>
     internal static SkyPostFx FromJson(JsonElement sky)
     {
         var result = new SkyPostFx();

@@ -22,14 +22,14 @@ namespace WildRenderingSharp.Profiles.Totk.Shaders;
 /// for this instance, out of one storage buffer holding every placement's ShpMtx rows and bone
 /// palette back to back (<see cref="InstanceBatch"/>). The decompiled <c>main</c> is renamed and a
 /// new <c>main</c> works out this instance's base before calling it - the same wrapper technique
-/// <see cref="CloudDistanceFade"/> uses - so every original instruction runs unmodified, in order,
+/// <see cref="Sky.CloudDistanceFade"/> uses - so every original instruction runs unmodified, in order,
 /// on the same values the per-actor path feeds it.
 /// </para>
 /// <para>
 /// What a read past the end returns is reproduced too: <c>ShpMtx</c> holds three rows and zeros
 /// after them - except row 8, the instance's baked-lighting table entry, which each instance
 /// carries (<see cref="InstanceBatch.SetBake"/>) - and a bone palette is filled past its last bone with identity matrices - or, for a
-/// model with no skeleton, with its placement in every slot (<see cref="Shaders.Profiles.Totk.Ubos.BonePaletteUbo"/>).
+/// model with no skeleton, with its placement in every slot (<see cref="Ubos.BonePaletteUbo"/>).
 /// Fragment shaders are left alone: the two that declare <c>ShpMtx</c> read only a reserved,
 /// always-zero row, which the zero block bound alongside instanced draws still supplies.
 /// </para>

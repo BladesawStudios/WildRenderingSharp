@@ -34,7 +34,7 @@ public sealed class ShaderProgramCache : IDisposable
     /// <param name="baseName">The compiled program's base filename (e.g. "material_prog10336_extracted").</param>
     /// <param name="isForwardProgram">
     /// Whether this is a shape's FORWARD (<c>gsys_assign_material</c>) program - the only role
-    /// <see cref="KnownDecompilerCorrections"/>'s fix is confirmed to apply to (verified present,
+    /// <c>KnownDecompilerCorrections</c>'s fix is confirmed to apply to (verified present,
     /// byte-for-byte apart from variable numbering, in 14 separately-compiled "chara forward"
     /// programs - see that class's own remarks). The same textual pattern can appear in an
     /// unrelated, uncorrupted G-buffer program by coincidence - confirmed: applying the fix
@@ -44,7 +44,7 @@ public sealed class ShaderProgramCache : IDisposable
     /// vertical lines) after. Defaults to false so every other caller (G-buffer, Z-only, the
     /// deferred-resolve passes, hdr_compose) is unaffected without having to know this history.
     /// </param>
-    /// <param name="patchVertex">Optional source transform applied to the vertex stage AFTER sanitising - for a caller that needs to append its own code to a real game shader (see <see cref="CloudDistanceFade"/>). Bypasses the program cache, since two callers asking for the same shader with different patches must not share one linked program.</param>
+    /// <param name="patchVertex">Optional source transform applied to the vertex stage AFTER sanitising - for a caller that needs to append its own code to a real game shader (see <c>CloudDistanceFade</c>). Bypasses the program cache, since two callers asking for the same shader with different patches must not share one linked program.</param>
     /// <param name="patchFragment">The same for the fragment stage.</param>
     public uint Load(string baseName, bool isForwardProgram = false,
         Func<string, string>? patchVertex = null, Func<string, string>? patchFragment = null)
@@ -78,7 +78,7 @@ public sealed class ShaderProgramCache : IDisposable
 
     /// <summary>
     /// The same program with its vertex stage patched to draw many placements at once - see
-    /// <see cref="InstancedShaderPatch"/>. Cached apart from the plain one; 0 when the patch finds
+    /// <c>InstancedShaderPatch</c>. Cached apart from the plain one; 0 when the patch finds
     /// nothing to wrap.
     /// </summary>
     public uint LoadInstanced(string baseName, bool isForwardProgram = false)

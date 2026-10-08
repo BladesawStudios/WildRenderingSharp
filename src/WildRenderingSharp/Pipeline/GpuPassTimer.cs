@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Pipeline;
 /// <remarks>
 /// A pass is timed from the previous mark to its own, so whatever ran between two named passes is
 /// charged to the second. Marks are written where the pipeline already names its passes
-/// (<see cref="GLDiagnostics.CheckPass"/>), and a pass that does not run in a frame simply has no row.
+/// (<c>GLDiagnostics.CheckPass</c>), and a pass that does not run in a frame simply has no row.
 /// </remarks>
 public sealed class GpuPassTimer : IDisposable
 {

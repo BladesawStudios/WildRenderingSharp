@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Profiles.Totk.Ubos;
 /// rows 0-2 are ever populated, the rest is reserved padding the shader never reads).
 ///
 /// Binding 4 is REUSED later in the same frame for <c>agl_hdr_compose</c>'s own
-/// <c>cContext.cParam</c> (see <see cref="HdrComposeParamsUbo"/> in <c>WildRenderingSharp</c>) - that is
+/// <c>cContext.cParam</c> (see <see cref="Shaders.HdrComposeParamsUbo"/> in <c>WildRenderingSharp</c>) - that is
 /// how the original shaders are laid out, not a bug. The pipeline orchestrator is responsible for
 /// binding this block during the G-buffer/shadow passes and swapping to
 /// <c>HdrComposeParamsUbo</c> only for the final tonemap draw.

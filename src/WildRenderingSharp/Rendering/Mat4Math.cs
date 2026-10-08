@@ -7,7 +7,6 @@ namespace WildRenderingSharp.Rendering;
 /// (translation in <c>M41..M43</c>) does not match the column-vector GL convention these matrices use, and mixing the two invites a transpose bug. <see cref="Matrix4x4"/> is still used internally
 /// as a convention-agnostic multiply and invert engine.
 /// </summary>
-/// </summary>
 public static class Mat4Math
 {
     public static readonly Vector4[] Identity4 =

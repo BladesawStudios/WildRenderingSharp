@@ -27,11 +27,6 @@ public sealed class ModelLoader
         _external = external;
     }
 
-    /// <param name="modelName">The model to load.</param>
-    /// <param name="enableKnownDecompilerCorrections">
-    /// Gates the forward-program regex of <c>KnownDecompilerCorrections</c> alongside <see cref="Rendering.LightingContext.EnableKnownMaterialFixes"/>, to A/B
-    /// whether the offline decompiler's DebugMode already fixes that bug. Takes effect on (re)load only, since programs are compiled here.
-    /// </param>
     /// <summary>
     /// Uploads only what the model's programs read, for a model drawn only in its bind pose, such as a map's static objects. Attributes no program
     /// of a shape reads are left out of its vertex buffer (the exported vertex carries every attribute, 192 bytes). A smooth-skinned shape also drops
@@ -43,6 +38,11 @@ public sealed class ModelLoader
     /// <summary>Leaves the vertex arrays to <see cref="LoadedModel.FinishOnRenderThread"/>, for a load on a worker thread with its own context: buffers, textures and programs are shared between contexts, vertex arrays are not.</summary>
     public bool DeferVertexArrays { get; init; }
 
+    /// <param name="modelName">The model to load.</param>
+    /// <param name="enableKnownDecompilerCorrections">
+    /// Gates the forward-program regex of <c>KnownDecompilerCorrections</c> alongside <see cref="Rendering.LightingContext.EnableKnownMaterialFixes"/>, to A/B
+    /// whether the offline decompiler's DebugMode already fixes that bug. Takes effect on (re)load only, since programs are compiled here.
+    /// </param>
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
     {
         var manifest = ModelManifest.Load(Path.Combine(_dataDirectory, $"{modelName}.manifest.json"));
@@ -388,7 +388,7 @@ public sealed class ModelLoader
         return vao;
     }
 
-    /// <summary>The pass-ID shader's own fixed blend locations (<see cref="Pipeline.PassIdMaskPass"/>).</summary>
+    /// <summary>The pass-ID shader's own fixed blend locations (<c>PassIdMaskPass</c>).</summary>
     static int PassIdLocation(string name) => name switch
     {
         "aBlendWeight0" => 4,
