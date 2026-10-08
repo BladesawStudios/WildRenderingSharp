@@ -3,10 +3,8 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// One shape ready to draw: GL objects built from a <see cref="ShapeManifestEntry"/> by
-/// <see cref="ModelLoader"/>. A shape always has a G-buffer variant (shapes without one are
-/// dropped at load time, matching <c>load_shapes</c>'s "no gbuffer program resolved" skip);
-/// the z-only and forward variants are optional per-shape, per-material.
+/// One shape ready to draw: GL objects built from a <see cref="ShapeManifestEntry"/> by <see cref="ModelLoader"/>. A shape
+/// always has a G-buffer variant (shapes without one are dropped at load); the z-only and forward variants are optional per shape.
 /// </summary>
 public sealed class LoadedShape
 {
@@ -17,23 +15,14 @@ public sealed class LoadedShape
     public required bool Blend { get; init; }
     public required RenderState RenderState { get; init; }
 
-    /// <summary>
-    /// <c>ShapeManifestEntry.VertexSkinCount</c>: 0 = the bone pose is baked into the exported
-    /// positions, &gt;= 1 = the GPU skins this shape from the bone palette every frame. Passes that
-    /// draw the geometry with their own shader (<see cref="Pipeline.PassIdMaskPass"/>) need it to
-    /// pick the same transform path the real vertex shader compiled in.
-    /// </summary>
+    /// <summary><c>ShapeManifestEntry.VertexSkinCount</c>: 0 means the bone pose is baked into the exported positions, 1 or more means the GPU skins this shape from the bone palette every frame. Passes that draw geometry with their own shader need it to pick the transform path the real vertex shader compiled in.</summary>
     public required int VertexSkinCount { get; init; }
 
     public required uint VertexBuffer { get; init; }
     public required uint IndexBuffer { get; init; }
     public required int IndexCount { get; init; }
 
-    /// <summary>
-    /// Every level of detail, finest first, as ranges of <see cref="IndexBuffer"/> - LOD 0 is
-    /// <c>(0, IndexCount)</c>. A level past the end of this list draws the coarsest, which is what
-    /// BFRES means by a shape with a shorter chain than its neighbours.
-    /// </summary>
+    /// <summary>Every level of detail, finest first, as ranges of <see cref="IndexBuffer"/>; LOD 0 is <c>(0, IndexCount)</c>. A level past the end draws the coarsest, which is what BFRES means by a shape with a shorter chain than its neighbours.</summary>
     public IReadOnlyList<(int FirstIndex, int Count)> Lods { get; init; } = [];
 
     /// <summary>The index range for level <paramref name="lod"/>, clamped to the levels this shape has.</summary>
@@ -52,122 +41,65 @@ public sealed class LoadedShape
     public uint ForwardVao { get; internal set; }
     public IReadOnlyList<ShapeSampler> ForwardSamplers { get; init; } = [];
 
-    /// <summary>Base name of the compiled forward program's <c>.vert</c>/<c>.frag</c> pair (e.g. <c>"material_prog3248"</c>) - empty when <see cref="HasForward"/> is false. Lets <c>Debug.ShaderStepDebugger</c> find and re-instrument the real source text for this exact shape.</summary>
+    /// <summary>Base name of the forward program's <c>.vert</c>/<c>.frag</c> pair (e.g. <c>"material_prog3248"</c>); empty when <see cref="HasForward"/> is false. Lets <c>Debug.ShaderStepDebugger</c> re-instrument the real source.</summary>
     public string ForwardShaderName { get; init; } = "";
 
-    /// <summary>Base name of the compiled G-buffer program's <c>.vert</c>/<c>.frag</c> pair - lets <c>Debug.ShaderStepDebugger</c> find and re-instrument the real source text for this exact shape. Unlike <see cref="ForwardShaderName"/> this is never empty (every loaded shape has a G-buffer program).</summary>
+    /// <summary>Base name of the G-buffer program's <c>.vert</c>/<c>.frag</c> pair, for <c>Debug.ShaderStepDebugger</c>. Never empty, since every loaded shape has one.</summary>
     public string GBufferShaderName { get; init; } = "";
 
     /// <summary>The Z-only program's base filename, empty when it has none.</summary>
     public string ZOnlyShaderName { get; init; } = "";
 
-    /// <summary>
-    /// The same three programs patched to draw many placements at once (<see cref="Pipeline.InstancedShaderPatch"/>),
-    /// linked the first time this shape is drawn instanced and 0 until then, or when it has no such variant.
-    /// </summary>
+    /// <summary>The same three programs patched to draw many placements at once, linked the first time this shape is drawn instanced; 0 until then, or when it has no such variant.</summary>
     public uint InstancedGBufferProgram { get; internal set; }
     public uint InstancedZOnlyProgram { get; internal set; }
     public uint InstancedForwardProgram { get; internal set; }
     internal bool InstancedProgramsLinked { get; set; }
 
-    /// <summary>
-    /// Set by the Scene panel's shader step debugger while enabled: an instrumented variant of
-    /// <see cref="ForwardProgram"/> (built by <see cref="Debug.ShaderStepDebugger"/>) that
-    /// <see cref="Pipeline.ForwardPass"/> draws with INSTEAD, when non-null. Null (the default)
-    /// means "draw normally." The instrumented program uses the same vertex layout/attribute
-    /// locations as the real one, so <see cref="ForwardVao"/> is reused unchanged.
-    /// </summary>
+    /// <summary>Set by the shader step debugger: an instrumented variant of <see cref="ForwardProgram"/> that <see cref="Pipeline.ForwardPass"/> draws with instead when non-null. It shares the real program's vertex layout, so <see cref="ForwardVao"/> is reused.</summary>
     public uint? DebugForwardProgram { get; set; }
 
-    /// <summary>Which <c>temp_N</c> to visualise as the final colour when <see cref="DebugForwardProgram"/> is set; -1 shows the real, unmodified output (every debug hook in the instrumented program is a no-op at -1, since no real temp is ever numbered negative).</summary>
+    /// <summary>Which <c>temp_N</c> to show as the final colour when <see cref="DebugForwardProgram"/> is set; -1 shows the real output.</summary>
     public int DebugStepTarget { get; set; } = -1;
 
-    /// <summary>
-    /// Set by the Scene panel's shader step debugger while enabled and targeting the G-BUFFER
-    /// program instead of forward: an instrumented variant of <see cref="GBufferProgram"/> that
-    /// <see cref="Pipeline.GBufferPass"/> draws with, as an EXTRA pass over this one shape after the
-    /// real G-buffer draw, with depth testing forced to always-pass. Forcing depth is what makes
-    /// this able to answer "why does this shape's own alpha-test discard almost always fire" at
-    /// all - the normal G-buffer draw only shows fragments the Z-only prepass already let through,
-    /// so a value computed right before a discard that DOES fire is invisible through the ordinary
-    /// path no matter what depth state you leave alone. Null (the default) means "draw normally."
-    /// </summary>
+    /// <summary>Set by the shader step debugger when targeting the G-buffer program: an instrumented variant of <see cref="GBufferProgram"/> that <see cref="Pipeline.GBufferPass"/> draws as an extra pass over this shape with depth testing forced to always-pass. That is what lets it show values computed before an alpha-test discard, which the Z-only prepass would otherwise hide.</summary>
     public uint? DebugGBufferProgram { get; set; }
 
-    /// <summary>Which <c>temp_N</c> to visualise when <see cref="DebugGBufferProgram"/> is set; -1 shows the real output. Shares the same numbering space as <see cref="DebugStepTarget"/> conceptually but is a separate value since forward and G-buffer debugging can't both be meaningfully active for the same pixel.</summary>
+    /// <summary>Which <c>temp_N</c> to show when <see cref="DebugGBufferProgram"/> is set; -1 shows the real output.</summary>
     public int DebugGBufferStepTarget { get; set; } = -1;
 
-    /// <summary>
-    /// Sampler key -> the texture to bind INSTEAD of whichever this shape's own sampler list
-    /// resolved for that key. Null (the common case) means "draw exactly what the material says".
-    /// Set per frame by <see cref="WildRenderingSharp.Rendering.TexturePatternPose"/> and read by
-    /// <see cref="Pipeline.ShapeDrawing"/>; every variant (G-buffer, z-only, forward) is covered
-    /// because the substitution is by KEY, not by unit - the same sampler can sit on a different
-    /// unit in each variant's own compiled program.
-    /// </summary>
+    /// <summary>Sampler key to the texture bound instead of the one this shape's own list resolved for that key; null draws what the material says. Set per frame by <see cref="WildRenderingSharp.Rendering.TexturePatternPose"/>. Substitution is by key because the same sampler can sit on a different unit in each variant's program.</summary>
     public IReadOnlyDictionary<string, LoadedTexture>? SamplerOverrides { get; set; }
 
     public required uint MaterialBuffer { get; init; }
 
-    /// <summary>
-    /// The material's <c>gsys_material</c> block exactly as its <c>.gsys_material.bin</c> declares
-    /// it - the baseline a shader parameter animation is applied ON TOP of, kept so dropping an
-    /// anim restores the material instead of leaving the last value it wrote.
-    /// </summary>
+    /// <summary>The material block exactly as its file declares it: the baseline a parameter animation applies on top of, kept so dropping an anim restores the material.</summary>
     public required byte[] MaterialBytes { get; init; }
 
-    /// <summary>Where each named shader parameter sits inside that block, or null when the cache predates the layout sidecar - in which case this material simply cannot be parameter-animated (and says so) rather than being animated at a guessed offset.</summary>
+    /// <summary>Where each named shader parameter sits inside the material block, or null when the cache predates the layout sidecar, in which case the material cannot be parameter-animated.</summary>
     public MaterialParamLayout? MaterialParams { get; init; }
 
     /// <summary>Whether <see cref="MaterialBuffer"/> currently holds animated values rather than <see cref="MaterialBytes"/> - so the restore upload happens once, not every frame.</summary>
     public bool MaterialIsPatched { get; set; }
 
-    /// <summary>Position-only VAO (location 0, matching <c>PassIdMaskPass</c>'s fixed shader ABI) over the same vertex/index buffers - used to stamp this shape's resolved deferred-pass ID.</summary>
+    /// <summary>Position-only VAO (location 0, matching <c>PassIdMaskPass</c>'s shader ABI) over the same buffers, used to stamp this shape's deferred pass ID.</summary>
     public uint PassIdVao { get; internal set; }
 
     public bool HasZOnly => ZOnlyVao != 0;
 
-    /// <summary>
-    /// Kept out of everything that draws what is seen - the G-buffer, the pass-ID mask, the forward
-    /// pass. True for a material the game hides from its normal pass (<c>o_enable_hide_normal_pass</c>:
-    /// <c>Mt_SkyOccluder</c>, a plane that blocks the sky behind it and draws nothing) and for one
-    /// that names no texture at all (<c>Mt_ShadowModel</c>, a stand-in that only casts a shadow).
-    /// Drawn, the sky occluders' planes stood over the ground and hid it as soon as they came into
-    /// view.
-    /// </summary>
+    /// <summary>Kept out of everything that draws what is seen (G-buffer, pass-ID mask, forward). True for a material the game hides from its normal pass (<c>o_enable_hide_normal_pass</c>, e.g. <c>Mt_SkyOccluder</c>, a plane that blocks the sky) and for one that names no texture (<c>Mt_ShadowModel</c>, a shadow-only stand-in).</summary>
     public bool Hidden { get; init; }
 
     /// <summary>Whether the shape draws into the shadow map: everything but what the game hides from its normal pass.</summary>
     public bool CastsShadow { get; init; } = true;
 
-    /// <summary>
-    /// Whether the G-buffer program samples <c>cTex_ColorBuffer</c> - the lit scene behind it, as
-    /// water does. Such a shape draws after the opaque scene is lit (<see cref="Pipeline.SceneColorShapePass"/>).
-    /// </summary>
+    /// <summary>Whether the G-buffer program samples <c>cTex_ColorBuffer</c>, the lit scene behind it, as water does. Such a shape draws after the opaque scene is lit.</summary>
     public bool ReadsSceneColor { get; init; }
     public bool HasForward => ForwardVao != 0;
 
-    /// <summary>
-    /// Whether this shape draws at all - a UI-driven visibility toggle (the Material Inspector's
-    /// right-click "Enabled"), not authored data. Defaults to true; every pass filters the shape
-    /// list by this fresh each <see cref="WildRenderingSharp.Pipeline.DeferredPipeline.RenderFrame"/>
-    /// rather than it being baked into anything computed once in
-    /// <see cref="WildRenderingSharp.Pipeline.DeferredPipeline.SetModel"/>, so toggling it takes effect
-    /// on the very next frame.
-    /// </summary>
+    /// <summary>Whether this shape draws at all: a UI visibility toggle, not authored data. Passes filter by it fresh every frame so toggling takes effect on the next.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>
-    /// Per-material opt-in: run this shape's forward (<c>gsys_assign_material</c>) program even
-    /// though its render state is opaque/masked, not genuinely blended. A UI-driven debug toggle
-    /// (the Material Inspector's per-material checkbox), not authored data - defaults to false.
-    /// Genuinely blended shapes ignore this and always run forward regardless (see
-    /// <see cref="Pipeline.ForwardPass.Run"/>'s filter) since that's required for correctness, not
-    /// optional. See <c>docs/forward_pass_ubo_map.md</c> for why this is manual per-material rather
-    /// than an auto-detected condition: the real engine's per-object gate is dynamic gameplay
-    /// state WildRenderingSharp has no equivalent of, so the user opts in the specific materials that are
-    /// ALWAYS meant to run this pass (e.g. a permanently-corrupted enemy) rather than WildRenderingSharp
-    /// guessing.
-    /// </summary>
+    /// <summary>Per-material opt-in to run the forward (<c>gsys_assign_material</c>) program though the render state is opaque or masked; a debug toggle, not authored data. Genuinely blended shapes always run forward. See <c>docs/forward_pass_ubo_map.md</c> for why this is manual: the engine's per-object gate is gameplay state with no equivalent here.</summary>
     public bool ForceForward { get; set; }
 }
