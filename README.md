@@ -36,6 +36,8 @@ uint? texture = renderer.Render(camera, width, height, deltaSeconds);
   `TransformOverride` takes a host's own placement matrix.
 - `RenderEnvironment` - palettes, sky/cloud postfx and colour grade from the romfs.
 - `LightingContext` - exposure, palette, sun, background mode, sky/cloud/flare switches.
+- `WildRenderer.Totk` - the TotK profile's live settings (`TotkSettings`): palette, atmosphere, sun and moon, lens flare, and the clouds
+  (`CloudWeatherSet` 0-2, `CloudLayerEnabled`, `CloudWind`, `AnimateClouds`, `CloudBrightness`).
 - `GLHostState` - see below.
 - `YUpWorld` - conversions for a Y-up host (the renderer's world is Z-up).
 - `Imaging.PngWriter` / `Imaging.HdrWriter` - dependency-free export.
@@ -66,11 +68,20 @@ git clone --recursive https://github.com/BladesawStudios/WildRenderingSharp.git
 dotnet build WildRenderingSharp.slnx
 ```
 
+The dependencies are all submodules under `vendor/` and all managed (ShaderLibrary, AampSharp, McSharp, BntxSharp, TxtgSharp with its TexSharp), so
+preparation needs no Windows binaries; it has not been run on Linux yet. Everything targets net10.0.
+
 `WildRenderingSharp.Preparation` on its own:
 
 ```bash
 WildRenderingSharp.Preparation ensure-system --romfs <romfs> [--cache <dir>]
 WildRenderingSharp.Preparation prepare --romfs <romfs> --actor <name> [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]
+```
+
+A headless GL bench renders one actor to a PNG for checking changes without a host:
+
+```bash
+dotnet run --project tests/WildRenderingSharp.TestBench -- --game totk --romfs <romfs> --actor Npc_Zelda_AncientHyrule --out zelda.png
 ```
 
 ## Debugging switches
