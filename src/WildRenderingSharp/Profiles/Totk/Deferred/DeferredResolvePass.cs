@@ -43,13 +43,12 @@ public sealed class DeferredResolvePass : IDisposable
 
     uint _tileFlags;
 
-    /// <summary>The pass whose own output is kept for a debug view (<see cref="RenderTargets.SnapshotResolve"/>), or -1.</summary>
+    // The pass whose own output is kept for the debug views, or -1.
     public int DebugPass { get; set; } = -1;
 
     string? _tracePass;
     Func<ResolvedDeferredPass, ResolveTrace>? _traceStart;
 
-    /// <summary>Records one pixel of the next run of the pass named <paramref name="pass"/>.</summary>
     internal void Trace(string pass, Func<ResolvedDeferredPass, ResolveTrace> start)
     {
         _tracePass = pass;
@@ -71,10 +70,7 @@ public sealed class DeferredResolvePass : IDisposable
     // The cube's edge in texels at its finest level; the field programs read down to level 3, by roughness.
     const int CubeSize = 16;
 
-    /// <summary>
-    /// Fills <c>cTex_CubeEnvMap</c> with an open-air environment: the sky above the horizon, the ground below and a soft join between. The game
-    /// reflects a probe of the scene; this keeps a surface seen at a low angle reflecting sky instead of a flat colour. Up is +Y, the game's.
-    /// </summary>
+    /// <summary>Fills <c>cTex_CubeEnvMap</c> with sky above the horizon and ground below (the game reflects a probe of the scene). Up is +Y, the game's.</summary>
     public unsafe void SetEnvironment(System.Numerics.Vector3 sky, System.Numerics.Vector3 ground)
     {
         if (_cubeSky == sky && _cubeGround == ground)

@@ -33,9 +33,8 @@ vec3 decodeGBuffNormal(vec2 uv) {
     return (len2 > 1e-6) ? n * inversesqrt(len2) : vec3(0.0, 0.0, 1.0);
 }
 
-// PreShadow.z: how far the visible surface is from edge-on to the eye, 1 - clamp(0.12 * fovY * cot)^2, where cot comes from the step to the
-// depth one sample away along the normal's screen direction (the radius is the G-buffer normal.z bits 2-4). From the end of preshading_chara.
-// The normal's xy is read here rather than through decodeGBuffNormal, because bit 3 of normal.z is a radius bit.
+// PreShadow.z, as at the end of preshading_chara: 1 - clamp(0.12 * fovY * cot)^2 for how edge-on the surface is, cot from the depth step along the
+// normal's screen direction (radius in normal.z bits 2-4). Reads the normal itself because bit 3 is a radius bit.
 float grazeMask(vec2 uv, vec3 p) {
     vec4 g = texture(tex_gnrm, uv);
     int zb = int(trunc(g.z * 255.0));

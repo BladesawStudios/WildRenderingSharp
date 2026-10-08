@@ -5,18 +5,10 @@ using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Hosting;
 
-/// <summary>
-/// Puts a <see cref="SceneView"/>'s output into a host's own framebuffer: copied, blended over the host's background, or written with its depth
-/// into a scene the host has already drawn part of. Each method draws into whatever framebuffer is bound for drawing and leaves the state its own
-/// description names.
-/// </summary>
+/// <summary>Puts a <see cref="SceneView"/>'s output into a host's framebuffer: copied, blended over its background, or written with depth.</summary>
 public sealed class FrameCompositor(GL gl) : IDisposable
 {
-    /// <summary>How a host's depth buffer is laid out; the library does not know whether it is reversed.</summary>
-    /// <param name="Reversed">Whether depth runs near = 1, far = 0.</param>
-    /// <param name="ClearDepth">What an empty depth buffer holds.</param>
-    /// <param name="PassOrEqual">The test a fragment passes when it is in front of, or level with, what is there.</param>
-    /// <param name="Pass">The ordinary in-front test, which the host expects restored afterwards.</param>
+    /// <summary>How a host's depth buffer is laid out. <paramref name="Pass"/> is the ordinary in-front test, restored afterwards.</summary>
     public readonly record struct DepthLayout(bool Reversed, float ClearDepth, DepthFunction PassOrEqual, DepthFunction Pass);
 
     static readonly string Vertex = GlslFiles.Load("Pipeline/FrameCompositor/Vertex.vert");
@@ -25,7 +17,6 @@ public sealed class FrameCompositor(GL gl) : IDisposable
 
     uint _overProgram, _depthProgram, _vao;
 
-    /// <summary>Copies the view's output into the framebuffer bound for drawing, the right way up.</summary>
     public void Blit(SceneView view)
     {
         int read = gl.GetInteger(GetPName.ReadFramebufferBinding);
@@ -37,10 +28,7 @@ public sealed class FrameCompositor(GL gl) : IDisposable
         gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)read);
     }
 
-    /// <summary>
-    /// Clears the bound framebuffer to <paramref name="background"/> and blends the view's output over it. A transparent background leaves real
-    /// coverage in the output's alpha; the shader takes it back out of the colour, so this is a plain source-alpha blend. Depth writes are left on.
-    /// </summary>
+    /// <summary>Clears the bound framebuffer to <paramref name="background"/> and blends the view's output over it, leaving depth writes on.</summary>
     public void OverBackground(SceneView view, Vector3 background)
     {
         Ensure(ref _overProgram, OverFragment, "frame_over");
@@ -63,13 +51,9 @@ public sealed class FrameCompositor(GL gl) : IDisposable
     }
 
     /// <summary>
-    /// Writes the view's colour and depth into the host's frame, depth-tested against what the host has drawn so far. The view's depth is a
-    /// distance in its own planes and is turned back into the host's projection here. The sky is written at the far plane when the view drew one.
+    /// Writes the view's colour and depth into the host's frame, depth-tested against what is there, converting the view's depth to the host's
+    /// projection. A sky is written at the far plane.
     /// </summary>
-    /// <param name="near">The view's near plane.</param>
-    /// <param name="far">The view's far plane.</param>
-    /// <param name="hostProjection">The host's projection for this frame.</param>
-    /// <param name="sky">Whether the view drew a sky, to be written where nothing else is.</param>
     public void WithDepth(SceneView view, in DepthLayout layout, float near, float far, Matrix4x4 hostProjection, bool sky)
     {
         Ensure(ref _depthProgram, DepthFragment, "frame_depth");

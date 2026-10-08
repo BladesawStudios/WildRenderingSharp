@@ -4,13 +4,11 @@ using System.Text.RegularExpressions;
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
-/// The material IDs a G-buffer program can write, read from its decompiled source. The program writes its material class into the red byte of
-/// attachment 0 (<c>cTex_GBuffMaterialID</c>), and the game draws each resolve pass only where that byte equals the pass's priority, so the
-/// shader and not the material's name decides which pass lights a pixel. One that writes it from a uniform lists both constants.
+/// The material IDs a G-buffer program writes into attachment 0's red byte, read from its decompiled source. The game draws each resolve pass where
+/// that byte equals its priority, so the shader and not the material's name decides which pass lights a pixel.
 /// </summary>
 public static partial class GBufferMaterialIds
 {
-    /// <summary>The distinct non-zero IDs the program writes, or empty when it writes none or one the source does not give as a constant.</summary>
     public static IReadOnlyList<int> Parse(string fragmentSource)
     {
         Match output = OutputRegex().Match(fragmentSource);

@@ -10,10 +10,7 @@ public sealed class PassIdStamper(GL gl, DeferredScene scene) : IDisposable
     readonly PassIdMaskPass _byShape = new(gl);
     readonly MaterialIdPass _byMaterialId = new(gl);
 
-    /// <summary>
-    /// The pass that lights every pixel the mask leaves at zero, which with a host's terrain is the terrain's pass, or -1. Its own shapes need no
-    /// stamp, so they are not drawn into the mask.
-    /// </summary>
+    /// <summary>The pass that lights every pixel the mask leaves at zero (a host's terrain), or -1. Its own shapes are not stamped.</summary>
     public int ClaimPass(FrameContext frame) =>
         frame.TotkEnvironment().Terrain is not null ? scene.PassIndex(DeferredScene.DefaultPass) : -1;
 

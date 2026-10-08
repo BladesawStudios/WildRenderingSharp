@@ -4,11 +4,7 @@ using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
-/// <summary>
-/// Stamps the pass-ID mask from the material IDs the G-buffer programs wrote, the game's own way of choosing which resolve pass lights a pixel
-/// (see <see cref="DeferredPassPriorities"/>), over what <see cref="PassIdMaskPass"/> stamped from each shape's name. A character's cloth the
-/// exporter names after its <c>o_material_behave</c> is lit by whichever pass its G-buffer program says, which can be another one.
-/// </summary>
+/// <summary>Stamps the pass-ID mask from the material IDs the G-buffer programs wrote, over what <see cref="PassIdMaskPass"/> stamped from each shape's name.</summary>
 public sealed class MaterialIdPass : IDisposable
 {
     public const int MaxPasses = 16;
@@ -24,7 +20,6 @@ public sealed class MaterialIdPass : IDisposable
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "material_id");
     }
 
-    /// <param name="passes">Each pass's priority and its index in the pass list; its pass-ID is that index plus one over 255.</param>
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<(int Priority, int PassIndex)> passes)
     {
         if (passes.Count == 0)

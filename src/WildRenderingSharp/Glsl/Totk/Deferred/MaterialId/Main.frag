@@ -1,6 +1,5 @@
 #version 450 core
-// The pass-ID mask from the material ID the G-buffer programs wrote: a pixel whose attachment-0 red byte is one of the listed priorities is
-// stamped with that pass's ID. Anything else keeps the stamp it has.
+// Stamps the pass-ID mask where attachment 0's red byte matches a pass priority; other pixels keep their stamp.
 uniform sampler2D tex_material_id;  // G-buffer attachment 0 (cTex_GBuffMaterialID)
 uniform sampler2D tex_gbuf_depth;
 uniform int uCount;

@@ -88,9 +88,7 @@ public static class ShapeDrawing
                 bound = replacement;
             BindTexture(gl, unit, bound.Target, bound.Handle);
         }
-        // Bound for every shape of a baked batch, including those that keep their own bake0: the
-        // instances' flag still sends their shader to this table, and what it finds there is
-        // read from a one-texel texture.
+        // Bound for every shape of a baked batch: instances still send their shader to this table even where the shape keeps its own bake0.
         if (batch.BakeAtlasOfInstance is not null && (!_caching || _bakeTable != batch.BakeTable))
         {
             gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, BakeTableBinding, batch.BakeTable);

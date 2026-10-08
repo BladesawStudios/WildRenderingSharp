@@ -4,25 +4,14 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Hosting;
 
-/// <summary>What a loader job hands back to the render thread.</summary>
-/// <param name="Apply">Runs on the render thread if the job's owner is still the current one. True when it added something to the scene.</param>
-/// <param name="Discard">Runs on the render thread otherwise, giving back what the job made.</param>
+/// <summary>What a loader job hands back: <paramref name="Apply"/> runs on the render thread if the job's owner is still current (true when it added something), otherwise <paramref name="Discard"/> gives back what the job made.</summary>
 public sealed record LoaderResult(Func<bool> Apply, Action Discard);
 
 /// <summary>
-/// Runs a host's model loads on a thread of its own, with a GL context that shares the host's, so neither the view nor its UI waits on a model.
+/// Runs a host's model loads on a thread of its own, with a GL context sharing the host's. Buffers, textures and programs are shared, so a job does
+/// those on the loader and hands back a step for the render thread to make the vertex arrays. A result is applied only if its owner is still the one
+/// passed to <see cref="ApplyFinished"/>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Buffers, textures and programs are shared between contexts, so a load does all of that on the loader; vertex arrays are not, so each job
-/// hands back a small step for the render thread (<see cref="LoaderResult.Apply"/>) that makes those.
-/// </para>
-/// <para>
-/// A job belongs to an owner (the world it was queued for) and a generation. Its result is applied only if that owner is still the one passed to
-/// <see cref="ApplyFinished"/> and the generation has not moved on, and is discarded otherwise. An owner is only disposed while the loader is
-/// between jobs (<see cref="WaitIdle"/>), since a load uses the owner's program cache.
-/// </para>
-/// </remarks>
 public sealed class BackgroundLoader : IDisposable
 {
     sealed record Job(object Owner, int Generation, Func<LoaderResult> Run);
@@ -40,8 +29,8 @@ public sealed class BackgroundLoader : IDisposable
     bool _unavailable;
     int _generation;
 
-    /// <param name="createContext">Makes the loader's context on the render thread: a hidden window sharing the host's. Null keeps loading on the render thread.</param>
-    /// <param name="failed">The result for a job that threw, the host's accounting of a model that could not be loaded.</param>
+    /// <param name="createContext">Makes the loader's context on the render thread; null keeps loading there.</param>
+    /// <param name="failed">The result for a job that threw.</param>
     public BackgroundLoader(GL gl, Func<IGLContext?> createContext, Func<Exception, LoaderResult> failed, Action<string>? log = null)
     {
         _gl = gl;
@@ -50,7 +39,7 @@ public sealed class BackgroundLoader : IDisposable
         _log = log;
     }
 
-    /// <summary>Starts the thread once. False when the host could not give it a context, and loading stays on the render thread.</summary>
+    /// <summary>Starts the thread once; false when the host gave it no context.</summary>
     public bool EnsureStarted()
     {
         if (_thread is not null)
@@ -79,7 +68,6 @@ public sealed class BackgroundLoader : IDisposable
 
     public bool Started => _thread is not null;
 
-    /// <summary>Queues a job for <paramref name="owner"/>. It runs on the loader thread.</summary>
     public void Queue(object owner, Func<LoaderResult> run) =>
         _jobs.Add(new Job(owner, Volatile.Read(ref _generation), run));
 
@@ -103,8 +91,7 @@ public sealed class BackgroundLoader : IDisposable
                     result = _failed(ex);
                 }
 
-                // A shared context's work is not visible to another until it is flushed, and a texture sampled before its upload has landed reads
-                // back as whatever the memory held.
+                // Work in a shared context is not visible to another until it is flushed.
                 _gl.Finish();
                 _finished.Enqueue((job, result));
             }
@@ -113,8 +100,6 @@ public sealed class BackgroundLoader : IDisposable
     }
 
     /// <summary>Applies what the loader has finished, on the render thread. True when anything was added to the scene.</summary>
-    /// <param name="currentOwner">The owner whose results still count.</param>
-    /// <param name="applyFailed">Told of an <see cref="LoaderResult.Apply"/> that threw.</param>
     public bool ApplyFinished(object? currentOwner, Action<Exception>? applyFailed = null)
     {
         bool added = false;
@@ -139,7 +124,7 @@ public sealed class BackgroundLoader : IDisposable
         return added;
     }
 
-    /// <summary>Drops queued jobs and waits for the one in flight, before an owner goes away. Results already finished are kept until <see cref="DropFinished"/>.</summary>
+    /// <summary>Drops queued jobs and waits for the one in flight, before an owner goes away.</summary>
     public void WaitIdle()
     {
         Interlocked.Increment(ref _generation);
@@ -147,7 +132,6 @@ public sealed class BackgroundLoader : IDisposable
         lock (_busy) { }
     }
 
-    /// <summary>As <see cref="WaitIdle"/>, then gives back everything the loader had finished and nothing has applied.</summary>
     public void DropFinished()
     {
         WaitIdle();

@@ -4,10 +4,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 public static class LoadedShapeExtensions
 {
-    /// <summary>
-    /// The pass that resolves the shape. A model prepared before the exporter knew behave 102 holds an empty pass for it, and a shrine
-    /// entrance (<c>o_dungeon_entrance_pass</c>) resolves through <c>field_entrance</c> whatever its behave value names.
-    /// </summary>
+    /// <summary>The pass that resolves the shape; behave 102 and shrine entrances get theirs here when the manifest holds none.</summary>
     public static string DeferredPass(this LoadedShape shape)
     {
         if (IsDungeonEntrance(shape))

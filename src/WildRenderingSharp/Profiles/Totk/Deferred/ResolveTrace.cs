@@ -7,14 +7,11 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
-/// Records every value one pixel of a deferred resolve pass computes: the fragment program is rewritten
-/// to store each of its temporaries, its inputs and the uniform slots it reads into a buffer when it
-/// shades that pixel, and the buffer is written out as text.
+/// Records every value one pixel of a deferred resolve pass computes: the fragment program is rewritten to store its temporaries, inputs and uniform
+/// slots when it shades that pixel. The decompiled programs are straight-line code, so a trace names the first operation that disagrees with its operands.
 /// </summary>
-/// <remarks>The decompiled programs are straight-line code, so a trace names the first operation whose result disagrees with its operands.</remarks>
 internal sealed class ResolveTrace : IDisposable
 {
-    /// <summary>The binding the trace buffer takes - above every storage buffer a game program numbers itself.</summary>
     const uint BufferBinding = 7;
 
     static readonly Regex Declaration = new(
@@ -29,7 +26,6 @@ internal sealed class ResolveTrace : IDisposable
     readonly string _header;
     readonly int _x, _y;
 
-    /// <summary>The instrumented program: the pass's own, plus the stores.</summary>
     public uint Program { get; }
 
     ResolveTrace(GL gl, uint program, List<string> names, string path, string header, int x, int y)
@@ -48,7 +44,7 @@ internal sealed class ResolveTrace : IDisposable
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
     }
 
-    /// <summary>Makes the traced program for <paramref name="baseName"/>, shading the pixel (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    /// <summary>Makes the traced program for <paramref name="baseName"/>, recording the pixel (<paramref name="x"/>, <paramref name="y"/>).</summary>
     public static ResolveTrace Begin(GL gl, ShaderProgramCache programs, string baseName, string path, string header, int x, int y)
     {
         List<string> names = [];
@@ -56,14 +52,12 @@ internal sealed class ResolveTrace : IDisposable
         return new ResolveTrace(gl, program, names, path, header, x, y);
     }
 
-    /// <summary>Binds the trace buffer and tells the program which pixel to record. The program must be in use.</summary>
     public void Bind()
     {
         _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, BufferBinding, _buffer);
         _gl.Uniform2(_gl.GetUniformLocation(Program, "uWrsTraceXY"), _x, _y);
     }
 
-    /// <summary>Reads the buffer back and writes it, one <c>name value</c> line each.</summary>
     public void Finish()
     {
         _gl.MemoryBarrier(MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.BufferUpdateBarrierBit);
@@ -86,7 +80,6 @@ internal sealed class ResolveTrace : IDisposable
         _gl.DeleteProgram(Program);
     }
 
-    /// <summary>The source with stores of everything it computes, for one pixel, before its last <c>return</c>.</summary>
     static string Instrument(string source, List<string> names)
     {
         var stores = new StringBuilder();
