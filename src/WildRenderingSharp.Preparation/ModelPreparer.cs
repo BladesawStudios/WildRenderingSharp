@@ -55,7 +55,6 @@ public static class ModelPreparer
         Step(log, "cloud textures", () => EnsureCloudTextures(romfsRoot, cache.SystemTextures));
         Step(log, "sky bodies", () => EnsureSkyBodyTextures(romfsRoot, cache.SystemTextures));
         Step(log, "lens flare", () => EnsureLensFlareShaders(romfsRoot, cache.Shaders));
-        Step(log, "sky LUT", () => EnsureSkyBinData(romfsRoot, cache.SkyData));
         Step(log, "cloud shader", () => EnsureCloudShader(romfsRoot, cache.Shaders));
         Step(log, "sky shaders", () => EnsureSkyShaders(romfsRoot, cache.Shaders));
         Step(log, "terrain water", () =>
@@ -136,15 +135,6 @@ public static class ModelPreparer
         if (string.IsNullOrEmpty(romfsRoot) || !Directory.Exists(romfsRoot))
             return;
         TotkCloudMasks.Install(romfsRoot, systemTexturesDirectory);
-    }
-
-    public static void EnsureSkyBinData(string romfsRoot, string skyDataDirectory)
-    {
-        if (File.Exists(Path.Combine(skyDataDirectory, "sky_lut.bin")))
-            return;
-        if (string.IsNullOrEmpty(romfsRoot) || !Directory.Exists(romfsRoot))
-            return;
-        SkyBinTexture.ExtractMasterField(romfsRoot, skyDataDirectory);
     }
 
     public static void EnsureCloudShader(string romfsRoot, string decompiledDirectory)

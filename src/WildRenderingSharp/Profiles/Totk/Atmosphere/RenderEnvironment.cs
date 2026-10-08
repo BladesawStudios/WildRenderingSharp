@@ -16,7 +16,6 @@ public sealed class RenderEnvironment
 
     public ColorCorrectionPostFx ColorCorrection { get; private set; } = ColorCorrectionPostFx.Default;
 
-    public SkyBinLut SkyBin { get; private set; } = SkyBinLut.Empty;
 
     public void LoadFromRomfs(string? romfsRoot)
     {
@@ -25,15 +24,13 @@ public sealed class RenderEnvironment
     }
 
     public TotkEnvironment Resolve(TotkSettings settings, ITerrainHost? terrain = null) =>
-        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, SkyBin, ColorCorrection, terrain, settings);
+        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings);
 
-    public void LoadSkyBin(CacheLayout cache) => SkyBin = SkyBinLut.LoadFromCache(cache.SkyData);
 
     public static RenderEnvironment Load(string? romfsRoot, CacheLayout cache)
     {
         var environment = new RenderEnvironment();
         environment.LoadFromRomfs(romfsRoot);
-        environment.LoadSkyBin(cache);
         return environment;
     }
 }

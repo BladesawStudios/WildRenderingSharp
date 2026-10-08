@@ -17,7 +17,6 @@ public sealed record CacheLayout(string Root)
 
     public string SystemTextures => Path.Combine(Root, "_system_textures");
 
-    public string SkyData => Path.Combine(Root, "_sky_data");
 
     public string Bake => Path.Combine(Root, "_bake");
 

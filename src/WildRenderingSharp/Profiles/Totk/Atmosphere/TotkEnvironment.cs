@@ -11,7 +11,7 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 /// </summary>
 public sealed class TotkEnvironment(
     EnvPalette palette, SkyPostFx? skyPostFx = null, CloudPostFx? cloudPostFx = null,
-    SkyBinLut? skyBin = null, ColorCorrectionPostFx? colorCorrection = null, ITerrainHost? terrain = null,
+    ColorCorrectionPostFx? colorCorrection = null, ITerrainHost? terrain = null,
     TotkSettings? settings = null) : IFrameEnvironment
 {
     public ITerrainHost? Terrain { get; } = terrain;
@@ -20,7 +20,6 @@ public sealed class TotkEnvironment(
     public EnvPalette Palette { get; } = palette;
     public SkyPostFx SkyPostFx { get; } = skyPostFx ?? SkyPostFx.Default;
     public CloudPostFx CloudPostFx { get; } = cloudPostFx ?? CloudPostFx.Default;
-    public SkyBinLut SkyBin { get; } = skyBin ?? SkyBinLut.Empty;
     public ColorCorrectionPostFx ColorCorrection { get; } = colorCorrection ?? ColorCorrectionPostFx.Default;
 
     public EnvironmentLighting ResolveLighting(LightingContext lighting)
