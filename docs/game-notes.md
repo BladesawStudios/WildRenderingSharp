@@ -180,8 +180,8 @@ in this order: slot 0 `cloudtexture03` (the wispy base), slot 1 `cloudtexture02`
 different tone curve). They are byte-identical to a GPU capture of a real cloud draw once deswizzled. `mUseProcedualTexture` is false, so none of the
 `noise_*` programs in `agl_technique_proc.sharcb` are involved; they have no CPU callers for the cloud.
 
-The captured draw bound slots 0, 0, 1, 2 for base, blended base, noise and blended noise. The postfx file's own defaults are 0, 2, 1, 1; in game the weather's
-`PrequelPrCloud` parameters choose the indices.
+The renderer binds the indices `master_field.baglclwd` names (base 0, blended base 2, noise 1, blended noise 1). A GPU capture of a real draw bound 0, 0, 1, 2
+instead; in game the weather's `PrequelPrCloud` parameters can override the postfx file, and they are not read here.
 
 `TexToGo/cloud_noise.txtg` (64x64 BC4) is unrelated: the scene material samples it as `cTex_DeferredCloudNoise` for cloud shadows on terrain.
 

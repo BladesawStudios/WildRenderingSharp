@@ -20,10 +20,6 @@ public sealed class CloudDomePass : IDisposable
 
     public const int MaskCount = 3;
 
-    // Slot choices of the draw captured from the game. In game they come from the weather's cloud parameters (PrequelPrCloud),
-    // not the postfx file, whose defaults (0, 2, 1, 1) select differently; the weather data is not read here.
-    const int BaseSlot = 0, BaseBlendSlot = 0, NoiseSlot = 1, NoiseBlendSlot = 2;
-
     public static string MaskFileName(int slot) => $"CloudMask{slot}";
 
     readonly GL _gl;
@@ -328,10 +324,10 @@ public sealed class CloudDomePass : IDisposable
             skyColor), CloudDistanceFade.Binding);
         resources.Ubo("cloud_view", view, ViewBinding);
 
-        BindTexture(0, _masks[BaseSlot]);
-        BindTexture(1, _masks[BaseBlendSlot]);
-        BindTexture(2, _masks[NoiseSlot]);
-        BindTexture(3, _masks[NoiseBlendSlot]);
+        BindTexture(0, Mask(layer.BaseTextureNo));
+        BindTexture(1, Mask(layer.BaseTextureNoBlend));
+        BindTexture(2, Mask(layer.NoiseTextureNo));
+        BindTexture(3, Mask(layer.NoiseTextureNoBlend));
         // The atmosphere's scattered light, which the fragment shader adds to the cloud colour: the sky bake's table when available.
         BindTexture(4, scatterTexture != 0 ? scatterTexture : _scatterTex);
 
@@ -357,6 +353,8 @@ public sealed class CloudDomePass : IDisposable
         _gl.Disable(EnableCap.Blend);
         _gl.ActiveTexture(TextureUnit.Texture0);
     }
+
+    uint Mask(int slot) => _masks[(uint)slot < MaskCount ? slot : 0];
 
     void BindTexture(int unit, uint tex)
     {
