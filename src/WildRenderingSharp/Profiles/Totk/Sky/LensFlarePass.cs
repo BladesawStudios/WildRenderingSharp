@@ -6,14 +6,11 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
-/// The game's real lens flare - <c>agl::pfx::Glare</c>'s own <c>flare_filter_flare</c> program,
-/// decompiled out of <c>agl_technique_pfx.sharcb</c> and driven directly.
+/// The game's lens flare: <c>agl::pfx::Glare</c>'s <c>flare_filter_flare</c> program, decompiled out of <c>agl_technique_pfx.sharcb</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is a REAL decompiled program, not a reconstruction. Its whole interface is one sampler
-/// (<c>cSrc</c>) and one 192-byte <c>RegisterUBO</c>, which made the block recoverable by reading
-/// the decompiled math rather than needing a capture:
+/// Its whole interface is one sampler (<c>cSrc</c>) and one 192-byte <c>RegisterUBO</c>, so the block was recoverable from the decompiled math:
 /// </para>
 /// <code>
 /// vertex:    ghost = (0.5 - uv) * C[0].x          a step from this pixel toward screen centre
@@ -23,25 +20,17 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 ///            out  = (sum + halo * C[1].xyz) * C[3].xyz
 /// </code>
 /// <para>
-/// So <c>C[0].x</c> is the ghost spacing, <c>C[1].xyz</c>/<c>.w</c> the halo's tint and radius, and
-/// <c>C[3].xyz</c> the overall intensity. The ghost count is the <c>GHOST_NUM</c> macro baked in at
-/// extraction (4 here), which is why the four taps are unrolled with literal 2/4/6 multipliers
-/// rather than looped.
+/// So <c>C[0].x</c> is the ghost spacing, <c>C[1].xyz</c> and <c>.w</c> the halo's tint and radius, and <c>C[3].xyz</c> the overall intensity. The ghost count is
+/// the <c>GHOST_NUM</c> macro baked in at extraction (4), hence the unrolled taps.
 /// </para>
 /// <para>
-/// <b>The mirrored-sampling trick is the whole effect.</b> Stepping toward the screen centre and
-/// continuing past it lands on the light's own reflection through the centre, which is exactly
-/// where a real lens puts its ghosts. That is also why <c>cSrc</c> must be a BRIGHT-PASS of the
-/// scene and not the scene itself: sampling the raw image would drag ordinary geometry into the
-/// ghosts. This pass owns that threshold rather than borrowing <see cref="BloomPass"/>'s
-/// intermediates, so bloom's own tuning and the flare's cannot pull against each other.
+/// Stepping toward the screen centre and past it lands on the light's reflection through the centre, which is where a lens puts its ghosts. So <c>cSrc</c> must
+/// be a bright-pass of the scene, not the scene: the raw image would drag ordinary geometry into the ghosts. This pass owns that threshold rather than borrowing
+/// <see cref="BloomPass"/>'s intermediates, so their tunings cannot pull against each other.
 /// </para>
 /// <para>
-/// <b>Not implemented: the glare streak chain.</b> <c>glare_filter_blur</c> is extracted too
-/// (<c>agl_glare_filter_blur0</c>/<c>1</c>) but is a 2-tap separable blur meant to run ping-pong
-/// with offsets growing per iteration (<c>BLUR_LV</c>), driven from <c>glare_filter_seed</c>'s own
-/// <c>Seed</c> block. That is a multi-pass chain with its own state, and none of it is decoded yet
-/// - it is the anamorphic streaks, not the ghosts, so the flare stands on its own without it.
+/// Not implemented: the glare streak chain. <c>glare_filter_blur</c> is extracted (<c>agl_glare_filter_blur0</c> and <c>1</c>) but is a multi-pass separable blur
+/// driven from <c>glare_filter_seed</c>'s own block, which is undecoded. It produces the anamorphic streaks, not the ghosts.
 /// </para>
 /// </remarks>
 public sealed class LensFlarePass : IDisposable
@@ -65,9 +54,7 @@ public sealed class LensFlarePass : IDisposable
     public bool Available => _program != 0;
     bool _logged;
 
-    // The bright-pass. Deliberately WildRenderingSharp's own trivial shader and marked as such - only the FLARE
-    // itself is the game's program. Squaring the excess above the threshold keeps a merely-bright
-    // sky from producing ghosts while a genuine sun disc still does.
+    // The bright-pass is this renderer's own trivial shader; only the flare itself is the game's. Squaring the excess above the threshold keeps a merely bright sky from producing ghosts while a sun disc still does.
     const string BrightVert = """
         #version 330 core
         out vec2 vUV;
@@ -90,25 +77,18 @@ public sealed class LensFlarePass : IDisposable
         out vec4 oCol;
         vec3 bright(vec2 uv)
         {
-            // Sky-only source. The real game's flare is a SUN effect (gated on
-            // effect_sun_occlusion_cs), so geometry never throws one there - here an emissive
-            // weapon past any sane threshold did. GBufferDepth is in the G-buffer's Y-flipped
-            // orientation relative to this (Final-space) uv, hence 1 - v. Far-plane depth = sky.
+            // Sky-only source: the game's flare is a sun effect (gated on effect_sun_occlusion_cs), so geometry never throws one, whereas an emissive
+            // weapon past any threshold did here. GBufferDepth is in the G-buffer's flipped orientation, hence 1 - v; far-plane depth is sky.
             if (uSkyOnly != 0 && texture(tDepth, vec2(uv.x, 1.0 - uv.y)).r < 0.99999)
                 return vec3(0.0);
-            // Thresholded in DISPLAY space (after exposure), and the excess compressed to below 1
-            // on its brightest channel (hue kept). Unbounded excess - the old e*e - let one
-            // emissive object throw ghosts that buried the whole frame; a capped source keeps a
-            // flare a flare however bright the thing casting it is.
+            // Thresholded in display space (after exposure) with the excess compressed below 1 on the brightest channel, hue kept: unbounded excess let one emissive object bury the frame in ghosts.
             vec3 e = max(texture(tSrc, uv).rgb * uExposure - uThreshold, 0.0);
             float m = max(e.r, max(e.g, e.b));
             return m > 0.0 ? e * (1.0 / (1.0 + m)) : vec3(0.0);
         }
         void main()
         {
-            // Four bilinear taps one source texel off-centre cover the whole 4x4 footprint a
-            // quarter-res texel owns, so a thin bright edge cannot slip between samples and
-            // shimmer in and out of the ghosts as the camera moves.
+            // Four bilinear taps one source texel off-centre cover the whole 4x4 footprint of a quarter-res texel, so a thin bright edge cannot slip between samples and shimmer.
             oCol = vec4(0.25 * (bright(vUV + uSrcTexel * vec2(-1.0, -1.0))
                               + bright(vUV + uSrcTexel * vec2( 1.0, -1.0))
                               + bright(vUV + uSrcTexel * vec2(-1.0,  1.0))
@@ -144,9 +124,7 @@ public sealed class LensFlarePass : IDisposable
         }
 
         _program = programs.Load("agl_flare_filter_flare");
-        // RegisterUBO is at location 0 in BOTH stages, so it decompiles to vp_c3 and fp_c3 - the
-        // same logical block under two names once linked, exactly the collision CloudDomePass and
-        // SkyPostFxPass already have to correct for.
+        // RegisterUBO is at location 0 in both stages, so it decompiles to vp_c3 and fp_c3: one block under two names once linked, the same collision CloudDomePass and SkyPostFxPass correct.
         BindBlock("_vp_c3", RegisterBinding);
         BindBlock("_fp_c3", RegisterBinding);
         _gl.UseProgram(_program);
@@ -156,8 +134,7 @@ public sealed class LensFlarePass : IDisposable
         _brightProgram = GLProgramBuilder.Build(gl, BrightVert, BrightFrag, "lens_flare_bright");
         _blurProgram = GLProgramBuilder.Build(gl, BrightVert, BlurFrag, "lens_flare_blur");
 
-        // in_attr0 = half-unit position (the vertex does gl_Position.xy = in_attr0.xy * 2.0),
-        // in_attr1 = uv in [0,1]. Two attributes, unlike the sky pass's position-only quad.
+        // in_attr0 is the half-unit position (the vertex does gl_Position.xy = in_attr0.xy * 2.0) and in_attr1 the uv, unlike the sky pass's position-only quad.
         Span<float> quad =
         [
             -0.5f, -0.5f, 0f, 0f,
@@ -207,12 +184,8 @@ public sealed class LensFlarePass : IDisposable
         if (!Available)
             return;
 
-        // Quarter resolution and BLURRED. The ghost taps sample toward/through screen centre at
-        // a fraction of the pixel's distance, i.e. each ghost is the source MAGNIFIED (~3x at the
-        // default spacing). Fed an unblurred source, that magnification turns any bright object
-        // into giant hard-edged copies of itself instead of soft lens blobs. The real
-        // agl::pfx::Glare likewise runs its flare on a small, already-blurred buffer, never on the
-        // full-res frame.
+        // Quarter resolution and blurred: each ghost is the source magnified (about 3x at the default spacing), so an unblurred source would give giant hard-edged
+        // copies instead of soft blobs. The game's flare runs on a small blurred buffer too.
         EnsureSource(Math.Max(1, hdr.Width / 4), Math.Max(1, hdr.Height / 4));
 
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _srcFbo[0]);
@@ -245,17 +218,12 @@ public sealed class LensFlarePass : IDisposable
                 $"haloRadius={p.HaloRadius:G4} intensity={p.Intensity}");
         }
 
-        // The source is in display units but the flare is added to the HDR buffer BEFORE
-        // exposure, so divide exposure back out of the intensity - otherwise the exposure that
-        // follows multiplies the flare a second time (the same divide-back DeferredResolvePass
-        // applies to emission).
+        // The source is in display units but the flare is added before exposure, so exposure is divided back out of the intensity (as DeferredResolvePass does for emission).
         resources.Ubo("flare_register",
             BuildRegisterUbo(p.GhostSpacing, p.HaloTint, p.HaloRadius,
                 p.Intensity / MathF.Max(p.Exposure, 1e-4f)), RegisterBinding);
 
-        // Additive over the HDR buffer, before exposure/tonemap - a flare is light ADDED by the
-        // lens, so it belongs in the same linear space as everything else rather than painted on
-        // after grading.
+        // Additive over the HDR buffer before exposure and tonemap: a flare is light the lens adds, so it belongs in linear space.
         targets.BindColorTarget(hdr);
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFuncSeparate(GLEnum.One, GLEnum.One, GLEnum.Zero, GLEnum.One);
@@ -293,8 +261,7 @@ public sealed class LensFlarePass : IDisposable
                 PixelFormat.Rgba, PixelType.Float, null);
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-            // Clamped to a BLACK border, not to edge: the ghost taps deliberately walk past the far
-            // side of the screen, and clamp-to-edge would smear the border pixel into a ghost there.
+            // Clamped to a black border, not to edge: the ghost taps walk past the far side of the screen, and clamp-to-edge would smear the border pixel into a ghost.
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToBorder);
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToBorder);
             Span<float> border = [0f, 0f, 0f, 0f];

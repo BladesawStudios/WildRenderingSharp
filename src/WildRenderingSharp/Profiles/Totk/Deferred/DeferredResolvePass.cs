@@ -4,36 +4,21 @@ using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
-/// <summary>One deferred resolve pass, pre-resolved to its real compiled program and its own <c>SystemModel.DeferredMain</c> material bytes - see <see cref="DeferredResolvePass.ResolveDeferredPasses"/>.</summary>
-/// <param name="PassIndex">
-/// The pass's position in the list it was resolved from - the pass-ID mask's numbering, which is
-/// how its pixels are found. Not its position among the resolved passes: a pass with no program is
-/// skipped, and every pass after it used to be matched to the next one's pixels.
-/// </param>
+/// <summary>One deferred resolve pass, resolved to its compiled program and its <c>SystemModel.DeferredMain</c> material bytes; see <see cref="DeferredResolvePass.ResolveDeferredPasses"/>.</summary>
+/// <param name="PassIndex">The pass's position in the list it was resolved from, which is the pass-ID mask's numbering. Not its position among resolved passes: a pass with no program is skipped, and every later pass was once matched to the next one's pixels.</param>
 public sealed record ResolvedDeferredPass(string Name, uint Program, uint MaterialBuffer, int PassIndex);
 
-/// <summary>
-/// Runs each distinct deferred resolve program the loaded model actually needs - a real,
-/// unmodified game shader per pass, over a fullscreen quad the resolve vertex shader synthesises
-/// itself from <c>gl_VertexID</c> - and composites it into the running result only where the
-/// pass-ID mask names it. Mirrors <c>load_deferred_prog</c>/<c>resolve_passes</c>/the resolve loop
-/// in <c>render_scene</c>/<c>MASK_COMPOSE_SRC</c>.
-/// </summary>
+/// <summary>Runs each distinct deferred resolve program the loaded models need: an unmodified game shader per pass over a fullscreen quad it synthesises from <c>gl_VertexID</c>, composited into the running result only where the pass-ID mask names it.</summary>
 public sealed class DeferredResolvePass : IDisposable
 {
     readonly GL _gl;
     readonly uint _composeProgram;
     readonly uint _texPreFog, _texVolumeMask;
 
-    /// <summary><c>o_material_behave = 2</c> spans the whole field_* family, none of which can run correctly without the preshading passes/undecoded Env tail - substituted with a logged fallback rather than rendering black. See <c>FIELD_FALLBACK</c>.</summary>
+    /// <summary><c>o_material_behave = 2</c> spans the whole field_* family, none of which runs correctly without the preshading passes and the undecoded Env tail; substituted with a logged fallback rather than rendering black.</summary>
     public const string FieldFallbackPass = "chara_nonmetal";
 
-    /// <summary>
-    /// The field passes that run their own program after all. <c>field_water</c> reads the same
-    /// screen-space inputs the chara passes do, plus <c>cTex_CubeEnvMap</c> for its reflection;
-    /// what made water black was its G-buffer half (see <see cref="SceneColorShapePass"/>), not
-    /// this one, and lighting its scatter colour as an opaque nonmetal surface was never right.
-    /// </summary>
+    /// <summary>The field passes that run their own program. <c>field_water</c> reads the same screen-space inputs as the chara passes plus <c>cTex_CubeEnvMap</c>; water was black because of its G-buffer half (see <see cref="SceneColorShapePass"/>), and lighting it as an opaque nonmetal surface was never right.</summary>
     static readonly HashSet<string> RealFieldPasses = ["field_water"];
 
     /// <summary><c>cTex_CubeEnvMap</c>'s unit in the resolve programs that read it.</summary>
@@ -81,14 +66,9 @@ public sealed class DeferredResolvePass : IDisposable
             vec3 lit_col = texture(t, vUV).rgb;
             if (isnan(lit_col.r) || isnan(lit_col.g) || isnan(lit_col.b) || isinf(lit_col.r) || isinf(lit_col.g) || isinf(lit_col.b))
                 lit_col = vec3(0.0);
-            // Clamped at zero because emission is radiance ADDED to the scene - there is no such
-            // thing as a surface that emits negative light, so this can never alter a correct
-            // material. It guards against a decompilation artifact: Ryujinx renders negation as
-            // "0.0 - x", and in some shaders that has been mis-associated into a stray "v * 0.0"
-            // term, leaving an emission expression that is negative for EVERY input. Enemy_MiasmaTentacle
-            // and Npc_Ganondorf_Mummy both write their skin emission through one of those
-            // (material_prog10338, whose temp_40 is provably <= -0.333 whatever the uniforms say),
-            // and without this their bodies are actively darkened to black by their own emission.
+            // Clamped at zero: emission is radiance added to the scene, so a correct material is never altered. This guards a decompilation artifact: negation
+            // rendered as "0.0 - x" has been mis-associated into a stray "v * 0.0", leaving an emission negative for every input. Enemy_MiasmaTentacle and
+            // Npc_Ganondorf_Mummy write skin emission through one (material_prog10338, temp_40 <= -0.333 whatever the uniforms) and were darkened to black.
             vec3 emission = max(texture(tex_emis, g).rgb, vec3(0.0)) * enable * uEmission * uEmissionExposureRcp;
             fragColor = vec4(lit_col * uSceneGain + emission, 1.0);
         }
@@ -104,10 +84,7 @@ public sealed class DeferredResolvePass : IDisposable
         SetEnvironmentColor(new System.Numerics.Vector3(0.5f));
     }
 
-    /// <summary>
-    /// Fills <c>cTex_CubeEnvMap</c>. WildRenderingSharp renders no environment cube, so every face is
-    /// one colour - the palette's sky colour, which is what an open-air reflection mostly shows.
-    /// </summary>
+    /// <summary>Fills <c>cTex_CubeEnvMap</c>. No environment cube is rendered, so every face is the palette's sky colour, which is what an open-air reflection mostly shows.</summary>
     public unsafe void SetEnvironmentColor(System.Numerics.Vector3 color)
     {
         _gl.BindTexture(TextureTarget.TextureCubeMap, _cubeEnvMap);
@@ -121,20 +98,12 @@ public sealed class DeferredResolvePass : IDisposable
     }
 
     /// <summary>
-    /// Resolves each distinct deferred-pass name to its real compiled program (globbed by name,
-    /// not a hardcoded index - a model that resolves through a different pass just works) and its
-    /// own material bytes, once per loaded model (not per frame - these never change while a
-    /// model stays loaded). A <c>field_*</c> pass is substituted with <see cref="FieldFallbackPass"/>.
+    /// Resolves each distinct deferred-pass name to its compiled program (globbed by name, so a model resolving through a different pass just works) and its
+    /// material bytes, once per loaded model. A <c>field_*</c> pass is substituted with <see cref="FieldFallbackPass"/>.
     /// </summary>
     /// <param name="deferredMaterialsDir">
-    /// Where <c>&lt;pass&gt;.gsys_material.bin</c> lives - a directory SHARED across every loaded
-    /// model (see <c>ModelPreparer.DefaultDeferredMaterialsDirectory</c>/
-    /// <c>BuildMaterialUbo.RunSystemDeferred</c>), not the per-model data directory: these bytes
-    /// come from the one shared system shader archive + <c>SystemModel.DeferredMain</c> model,
-    /// identical for every creature. A missing file here means this step was never run (an older
-    /// cache) - the pass still resolves and draws, just with an all-zero "Mat" block, which is a
-    /// real, silent bug class in itself (see this file's own history) rather than something to
-    /// paper over further here.
+    /// Where <c>&lt;pass&gt;.gsys_material.bin</c> lives: shared across every model (see <c>BuildMaterialUbo.RunSystemDeferred</c>), since the bytes come from the
+    /// one system shader archive and <c>SystemModel.DeferredMain</c>. A missing file means the cache predates that step; the pass still draws, with an all-zero "Mat" block.
     /// </param>
     public static List<ResolvedDeferredPass> ResolveDeferredPasses(
         GL gl, ShaderProgramCache programs, string decompiledDir, string deferredMaterialsDir, IEnumerable<string> passNames)
@@ -155,8 +124,7 @@ public sealed class DeferredResolvePass : IDisposable
                 .OrderBy(f => f, StringComparer.Ordinal).FirstOrDefault();
             if (hit is null && name != FieldFallbackPass)
             {
-                // A pass with no program of its own (an o_material_behave value nothing maps, which
-                // exports as an empty name) is lit as the common case rather than left unlit.
+                // A pass with no program of its own (an o_material_behave nothing maps, exported as an empty name) is lit as the common case rather than left unlit.
                 Console.WriteLine($"  [approx] no extracted deferred shader for pass '{name}'; resolving through {FieldFallbackPass}");
                 name = FieldFallbackPass;
                 hit = Directory.EnumerateFiles(decompiledDir, $"deferred_{name}_prog*_extracted.frag")
@@ -181,32 +149,17 @@ public sealed class DeferredResolvePass : IDisposable
         return resolved;
     }
 
-    /// <param name="emissionScale">The viewer's Emission Scale control. 1.0 now means "the magnitude the material authored", because of <paramref name="exposure"/> below.</param>
+    /// <param name="emissionScale">The Emission Scale control; 1 means the magnitude the material authored, because of <paramref name="exposure"/>.</param>
     /// <param name="exposure">
-    /// The exposure <see cref="TonemapPass.RunExposureAndCompress"/> will apply to this whole
-    /// buffer afterwards, divided back out of the emission term here so emission lands at its
-    /// authored magnitude regardless of it.
-    ///
-    /// WHY: WildRenderingSharp's exposure is not the game's. A real ResEnvPalette authors
-    /// <c>Exposure: 1.0</c>; WildRenderingSharp's default is 10, a calibration standing in for the lighting it
-    /// does not compute (no preshading passes, no cubemap IBL, no light pre-pass). The emission a
-    /// material writes into G-buffer attachment 5 is authored in the GAME's units, so multiplying
-    /// it by that 10x lit-path correction blew every emissive surface past the highlight-compression
-    /// ceiling: Enemy_Giant's eye (emission = emissive texture * (1 + 7 * albedo), from its own
-    /// gsys_material) rendered as flat white, and Enemy_Dragon_Darkness's claws rendered their
-    /// authored magenta (Mt_Nail's emission colour really is (0.78, 0.0, 0.08)) far too hot.
-    /// Dividing it back out here is the same separation <c>LightingContext.SceneGain</c> already
-    /// documents for the lit path, applied to the axis that actually needed it.
+    /// The exposure <see cref="TonemapPass.RunExposureAndCompress"/> applies to this buffer afterwards, divided back out of the emission term so emission lands at its
+    /// authored magnitude. This renderer's exposure is a calibration standing in for lighting it does not compute (no preshading passes, cubemap IBL or light
+    /// pre-pass), but emission is authored in the game's units, so the lit-path correction blew every emissive surface past the highlight-compression ceiling:
+    /// Enemy_Giant's eye rendered flat white and Enemy_Dragon_Darkness's claws too hot. This is the separation <c>LightingContext.SceneGain</c> makes for the lit path.
     /// </param>
-    /// <param name="claimEmptyPass">The pass that also lights geometry the pass-ID mask left unstamped - a host's terrain - or -1.</param>
-    /// <param name="include">Which passes to run, by name - all of them when null. A skipped pass keeps its pass-ID, so the mask still names the rest correctly.</param>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ResolvedDeferredPass> passes,
         float emissionScale, float sceneGain, float exposure, Func<string, bool>? include = null, int claimEmptyPass = -1)
     {
-        // Final's background content (colour/transparent/sky - see BackgroundPass) is already
-        // painted in by the caller, BEFORE this runs - any pixel no resolved pass's mask covers
-        // below keeps that content all the way to the final displayed image, since the compose
-        // step's own discard only ever touches a pixel its pass-ID mask claims. Do NOT clear here.
+        // Final already holds the background (painted by the caller), and the compose step only touches pixels its pass-ID mask claims, so any uncovered pixel keeps it. Do not clear here.
         targets.BindColorTarget(targets.Final);
         _gl.Disable(EnableCap.DepthTest);
 
@@ -216,9 +169,7 @@ public sealed class DeferredResolvePass : IDisposable
             if (include is not null && !include(pass.Name))
                 continue;
 
-            // Rebound every pass: the mask-compose step below claims units 0/1 (G-buffer albedo
-            // and normal), which would otherwise be pass i-1's own output on the second and later
-            // passes of a multi-pass model.
+            // Rebound every pass: the mask-compose step claims units 0/1 (G-buffer albedo and normal), which would otherwise be the previous pass's output.
             BindResolveInputs(targets);
             resources.BindMaterial(pass.MaterialBuffer);
 
@@ -248,8 +199,7 @@ public sealed class DeferredResolvePass : IDisposable
 
     void BindResolveInputs(RenderTargets targets)
     {
-        // Units and semantics fixed by the game's own compiled resolve shaders - see the module
-        // remarks on which are genuinely authentic vs. WildRenderingSharp-synthesised neutrals.
+        // Units and semantics are fixed by the game's compiled resolve shaders; some inputs are authentic, others neutral stand-ins.
         BindAt(0, targets.GBuffer[1].Handle);       // cTex_GBuffAlbedo
         BindAt(1, targets.GBuffer[3].Handle);       // cTex_GBuffNormal
         BindAt(4, targets.LinearDepth.Handle);      // cTex_NormalizedLinearDepth
