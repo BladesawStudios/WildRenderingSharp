@@ -68,6 +68,7 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
         _gl.Uniform1(_gl.GetUniformLocation(_preshadowProgram, "uTexel"), p.ShadowTexel);
         _gl.Uniform1(_gl.GetUniformLocation(_preshadowProgram, "uTexelWorld"), p.ShadowTexelWorld);
         _gl.Uniform1(_gl.GetUniformLocation(_preshadowProgram, "uDepthRange"), p.ShadowDepthRange);
+        _gl.Uniform2(_gl.GetUniformLocation(_preshadowProgram, "uPix"), 1f / targets.Width, 1f / targets.Height);
         targets.BindColorTarget(targets.PreShadow);
         BindTexture(_preshadowProgram, "tex_nld", 0, targets.LinearDepth.Handle);
         BindTexture(_preshadowProgram, "tex_shadow", 1, p.ShadowTexture);

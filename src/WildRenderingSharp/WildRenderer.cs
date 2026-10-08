@@ -85,6 +85,7 @@ public sealed class WildRenderer : IDisposable
         {
             foreach (var shape in batch.Model.Shapes)
             {
+                shape.HasBakeRegion = any.MaterialIndexByName.ContainsKey(shape.Material);
                 if (!any.MaterialIndexByName.TryGetValue(shape.Material, out int index))
                     continue;
                 var entry = shape.MaterialParams?.Uniforms.FirstOrDefault(u => u.Name == "gsys_material_id");
@@ -262,7 +263,8 @@ public sealed class WildRenderer : IDisposable
 
     public uint? Render(Camera camera, int width, int height, float deltaSeconds)
     {
-        if (!_actors.Any(a => a.Visible) && !_instances.Any(b => b.Visible.Count > 0))
+        // A host's ground is something to draw on its own: a cave, a sky island or a shrine has no placed actors.
+        if (!_actors.Any(a => a.Visible) && !_instances.Any(b => b.Visible.Count > 0) && Terrain is null)
             return null;
 
         using var _ = GLHostState.Enter(_gl);

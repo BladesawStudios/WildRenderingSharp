@@ -39,6 +39,19 @@ public sealed class GLResourceCache : IDisposable
 
     public GL Gl => _gl;
 
+    /// <summary>The bytes last uploaded under <paramref name="key"/>, read back from the GPU for a debug view; empty if there are none.</summary>
+    public unsafe byte[] ReadUbo(string key)
+    {
+        if (!_ubos.TryGetValue(key, out uint handle))
+            return [];
+        _gl.BindBuffer(BufferTargetARB.UniformBuffer, handle);
+        _gl.GetBufferParameter(BufferTargetARB.UniformBuffer, BufferPNameARB.Size, out int size);
+        byte[] bytes = new byte[size];
+        fixed (byte* p = bytes)
+            _gl.GetBufferSubData(BufferTargetARB.UniformBuffer, 0, (nuint)size, p);
+        return bytes;
+    }
+
     public void BindZeroUbo(uint bindingIndex, int size = 256)
     {
         if (!_zeroUbos.TryGetValue(size, out uint handle))

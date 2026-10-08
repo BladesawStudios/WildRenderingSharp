@@ -67,7 +67,7 @@ public sealed class PassIdMaskPass : IDisposable
               .ToList();
 
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
-        ReadOnlySpan<Vector4> viewProjRows, float near, float far)
+        ReadOnlySpan<Vector4> viewProjRows, float near, float far, int claimPass = -1)
     {
         targets.BindPassIdTarget();
         _gl.ClearColor(0, 0, 0, 1);
@@ -97,7 +97,7 @@ public sealed class PassIdMaskPass : IDisposable
                 if (string.IsNullOrEmpty(sh.DeferredPass()))
                     continue;
                 int index = IndexOf(passes, sh.DeferredPass());
-                if (index < 0)
+                if (index < 0 || index == claimPass)
                     continue;
                 _gl.Uniform1(idLocation, (index + 1) / 255f);
                 _gl.Uniform1(skinLocation, sh.VertexSkinCount);
@@ -105,12 +105,12 @@ public sealed class PassIdMaskPass : IDisposable
                 _gl.DrawElements(PrimitiveType.Triangles, (uint)sh.IndexCount, DrawElementsType.UnsignedInt, null);
             }
         }
-        RunInstanced(resources, targets, groups, passes, viewProjRows);
+        RunInstanced(resources, targets, groups, passes, viewProjRows, claimPass);
         _gl.Disable(EnableCap.DepthTest);
     }
 
     unsafe void RunInstanced(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
-        ReadOnlySpan<Vector4> viewProjRows)
+        ReadOnlySpan<Vector4> viewProjRows, int claimPass)
     {
         if (!groups.Any(g => g.Batch is { Visible.Count: > 0 }))
             return;
@@ -142,7 +142,7 @@ public sealed class PassIdMaskPass : IDisposable
                 if (string.IsNullOrEmpty(sh.DeferredPass()))
                     continue;
                 int index = IndexOf(passes, sh.DeferredPass());
-                if (index < 0)
+                if (index < 0 || index == claimPass)
                     continue;
                 _gl.Uniform1(id, (index + 1) / 255f);
                 _gl.Uniform1(skin, sh.VertexSkinCount);

@@ -7,6 +7,7 @@ uniform mat4 uLightViewProj;
 uniform vec2 uTanHalf;          // Context decl 7 = (tanHalfFovX, tanHalfFovY)
 uniform vec3 uSunWorld;         // direction TOWARD the sun, world space
 uniform float uNear, uFar, uBias, uTexel, uTexelWorld, uDepthRange;
+uniform vec2 uPix;              // one texel of the depth buffer, in uv
 // Cascades (FrameRequest.ShadowCascades): nested regions, finest first, one layer each.
 uniform sampler2DArrayShadow tex_cascades;
 uniform int uCascadeCount;
@@ -23,7 +24,6 @@ vec3 viewPos(vec2 uv) {
 vec3 decodeGBuffNormal(vec2 uv) {
     vec4 g = texture(tex_gnrm, uv);
     int zb = int(trunc(g.z * 255.0));
-    if ((zb & 8) == 0) return vec3(0.0, 0.0, 1.0);
     float sx = ((zb & 2) != 0) ? 1.0 : -1.0;
     float sy = ((zb & 1) != 0) ? 1.0 : -1.0;
     float u2 = g.x * g.x + g.y * g.y;
@@ -31,6 +31,27 @@ vec3 decodeGBuffNormal(vec2 uv) {
     vec3 n = vec3(g.x * zHalf * sx * 2.0, g.y * zHalf * sy * 2.0, 1.0 - 2.0 * u2);
     float len2 = dot(n, n);
     return (len2 > 1e-6) ? n * inversesqrt(len2) : vec3(0.0, 0.0, 1.0);
+}
+
+// PreShadow.z: how far the visible surface is from edge-on to the eye, 1 - clamp(0.12 * fovY * cot)^2, where cot comes from the step to the
+// depth one sample away along the normal's screen direction (the radius is the G-buffer normal.z bits 2-4). From the end of preshading_chara.
+// The normal's xy is read here rather than through decodeGBuffNormal, because bit 3 of normal.z is a radius bit.
+float grazeMask(vec2 uv, vec3 p) {
+    vec4 g = texture(tex_gnrm, uv);
+    int zb = int(trunc(g.z * 255.0));
+    float radius = clamp(exp2(float((zb >> 2) & 7) - 2.0) / (-p.z * uTanHalf.y), 0.0, 1.0);
+    float zHalf = sqrt(max(0.0, 1.0 - dot(g.xy, g.xy)));
+    vec2 nxy = vec2(g.x * zHalf * (((zb & 2) != 0) ? 1.0 : -1.0), g.y * zHalf * (((zb & 1) != 0) ? 1.0 : -1.0));
+    vec2 dir = nxy * inversesqrt(dot(nxy, nxy) + 1e-12);
+    vec3 q = viewPos(uv + 2.0 * radius * uPix * vec2(dir.x, -dir.y));
+    vec3 v = normalize(p);
+    vec3 delta = q - p;
+    float along = dot(v, delta);
+    vec3 across = delta - v * along;
+    float across2 = dot(across, across);
+    if (across2 < 1e-20) return 1.0;
+    float s = clamp(along * inversesqrt(across2) * 2.0 * atan(uTanHalf.y) * 0.12, 0.0, 1.0);
+    return 1.0 - s * s;
 }
 
 void main() {
@@ -41,6 +62,8 @@ void main() {
 
     vec3 nView = decodeGBuffNormal(vUV);
     vec3 nWorld = normalize(mat3(uViewInv) * nView);
+
+    float graze = grazeMask(vUV, p);
 
     float ndl = dot(nWorld, uSunWorld);
 
@@ -73,11 +96,11 @@ void main() {
                 visC += texture(tex_cascades, vec4(scC.xy + s, float(c), refC));
             }
             visC *= 0.125;
-            fragColor = vec4(visC, 0.0, 1.0, visC);
+            fragColor = vec4(visC, 0.0, graze, visC);
             return;
         }
         // Past the last cascade: unshadowed, as the game is beyond its own.
-        fragColor = vec4(1.0, 0.0, 1.0, 1.0);
+        fragColor = vec4(1.0, 0.0, graze, 1.0);
         return;
     }
 
@@ -92,7 +115,7 @@ void main() {
     vec4 lc = uLightViewProj * vec4(worldBiased, 1.0);
     vec3 sc = lc.xyz / lc.w * 0.5 + 0.5;
     if (any(lessThan(sc.xy, vec2(0.0))) || any(greaterThan(sc.xy, vec2(1.0)))) {
-        fragColor = vec4(1.0, 0.0, 1.0, 1.0);
+        fragColor = vec4(1.0, 0.0, graze, 1.0);
         return;
     }
 
@@ -131,5 +154,5 @@ void main() {
     }
     vis *= (1.0 / 16.0);
 
-    fragColor = vec4(vis, 0.0, 1.0, vis);
+    fragColor = vec4(vis, 0.0, graze, vis);
 }

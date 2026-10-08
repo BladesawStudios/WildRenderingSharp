@@ -56,6 +56,23 @@ public sealed class ShaderProgramCache : IDisposable
         return program;
     }
 
+    readonly Dictionary<string, bool> _discards = new(StringComparer.Ordinal);
+
+    /// <summary>Whether a program's fragment stage can discard, read once from its source. An unreadable program counts as discarding.</summary>
+    public bool FragmentDiscards(string baseName)
+    {
+        lock (_sync)
+        {
+            if (!_discards.TryGetValue(baseName, out bool discards))
+            {
+                string path = Path.Combine(_decompiledDir, baseName + ".frag");
+                discards = !File.Exists(path) || File.ReadAllText(path).Contains("discard", StringComparison.Ordinal);
+                _discards[baseName] = discards;
+            }
+            return discards;
+        }
+    }
+
     readonly Dictionary<string, uint> _instancedPrograms = new(StringComparer.Ordinal);
 
     public uint LoadInstanced(string baseName, bool isForwardProgram = false)

@@ -48,6 +48,60 @@ public sealed class SceneView : IDisposable
 
     public SceneViewMode Mode { get; set; } = SceneViewMode.Final;
 
+    /// <summary>For <see cref="SceneViewMode.ResolvePass"/>: which of the pipeline's deferred passes.</summary>
+    public int ResolvePassIndex { get; set; }
+
+    /// <summary>
+    /// The exact values of every input the deferred resolve reads, and what it wrote, at the middle of the frame (the same texel in each).
+    /// Set <see cref="ProbeEnabled"/> and <see cref="ResolvePassIndex"/> first.
+    /// </summary>
+    public string ProbeCentre()
+    {
+        if (LastFrame is null)
+            return "";
+        var t = Targets;
+        int x = t.Width / 2, y = t.Height / 2;
+        string Bytes(GpuTexture g) { var v = t.ReadPixel(g, x, y) * 255f; return $"{v.X:F0} {v.Y:F0} {v.Z:F0} {v.W:F0}"; }
+        string Floats(GpuTexture g) { var v = t.ReadPixel(g, x, y); return $"{v.X:G4} {v.Y:G4} {v.Z:G4} {v.W:G4}"; }
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"albedo (bytes)  {Bytes(t.GBuffer[1])}");
+        sb.AppendLine($"normal (bytes)  {Bytes(t.GBuffer[3])}");
+        sb.AppendLine($"emission  {Floats(t.GBuffer[5])}");
+        sb.AppendLine($"linear depth  {Floats(t.LinearDepth)}");
+        sb.AppendLine($"pre-shadow  {Floats(t.PreShadow)}");
+        sb.AppendLine($"pre-misc  {Floats(t.PreMisc)}");
+        sb.AppendLine($"light field 0  {Floats(t.LayerCopy(t.FieldLightPrePassArray, 0))}");
+        sb.AppendLine($"light field 1  {Floats(t.LayerCopy(t.FieldLightPrePassArray, 1))}");
+        sb.AppendLine($"pass id  {Bytes(t.PassId)}");
+        if (t.Stage(3) is { } chosen)
+            sb.AppendLine($"chosen pass output  {Floats(chosen)}");
+        sb.AppendLine($"HDR frame  {Floats(t.Final)}");
+
+        static string Slot(byte[] b, int slot) =>
+            b.Length < (slot + 1) * 16 ? "(out of range)" : string.Join(' ', Enumerable.Range(0, 4).Select(i => BitConverter.ToSingle(b, slot * 16 + i * 4).ToString("G5")));
+        var resources = _pipeline.Resources;
+        byte[] env = resources.ReadUbo(FrameUniformKeys.Environment), sceneMat = resources.ReadUbo(FrameUniformKeys.SceneMaterial), context = resources.ReadUbo(FrameUniformKeys.SceneCamera);
+        sb.AppendLine("Env[5] " + Slot(env, 5) + " | [47] " + Slot(env, 47) + " | [70] " + Slot(env, 70));
+        sb.AppendLine("SceneMat[1] " + Slot(sceneMat, 1) + " | [2] " + Slot(sceneMat, 2) + " | [49] " + Slot(sceneMat, 49));
+        sb.AppendLine("Ctx[12] " + Slot(context, 12) + " | [14] " + Slot(context, 14));
+        sb.AppendLine("Ctx[16] " + Slot(context, 16) + " | [17] " + Slot(context, 17) + " | [18] " + Slot(context, 18));
+
+        Span<bool> mask = stackalloc bool[4];
+        _gl.GetBoolean(GetPName.ColorWritemask, mask);
+        sb.AppendLine($"GL colour mask {mask[0]} {mask[1]} {mask[2]} {mask[3]}; blend {_gl.IsEnabled(EnableCap.Blend)}, " +
+            $"scissor {_gl.IsEnabled(EnableCap.ScissorTest)}, cull {_gl.IsEnabled(EnableCap.CullFace)}, depth {_gl.IsEnabled(EnableCap.DepthTest)}, stencil {_gl.IsEnabled(EnableCap.StencilTest)}");
+        for (uint i = 0; i < 2; i++)
+        {
+            Span<bool> m = stackalloc bool[4];
+            _gl.GetBoolean(GLEnum.ColorWritemask, i, m);
+            sb.AppendLine($"  indexed mask {i}: {m[0]} {m[1]} {m[2]} {m[3]}");
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>Keeps the chosen resolve pass's output every frame, for <see cref="ProbeCentre"/>.</summary>
+    public bool ProbeEnabled { get; set; }
+
     public int Supersample => AntiAliasing is AntiAliasingMode.Supersample2x or AntiAliasingMode.Supersample2xFxaa ? 2 : 1;
 
     bool ApplyFxaa => AntiAliasing is AntiAliasingMode.Fxaa or AntiAliasingMode.Supersample2xFxaa;
@@ -65,7 +119,9 @@ public sealed class SceneView : IDisposable
 
     public uint DepthTexture => Targets.GBufferDepth.Handle;
 
-    public bool OutputIsTopDown => Mode is SceneViewMode.Albedo or SceneViewMode.Normal or SceneViewMode.Shadow or SceneViewMode.AmbientOcclusion;
+    public bool OutputIsTopDown => Mode is SceneViewMode.Albedo or SceneViewMode.Normal or SceneViewMode.Shadow or SceneViewMode.AmbientOcclusion
+        or SceneViewMode.Emission or SceneViewMode.GBuffer0 or SceneViewMode.GBuffer2 or SceneViewMode.GBuffer4
+        or SceneViewMode.LinearDepth or SceneViewMode.FieldLightLayer0 or SceneViewMode.FieldLightLayer1 or SceneViewMode.CharaLightLayer0;
 
     public (Vector2 Uv0, Vector2 Uv1) ImGuiUv => OutputIsTopDown
         ? (new Vector2(0, 0), new Vector2(1, 1))
@@ -81,6 +137,9 @@ public sealed class SceneView : IDisposable
         RenderTargets targets = Targets;
         targets.Resize(width * ss, height * ss);
 
+        if (_pipeline.Debug is { } debug)
+            debug.DebugResolvePass = Mode == SceneViewMode.ResolvePass || ProbeEnabled ? ResolvePassIndex : -1;
+        _pipeline.SnapshotStages = Mode is SceneViewMode.AfterResolve or SceneViewMode.AfterForward or SceneViewMode.AfterFlare or SceneViewMode.ResolvePass;
         var frame = _pipeline.RenderFrame(request, _ownTargets, _ownShadowCache, shadowMapOverride);
         LastFrame = frame;
         _lastGrade = request.Environment.PresentGrade;
@@ -96,7 +155,8 @@ public sealed class SceneView : IDisposable
             return;
 
         int ss = Supersample;
-        bool graded = Mode is SceneViewMode.Final or SceneViewMode.HdrPreview;
+        bool graded = Mode is SceneViewMode.Final or SceneViewMode.HdrPreview or SceneViewMode.AfterResolve or SceneViewMode.AfterForward
+            or SceneViewMode.AfterFlare or SceneViewMode.ResolvePass;
         var resources = _pipeline.Resources;
 
         // Graded views render into a native-resolution intermediate first so FXAA (or a passthrough) runs on the finished image; the raw diagnostic views skip grading and AA.
@@ -121,6 +181,41 @@ public sealed class SceneView : IDisposable
                 break;
             case SceneViewMode.AmbientOcclusion:
                 _present.RunRaw(resources, frame.PreMisc, 1f);
+                break;
+            case SceneViewMode.Emission:
+                _present.RunRaw(resources, Targets.GBuffer[5], 1f);
+                break;
+            case SceneViewMode.GBuffer0:
+                _present.RunRaw(resources, Targets.GBuffer[0], 1f);
+                break;
+            case SceneViewMode.GBuffer2:
+                _present.RunRaw(resources, Targets.GBuffer[2], 1f);
+                break;
+            case SceneViewMode.GBuffer4:
+                _present.RunRaw(resources, Targets.GBuffer[4], 1f);
+                break;
+            case SceneViewMode.LinearDepth:
+                _present.RunRaw(resources, Targets.LinearDepth, 1f);
+                break;
+            case SceneViewMode.FieldLightLayer0:
+                _present.RunRaw(resources, Targets.LayerCopy(Targets.FieldLightPrePassArray, 0), 1f);
+                break;
+            case SceneViewMode.FieldLightLayer1:
+                _present.RunRaw(resources, Targets.LayerCopy(Targets.FieldLightPrePassArray, 1), 1f);
+                break;
+            case SceneViewMode.CharaLightLayer0:
+                _present.RunRaw(resources, Targets.LayerCopy(Targets.LightPrePassArray, 0), 1f);
+                break;
+            case SceneViewMode.AfterResolve:
+            case SceneViewMode.AfterForward:
+            case SceneViewMode.AfterFlare:
+                _present.Run(resources, Targets.Stage(Mode - SceneViewMode.AfterResolve) ?? frame.Final, ss, grade.Saturation, grade.Brightness, grade.Gamma, hdrPreview: true);
+                break;
+            case SceneViewMode.ResolvePass:
+                _present.Run(resources, Targets.Stage(3) ?? frame.Final, ss, grade.Saturation, grade.Brightness, grade.Gamma, hdrPreview: true);
+                break;
+            case SceneViewMode.LastResolve:
+                _present.RunRaw(resources, Targets.ResolvePass, 0.1f);
                 break;
             case SceneViewMode.PassId:
                 // Values are i/255 for a handful of i, scaled up so distinct passes are visible.

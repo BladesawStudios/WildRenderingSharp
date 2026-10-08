@@ -13,6 +13,8 @@ public sealed class FrameContext(FrameRequest request, RenderTargets targets, Sh
 
     public GpuTexture? ShadowMapOverride { get; } = shadowMapOverride;
 
+    public bool SnapshotStages { get; init; }
+
     public Camera Camera => Request.Camera;
     public LightingContext Lighting => Request.Lighting;
     public IFrameEnvironment Environment => Request.Environment;

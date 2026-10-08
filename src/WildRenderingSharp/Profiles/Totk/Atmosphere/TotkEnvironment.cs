@@ -34,6 +34,8 @@ public sealed class TotkEnvironment(
         return new EnvironmentLighting(AmbientLighting.SunColor(Palette), hemiSky, hemiGround, volumeMaskColor, volumeMaskIntensity);
     }
 
+    public bool HasOwnGeometry => Terrain is not null;
+
     public PresentGrade PresentGrade => Palette.ColorCorrectEnable
         ? new PresentGrade(Palette.ColorCorrectSaturation, Palette.ColorCorrectBrightness, Palette.ColorCorrectGamma)
         : PresentGrade.Neutral;

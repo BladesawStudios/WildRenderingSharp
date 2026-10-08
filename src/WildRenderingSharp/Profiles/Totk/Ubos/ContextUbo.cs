@@ -113,5 +113,19 @@ public sealed class ContextUbo : IUboBlock
         return flipped;
     }
 
+    /// <summary>
+    /// A copy whose screen-size integers say the frame is a grid of <paramref name="columns"/> by <paramref name="rows"/> tiles, which
+    /// <c>field_hybrid</c>'s vertex stage draws as one quad per instance. A 1x1 grid is the whole screen in one instance.
+    /// </summary>
+    public ContextUbo WithTileGrid(int columns, int rows)
+    {
+        var copy = new ContextUbo();
+        for (int slot = 0; slot < _block.SizeBytes / 16; slot++)
+            copy._block.SetSlot(slot, _block.GetSlot(slot));
+        var size = _block.GetSlot(Slots.ScreenSize);
+        copy._block.SetSlot(Slots.ScreenSize, size.X, size.Y, BitConverter.Int32BitsToSingle(columns), BitConverter.Int32BitsToSingle(rows));
+        return copy;
+    }
+
     public byte[] ToByteArray() => _block.ToByteArray();
 }

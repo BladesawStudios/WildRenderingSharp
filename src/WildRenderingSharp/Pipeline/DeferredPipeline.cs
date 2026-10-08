@@ -23,6 +23,12 @@ public sealed class DeferredPipeline : IDisposable
 
     public IFrameGraph Graph { get; }
 
+    /// <summary>The graph's debug hooks, or null when it has none.</summary>
+    public IDeferredDebug? Debug => Graph as IDeferredDebug;
+
+    /// <summary>Keeps a copy of the HDR frame after the deferred resolve, the forward pass and the lens flare, for the scene view's debug modes.</summary>
+    public bool SnapshotStages { get; set; }
+
     public GpuPassTimer Timer { get; }
 
     public (long Triangles, long Instances) GBufferCounts { get; private set; }
@@ -77,10 +83,13 @@ public sealed class DeferredPipeline : IDisposable
         ShadowCounts = default;
         PrepareEnvironment(request.Environment);
 
-        if (_models.Count == 0 || (request.Actors.Count == 0 && (request.Instances ?? []).Count == 0))
+        if ((_models.Count == 0 || (request.Actors.Count == 0 && (request.Instances ?? []).Count == 0)) && !request.Environment.HasOwnGeometry)
             throw new InvalidOperationException("No actors placed - call SetScene first.");
 
-        var frame = new FrameContext(request, targetsOverride ?? Targets, shadowCacheOverride ?? _mainShadowCache, shadowMapOverride);
+        var frame = new FrameContext(request, targetsOverride ?? Targets, shadowCacheOverride ?? _mainShadowCache, shadowMapOverride)
+        {
+            SnapshotStages = SnapshotStages,
+        };
 
         // Errors pending here came from outside the frame; anything found afterwards came from its passes.
         GLDiagnostics.CheckPending(_gl, "RenderFrame");

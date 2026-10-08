@@ -4,6 +4,18 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 static class LoadedShapeExtensions
 {
-    public static string DeferredPass(this LoadedShape shape) =>
-        shape.Tags.TryGetValue("deferred_pass", out var pass) ? pass : "";
+    /// <summary>
+    /// The pass that resolves the shape. A model prepared before the exporter knew behave 102 holds an empty pass for it, and a shrine
+    /// entrance (<c>o_dungeon_entrance_pass</c>) resolves through <c>field_entrance</c> whatever its behave value names.
+    /// </summary>
+    public static string DeferredPass(this LoadedShape shape)
+    {
+        if (IsDungeonEntrance(shape))
+            return "field_entrance";
+        string pass = shape.Tags.GetValueOrDefault("deferred_pass", "");
+        return pass.Length == 0 && shape.Tags.GetValueOrDefault("o_material_behave") == "102" ? "field_miasma" : pass;
+    }
+
+    static bool IsDungeonEntrance(LoadedShape shape) =>
+        shape.Tags.TryGetValue("option.o_dungeon_entrance_pass", out var value) && value is not ("0" or "<Default Value>");
 }

@@ -56,6 +56,11 @@ public static class ModelPreparer
             if (!ShaderLibrary.CompileTool.ExportTerrainShaders.IsExported(cache.Shaders))
                 ShaderLibrary.CompileTool.ExportTerrainShaders.Run(romfsRoot, cache.Shaders);
         });
+        Step(log, "cave shaders", () =>
+        {
+            if (!ShaderLibrary.CompileTool.ExportCaveShaders.IsExported(cache.Shaders))
+                ShaderLibrary.CompileTool.ExportCaveShaders.Run(romfsRoot, cache.Shaders);
+        });
     }
 
     static void Step(Action<string>? log, string name, Action step)

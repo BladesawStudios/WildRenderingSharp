@@ -27,7 +27,6 @@ float ditherAngle(vec2 fc) {
 vec3 decodeGBuffNormal(vec2 uv) {
     vec4 g = texture(tex_gnrm, uv);
     int zb = int(trunc(g.z * 255.0));
-    if ((zb & 8) == 0) return vec3(0.0, 0.0, 1.0);
     float sx = ((zb & 2) != 0) ? 1.0 : -1.0;
     float sy = ((zb & 1) != 0) ? 1.0 : -1.0;
     float u2 = g.x * g.x + g.y * g.y;

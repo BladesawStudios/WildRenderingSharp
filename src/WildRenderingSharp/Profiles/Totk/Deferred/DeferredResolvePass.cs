@@ -17,14 +17,44 @@ public sealed class DeferredResolvePass : IDisposable
 
     public const string FieldFallbackPass = "chara_nonmetal";
 
-    // The field passes that run their own program. field_water reads the same screen-space inputs as the chara passes plus
-    // cTex_CubeEnvMap; water was black because of its G-buffer half (see SceneColorShapePass), and lighting it as an opaque
-    // nonmetal surface was never right.
-    static readonly HashSet<string> RealFieldPasses = ["field_water"];
-
     const int CubeEnvMapUnit = 9;
 
     readonly uint _cubeEnvMap;
+
+    // The storage buffer (vp_s0) field_hybrid's vertex stage reads to learn which screen tiles hold surfaces: instance i is kept only if the
+    // dword at byte 0x41C0 + 16 i + 12 is 1. The game fills it with a compute pass; here the grid is one tile (ContextUbo.WithTileGrid).
+    uint TileFlagsBuffer
+    {
+        get
+        {
+            if (_tileFlags == 0)
+            {
+                const int FlagByte = 0x41C0 + 12;
+                byte[] data = new byte[FlagByte + 16];
+                BitConverter.TryWriteBytes(data.AsSpan(FlagByte), 1u);
+                _tileFlags = _gl.GenBuffer();
+                _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileFlags);
+                _gl.BufferData<byte>(BufferTargetARB.ShaderStorageBuffer, data, BufferUsageARB.StaticDraw);
+                _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+            }
+            return _tileFlags;
+        }
+    }
+
+    uint _tileFlags;
+
+    /// <summary>The pass whose own output is kept for a debug view (<see cref="RenderTargets.SnapshotResolve"/>), or -1.</summary>
+    public int DebugPass { get; set; } = -1;
+
+    string? _tracePass;
+    Func<ResolvedDeferredPass, ResolveTrace>? _traceStart;
+
+    /// <summary>Records one pixel of the next run of the pass named <paramref name="pass"/>.</summary>
+    internal void Trace(string pass, Func<ResolvedDeferredPass, ResolveTrace> start)
+    {
+        _tracePass = pass;
+        _traceStart = start;
+    }
 
     static readonly string ComposeFragmentSource = GlslFiles.Load("Totk/Deferred/DeferredResolve/Compose.frag");
 
@@ -35,20 +65,66 @@ public sealed class DeferredResolvePass : IDisposable
         _texPreFog = CreateConstTexture2D(0f, 0f, 0f, 0f);
         _texVolumeMask = CreateConstTexture2D(0f, 0f, 0f, 0f);
         _cubeEnvMap = _gl.GenTexture();
-        SetEnvironmentColor(new System.Numerics.Vector3(0.5f));
+        SetEnvironment(new System.Numerics.Vector3(0.5f), new System.Numerics.Vector3(0.2f));
     }
 
-    public unsafe void SetEnvironmentColor(System.Numerics.Vector3 color)
+    // The cube's edge in texels at its finest level; the field programs read down to level 3, by roughness.
+    const int CubeSize = 16;
+
+    /// <summary>
+    /// Fills <c>cTex_CubeEnvMap</c> with an open-air environment: the sky above the horizon, the ground below and a soft join between. The game
+    /// reflects a probe of the scene; this keeps a surface seen at a low angle reflecting sky instead of a flat colour. Up is +Y, the game's.
+    /// </summary>
+    public unsafe void SetEnvironment(System.Numerics.Vector3 sky, System.Numerics.Vector3 ground)
     {
+        if (_cubeSky == sky && _cubeGround == ground)
+            return;
+        _cubeSky = sky;
+        _cubeGround = ground;
+
+        int levels = 1;
+        for (int n = CubeSize; n > 1; n >>= 1) levels++;
         _gl.BindTexture(TextureTarget.TextureCubeMap, _cubeEnvMap);
-        float* texel = stackalloc float[] { color.X, color.Y, color.Z, 1f };
-        for (int face = 0; face < 6; face++)
-            _gl.TexImage2D(TextureTarget.TextureCubeMapPositiveX + face, 0, InternalFormat.Rgba16f, 1, 1, 0, PixelFormat.Rgba, PixelType.Float, texel);
-        _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        for (int level = 0; level < levels; level++)
+        {
+            int n = Math.Max(1, CubeSize >> level);
+            float[] texels = new float[n * n * 4];
+            for (int face = 0; face < 6; face++)
+            {
+                for (int t = 0; t < n; t++)
+                {
+                    for (int sIdx = 0; sIdx < n; sIdx++)
+                    {
+                        float u = 2f * (sIdx + 0.5f) / n - 1f, v = 2f * (t + 0.5f) / n - 1f;
+                        var d = face switch
+                        {
+                            0 => new System.Numerics.Vector3(1f, -v, -u),
+                            1 => new System.Numerics.Vector3(-1f, -v, u),
+                            2 => new System.Numerics.Vector3(u, 1f, v),
+                            3 => new System.Numerics.Vector3(u, -1f, -v),
+                            4 => new System.Numerics.Vector3(u, -v, 1f),
+                            _ => new System.Numerics.Vector3(-u, -v, -1f),
+                        };
+                        d = System.Numerics.Vector3.Normalize(d);
+                        float up = Math.Clamp((d.Y + 0.15f) / 0.3f, 0f, 1f);
+                        up = up * up * (3f - 2f * up);
+                        var c = System.Numerics.Vector3.Lerp(ground, sky, up);
+                        int at = (t * n + sIdx) * 4;
+                        texels[at] = c.X; texels[at + 1] = c.Y; texels[at + 2] = c.Z; texels[at + 3] = 1f;
+                    }
+                }
+                fixed (float* ptr = texels)
+                    _gl.TexImage2D(TextureTarget.TextureCubeMapPositiveX + face, level, InternalFormat.Rgba16f, (uint)n, (uint)n, 0, PixelFormat.Rgba, PixelType.Float, ptr);
+            }
+        }
+        _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)GLEnum.LinearMipmapLinear);
         _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMaxLevel, 0);
+        _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureBaseLevel, 0);
+        _gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMaxLevel, levels - 1);
         _gl.BindTexture(TextureTarget.TextureCubeMap, 0);
     }
+
+    System.Numerics.Vector3 _cubeSky = new(float.NaN), _cubeGround = new(float.NaN);
 
     public static List<ResolvedDeferredPass> ResolveDeferredPasses(
         GL gl, ShaderProgramCache programs, string decompiledDir, string deferredMaterialsDir, IEnumerable<string> passNames)
@@ -59,11 +135,6 @@ public sealed class DeferredResolvePass : IDisposable
         {
             passIndex++;
             string name = rawName;
-            if (name.StartsWith("field_", StringComparison.Ordinal) && !RealFieldPasses.Contains(name))
-            {
-                Console.WriteLine($"  [approx] {name} needs preshading-only inputs; resolving through {FieldFallbackPass}");
-                name = FieldFallbackPass;
-            }
 
             string? hit = name.Length == 0 ? null : Directory.EnumerateFiles(decompiledDir, $"deferred_{name}_prog*_extracted.frag")
                 .OrderBy(f => f, StringComparer.Ordinal).FirstOrDefault();
@@ -89,7 +160,8 @@ public sealed class DeferredResolvePass : IDisposable
                 Console.WriteLine($"  [warn] no deferred gsys_material for pass '{name}' at '{matPath}' - resolving with an all-zero Mat block");
             uint matBuffer = GLBuffer.CreatePaddedUniformBuffer(gl, matBytes);
 
-            resolved.Add(new ResolvedDeferredPass(rawName, program, matBuffer, passIndex));
+            resolved.Add(new ResolvedDeferredPass(rawName, program, matBuffer, passIndex,
+                FieldLights: name.StartsWith("field_", StringComparison.Ordinal), Tiled: name is "field_hybrid" or "field_hybrid_all_shadow", Source: baseName));
         }
         return resolved;
     }
@@ -109,13 +181,35 @@ public sealed class DeferredResolvePass : IDisposable
 
             // Rebound every pass: the mask-compose step claims units 0/1 (G-buffer albedo and normal), which would otherwise be the previous pass's output.
             BindResolveInputs(targets);
+            BindAt(28, (pass.FieldLights ? targets.FieldLightPrePassArray : targets.LightPrePassArray).Handle, TextureTarget.Texture2DArray);
             resources.BindMaterial(pass.MaterialBuffer);
 
             targets.BindColorTarget(targets.ResolvePass);
             _gl.ClearColor(0, 0, 0, 1);
             _gl.Clear(ClearBufferMask.ColorBufferBit);
-            _gl.UseProgram(pass.Program);
+            ResolveTrace? trace = null;
+            if (_tracePass == pass.Name && _traceStart is not null && pass.Source.Length > 0)
+            {
+                trace = _traceStart(pass);
+                _tracePass = null;
+            }
+            _gl.UseProgram(trace?.Program ?? pass.Program);
+            trace?.Bind();
+            if (pass.Tiled)
+            {
+                resources.BindCamera(TotkUniformKeys.FieldCamera);
+                _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 0, TileFlagsBuffer);
+            }
             resources.DrawFullscreenQuadStrip();
+            if (pass.Tiled)
+                resources.BindCamera(FrameUniformKeys.SceneCamera);
+            if (trace is not null)
+            {
+                trace.Finish();
+                trace.Dispose();
+            }
+            if (pass.PassIndex == DebugPass)
+                targets.SnapshotResolve();
 
             targets.BindColorTarget(targets.Final);
             _gl.UseProgram(_composeProgram);
@@ -140,6 +234,7 @@ public sealed class DeferredResolvePass : IDisposable
         // Units and semantics are fixed by the game's compiled resolve shaders; some inputs are authentic, others neutral stand-ins.
         BindAt(0, targets.GBuffer[1].Handle);       // cTex_GBuffAlbedo
         BindAt(1, targets.GBuffer[3].Handle);       // cTex_GBuffNormal
+        BindAt(2, targets.GBuffer[0].Handle);       // cTex_GBuffMaterialID, attachment 0 as the G-buffer programs write it
         BindAt(4, targets.LinearDepth.Handle);      // cTex_NormalizedLinearDepth
         BindAt(5, targets.LinearDepthHalf.Handle);  // cTex_HalfNormalizedLinearDepth
         BindAt(11, _texVolumeMask);                 // cTex_VolumeMask (neutral - inert; Env[81] carries the palette's real tint)
@@ -147,7 +242,7 @@ public sealed class DeferredResolvePass : IDisposable
         BindAt(17, _texPreFog);                      // cTex_PreFog (neutral - no aerial perspective)
         BindAt(18, targets.PreMisc.Handle);           // cTex_PreMisc (WildRenderingSharp-synthesised)
         BindAt(28, targets.LightPrePassArray.Handle, TextureTarget.Texture2DArray); // cTex_DeferredLightPrePass - see LightPrePass
-        BindAt(CubeEnvMapUnit, _cubeEnvMap, TextureTarget.TextureCubeMap); // cTex_CubeEnvMap (field_water) - see SetEnvironmentColor
+        BindAt(CubeEnvMapUnit, _cubeEnvMap, TextureTarget.TextureCubeMap); // cTex_CubeEnvMap (field_water) - see SetEnvironment
     }
 
     void BindAt(int unit, uint handle, TextureTarget target = TextureTarget.Texture2D)
@@ -182,5 +277,7 @@ public sealed class DeferredResolvePass : IDisposable
         _gl.DeleteTexture(_texPreFog);
         _gl.DeleteTexture(_texVolumeMask);
         _gl.DeleteTexture(_cubeEnvMap);
+        if (_tileFlags != 0)
+            _gl.DeleteBuffer(_tileFlags);
     }
 }

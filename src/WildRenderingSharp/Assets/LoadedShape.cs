@@ -63,6 +63,9 @@ public sealed class LoadedShape
 
     public bool MaterialIsPatched { get; set; }
 
+    /// <summary>Whether the instance's baked lighting has a region for this material; one that does not keeps its own bake0.</summary>
+    public bool HasBakeRegion { get; set; } = true;
+
     public uint PassIdVao { get; internal set; }
 
     public bool HasZOnly => ZOnlyVao != 0;

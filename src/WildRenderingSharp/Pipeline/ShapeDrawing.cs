@@ -72,7 +72,7 @@ public static class ShapeDrawing
         // material's own bake0 is bound only where a run needs it, not first and again after.
         int bakeUnit = -1;
         LoadedTexture? ownBake = null;
-        int[]? atlasOf = batch.BakeAtlasOfInstance;
+        int[]? atlasOf = shape.HasBakeRegion ? batch.BakeAtlasOfInstance : null;
         var overrides = shape.SamplerOverrides;
         for (int i = 0; i < samplers.Count; i++)
         {
@@ -88,7 +88,10 @@ public static class ShapeDrawing
                 bound = replacement;
             BindTexture(gl, unit, bound.Target, bound.Handle);
         }
-        if (bakeUnit >= 0 && (!_caching || _bakeTable != batch.BakeTable))
+        // Bound for every shape of a baked batch, including those that keep their own bake0: the
+        // instances' flag still sends their shader to this table, and what it finds there is
+        // read from a one-texel texture.
+        if (batch.BakeAtlasOfInstance is not null && (!_caching || _bakeTable != batch.BakeTable))
         {
             gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, BakeTableBinding, batch.BakeTable);
             _bakeTable = batch.BakeTable;

@@ -23,24 +23,26 @@ public sealed class GBufferPass
         var timer = GpuPassTimer.Current;
         timer?.Mark("G-buffer setup");
         timer?.Detail("");
-        bool anyZOnly = groups.Any(g => g.Shapes.Any(s => s.HasZOnly && s.RenderState.DepthWriteEnabled));
+        // A z-prepass pays only where the z-only program discards: that shape's G-buffer program takes its cutout from the prepass depth.
+        bool NeedsPrepass(LoadedShape s) => s.HasZOnly && s.RenderState.DepthWriteEnabled && programs.FragmentDiscards(s.ZOnlyShaderName);
+        bool anyZOnly = groups.Any(g => g.Shapes.Any(NeedsPrepass));
         ShapeDrawing.BeginStateCache();
         if (anyZOnly)
         {
             targets.SetGBufferColorMask(false);
-            DrawSorted(resources, groups, programs, s => s.HasZOnly && s.RenderState.DepthWriteEnabled, ShapeProgram.ZOnly, "z ");
+            DrawSorted(resources, groups, programs, NeedsPrepass, ShapeProgram.ZOnly, "z ");
             targets.SetGBufferColorMask(true);
             timer?.Mark("G-buffer z-prepass");
 
             _gl.DepthFunc(DepthFunction.Equal);
             _gl.DepthMask(false);
-            DrawSorted(resources, groups, programs, s => s.HasZOnly && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "");
+            DrawSorted(resources, groups, programs, NeedsPrepass, ShapeProgram.GBuffer, "");
             _gl.DepthMask(true);
             timer?.Mark("G-buffer main");
         }
 
         _gl.DepthFunc(DepthFunction.Less);
-        DrawSorted(resources, groups, programs, s => !s.HasZOnly && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-z ");
+        DrawSorted(resources, groups, programs, s => !NeedsPrepass(s) && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-z ");
 
         // Shapes whose render state writes no depth (a see-through surface the game blends into its G-buffer, like a shrine's warp-hole aura) draw after everything that does, tested but not written,
         // and never in the prepass, where writing them hid what is behind.

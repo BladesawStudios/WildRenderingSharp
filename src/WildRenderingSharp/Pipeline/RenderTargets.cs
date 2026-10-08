@@ -29,6 +29,9 @@ public sealed class RenderTargets : IDisposable
 
     public GpuTexture LightPrePassArray { get; private set; }
 
+    /// <summary>The light pre-pass as the <c>field_*</c> programs read it: layer 0 is the sky's ambient alone, which they multiply by albedo themselves.</summary>
+    public GpuTexture FieldLightPrePassArray { get; private set; }
+
     // Pass-ID mask.
     public GpuTexture PassId { get; private set; }
     public GpuTexture PassIdDepth { get; private set; }
@@ -36,6 +39,39 @@ public sealed class RenderTargets : IDisposable
 
     // Resolve and tonemap chain.
     public GpuTexture ResolvePass { get; private set; }
+
+    readonly GpuTexture?[] _stages = new GpuTexture?[4];
+
+    /// <summary>Copies <see cref="Final"/> as it stands into stage slot <paramref name="slot"/>, for looking at the frame between passes.</summary>
+    public void SnapshotFinal(int slot)
+    {
+        _stages[slot] ??= CreateColorTexture(Width, Height, InternalFormat.Rgba16f);
+        _gl.CopyImageSubData(Final.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
+            _stages[slot]!.Value.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)Width, (uint)Height, 1);
+    }
+
+    /// <summary>Copies what the deferred pass just resolved into stage slot 3.</summary>
+    public void SnapshotResolve()
+    {
+        _stages[3] ??= CreateColorTexture(Width, Height, InternalFormat.Rgba16f);
+        _gl.CopyImageSubData(ResolvePass.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
+            _stages[3]!.Value.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)Width, (uint)Height, 1);
+    }
+
+    /// <summary>The frame as <see cref="SnapshotFinal"/> last saw it, or null.</summary>
+    public GpuTexture? Stage(int slot) => _stages[slot];
+
+    GpuTexture? _layerCopy;
+
+    /// <summary>One layer of a texture array as a plain texture, for looking at it. Overwritten by the next call.</summary>
+    public GpuTexture LayerCopy(GpuTexture array, int layer)
+    {
+        _layerCopy ??= CreateColorTexture(Width, Height, InternalFormat.Rgba16f);
+        _gl.CopyImageSubData(array.Handle, CopyImageSubDataTarget.Texture2DArray, 0, 0, 0, layer,
+            _layerCopy.Value.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)Width, (uint)Height, 1);
+        return _layerCopy.Value;
+    }
+
     public GpuTexture Final { get; private set; }
     public GpuTexture Exposed { get; private set; }
     public GpuTexture Compressed { get; private set; }
@@ -109,7 +145,8 @@ public sealed class RenderTargets : IDisposable
         foreach (uint t in _owned)
             _gl.DeleteTexture(t);
         _owned.Clear();
-        _underAlbedo = _underNormal = _underDepth = null;
+        _underAlbedo = _underNormal = _underDepth = _layerCopy = null;
+        Array.Clear(_stages);
         if (_gbufferFbo != 0) _gl.DeleteFramebuffer(_gbufferFbo);
         if (_passIdFbo != 0) _gl.DeleteFramebuffer(_passIdFbo);
 
@@ -146,6 +183,7 @@ public sealed class RenderTargets : IDisposable
         AoRaw = CreateColorTexture(width, height, InternalFormat.Rgba16f);
         AoTmp = CreateColorTexture(width, height, InternalFormat.Rgba16f);
         LightPrePassArray = CreateColorTextureArray(width, height, InternalFormat.Rgba16f, layers: 2);
+        FieldLightPrePassArray = CreateColorTextureArray(width, height, InternalFormat.Rgba16f, layers: 2);
 
         PassId = CreateColorTexture(width, height, InternalFormat.Rgba8, filterNearest: true);
         PassIdDepth = CreateDepthTexture(width, height);
@@ -316,6 +354,8 @@ public sealed class RenderTargets : IDisposable
             ? (PixelFormat.Rgba, PixelType.UnsignedByte)
             : (PixelFormat.Rgba, PixelType.Float);
         unsafe { _gl.TexImage2D(TextureTarget.Texture2D, 0, format, (uint)width, (uint)height, 0, pixelFormat, pixelType, null); }
+        // A texture allocated with no data holds whatever the card's memory held, which a pass that is skipped would then show.
+        unsafe { _gl.ClearTexImage(handle, 0, PixelFormat.Rgba, pixelType, null); }
         int filter = (int)(filterNearest ? GLEnum.Nearest : GLEnum.Linear);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, filter);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, filter);
@@ -331,6 +371,7 @@ public sealed class RenderTargets : IDisposable
         uint handle = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2DArray, handle);
         _gl.TexImage3D(TextureTarget.Texture2DArray, 0, format, (uint)width, (uint)height, (uint)layers, 0, PixelFormat.Rgba, PixelType.Float, null);
+        _gl.ClearTexImage(handle, 0, PixelFormat.Rgba, PixelType.Float, null);
         _gl.SetSampling(TextureTarget.Texture2DArray, GLEnum.Linear, GLEnum.ClampToEdge);
         _owned.Add(handle);
         return new GpuTexture(handle, width, height);
@@ -340,7 +381,12 @@ public sealed class RenderTargets : IDisposable
     {
         uint handle = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, handle);
-        unsafe { _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent32f, (uint)width, (uint)height, 0, PixelFormat.DepthComponent, PixelType.Float, null); }
+        unsafe
+        {
+            _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent32f, (uint)width, (uint)height, 0, PixelFormat.DepthComponent, PixelType.Float, null);
+            float far = 1f;
+            _gl.ClearTexImage(handle, 0, PixelFormat.DepthComponent, PixelType.Float, &far);
+        }
         if (isShadowMap)
         {
             _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureCompareMode, (int)GLEnum.CompareRefToTexture);

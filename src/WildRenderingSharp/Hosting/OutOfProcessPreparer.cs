@@ -214,12 +214,20 @@ public sealed class OutOfProcessPreparer : IModelPreparer
         return true;
     }
 
+    /// <summary>Preparing a map runs a dozen of these at once; at the host's own priority they take the cores its render thread needs.</summary>
+    static void BelowNormal(Process process)
+    {
+        try { process.PriorityClass = ProcessPriorityClass.BelowNormal; }
+        catch { /* already gone, or not ours to change */ }
+    }
+
     async Task<int> RunProcessAsync(IReadOnlyList<string> arguments, Action<string> onLine, CancellationToken cancellationToken)
     {
         using var process = new Process { StartInfo = StartInfo(arguments), EnableRaisingEvents = true };
         process.OutputDataReceived += (_, e) => { if (e.Data is { } line) onLine(line); };
         process.ErrorDataReceived += (_, e) => { if (e.Data is { } line) onLine(line); };
         process.Start();
+        BelowNormal(process);
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         try
@@ -303,6 +311,7 @@ public sealed class OutOfProcessPreparer : IModelPreparer
         };
 
         process.Start();
+        BelowNormal(process);
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 

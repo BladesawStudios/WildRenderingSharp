@@ -125,8 +125,7 @@ public sealed class ModelLoader
                 CastsShadow = !hideNormalPass && sh.RenderState.DepthWriteEnabled,
                 Name = sh.Name,
                 Material = sh.Material,
-                Tags = sh.Extensions.Where(e => e.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number)
-                    .ToDictionary(e => e.Key, e => e.Value.ToString()),
+                Tags = ShapeTags(sh, optionsPath),
                 AlphaTest = sh.AlphaTest,
                 Blend = sh.RenderState.Blend,
                 RenderState = sh.RenderState,
@@ -169,7 +168,6 @@ public sealed class ModelLoader
                     shape.PassIdVao = BuildPassIdVao(vaoLayout, vaoStride, vbo, ibo, vaoConstantSkin);
                 });
             }
-            Console.WriteLine($"  {sh.Name}: {sh.GBufferShader}, {gbufferSamplers.Count} textures");
         }
 
         if (shapes.Count == 0)
@@ -329,6 +327,22 @@ public sealed class ModelLoader
             box.Value = GLBuffer.Create(gl, BufferTargetARB.ArrayBuffer, System.Runtime.InteropServices.MemoryMarshal.AsBytes(skin.AsSpan()).ToArray());
         }
         return box.Value;
+    }
+
+    /// <summary>The manifest's extra string and number fields, plus each <c>key=value</c> line of the shape's options file as <c>option.key</c>.</summary>
+    static Dictionary<string, string> ShapeTags(ShapeManifestEntry shape, string optionsPath)
+    {
+        var tags = shape.Extensions.Where(e => e.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number)
+            .ToDictionary(e => e.Key, e => e.Value.ToString());
+        if (!File.Exists(optionsPath))
+            return tags;
+        foreach (string line in File.ReadLines(optionsPath))
+        {
+            int eq = line.IndexOf('=');
+            if (eq > 0)
+                tags["option." + line[..eq].Trim()] = line[(eq + 1)..].Trim();
+        }
+        return tags;
     }
 
     static bool SmoothPaletteIsIdentity(SkeletonManifest? skeleton)

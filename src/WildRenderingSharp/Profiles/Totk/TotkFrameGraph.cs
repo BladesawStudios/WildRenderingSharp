@@ -11,10 +11,11 @@ using WildRenderingSharp.Profiles.Totk.Terrain;
 namespace WildRenderingSharp.Profiles.Totk;
 
 /// <summary>TotK's frame: a deferred G-buffer and lighting chain, the game's sky, and a forward pass for blended materials.</summary>
-public sealed class TotkFrameGraph : IFrameGraph
+public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
 {
     readonly DeferredScene _scene;
     readonly SkyBake _skyBake;
+    readonly ResolveStage _resolve;
     readonly List<IFrameStage> _stages;
     readonly List<IDisposable> _owned = [];
 
@@ -22,12 +23,13 @@ public sealed class TotkFrameGraph : IFrameGraph
     {
         var linearDepth = Own(new LinearDepthPass(services.Gl));
         var forward = Own(new ForwardPass(services.Gl, services.Directories.SystemTextures));
-        var passIdMask = Own(new PassIdMaskPass(services.Gl));
         var terrainShading = Own(new TerrainShading(services.Gl, services.Directories.Decompiled, services.Profile.Bindings));
         _scene = Own(new DeferredScene(services.Gl, services.Programs, services.Directories));
+        var stamper = Own(new PassIdStamper(services.Gl, _scene));
         _skyBake = Own(new SkyBake(services));
         var terrain = new TerrainRenderer(services, terrainShading, linearDepth, _scene);
         var screenSpaceLighting = Own(new ScreenSpaceLightingStage(services, linearDepth));
+        _resolve = Own(new ResolveStage(services, _scene, terrain, screenSpaceLighting, stamper));
 
         _stages =
         [
@@ -36,14 +38,17 @@ public sealed class TotkFrameGraph : IFrameGraph
             new GBufferStage(services, _scene, terrain),
             new ShadowStage(services, terrain),
             screenSpaceLighting,
-            new PassIdMaskStage(services, passIdMask, _scene),
+            new PassIdMaskStage(services, stamper),
             Own(new SkyStage(services, _skyBake)),
-            Own(new ResolveStage(services, _scene, terrain, screenSpaceLighting, passIdMask)),
+            _resolve,
+            new SnapshotStage(0),
             Own(new GridStage(services, forward)),
             Own(new KnownMaterialFixesStage(services, _scene, forward)),
             new ForwardStage(services, forward),
+            new SnapshotStage(1),
             new ExposureMeasureStage(services),
             Own(new LensFlareStage(services)),
+            new SnapshotStage(2),
             Own(new TonemapStage(services)),
             Own(new ColorCorrectionStage(services)),
             Own(new HighlightStage(services)),
@@ -57,6 +62,12 @@ public sealed class TotkFrameGraph : IFrameGraph
     }
 
     public void SetScene(IReadOnlyList<LoadedModel> models) => _scene.Set(models);
+
+    public IReadOnlyList<string> PassNames => _scene.PassNames;
+
+    public int DebugResolvePass { get => _resolve.DebugPass; set => _resolve.DebugPass = value; }
+
+    public void TraceResolvePass(string pass, string path) => _resolve.RequestTrace(pass, path);
 
     public void PrepareEnvironment(IFrameEnvironment environment)
     {

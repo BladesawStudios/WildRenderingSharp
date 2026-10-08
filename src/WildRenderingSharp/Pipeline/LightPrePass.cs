@@ -31,6 +31,12 @@ public sealed class LightPrePass : IDisposable
 
     public void Run(GLResourceCache resources, RenderTargets targets, Params p)
     {
+        // What the field programs read: ambient only, as the sun is theirs to compute.
+        Draw(resources, targets, p, targets.FieldLightPrePassArray, direct: 0f);
+        // Layer 1 is added to the field programs' colour as it stands and nothing writes it, so it is black every frame.
+        ClearLayer(targets, targets.FieldLightPrePassArray, 1);
+        ClearLayer(targets, targets.LightPrePassArray, 1);
+
         if (!p.Synthetic)
         {
             // No local lights: the buffer the game accumulates them in is black.
@@ -39,6 +45,19 @@ public sealed class LightPrePass : IDisposable
             _gl.Clear(ClearBufferMask.ColorBufferBit);
             return;
         }
+        Draw(resources, targets, p, targets.LightPrePassArray, direct: 1f);
+    }
+
+    void ClearLayer(RenderTargets targets, GpuTexture array, int layer)
+    {
+        targets.BindColorTargetLayer(array, layer);
+        _gl.ColorMask(true, true, true, true);
+        _gl.ClearColor(0f, 0f, 0f, 0f);
+        _gl.Clear(ClearBufferMask.ColorBufferBit);
+    }
+
+    void Draw(GLResourceCache resources, RenderTargets targets, Params p, GpuTexture array, float direct)
+    {
         _gl.Disable(EnableCap.DepthTest);
         _gl.UseProgram(_program);
         SetMat4(_program, "uViewInv", Rendering.Mat4Math.ToMat4(p.ViewInv3Rows));
@@ -49,8 +68,9 @@ public sealed class LightPrePass : IDisposable
         _gl.Uniform3(_gl.GetUniformLocation(_program, "uSunColor"), p.SunColor.X, p.SunColor.Y, p.SunColor.Z);
         _gl.Uniform3(_gl.GetUniformLocation(_program, "uHemiSky"), p.HemiSky.X, p.HemiSky.Y, p.HemiSky.Z);
         _gl.Uniform3(_gl.GetUniformLocation(_program, "uHemiGround"), p.HemiGround.X, p.HemiGround.Y, p.HemiGround.Z);
+        _gl.Uniform1(_gl.GetUniformLocation(_program, "uDirect"), direct);
 
-        targets.BindColorTargetLayer(targets.LightPrePassArray, layer: 0);
+        targets.BindColorTargetLayer(array, layer: 0);
         BindTexture(_program, "tex_nld", 0, targets.LinearDepth.Handle);
         BindTexture(_program, "tex_gnrm", 1, targets.GBuffer[3].Handle);
         resources.DrawFullscreenTriangle();
