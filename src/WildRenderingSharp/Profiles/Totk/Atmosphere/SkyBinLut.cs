@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// The real precomputed sky-scattering lookup table from <c>res/master_field.skybin</c>
@@ -12,7 +12,7 @@ namespace WildRenderingSharp.Rendering;
 /// runtime, mirroring the rest of this codebase's offline/live split.
 ///
 /// 37 depth slices x 8x8 discrete cells x RGBA. <see cref="Sample"/> is the only way
-/// <see cref="Pipeline.BackgroundPass"/> should read this - see its own remarks for the
+/// <see cref="WildRenderingSharp.Profiles.Totk.Sky.BackgroundPass"/> should read this - see its own remarks for the
 /// (unconfirmed, visually-motivated) axis mapping.
 /// </summary>
 public sealed class SkyBinLut
@@ -27,7 +27,7 @@ public sealed class SkyBinLut
 
     public bool IsReal { get; private init; }
 
-    /// <summary>A single flat-black/no-fog cell, used everywhere when no real LUT is loaded (no romfs configured yet, or the cache hasn't been built) - <see cref="Pipeline.BackgroundPass"/> keeps working, just without the real-data sky gradient.</summary>
+    /// <summary>A single flat-black/no-fog cell, used everywhere when no real LUT is loaded (no romfs configured yet, or the cache hasn't been built) - <see cref="WildRenderingSharp.Profiles.Totk.Sky.BackgroundPass"/> keeps working, just without the real-data sky gradient.</summary>
     public static readonly SkyBinLut Empty = new(new Vector4[Depth, CellCount, CellCount]) { IsReal = false };
 
     /// <summary>Loads <paramref name="skyDataDirectory"/>/sky_lut.bin if present, else returns <see cref="Empty"/> (with a log line, never an exception).</summary>

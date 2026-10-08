@@ -1,7 +1,7 @@
 using System.Reflection;
 using WildRenderingSharp.Hosting;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// The sky/cloud/colour-correction postfx half of the AAMP reader, reached through

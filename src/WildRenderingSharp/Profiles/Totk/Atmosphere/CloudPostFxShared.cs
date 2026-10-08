@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>The real <c>agl::fx::Cloud</c> top-level "Cloud" object - settings shared by both layers (as opposed to <see cref="CloudPostFxLayer"/>'s per-layer settings).</summary>
 public sealed class CloudPostFxShared

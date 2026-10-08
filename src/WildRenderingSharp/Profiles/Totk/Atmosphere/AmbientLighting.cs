@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>Resolves a palette's hemisphere ambient (sky and ground) colours.</summary>
 /// <remarks>

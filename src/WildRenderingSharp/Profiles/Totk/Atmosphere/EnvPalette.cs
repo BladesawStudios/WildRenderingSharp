@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Text.Json;
 using BymlLibrary;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// A <c>game::wm::ResEnvPalette</c> record: the per-time-of-day and weather parameter set the runtime feeds the

@@ -61,9 +61,13 @@ Stages that use nothing game-specific (`FrameSetupStage`, `ScreenSpaceLightingSt
 6. Pass the profile to `DeferredPipeline` (its `profile` parameter defaults to TotK).
 7. Add snapshot tests for each new UBO builder (below).
 
-Still shared between games, and so still TotK-shaped: the prepared-model manifest format, and the
-palette and postfx data models in `Rendering/` (`EnvPalette`, `SkyPostFx`). Where BotW's differ,
-those are the next things to move behind the profile.
+The renderer carries a game's palette, sky, cloud and grade data as an opaque `IFrameEnvironment`
+(`FrameRequest.Environment`). TotK's is `TotkEnvironment` in `Profiles/Totk/Atmosphere`, along with
+`EnvPalette`, `SkyPostFx` and the rest of its data models; a profile's stages read the concrete type.
+
+Still shared between games, and so still TotK-shaped: the prepared-model manifest format, and
+`LightingContext`, which holds both neutral display state (exposure, sun, bloom) and TotK sky and
+cloud settings. Where BotW differs, those are the next things to move behind the profile.
 
 ## Tests
 

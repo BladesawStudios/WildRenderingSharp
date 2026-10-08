@@ -1,9 +1,9 @@
 using WildRenderingSharp.Assets;
 using System.Numerics;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Sky;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
@@ -22,10 +22,11 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     public void Run(FrameContext frame)
     {
         var lighting = frame.Lighting;
+        var environment = frame.TotkEnvironment();
 
         _background.Run(services.Resources, frame.Targets, lighting.Background, lighting.BackgroundColor, frame.SunWorld,
-            frame.Palette, frame.Cam.ViewInv, frame.Cam.TanHalf, lighting.SceneGain, frame.SkyPostFx, frame.CloudPostFx,
-            frame.SkyBin, lighting.AtmosphereIntensity);
+            environment.Palette, frame.Cam.ViewInv, frame.Cam.TanHalf, lighting.SceneGain, environment.SkyPostFx, environment.CloudPostFx,
+            lighting.AtmosphereIntensity);
         GLDiagnostics.CheckPass(services.Gl, "background");
 
         if (lighting.Background != BackgroundMode.TotkSky)
@@ -49,7 +50,8 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     void DrawSky(FrameContext frame)
     {
         var lighting = frame.Lighting;
-        var palette = frame.Palette;
+        var environment = frame.TotkEnvironment();
+        var palette = environment.Palette;
         var cam = frame.Cam;
 
         float paletteBrightness = palette.BgDifIntensity / 5.0f;
@@ -57,11 +59,11 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             / (SkyPrecomputePass.NormalisedPeak * MathF.Max(1e-4f, lighting.Exposure));
         Vector3 groundColor = palette.BgDifColor * intensity;
         var fog = lighting.UseSkyFog
-            ? SkyPostFxPass.Resolve(palette, frame.SkyPostFx, intensity, lighting.SkyFogStrength, lighting.SkyFogNormaliseHue)
+            ? SkyPostFxPass.Resolve(palette, environment.SkyPostFx, intensity, lighting.SkyFogStrength, lighting.SkyFogNormaliseHue)
             : default;
 
         _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter,
-            cam.ViewInv, cam.Aspect, cam.TanHalfFovY, frame.SunWorld, frame.SkyPostFx, intensity, groundColor,
+            cam.ViewInv, cam.Aspect, cam.TanHalfFovY, frame.SunWorld, environment.SkyPostFx, intensity, groundColor,
             lighting.SkyPaletteTint, fog);
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
     }
@@ -70,7 +72,8 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     void DrawBodies(FrameContext frame)
     {
         var lighting = frame.Lighting;
-        var palette = frame.Palette;
+        var environment = frame.TotkEnvironment();
+        var palette = environment.Palette;
         var cam = frame.Cam;
 
         // The sprite takes the palette's sun hue only; its brightness is the slider's.
@@ -92,10 +95,11 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     void DrawClouds(FrameContext frame)
     {
         var lighting = frame.Lighting;
-        var palette = frame.Palette;
+        var environment = frame.TotkEnvironment();
+        var palette = environment.Palette;
         var cam = frame.Cam;
 
-        _cloudDome.Run(services.Resources, frame.Targets, palette, frame.CloudPostFx.Shared, frame.CloudPostFx.Layer0,
+        _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, environment.CloudPostFx.Layer0,
             cam.View, cam.Proj, frame.Camera.Eye, frame.SunWorld,
             lighting.CloudBrightness, lighting.Exposure, lighting.AnimateClouds, lighting.CloudFade, palette.FogColor,
             lighting.CloudResolutionScale, bake.BakedInscatter);

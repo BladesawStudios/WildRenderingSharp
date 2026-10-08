@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 public sealed class CloudPostFx
 {

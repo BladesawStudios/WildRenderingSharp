@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline;
@@ -37,7 +38,7 @@ public sealed class SceneView : IDisposable
     uint _gradedFbo, _gradedTexture;
     int _width, _height, _gradedWidth, _gradedHeight;
 
-    EnvPalette? _lastPalette;
+    PresentGrade? _lastGrade;
     BackgroundMode _lastBackground;
 
     public SceneView(GL gl, DeferredPipeline pipeline, bool ownTargets = false)
@@ -111,7 +112,7 @@ public sealed class SceneView : IDisposable
 
         var frame = _pipeline.RenderFrame(request, _ownTargets, _ownShadowCache, shadowMapOverride);
         LastFrame = frame;
-        _lastPalette = request.Palette;
+        _lastGrade = request.Environment.PresentGrade;
         _lastBackground = request.Lighting.Background;
         Present();
         _pipeline.Timer.EndFrame("present");
@@ -121,14 +122,11 @@ public sealed class SceneView : IDisposable
     /// <summary>Re-composites <see cref="LastFrame"/> into <see cref="OutputTexture"/> after a change of <see cref="Mode"/> or FXAA. A change of supersampling needs a new render.</summary>
     public void Present()
     {
-        if (LastFrame is not { } frame || _lastPalette is not { } pal)
+        if (LastFrame is not { } frame || _lastGrade is not { } grade)
             return;
 
         int ss = Supersample;
         bool graded = Mode is SceneViewMode.Final or SceneViewMode.HdrPreview;
-        float saturation = pal.ColorCorrectEnable ? pal.ColorCorrectSaturation : 1f;
-        float brightness = pal.ColorCorrectEnable ? pal.ColorCorrectBrightness : 1f;
-        float gamma = pal.ColorCorrectEnable ? pal.ColorCorrectGamma : 1f;
         var resources = _pipeline.Resources;
 
         // Graded views render into a native-resolution intermediate first so FXAA (or a passthrough) runs on the finished image; the raw diagnostic views skip grading and AA.
@@ -140,7 +138,7 @@ public sealed class SceneView : IDisposable
         switch (Mode)
         {
             case SceneViewMode.HdrPreview:
-                _present.Run(resources, frame.Final, ss, saturation, brightness, gamma, hdrPreview: true);
+                _present.Run(resources, frame.Final, ss, grade.Saturation, grade.Brightness, grade.Gamma, hdrPreview: true);
                 break;
             case SceneViewMode.Albedo:
                 _present.RunRaw(resources, frame.Albedo, 1f);
@@ -160,7 +158,7 @@ public sealed class SceneView : IDisposable
                 break;
             default:
                 // Coverage alpha for a transparent background comes from frame.Final, not frame.Ldr (see PresentPass.Run).
-                _present.Run(resources, frame.Ldr, ss, saturation, brightness, gamma,
+                _present.Run(resources, frame.Ldr, ss, grade.Saturation, grade.Brightness, grade.Gamma,
                     alphaSource: _lastBackground == BackgroundMode.Transparent ? frame.Final : null);
                 break;
         }
@@ -221,7 +219,7 @@ public sealed class SceneView : IDisposable
     /// <summary>Renders one frame at an arbitrary size and returns it as top-down RGBA8, leaving the view's size and last frame as they were. Honours <see cref="AntiAliasing"/>.</summary>
     public byte[] RenderToRgba8(FrameRequest request, int width, int height)
     {
-        var restore = (_width, _height, LastFrame, _lastPalette, _lastBackground);
+        var restore = (_width, _height, LastFrame, _lastGrade, _lastBackground);
         try
         {
             Render(request, width, height);
@@ -236,7 +234,7 @@ public sealed class SceneView : IDisposable
     /// <summary>The HDR counterpart of <see cref="RenderToRgba8"/> - rendered without supersampling, so the result is exactly <paramref name="width"/>x<paramref name="height"/>.</summary>
     public float[] RenderToHdr(FrameRequest request, int width, int height)
     {
-        var restore = (_width, _height, LastFrame, _lastPalette, _lastBackground);
+        var restore = (_width, _height, LastFrame, _lastGrade, _lastBackground);
         var aa = AntiAliasing;
         try
         {
@@ -251,7 +249,7 @@ public sealed class SceneView : IDisposable
         }
     }
 
-    void RestoreAfterOffscreen((int Width, int Height, FrameResult? Frame, EnvPalette? Palette, BackgroundMode Background) state)
+    void RestoreAfterOffscreen((int Width, int Height, FrameResult? Frame, PresentGrade? Grade, BackgroundMode Background) state)
     {
         if (state.Width > 0 && state.Height > 0)
         {
@@ -260,7 +258,7 @@ public sealed class SceneView : IDisposable
         }
         // The targets were reallocated, so the old frame's textures are gone and the caller must render again.
         LastFrame = null;
-        _lastPalette = state.Palette;
+        _lastGrade = state.Grade;
         _lastBackground = state.Background;
     }
 

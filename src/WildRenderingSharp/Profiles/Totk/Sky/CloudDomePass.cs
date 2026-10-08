@@ -4,6 +4,7 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 

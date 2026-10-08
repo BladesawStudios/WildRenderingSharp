@@ -159,7 +159,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         hash.Add(frame.SunWorld);
         hash.Add(focus);
         hash.Add(actorSignature);
-        hash.Add(frame.Request.Terrain?.ShadowVersion ?? 0);
+        hash.Add(frame.TotkEnvironment().Terrain?.ShadowVersion ?? 0);
         hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(frame.Targets));
         foreach (var batch in frame.Instances)
         {
@@ -180,7 +180,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
                 CastingShapes(batch), batch, ShadowRuns: true, Cascade: cascade));
         _shadow.Run(Resources, frame.Targets, groups, services.Programs, cascade);
 
-        if (frame.Request.Terrain is { } host && terrain.Available)
+        if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
             terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Cam);
     }
 

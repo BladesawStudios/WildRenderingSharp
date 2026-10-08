@@ -1,4 +1,4 @@
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// WildRenderingSharp's own distance fade for the cloud dome - see <c>CloudDistanceFade</c> for

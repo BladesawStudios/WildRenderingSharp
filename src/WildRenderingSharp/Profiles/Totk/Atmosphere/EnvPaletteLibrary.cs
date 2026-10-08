@@ -1,7 +1,7 @@
 using BymlLibrary;
 using SarcLibrary;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// Loads every <c>game::wm::ResEnvPalette</c> from romfs plus the <c>IconCapture</c> and <c>UI</c> presets (which exist
@@ -162,7 +162,7 @@ public sealed class EnvPaletteLibrary
     /// <summary>
     /// Blank studio lighting: a neutral white key, an untinted ambient, and every grade, glow and tint off, so the model's
     /// own albedo and emission are what you see. Every shipped palette omits <c>HemiSkyColor</c> and <c>HemiGroundColor</c>,
-    /// which sends <see cref="WildRenderingSharp.Rendering.AmbientLighting"/> to its blue-sky fallback, so a neutral ambient
+    /// which sends <see cref="WildRenderingSharp.Profiles.Totk.Atmosphere.AmbientLighting"/> to its blue-sky fallback, so a neutral ambient
     /// needs the pair declared. The magnitudes (BgDifIntensity 5.0, HemiIntensity 0.35) are the icon-capture preset's; only
     /// the hues are neutralised.
     /// </summary>

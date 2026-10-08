@@ -1,8 +1,10 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
 /// Fills <c>targets.Final</c> with the requested <see cref="BackgroundMode"/> before the deferred
@@ -258,15 +260,13 @@ public sealed class BackgroundPass : IDisposable
     /// <param name="sceneGain"><see cref="LightingContext.SceneGain"/>, which the sky's intensity anchors to.</param>
     /// <param name="postfx">The sky baseline from romfs; null uses <see cref="SkyPostFx.Default"/>.</param>
     /// <param name="cloudPostFx">The cloud baseline from romfs; null uses <see cref="CloudPostFx.Default"/>.</param>
-    /// <param name="skyBin">Accepted for a future use and currently unread.</param>
     /// <param name="atmosphereIntensity">The live multiplier on the scattering integral's brightness.</param>
     public void Run(GLResourceCache resources, RenderTargets targets, BackgroundMode mode, Vector3 color,
         Vector3 sunWorld, EnvPalette palette, ReadOnlySpan<Vector4> viewInv3Rows, Vector2 tanHalf, float sceneGain,
-        SkyPostFx? postfx = null, CloudPostFx? cloudPostFx = null, SkyBinLut? skyBin = null, float atmosphereIntensity = 1f)
+        SkyPostFx? postfx = null, CloudPostFx? cloudPostFx = null, float atmosphereIntensity = 1f)
     {
         postfx ??= SkyPostFx.Default;
         cloudPostFx ??= CloudPostFx.Default;
-        skyBin ??= SkyBinLut.Empty;
         targets.BindColorTarget(targets.Final);
         _gl.Disable(EnableCap.DepthTest);
 

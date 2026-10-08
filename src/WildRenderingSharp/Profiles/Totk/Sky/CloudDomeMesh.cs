@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>
 /// Generates the real <c>agl::fx::Cloud</c> dome mesh procedurally - traced from the real

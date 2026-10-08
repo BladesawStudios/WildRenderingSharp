@@ -31,8 +31,8 @@ public sealed class ResolveStage(
             : new HashSet<string>(StringComparer.Ordinal);
 
         // The host's water reads the lit scene too, and is lit by its own pass.
-        var waterHost = frame.TerrainDrawn && frame.Request.Terrain is { HasWater: true } && terrain.Shading.WaterAvailable
-            ? frame.Request.Terrain : null;
+        var waterHost = frame.TerrainDrawn && frame.TotkEnvironment().Terrain is { HasWater: true } && terrain.Shading.WaterAvailable
+            ? frame.TotkEnvironment().Terrain : null;
         if (waterHost is not null)
         {
             scene.EnsurePass(DeferredScene.WaterPass);
@@ -43,7 +43,7 @@ public sealed class ResolveStage(
         _resolve.SetEnvironmentColor(frame.HemiSky);
 
         // The pass that lights the terrain, which no actor stamps, in whichever half it runs in.
-        int defaultPass = frame.Request.Terrain is not null ? scene.PassIndex(DeferredScene.DefaultPass) : -1;
+        int defaultPass = frame.TotkEnvironment().Terrain is not null ? scene.PassIndex(DeferredScene.DefaultPass) : -1;
 
         _resolve.Run(resources, targets, scene.ResolvedPasses, lighting.EmissionScale, lighting.SceneGain, lighting.Exposure,
             twoHalves ? name => !sceneColorPasses.Contains(name) : null, defaultPass);

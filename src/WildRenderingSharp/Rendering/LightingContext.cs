@@ -1,4 +1,5 @@
 using System.Numerics;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 namespace WildRenderingSharp.Rendering;
 
@@ -11,12 +12,12 @@ public class LightingContext
     /// <summary>The flat colour <see cref="BackgroundMode.Color"/> clears to: a near-black rather than pure black.</summary>
     public Vector3 BackgroundColor { get; set; } = new(0.000075f, 0.00008f, 0.0001f);
 
-    /// <summary>Multiplier on the brightness of the sky background's scattering integral (see <see cref="Pipeline.BackgroundPass"/>).</summary>
+    /// <summary>Multiplier on the brightness of the sky background's scattering integral (see <see cref="WildRenderingSharp.Profiles.Totk.Sky.BackgroundPass"/>).</summary>
     public float AtmosphereIntensity { get; set; } = 1.0f;
 
     /// <summary>
     /// Draw the game's <c>agl_cloud</c> program (<c>CloudDomePass</c>) instead of the FBM
-    /// approximation in <see cref="Pipeline.BackgroundPass"/>. The program's uniform block is populated where a
+    /// approximation in <see cref="WildRenderingSharp.Profiles.Totk.Sky.BackgroundPass"/>. The program's uniform block is populated where a
     /// capture confirmed the offset; its masks are the game's own textures (not romfs assets, see <c>res/cloud/README.md</c>).
     /// </summary>
     public bool UseRealCloudDome { get; set; } = true;

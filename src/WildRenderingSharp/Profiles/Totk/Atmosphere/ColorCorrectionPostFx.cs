@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// The real <c>agl::pfx::ColorCorrection</c> config from <c>postfx/master_field.baglccr</c> - the

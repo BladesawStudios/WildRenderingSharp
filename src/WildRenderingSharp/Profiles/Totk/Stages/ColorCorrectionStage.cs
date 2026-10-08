@@ -1,7 +1,8 @@
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Profiles.Totk.PostProcess;
 
-namespace WildRenderingSharp.Pipeline.Frame;
+namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Applies the final colour grade to the tonemapped image.</summary>
 public sealed class ColorCorrectionStage(FrameServices services) : IFrameStage, IDisposable
@@ -10,7 +11,7 @@ public sealed class ColorCorrectionStage(FrameServices services) : IFrameStage, 
 
     public void Run(FrameContext frame)
     {
-        var grade = frame.Request.ColorCorrection ?? ColorCorrectionPostFx.Default;
+        var grade = frame.TotkEnvironment().ColorCorrection;
         if (_colorCorrection.Run(services.Resources, frame.Targets, frame.Targets.Ldr, grade))
             GLDiagnostics.CheckPass(services.Gl, "color correction");
     }

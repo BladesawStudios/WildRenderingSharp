@@ -23,7 +23,7 @@ public sealed class GBufferStage(FrameServices services, DeferredScene scene, Te
         frame.GBufferCounts = ShapeDrawing.TakeCounts();
 
         frame.TerrainDrawn = false;
-        if (frame.Request.Terrain is { } host && terrain.Available)
+        if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
         {
             frame.TerrainDrawn = true;
             scene.EnsurePass(DeferredScene.DefaultPass);

@@ -16,7 +16,7 @@ public sealed class TonemapStage(FrameServices services) : IFrameStage, IDisposa
     public void Run(FrameContext frame)
     {
         var lighting = frame.Lighting;
-        var palette = frame.Palette;
+        var palette = frame.TotkEnvironment().Palette;
         var targets = frame.Targets;
 
         frame.HdrCompressed = _tonemap.RunExposureAndCompress(services.Resources, targets, lighting.Exposure);

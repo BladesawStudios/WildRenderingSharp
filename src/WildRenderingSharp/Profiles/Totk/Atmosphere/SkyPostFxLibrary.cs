@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Text.Json;
 using SarcLibrary;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// Loads <see cref="SkyPostFx"/> and <see cref="CloudPostFx"/> once from <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>, opening the archive as <see cref="EnvPaletteLibrary.LoadFromRomfs"/> does,

@@ -1,4 +1,3 @@
-using System.Numerics;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Rendering;
 
@@ -11,7 +10,7 @@ public sealed class FrameSetupStage(FrameServices services) : IFrameStage
     {
         var profile = services.Profile;
         var lighting = frame.Lighting;
-        var palette = frame.Palette;
+        var environment = frame.Environment.ResolveLighting(lighting);
 
         var cam = CameraData.From(frame.Camera, frame.Targets.Width, frame.Targets.Height);
         frame.Cam = cam;
@@ -20,25 +19,22 @@ public sealed class FrameSetupStage(FrameServices services) : IFrameStage
 
         frame.SunWorld = SunDirection.FromElevationAzimuth(lighting.SunElevation, lighting.SunAzimuth);
         frame.SunView = Mat4Math.TransformDirection(cam.View, frame.SunWorld);
-        frame.SunColor = AmbientLighting.SunColor(palette);
-        (frame.HemiSky, frame.HemiGround) = AmbientLighting.ResolveHemisphereColors(palette, lighting.AmbientScale, frame.SkyPostFx);
+        frame.SunColor = environment.SunColor;
+        frame.HemiSky = environment.HemiSky;
+        frame.HemiGround = environment.HemiGround;
 
         frame.GameOrigin = ClipOrigin.Supported(services.Gl);
         profile.Camera(FrameUniformKeys.SceneCamera, cam).Bind(services.Resources);
         profile.Camera(FrameUniformKeys.GBufferCamera, frame.GameOrigin ? cam : frame.FlippedCam).Bind(services.Resources);
-        profile.Lighting(BuildSceneLighting(frame)).Bind(services.Resources);
+        profile.Lighting(BuildSceneLighting(frame, environment)).Bind(services.Resources);
 
         BuildGroups(frame);
     }
 
-    static SceneLightingData BuildSceneLighting(FrameContext frame)
-    {
-        var palette = frame.Palette;
-        Vector3 volumeMaskColor = palette.VolumeMaskColorNoUse ? Vector3.Zero : palette.VolumeMaskColor;
-        float volumeMaskIntensity = palette.VolumeMaskColorNoUse ? 0f : palette.VolumeMaskIntensity;
-        return new SceneLightingData(frame.SunView, frame.SunWorld, frame.SunColor, frame.HemiSky, frame.HemiGround,
-            volumeMaskColor, volumeMaskIntensity, RenderTargets.ShadowMapSize, frame.Lighting.MidScale, frame.Lighting.HighlightScale);
-    }
+    static SceneLightingData BuildSceneLighting(FrameContext frame, EnvironmentLighting environment) =>
+        new(frame.SunView, frame.SunWorld, environment.SunColor, environment.HemiSky, environment.HemiGround,
+            environment.VolumeMaskColor, environment.VolumeMaskIntensity, RenderTargets.ShadowMapSize,
+            frame.Lighting.MidScale, frame.Lighting.HighlightScale);
 
     /// <summary>
     /// Each actor gets its own group, with uniforms built fresh from its placement and pose, and

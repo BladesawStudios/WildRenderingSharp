@@ -1,4 +1,6 @@
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Deferred;
@@ -57,8 +59,11 @@ public sealed class TotkFrameGraph : IFrameGraph
 
     public void SetScene(IReadOnlyList<LoadedModel> models) => _scene.Set(models);
 
-    public void PrepareEnvironment(SkyPostFx postFx, EnvPalette? palette, string? paletteName, float skyTint) =>
-        _skyBake.Ensure(postFx, palette, paletteName, skyTint);
+    public void PrepareEnvironment(IFrameEnvironment environment, LightingContext lighting)
+    {
+        var totk = (TotkEnvironment)environment;
+        _skyBake.Ensure(totk.SkyPostFx, totk.Palette, lighting.PaletteName, lighting.SkyPaletteTint);
+    }
 
     public void Run(FrameContext frame)
     {

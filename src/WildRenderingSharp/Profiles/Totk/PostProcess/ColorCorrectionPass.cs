@@ -1,7 +1,8 @@
-using WildRenderingSharp.Rendering;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Profiles.Totk.PostProcess;
 
 /// <summary>The game's final grade, <c>agl::pfx::ColorCorrection</c> driven by <c>postfx/master_field.baglccr</c>, applied after <c>agl_hdr_compose</c>.</summary>
 /// <remarks>

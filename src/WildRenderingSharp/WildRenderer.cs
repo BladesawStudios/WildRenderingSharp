@@ -6,6 +6,7 @@ using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Scene;
 using WildRenderingSharp.Profiles.Totk.Terrain;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 namespace WildRenderingSharp;
 
@@ -97,8 +98,7 @@ public sealed class WildRenderer : IDisposable
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
             // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
-            Pipeline.EnsureSkyPrecomputed(Environment.SkyPostFx, Environment.Palettes.Get(Lighting.PaletteName),
-                Lighting.PaletteName, Lighting.SkyPaletteTint);
+            Pipeline.PrepareEnvironment(Environment.Resolve(Lighting.PaletteName), Lighting);
         }
     }
 
@@ -356,9 +356,8 @@ public sealed class WildRenderer : IDisposable
         foreach (var actor in _actors)
             actor.ApplyMaterialAnimations(_gl);
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
-        return new FrameRequest(camera, Lighting, Environment.Palettes.Get(Lighting.PaletteName), inputs,
-            AoRadius, ShadowBias, Highlight, Environment.SkyPostFx, Environment.CloudPostFx, Environment.SkyBin,
-            Environment.ColorCorrection, _instances, ShadowFocus, ShadowCascades, Terrain);
+        return new FrameRequest(camera, Lighting, Environment.Resolve(Lighting.PaletteName, Terrain), inputs,
+            AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades);
     }
 
     /// <summary>

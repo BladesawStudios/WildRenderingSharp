@@ -19,11 +19,8 @@ public sealed class FrameContext(FrameRequest request, RenderTargets targets, Sh
 
     public Camera Camera => Request.Camera;
     public LightingContext Lighting => Request.Lighting;
-    public EnvPalette Palette => Request.Palette;
+    public IFrameEnvironment Environment => Request.Environment;
     public IReadOnlyList<InstanceBatch> Instances { get; } = request.Instances ?? [];
-    public SkyPostFx SkyPostFx { get; } = request.SkyPostFx ?? SkyPostFx.Default;
-    public CloudPostFx CloudPostFx { get; } = request.CloudPostFx ?? CloudPostFx.Default;
-    public SkyBinLut SkyBin { get; } = request.SkyBin ?? SkyBinLut.Empty;
 
     public CameraData Cam { get; set; }
 

@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 
-namespace WildRenderingSharp.Rendering;
+namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// The <c>agl::pfx::Sky</c> config the game loads at runtime: <c>postfx/master_field.baglsky</c> inside <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c> (a SARC of AAMP <c>.bagl*</c> files).
@@ -11,7 +11,7 @@ namespace WildRenderingSharp.Rendering;
 /// Parsing happens in a private <c>AssemblyLoadContext</c> in <c>WildRenderingSharp.AampReader</c>, which this project does not reference at compile time: <c>AampLibrary</c> needs
 /// <c>Syroot.BinaryData</c> and <c>Syroot.Maths</c> 5.x, binary-incompatible with the 2.x versions vendored for <c>BfresLibrary</c> that the same process needs for BFRES parsing
 /// (referencing it directly threw <c>TypeLoadException: Could not load type 'Syroot.BinaryData.BinaryDataReader'</c> once <c>BfresLibraryPatches.EnsureApplied()</c> ran). See
-/// <see cref="WildRenderingSharp.Rendering.IsolatedAampReader"/> and <c>WildRenderingSharp.AampReader/SkyPostFxJson.cs</c>.
+/// <see cref="WildRenderingSharp.Profiles.Totk.Atmosphere.IsolatedAampReader"/> and <c>WildRenderingSharp.AampReader/SkyPostFxJson.cs</c>.
 /// </para>
 /// <para>
 /// This is a different source from <see cref="EnvPalette"/>: a palette's <c>SkyRParam_*</c> fields are the dynamic per-time-of-day multiplier the game layers on this file's static
