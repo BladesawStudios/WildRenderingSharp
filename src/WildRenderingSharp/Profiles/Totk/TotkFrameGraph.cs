@@ -19,15 +19,22 @@ public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     readonly List<IFrameStage> _stages;
     readonly List<IDisposable> _owned = [];
 
+    /// <summary>The game's terrain programs, for a host that hands its terrain over (<see cref="TotkEnvironment.Terrain"/>).</summary>
+    public TerrainShading Terrain { get; }
+
+    /// <summary>The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like.</summary>
+    public CaveShading Cave { get; }
+
     public TotkFrameGraph(FrameServices services)
     {
         var linearDepth = Own(new LinearDepthPass(services.Gl));
         var forward = Own(new ForwardPass(services.Gl, services.Directories.SystemTextures));
-        var terrainShading = Own(new TerrainShading(services.Gl, services.Directories.Decompiled, services.Profile.Bindings));
+        Terrain = Own(new TerrainShading(services.Gl, services.Directories.Decompiled, services.Profile.Bindings));
+        Cave = Own(new CaveShading(services.Gl, services.Directories.Decompiled));
         _scene = Own(new DeferredScene(services.Gl, services.Programs, services.Directories));
         var stamper = Own(new PassIdStamper(services.Gl, _scene));
         _skyBake = Own(new SkyBake(services));
-        var terrain = new TerrainRenderer(services, terrainShading, linearDepth, _scene);
+        var terrain = new TerrainRenderer(services, Terrain, linearDepth, _scene);
         var screenSpaceLighting = Own(new ScreenSpaceLightingStage(services, linearDepth));
         _resolve = Own(new ResolveStage(services, _scene, terrain, screenSpaceLighting, stamper));
 

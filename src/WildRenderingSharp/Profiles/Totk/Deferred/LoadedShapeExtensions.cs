@@ -2,7 +2,7 @@ using WildRenderingSharp.Assets;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
-static class LoadedShapeExtensions
+public static class LoadedShapeExtensions
 {
     /// <summary>
     /// The pass that resolves the shape. A model prepared before the exporter knew behave 102 holds an empty pass for it, and a shrine
