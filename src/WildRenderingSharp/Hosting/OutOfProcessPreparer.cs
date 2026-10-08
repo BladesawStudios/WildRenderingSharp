@@ -7,20 +7,8 @@ namespace WildRenderingSharp.Hosting;
 /// Runs <c>WildRenderingSharp.Preparation</c> as a child process - see <see cref="IModelPreparer"/> for when a host needs this
 /// rather than preparing in-process.
 /// </summary>
-/// <remarks>
-/// <para>
-/// The executable is expected at <c>&lt;app&gt;/wrs-prepare/WildRenderingSharp.Preparation(.exe)</c>,
-/// which is where <c>build/WildRenderingSharp.targets</c> puts it. Its command line is documented
-/// in that project's <c>Program.cs</c>; this class is its only client in this repository.
-/// </para>
-/// <para>
-/// Progress lines from the child are forwarded to the caller's log as they arrive, so a long first
-/// preparation (decompiling dozens of shader programs) shows life rather than hanging silently.
-/// </para>
-/// </remarks>
 public sealed class OutOfProcessPreparer : IModelPreparer
 {
-    /// <summary>The line the child prints last on success: <c>WRS_RESULT &lt;resolved model name&gt;</c>.</summary>
     public const string ResultPrefix = "WRS_RESULT ";
 
     public string ExecutablePath { get; }
@@ -181,11 +169,6 @@ public sealed class OutOfProcessPreparer : IModelPreparer
             return [.. request.ActorOrModelNames.Distinct(StringComparer.Ordinal).Select(n => outcomes[n])];
     }
 
-    /// <summary>
-    /// Exports the baked lighting of <paramref name="tiles"/> into <see cref="CacheLayout.Bake"/> (see <see
-    /// cref="Assets.BakeLibrary"/>), building the hash-to-tile index first if the cache has none - pass no tiles to build just
-    /// that. Returns the tiles that failed.
-    /// </summary>
     public async Task<IReadOnlyList<string>> PrepareBakeAsync(string romfsRoot, CacheLayout cache, IEnumerable<string> tiles,
         Action<string>? onTileDone = null, Action<string>? log = null, CancellationToken cancellationToken = default)
     {

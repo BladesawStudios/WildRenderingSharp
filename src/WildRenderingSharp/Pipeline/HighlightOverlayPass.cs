@@ -6,12 +6,7 @@ namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
 /// Draws one shape's silhouette as a flat, alpha-blended overlay on the finished frame - the Material Inspector's "which object is
-/// this row" hover highlight. Draws directly into the FINAL tonemapped <see cref="RenderTargets.Ldr"/> buffer, with NO depth test
-/// at all, so it reads as sitting above literally everything - even something occluding the hovered object from the current view -
-/// rather than going through the whole deferred pipeline again (a hover highlight has to track the mouse instantly and cheaply, not
-/// wait on a full re-render) or being just another translucent layer that bloom/tonemapping could wash out or that nearer geometry
-/// could hide. Reuses <c>PassIdMaskPass</c>'s own GPU-skinning vertex logic verbatim (see its remarks for why this must be skinned,
-/// not a bind-pose silhouette) so an animated shape's highlight tracks its actual posed silhouette.
+/// this row" hover highlight.
 /// </summary>
 public sealed class HighlightOverlayPass : IDisposable
 {

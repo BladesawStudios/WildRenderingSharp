@@ -5,9 +5,7 @@ namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
 /// The final blit: box-downsamples the supersampled render in linear light (filtering after the sRGB encode would darken edges),
-/// applies <c>agl</c>'s colour-correction curve (hue, saturation, brightness, gamma) and sRGB-encodes. Also offers a Reinhard HDR
-/// preview for inspecting <c>rt_final</c>. The caller must have bound the destination framebuffer and viewport; this pass knows
-/// only its source texture and the sampling and grading maths.
+/// applies <c>agl</c>'s colour-correction curve (hue, saturation, brightness, gamma) and sRGB-encodes.
 /// </summary>
 public sealed class PresentPass : IDisposable
 {
@@ -63,10 +61,6 @@ public sealed class PresentPass : IDisposable
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "present_blit");
     }
 
-    /// <summary>
-    /// <paramref name="hdrPreview"/> switches to the Reinhard-tonemapped raw-HDR view; normally false, presenting the tonemapped
-    /// LDR result.
-    /// </summary>
     public void Run(GLResourceCache resources, GpuTexture source, int supersample, float saturation, float brightness, float gamma, bool hdrPreview = false, GpuTexture? alphaSource = null)
     {
         _gl.UseProgram(_program);
@@ -81,11 +75,6 @@ public sealed class PresentPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    /// <summary>
-    /// Diagnostic passthrough (no supersampling, no grading) with a brightness multiply, for inspecting a near-zero buffer like the
-    /// pass-ID mask or, with <paramref name="alphaSource"/>, as the plain "AA off" blit that preserves Background: Transparent's
-    /// alpha (see <see cref="Run"/>).
-    /// </summary>
     public void RunRaw(GLResourceCache resources, GpuTexture source, float scale, GpuTexture? alphaSource = null)
     {
         _gl.UseProgram(_program);

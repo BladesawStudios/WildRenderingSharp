@@ -4,8 +4,7 @@ namespace WildRenderingSharp.Assets;
 
 /// <summary>
 /// One texture binding from a shape's <c>samplers</c>, <c>zonly_samplers</c> or <c>material_samplers</c> manifest list: a shader
-/// sampler unit joined through the material's sampler assignment to the exported texture file. See
-/// <c>ExportManifest.BuildSamplers</c>.
+/// sampler unit joined through the material's sampler assignment to the exported texture file.
 /// </summary>
 public sealed class SamplerBinding
 {

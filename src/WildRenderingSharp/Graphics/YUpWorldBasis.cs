@@ -6,10 +6,6 @@ namespace WildRenderingSharp.Graphics;
 /// The Y-up world the Wild games work in, reached from the renderer's Z-up one by a quarter turn: a Z-up <c>(x, y, z)</c> is <c>(x,
 /// z, -y)</c> here.
 /// </summary>
-/// <remarks>
-/// Shaders use world positions directly (water derives its texture coordinates from X and Z,
-/// foliage its wind phase from them), so a basis that is merely self-consistent is not enough.
-/// </remarks>
 public sealed class YUpWorldBasis : IWorldBasis
 {
     public static readonly YUpWorldBasis Instance = new();

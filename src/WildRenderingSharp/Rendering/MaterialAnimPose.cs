@@ -6,22 +6,13 @@ namespace WildRenderingSharp.Rendering;
 /// <summary>
 /// Applies shader parameter animations by rewriting the affected materials' <c>gsys_material</c> uniform blocks - which is exactly
 /// what <c>nn::g3d2::MaterialAnimObj::ApplyTo</c> (Ghidra 0x7100080894) does: evaluate each curve, then copy the resulting 4-byte
-/// word into the material's parameter block. The only translation WildRenderingSharp adds is turning the anim's (parameter NAME,
-/// byte within parameter) address into a block offset, via the layout sidecar <c>BuildMaterialUbo.WriteParamLayout</c> exports.
-/// Several anims can be applied at once (a colour anim and a texture-SRT scroll on the same material, say). <see cref="Apply"/>
-/// takes them together and rebuilds each material's block ONCE from its untouched baseline, so a later anim overwriting an earlier
-/// one's parameter behaves the same as the engine's own sequential ApplyTo, and dropping an anim restores the baseline rather than
-/// leaving the last value it wrote.
+/// word into the material's parameter block.
 /// </summary>
 public static class MaterialAnimPose
 {
     /// <summary>One anim and the frame to sample it at.</summary>
     public readonly record struct Playing(MaterialAnimManifest Anim, float Frame);
 
-    /// <summary>
-    /// Rewrites every material an anim in <paramref name="playing"/> touches, and restores every material that was rewritten on a
-    /// previous call but is no longer touched.
-    /// </summary>
     public static void Apply(GL gl, LoadedModel model, IReadOnlyList<Playing> playing)
     {
         var patched = new HashSet<string>(StringComparer.Ordinal);
@@ -134,7 +125,6 @@ public static class MaterialAnimPose
             BitConverter.TryWriteBytes(buffer.AsSpan(paramOffset + 16 + i * 4, 4), m1[i]);
     }
 
-    /// <summary>Restores every material's block to what its own <c>.gsys_material.bin</c> says, and forgets that anything was patched.</summary>
     public static void Clear(GL gl, LoadedModel model)
     {
         foreach (var shape in model.Shapes)

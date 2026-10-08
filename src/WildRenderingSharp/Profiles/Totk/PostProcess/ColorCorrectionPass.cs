@@ -8,17 +8,6 @@ namespace WildRenderingSharp.Profiles.Totk.PostProcess;
 /// The game's final grade, <c>agl::pfx::ColorCorrection</c> driven by <c>postfx/master_field.baglccr</c>, applied after
 /// <c>agl_hdr_compose</c>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// It matters for every comparison against the game: a screenshot is a graded image. The most visible field is <c>saturation = 1.175</c>, so the game is about 17.5% more saturated than its raw render.
-/// </para>
-/// <para>
-/// Written by hand rather than decompiled: colour correction is simple arithmetic (HSB, gamma, lift/gain) whose parameters, not its instruction sequence, carry the look. The values are the authored ones.
-/// </para>
-/// <para>
-/// The <c>level</c> curve array is not implemented: AAMP curves need a real interpolator, and a guessed curve would silently reshape the image (see <see cref="ColorCorrectionPostFx"/>).
-/// </para>
-/// </remarks>
 public sealed class ColorCorrectionPass : IDisposable
 {
     readonly GL _gl;
@@ -107,7 +96,6 @@ public sealed class ColorCorrectionPass : IDisposable
         _blitProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, BlitFragmentSource, "color_correction_blit");
     }
 
-    /// <summary>Grades <paramref name="target"/> in place. Returns false if the grade is a no-op.</summary>
     public unsafe bool Run(GLResourceCache resources, RenderTargets targets, GpuTexture target,
         ColorCorrectionPostFx cc)
     {

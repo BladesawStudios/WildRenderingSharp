@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Assets;
 
 /// <summary>
 /// Turns a <see cref="ModelManifest"/> into a ready-to-draw <see cref="LoadedModel"/>: GL buffers, VAOs, textures and material
-/// buffers for every shape. It parses no BFRES or BNSH itself; that happened offline in <c>ShaderLibrary.CompileTool</c>.
+/// buffers for every shape.
 /// </summary>
 public sealed class ModelLoader
 {
@@ -18,7 +18,6 @@ public sealed class ModelLoader
 
     readonly ExternalTextures? _external;
 
-    /// <summary>Textures shared with other models (see <see cref="Assets.SharedTextures"/>); null loads this model's own.</summary>
     public SharedTextures? SharedTextures { get; init; }
 
     public ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
@@ -29,17 +28,8 @@ public sealed class ModelLoader
         _external = external;
     }
 
-    /// <summary>
-    /// Uploads only what the model's programs read, for a model drawn only in its bind pose, such as a map's static objects.
-    /// Attributes no program of a shape reads are left out of its vertex buffer (the exported vertex carries every attribute, 192
-    /// bytes).
-    /// </summary>
     public bool CompactVertices { get; init; }
 
-    /// <summary>
-    /// Leaves the vertex arrays to <see cref="LoadedModel.FinishOnRenderThread"/>, for a load on a worker thread with its own
-    /// context: buffers, textures and programs are shared between contexts, vertex arrays are not.
-    /// </summary>
     public bool DeferVertexArrays { get; init; }
 
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)

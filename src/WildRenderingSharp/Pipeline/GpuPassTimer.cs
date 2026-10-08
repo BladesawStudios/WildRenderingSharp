@@ -6,11 +6,6 @@ namespace WildRenderingSharp.Pipeline;
 /// How long each pass of a frame took on the GPU, from timestamp queries written between passes and read back a few frames later,
 /// so measuring never waits on the card.
 /// </summary>
-/// <remarks>
-/// A pass is timed from the previous mark to its own, so whatever ran between two named passes is
-/// charged to the second. Marks are written where the pipeline already names its passes
-/// (<c>GLDiagnostics.CheckPass</c>), and a pass that does not run in a frame simply has no row.
-/// </remarks>
 public sealed class GpuPassTimer : IDisposable
 {
     const int Latency = 4;
@@ -18,13 +13,8 @@ public sealed class GpuPassTimer : IDisposable
     readonly List<(string Name, uint Query)>[] _frames = new List<(string, uint)>[Latency];
     readonly List<(string Name, uint Query)>[] _details = new List<(string, uint)>[Latency];
 
-    /// <summary>
-    /// Whether <see cref="Detail"/> records anything - a timestamp per draw group, which is a few thousand queries a frame, so off
-    /// unless someone is looking.
-    /// </summary>
     public bool Detailed { get; set; }
 
-    /// <summary>The most expensive labels of the last detailed frame, by summed GPU time, most first.</summary>
     public IReadOnlyList<(string Label, double Ms, int Count)> LastDetail { get; private set; } = [];
     readonly List<(string Name, double Ms)> _cpu = [];
     readonly System.Diagnostics.Stopwatch _clock = new();
@@ -34,16 +24,10 @@ public sealed class GpuPassTimer : IDisposable
 
     internal static GpuPassTimer? Current;
 
-    /// <summary>The most recent completed frame: each pass and its milliseconds, in order.</summary>
     public IReadOnlyList<(string Pass, double Ms)> Last { get; private set; } = [];
 
-    /// <summary>
-    /// The CPU time spent issuing each pass of the last frame - mark to mark, like the GPU rows. A pass whose GPU time is no more
-    /// than this was waiting on the CPU to send it work.
-    /// </summary>
     public IReadOnlyList<(string Pass, double Ms)> LastCpu { get; private set; } = [];
 
-    /// <summary>The most recent completed frame's total, first mark to last.</summary>
     public double LastTotalMs { get; private set; }
 
     public GpuPassTimer(GL gl)
@@ -56,7 +40,6 @@ public sealed class GpuPassTimer : IDisposable
         }
     }
 
-    /// <summary>Starts a frame: reads back the frame written <see cref="Latency"/> frames ago, if it is ready, and marks the start.</summary>
     public void BeginFrame()
     {
         _slot = (_slot + 1) % Latency;
@@ -114,7 +97,6 @@ public sealed class GpuPassTimer : IDisposable
         Mark("start");
     }
 
-    /// <summary>Marks the end of the pass named <paramref name="pass"/>.</summary>
     public void Mark(string pass)
     {
         if (_slot < 0)
@@ -128,10 +110,6 @@ public sealed class GpuPassTimer : IDisposable
         _lastCpuMark = now;
     }
 
-    /// <summary>
-    /// When <see cref="Detailed"/>, marks the end of a span charged to <paramref name="label"/>, timed from the previous detail
-    /// mark; an empty label starts a span without charging one.
-    /// </summary>
     public void Detail(string label)
     {
         if (!Detailed || _slot < 0)
@@ -141,7 +119,6 @@ public sealed class GpuPassTimer : IDisposable
         _details[_slot].Add((label, q));
     }
 
-    /// <summary>Ends the frame; later marks are ignored until the next <see cref="BeginFrame"/>.</summary>
     public void EndFrame(string lastPass)
     {
         Mark(lastPass);

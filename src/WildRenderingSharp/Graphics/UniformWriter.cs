@@ -9,7 +9,6 @@ public readonly struct UniformWriter(byte[] buffer)
     public void Set(int slot, int component, float value) =>
         BinaryPrimitives.WriteSingleLittleEndian(buffer.AsSpan(slot * 16 + component * 4), value);
 
-    /// <summary>Writes the xyz components of a slot, leaving w alone.</summary>
     public void Set(int slot, Vector3 xyz)
     {
         Set(slot, 0, xyz.X);
@@ -17,7 +16,6 @@ public readonly struct UniformWriter(byte[] buffer)
         Set(slot, 2, xyz.Z);
     }
 
-    /// <summary>Writes consecutive full-slot rows, as a matrix is laid out.</summary>
     public void SetRows(int firstSlot, ReadOnlySpan<Vector4> rows)
     {
         for (int i = 0; i < rows.Length; i++)

@@ -6,9 +6,7 @@ namespace WildRenderingSharp.Pipeline;
 /// <summary>
 /// Produces the two screen-space buffers the deferred resolve shaders expect from the unimplemented <c>preshading_*</c> passes:
 /// <c>cTex_PreShadow</c> (sun visibility, Poisson-disc PCF against the shadow map) and <c>cTex_PreMisc</c> (an alchemy-style AO
-/// plus the diffuse N.L the <c>chara_*</c> resolve passes read from <c>.y</c>). Both decode the packed G-buffer normal with the
-/// Lambert-azimuthal scheme the game's shaders use. These two textures are this renderer's own; only their consumption (the game's
-/// resolve shader) is authentic.
+/// plus the diffuse N.L the <c>chara_*</c> resolve passes read from <c>.y</c>).
 /// </summary>
 public sealed class ScreenSpaceShadowAndAoPass : IDisposable
 {

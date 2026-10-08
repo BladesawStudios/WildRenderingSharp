@@ -3,22 +3,6 @@ using System.Numerics;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>Resolves a palette's hemisphere ambient (sky and ground) colours.</summary>
-/// <remarks>
-/// <para>
-/// In the game the hemisphere ambient is an <c>agl::env</c> object, not a ResEnvPalette field: it lives in <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c> (a SARC of AAMP
-/// <c>.baglenv</c> files) as a <c>HemisphereLight</c>. The only ones authored are situational (<c>main_env.baglenv</c> has <c>hemi_inner</c> and <c>hemi_cave</c>, both flat
-/// greys), so outdoors there is no stored colour: the sky ambient is integrated from the sky itself, which the runtime renders per frame from Rayleigh and Mie scattering and
-/// this renderer does not.
-/// </para>
-/// <para>
-/// So this approximates that integral, driven by the palette's own scattering parameters. The ambient lights every surface from every direction while the sun only lights
-/// faces toward it, so a fixed ambient made every palette look alike (a blood-moon palette rendered blue). The two terms are the halves of a single-scattering sky, from the
-/// fields the game feeds its sky shader. Rayleigh, the blue term, has a fixed hue (normalised (0.144, 0.398, 1.0), close to the hand-authored indoor-capture sky
-/// (0.131, 0.304, 1.0)) and an amount from <c>SkyRParam_rayleigh_amplifier</c> (noon 1.0, night 0.25, blood moon 0.0). Mie, the forward-scattered haze, takes the sun's colour
-/// (<c>SkySunColor</c>) and <c>SkyRParam_mie_amplifier</c> (noon 12, night 0, blood moon 256). Blending by the amplifiers gives noon as blue plus warm haze, night as dim
-/// blue, and a blood moon (all Mie, deep red sun) red.
-/// </para>
-/// </remarks>
 public static class AmbientLighting
 {
     const float AmbientSkyScale = 1.80f;
@@ -45,7 +29,6 @@ public static class AmbientLighting
         return (hue * (AmbientSkyScale * scale), postfx.GroundColor * (AmbientGroundScale * scale));
     }
 
-    /// <summary>The colour of the directional light hitting actors.</summary>
     public static Vector3 SunColor(EnvPalette palette)
     {
         Vector3 hue = palette.SkySunColorNoUse ? Normalize(palette.BgDifColor) : Normalize(palette.SkySunColor);
@@ -54,11 +37,6 @@ public static class AmbientLighting
         return hue * magnitude;
     }
 
-    /// <summary>
-    /// The sky's colour for this palette, normalised to a hue (max component 1) so the caller owns the magnitude. Rayleigh and Mie
-    /// are weighted by the palette's amplifiers rather than summed, which would let a blood moon's 256x Mie blow the ambient out
-    /// 20x.
-    /// </summary>
     public static Vector3 SkyHue(EnvPalette palette, SkyPostFx? postfx = null)
     {
         Vector3 rayleigh = Normalize((postfx ?? SkyPostFx.Default).RayleighScatteringCoeff);
@@ -78,7 +56,6 @@ public static class AmbientLighting
         return Normalize((rayleigh * wRayleigh + mie * wMie) / total);
     }
 
-    /// <summary>A colour reduced to its hue, for callers that own the magnitude themselves (the sun sprite, the horizon fog colour).</summary>
     public static Vector3 NormaliseHue(Vector3 c) => Normalize(c);
 
     static Vector3 Normalize(Vector3 c)

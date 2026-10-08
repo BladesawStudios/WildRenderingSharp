@@ -8,10 +8,7 @@ using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
-/// <summary>
-/// Draws the sun's shadow map, or its cascades. Skipped when only the camera moved: the map depends on the sun and what casts into
-/// it, never on the view.
-/// </summary>
+/// <summary>Draws the sun's shadow map, or its cascades.</summary>
 public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain) : IFrameStage
 {
     readonly ShadowPass _shadow = new(services.Gl);

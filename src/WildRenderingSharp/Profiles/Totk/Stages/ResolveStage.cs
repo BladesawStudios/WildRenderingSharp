@@ -7,11 +7,7 @@ using WildRenderingSharp.Profiles.Totk.Terrain;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
-/// <summary>
-/// Lights the G-buffer one deferred pass at a time. Shapes that read the lit scene (glass, water) can only be drawn once it exists,
-/// so when any are present the resolve runs in two halves: the scene without them, then those shapes over a copy of it, then their
-/// own pixels.
-/// </summary>
+/// <summary>Lights the G-buffer one deferred pass at a time.</summary>
 public sealed class ResolveStage(
     FrameServices services, DeferredScene scene, TerrainRenderer terrain,
     ScreenSpaceLightingStage screenSpaceLighting, PassIdMaskPass passIdMask) : IFrameStage, IDisposable

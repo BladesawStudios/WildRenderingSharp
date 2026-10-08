@@ -9,15 +9,6 @@ namespace WildRenderingSharp.Assets;
 /// The game's baked lighting for placed static actors, read from a cache the preparer fills (<c>prepare-bake</c>; see
 /// <c>ShaderLibrary.CompileTool.ExportBake</c>).
 /// </summary>
-/// <remarks>
-/// Every static world object's material samples <c>bake0</c> at <c>aTexCoordBake</c> - the
-/// lightmap UV - scaled and offset into its bake tile's atlas: the ambient occlusion and sky
-/// shadowing the game baked for that one placement. Without it each samples
-/// <c>CmnTex_BakeDefault</c>, a flat 1.0: no contact darkening anywhere, which is most of why a
-/// rock face reads as flat and over-lit beside the game's. A placement is found by its hash: the
-/// index maps every hash to its tile, and a tile is loaded the first time one of its placements is
-/// asked for, if it has been exported (<see cref="MissingTiles"/> says which still need to be).
-/// </remarks>
 public sealed class BakeLibrary : IDisposable
 {
     readonly string _dir;
@@ -36,10 +27,8 @@ public sealed class BakeLibrary : IDisposable
         _textures = new TextureCache(gl, bakeDirectory);
     }
 
-    /// <summary>Whether the hash-to-tile index exists yet - the preparer builds it on its first bake run.</summary>
     public bool HasIndex => File.Exists(Path.Combine(_dir, "index.bin"));
 
-    /// <summary>The tile a placement's bake is in, or null when it has none (or there is no index yet).</summary>
     public string? TileOf(ulong hash)
     {
         lock (_sync)
@@ -56,7 +45,6 @@ public sealed class BakeLibrary : IDisposable
         return at >= 0 ? _tiles[_tileOfHash[at]] : null;
     }
 
-    /// <summary>Of the tiles these placements need, the ones not exported yet.</summary>
     public IReadOnlyList<string> MissingTiles(IEnumerable<ulong> hashes)
     {
         lock (_sync)
@@ -64,7 +52,6 @@ public sealed class BakeLibrary : IDisposable
                 .Where(t => !File.Exists(Path.Combine(_dir, t + ".json")))];
     }
 
-    /// <summary>A placement's bake, or null when it has none or its tile is not exported yet.</summary>
     public BakeActor? Find(ulong hash)
     {
         lock (_sync)
@@ -127,7 +114,6 @@ public sealed class BakeLibrary : IDisposable
         return n > 0;
     }
 
-    /// <summary>Forgets the index and the tiles that were missing, after the preparer has exported more.</summary>
     public void Refresh()
     {
         lock (_sync)

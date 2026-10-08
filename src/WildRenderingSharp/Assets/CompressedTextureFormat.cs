@@ -5,16 +5,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>
-/// Maps a TotK texture's format string (as exported by <c>ExportTestBench</c>/<c>TxtgTexture</c>, e.g. <c>BC1_UNORM</c>,
-/// <c>BC7_UNORM</c>, <c>ASTC_4x4_SRGB</c>) to how to get it onto the GPU. <c>ExportTestBench.ExportModel</c> already writes each
-/// texture's post-deswizzle, linear block-compressed data straight to a <c>.bin</c> file, so BC1/BC3/BC4/BC5/BC7 need no CPU work
-/// at all - just <c>glCompressedTexImage2D</c> with the matching internal format. ASTC is different:
-/// <c>GL_KHR_texture_compression_astc_ldr</c> is a genuinely optional extension on desktop GL (several common desktop GPUs/drivers
-/// lack it entirely, unlike BC/RGTC/BPTC which desktop GL supports universally), so gambling on hardware support silently produced
-/// an undefined/black texture on hardware without it. ASTC is decoded to plain RGBA on the CPU via <c>AstcSharp</c> instead and
-/// uploaded as an ordinary uncompressed texture, which works everywhere.
-/// </summary>
+/// <summary>Maps a TotK texture's format string (as exported by <c>ExportTestBench</c>/<c>TxtgTexture</c>, e.g.</summary>
 public static partial class CompressedTextureFormat
 {
     /// <summary>
@@ -27,11 +18,6 @@ public static partial class CompressedTextureFormat
     [GeneratedRegex(@"^ASTC_(\d+)x(\d+)")]
     private static partial Regex AstcPattern();
 
-    /// <summary>
-    /// Resolves a format string to upload info, or <see langword="null"/> for a format this codebase doesn't (yet) handle - carried
-    /// over as an explicit skip rather than a crash, the same gap <c>TxtgTexture.FormatList</c>/<c>load_texture</c> already have
-    /// for a handful of formats (e.g. terrain's format code 0xC0C).
-    /// </summary>
     public static Info? Resolve(string format)
     {
         if (format.StartsWith("BC1", StringComparison.Ordinal))
@@ -57,15 +43,10 @@ public static partial class CompressedTextureFormat
         return null;
     }
 
-    /// <summary>
-    /// Total byte length of a mip level's compressed (or, for ASTC, still-compressed source) data for this format at a given
-    /// resolution.
-    /// </summary>
     public static int ComputeDataLength(Info info, int width, int height) =>
         ((width + info.BlockWidth - 1) / info.BlockWidth) *
         ((height + info.BlockHeight - 1) / info.BlockHeight) * info.BytesPerBlock;
 
-    /// <summary>Decodes ASTC block data to plain RGBA8 bytes (row-major, no padding) via AstcSharp.</summary>
     public static byte[] DecodeAstc(byte[] blockData, int width, int height, FootprintType footprint, bool srgb)
     {
         using var source = new MemoryStream(blockData);
@@ -75,10 +56,6 @@ public static partial class CompressedTextureFormat
         return destination.ToArray();
     }
 
-    /// <summary>
-    /// Mirrors <c>load_texture</c>'s sRGB heuristic: an explicit <c>_SRGB</c> suffix, or the sampler/texture naming pattern TotK
-    /// uses for albedo-ish inputs.
-    /// </summary>
     public static bool IsSrgb(string format, string samplerKey, string samplerAssigned, string textureName) =>
         format.EndsWith("_SRGB", StringComparison.Ordinal) ||
         samplerKey is "_a0" or "_a1" or "_a2" or "_fx0" or "_fx1" ||

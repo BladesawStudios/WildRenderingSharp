@@ -2,11 +2,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>
-/// Loads and caches textures by name so shapes sharing a texture share one GL object. Compressed block data is uploaded straight to
-/// the GPU (see <see cref="CompressedTextureFormat"/>); a texture in an unhandled format, or whose bin file is absent, is skipped
-/// rather than aborting the model.
-/// </summary>
+/// <summary>Loads and caches textures by name so shapes sharing a texture share one GL object.</summary>
 public sealed class TextureCache : IDisposable
 {
     readonly GL _gl;
@@ -25,10 +21,6 @@ public sealed class TextureCache : IDisposable
         _shared = shared;
     }
 
-    /// <summary>
-    /// Resolves every texture a shape's sampler list references, skipping unbound units and logging anything it can't load. Returns
-    /// bindings ready to bind.
-    /// </summary>
     public List<ShapeSampler> Resolve(IEnumerable<SamplerBinding> samplers)
     {
         var result = new List<ShapeSampler>();
@@ -52,10 +44,6 @@ public sealed class TextureCache : IDisposable
         return result;
     }
 
-    /// <summary>
-    /// Loads (or returns the cached) texture for one binding; public so a texture pattern anim can pull in an alternate. Cached by
-    /// name, so the first binding to ask decides the sRGB interpretation.
-    /// </summary>
     public LoadedTexture? Load(SamplerBinding s) => GetOrLoad(s);
 
     static bool? _anisotropy;

@@ -5,8 +5,7 @@ namespace WildRenderingSharp.Assets;
 
 /// <summary>
 /// One shape from a model's manifest - everything <c>WildRenderingSharp.Assets.ModelLoader</c> needs to draw it, with no BFRES/BNSH
-/// parsing of its own (that already happened offline in <c>ShaderLibrary.CompileTool</c>). See <c>ExportManifest.Run</c> for the
-/// writer.
+/// parsing of its own (that already happened offline in <c>ShaderLibrary.CompileTool</c>).
 /// </summary>
 public sealed class ShapeManifestEntry
 {

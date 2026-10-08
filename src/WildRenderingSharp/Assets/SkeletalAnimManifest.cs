@@ -30,7 +30,6 @@ public sealed class SkeletalAnimManifest : IAnimClip
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a skeletal anim manifest.");
     }
 
-    /// <summary>Every embedded anim's name next to a model's manifest (<c>&lt;modelName&gt;.&lt;AnimName&gt;.anim.json</c>).</summary>
     public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
         Directory.Exists(dataDirectory)
             ? Directory.EnumerateFiles(dataDirectory, $"{modelName}.*.anim.json")

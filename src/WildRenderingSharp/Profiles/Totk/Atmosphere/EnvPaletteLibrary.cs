@@ -11,13 +11,8 @@ public sealed class EnvPaletteLibrary
 {
     readonly Dictionary<string, EnvPalette> _byName = new(StringComparer.Ordinal);
 
-    /// <summary>
-    /// The neutral studio preset (see <see cref="BuildStudioLightPreset"/>) and the default everything falls back to. Not a romfs
-    /// palette, so it exists with no romfs configured and a session opens on lighting that shows a model as it is.
-    /// </summary>
     public const string StudioLightPaletteName = "StudioLight";
 
-    /// <summary>The romfs palette the game uses for overworld noon, the reference to compare a studio render against.</summary>
     public const string ReferenceDaylightPaletteName = "Prequel_MainField_Bluesky_3_Noon";
 
     public const string DefaultPaletteName = StudioLightPaletteName;
@@ -29,10 +24,6 @@ public sealed class EnvPaletteLibrary
 
     EnvPaletteLibrary() { }
 
-    /// <summary>
-    /// Presets only, the safe starting point before a romfs path is configured. <see cref="Get"/> still works because the default
-    /// is itself a preset.
-    /// </summary>
     public static EnvPaletteLibrary Empty()
     {
         var lib = new EnvPaletteLibrary();
@@ -139,10 +130,6 @@ public sealed class EnvPaletteLibrary
 
     void AddPreset(string name, Dictionary<string, object?> raw) => _byName[name] = new EnvPalette(name, raw);
 
-    /// <summary>
-    /// Exact match, then case-insensitive, across the presets and then the loaded palettes, falling back to <see
-    /// cref="DefaultPaletteName"/> (a built-in preset) rather than throwing.
-    /// </summary>
     public EnvPalette Get(string? name)
     {
         if (string.IsNullOrEmpty(name))

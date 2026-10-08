@@ -29,10 +29,6 @@ public sealed class MaterialAnimTarget
     [JsonPropertyName("frames")] public float[] Frames { get; set; } = [];
     [JsonPropertyName("keys")] public float[][] Keys { get; set; } = [];
 
-    /// <summary>
-    /// The 32 bits this target writes at <paramref name="frame"/> - a constant's stored bits, or the curve's evaluated float/int
-    /// reinterpreted as bits.
-    /// </summary>
     public uint Bits(float frame)
     {
         if (ConstantBits is { } bits)

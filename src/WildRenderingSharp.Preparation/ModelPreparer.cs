@@ -7,10 +7,6 @@ namespace WildRenderingSharp.Preparation;
 /// The <c>--prepare</c> pipeline called in-process: the same three steps in the same order as
 /// <c>ShaderLibrary.CompileTool.Program</c>'s <c>--prepare</c> branch, plus the shared system assets every model needs.
 /// </summary>
-/// <remarks>
-/// Everything is static and writes only under the <see cref="CacheLayout"/> it is given. Mod layering is ShaderLibrary's process-wide
-/// <see cref="RomfsOverlay"/>; set it with <see cref="SetModRomfsLayers"/>.
-/// </remarks>
 public static class ModelPreparer
 {
     static readonly object PatchGate = new();
@@ -27,10 +23,6 @@ public static class ModelPreparer
         }
     }
 
-    /// <summary>
-    /// Applies ShaderLibrary's runtime patches to its vendored BfresLibrary (see <c>BfresLibraryPatches.cs</c>) and points its
-    /// external string table at the romfs. Idempotent.
-    /// </summary>
     public static void EnsureBfresReady(string romfsRoot)
     {
         ExternalBinaryStringTable.RomfsRoot = romfsRoot ?? "";
@@ -43,19 +35,10 @@ public static class ModelPreparer
         }
     }
 
-    /// <summary>
-    /// Layers mod romfs folders over the base romfs, highest priority first. Replacement is per file; see <see
-    /// cref="RomfsOverlay"/>.
-    /// </summary>
     public static void SetModRomfsLayers(IEnumerable<string> romfsLayers) => RomfsOverlay.SetModRoots(romfsLayers);
 
-    /// <summary>The mod romfs layers currently in effect, highest priority first.</summary>
     public static IReadOnlyList<string> ModRomfsLayers => RomfsOverlay.ModRoots;
 
-    /// <summary>
-    /// Every shared asset the live pipeline needs, built once into <paramref name="cache"/>. Each step is skipped if its output
-    /// exists.
-    /// </summary>
     public static void EnsureSystemAssets(string romfsRoot, CacheLayout cache, Action<string>? log = null)
     {
         if (string.IsNullOrEmpty(romfsRoot) || !Directory.Exists(romfsRoot))
@@ -100,12 +83,6 @@ public static class ModelPreparer
         }
     }
 
-    /// <summary>
-    /// System shaders such as <c>agl_hdr_compose</c>, the final tonemap every model needs, are not produced by <see
-    /// cref="Prepare"/>. They come from agl's shader archives (<c>Shader/ApplicationPackage.Nin_NX_NVN.release.sarc.zs</c> -&gt;
-    /// <c>AglShader.sharcb</c>), a different container and decompile path than material shaders; see <see
-    /// cref="TestAglShader.ExtractHdrCompose"/>.
-    /// </summary>
     public static void EnsureSystemShaders(string romfsRoot, string decompiledDirectory)
     {
         if (File.Exists(Path.Combine(decompiledDirectory, "agl_hdr_compose.vert")))
@@ -117,11 +94,6 @@ public static class ModelPreparer
         TestAglShader.ExtractHdrCompose(romfsRoot, decompiledDirectory);
     }
 
-    /// <summary>
-    /// Builds the shared deferred-resolve gsys_material blocks once, if missing (see <c>BuildMaterialUbo.RunSystemDeferred</c>).
-    /// Without them every deferred-resolve pass (chara_skin, chara_hair, chara_eye, chara_grossy, chara_nonmetal, chara_metal) runs
-    /// against an all-zero material block.
-    /// </summary>
     public static void EnsureSystemDeferredMaterials(string romfsRoot, string deferredMaterialsDirectory, string decompiledDirectory)
     {
         bool needsMaterials = !File.Exists(Path.Combine(deferredMaterialsDirectory, "chara_skin.gsys_material.bin"));
@@ -148,12 +120,6 @@ public static class ModelPreparer
         }
     }
 
-    /// <summary>
-    /// Extracts static assets behind "system" texture names once, if missing; currently <c>cTex_Proc3DNoise</c>, a 3D Worley and
-    /// Perlin noise volume (<c>TexToGo/3DWorleyPerlinNoise_Fi.bntx.zs</c>). Every other system sampler the shaders reference is a
-    /// dynamic render target (shadow cascades, sky scattering, the Depths' darkness maps, terrain streaming) with no romfs file to
-    /// extract.
-    /// </summary>
     public static void EnsureSystemTextures(string romfsRoot, string systemTexturesDirectory)
     {
         if (File.Exists(Path.Combine(systemTexturesDirectory, "Proc3DNoise.r8")))
@@ -163,7 +129,6 @@ public static class ModelPreparer
         SystemTextures.ExtractProc3DNoise(romfsRoot, systemTexturesDirectory);
     }
 
-    /// <summary>Installs the cloud masks, preferring the shipped captured ones over a romfs guess.</summary>
     public static void EnsureCloudTextures(string romfsRoot, string systemTexturesDirectory)
     {
         if (File.Exists(Path.Combine(systemTexturesDirectory, "CloudNoiseBlend.r8")))
@@ -189,10 +154,6 @@ public static class ModelPreparer
         yield return Path.Combine(AppContext.BaseDirectory, "res", "cloud");
     }
 
-    /// <summary>
-    /// Extracts the real sky-scattering LUT once, if missing - see <see cref="SkyBinTexture"/>'s own remarks for what it is and how
-    /// it was found.
-    /// </summary>
     public static void EnsureSkyBinData(string romfsRoot, string skyDataDirectory)
     {
         if (File.Exists(Path.Combine(skyDataDirectory, "sky_lut.bin")))
@@ -202,11 +163,6 @@ public static class ModelPreparer
         SkyBinTexture.ExtractMasterField(romfsRoot, skyDataDirectory);
     }
 
-    /// <summary>
-    /// Extracts <c>agl::fx::Cloud</c>'s <c>cloud</c> program (from <c>Lib/agl/agl_resource.Nin_NX_NVN.release.sarc.zs</c> -&gt;
-    /// <c>agl_technique.sharcb</c>) once, if missing; see <see cref="TestAglShader.ExtractCloudShader"/>. One shared shader
-    /// whichever model is loaded.
-    /// </summary>
     public static void EnsureCloudShader(string romfsRoot, string decompiledDirectory)
     {
         if (File.Exists(Path.Combine(decompiledDirectory, "agl_cloud.frag")))
@@ -218,10 +174,6 @@ public static class ModelPreparer
         TestAglShader.ExtractCloudShader(romfsRoot, decompiledDirectory);
     }
 
-    /// <summary>
-    /// Extracts the real procedural noise generator that bakes the "cloud_noise" texture <c>agl_cloud</c> reads once, if missing -
-    /// see <see cref="TestAglShader.ExtractCloudNoiseShader"/>.
-    /// </summary>
     public static void EnsureCloudNoiseShader(string romfsRoot, string decompiledDirectory)
     {
         if (File.Exists(Path.Combine(decompiledDirectory, "agl_noise_cloud.frag")))
@@ -233,10 +185,6 @@ public static class ModelPreparer
         TestAglShader.ExtractCloudNoiseShader(romfsRoot, decompiledDirectory);
     }
 
-    /// <summary>
-    /// Extracts the sun disc and the eight moon-phase sprites once into the shared system-texture cache - see <c>SkyBodyPass</c>
-    /// for what they are and why they are sprites.
-    /// </summary>
     public static void EnsureSkyBodyTextures(string romfsRoot, string systemTexturesDirectory)
     {
         if (File.Exists(Path.Combine(systemTexturesDirectory, "Moon8.rg8")))
@@ -248,7 +196,6 @@ public static class ModelPreparer
         SystemTextures.ExtractSkyBodyTextures(romfsRoot, systemTexturesDirectory);
     }
 
-    /// <summary>Extracts the real lens-flare program once - see <c>LensFlarePass</c>.</summary>
     public static void EnsureLensFlareShaders(string romfsRoot, string decompiledDirectory)
     {
         if (File.Exists(Path.Combine(decompiledDirectory, "agl_flare_filter_flare.frag")))
@@ -260,10 +207,6 @@ public static class ModelPreparer
         TestAglShader.ExtractLensFlareShaders(romfsRoot, decompiledDirectory);
     }
 
-    /// <summary>
-    /// Extracts the real <c>agl::pfx::Sky</c> programs (per-frame postfx plus the whole Bruneton precompute chain), if missing -
-    /// see <see cref="TestAglShader.ExtractSkyPostFxShaders"/>.
-    /// </summary>
     public static void EnsureSkyShaders(string romfsRoot, string decompiledDirectory)
     {
         // Checks the newest file this extractor produces, so a cache built before the adhoc-fog variant existed does not report "already extracted" and never gain it.
@@ -276,17 +219,9 @@ public static class ModelPreparer
         TestAglShader.ExtractSkyPostFxShaders(romfsRoot, decompiledDirectory);
     }
 
-    /// <summary>
-    /// The model an actor name resolves to - what the cache directory and every exported file are named after - without preparing
-    /// anything. A name with no actor pack resolves to itself.
-    /// </summary>
     public static string ResolveModelName(string romfsRoot, string actorOrModelName) =>
         ActorInfo.Resolve(romfsRoot, actorOrModelName)?.ModelName ?? actorOrModelName;
 
-    /// <summary>
-    /// Prepares <paramref name="actorOrModelName"/> unless the cache already holds an up-to-date copy (see <see
-    /// cref="IsUpToDate"/>), returning the resolved model name either way.
-    /// </summary>
     public static string PrepareIfNeeded(string romfsRoot, string actorOrModelName, CacheLayout cache,
         Action<string>? log = null, bool importAnims = true, bool force = false)
     {
@@ -299,11 +234,6 @@ public static class ModelPreparer
         return Prepare(romfsRoot, actorOrModelName, cache.Root, cache.Shaders, log, importAnims);
     }
 
-    /// <summary>
-    /// Prepares many actors at once, <paramref name="parallelism"/> models at a time, sharing one parsed shader archive (<see
-    /// cref="SharedBfsha"/>) and the decompiled programs between them. The caller has already called <see
-    /// cref="EnsureSystemAssets"/> and set the mod layers.
-    /// </summary>
     public static void PrepareMany(string romfsRoot, IReadOnlyList<string> actorOrModelNames, CacheLayout cache, int parallelism,
         Action<string>? onBegin, Action<PrepareOutcome> onOutcome, bool importAnims = true, bool force = false,
         CancellationToken cancellationToken = default)
@@ -374,11 +304,6 @@ public static class ModelPreparer
             System.Text.Json.JsonSerializer.Serialize(stamp, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
     }
 
-    /// <summary>
-    /// False if the prepared model was built from different romfs files than the current root and mod set would supply: a mod
-    /// toggled that touches one of its files, or a mod file edited. Only files the prepare looked up are checked, so toggling an
-    /// unrelated mod costs nothing.
-    /// </summary>
     public static bool IsUpToDate(string romfsRoot, string dataDirectory)
     {
         string stampPath = Path.Combine(dataDirectory, SourceStampFile);

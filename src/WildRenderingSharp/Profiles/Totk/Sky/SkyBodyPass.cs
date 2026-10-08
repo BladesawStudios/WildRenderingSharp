@@ -5,23 +5,6 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>The sun and the moon, drawn from the game's own sprites.</summary>
-/// <remarks>
-/// <para>
-/// Both are romfs assets: <c>TexToGo/Etc_Sun_A_Alb.txtg</c> is a 64x64 BC4 disc mask (single channel; the colour comes from the palette's sun colour, so one texture covers every
-/// time of day) and <c>Etc_Moon_A_Alb.1</c> to <c>.8</c> are 256x256 BC5 sprites, the moon's eight phases. <c>SystemTextures.ExtractSkyBodyTextures</c> pulls them into the shared
-/// <c>_system_textures</c> cache.
-/// </para>
-/// <para>
-/// Drawn as a fullscreen pass, not billboard geometry. Each pixel reconstructs its view ray (the same tanHalfFov and inverse-view basis as every other sky pass) and is placed into
-/// the body's tangent frame around its direction, so there is no quad to orient, no projection to get right and no clipping of a body near the screen edge, and it behaves
-/// identically at any FOV or aspect.
-/// </para>
-/// <para>
-/// The moon is a sprite, not <c>Model/Obj_Moon_A.Obj_Moon_A_01.bfres.mc</c>: the model is a lit, shaded object needing a place in the world at true sky distance, while the sprite
-/// is what produces the moon's look, phases included. The model suits a close-up; the sprite suits a sky body.
-/// </para>
-/// <para>Runs after the sky and before the cloud dome, so cloud draws over both.</para>
-/// </remarks>
 public sealed class SkyBodyPass : IDisposable
 {
     readonly GL _gl;

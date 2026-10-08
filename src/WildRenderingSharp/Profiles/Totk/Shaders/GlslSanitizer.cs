@@ -3,12 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
-/// <summary>
-/// Cleans one of <c>ShaderLibrary.CompileTool</c>'s decompiled <c>.vert</c>/<c>.frag</c> files so desktop GL will link it. The
-/// source targets a Tegra/NVN GLSL dialect that declares extensions desktop drivers lack, and the decompiler's array syntax for a
-/// single fragment output needs a small rewrite. Never edit shader logic here, only what keeps it from compiling: the shading math
-/// is evidence.
-/// </summary>
+/// <summary>Cleans one of <c>ShaderLibrary.CompileTool</c>'s decompiled <c>.vert</c>/<c>.frag</c> files so desktop GL will link it.</summary>
 public static class GlslSanitizer
 {
     static readonly string[] DroppedLinePrefixes =
@@ -71,7 +66,6 @@ public static class GlslSanitizer
     static readonly Regex EngineVertexTexture = new(
         @"layout\s*\(\s*binding\s*=\s*\d+\s*\)\s*uniform\s+sampler2D\s+(c\d+_(TexWindSwell|TexLieMap|TexThickness))\s*;", RegexOptions.Compiled);
 
-    /// <summary>The units <see cref="EngineVertexTexture"/> moves them to - above every unit a game program numbers itself.</summary>
     public const int WindSwellUnit = 32, LieMapUnit = 33, ThicknessUnit = 34;
 
     static int EngineVertexTextureUnit(string name) => name switch
@@ -81,10 +75,6 @@ public static class GlslSanitizer
         _ => ThicknessUnit,
     };
 
-    /// <summary>
-    /// Where a block the decompiler numbered negatively ends up (see <see cref="NegativeBinding"/>). A zeroed buffer is kept bound
-    /// here so what such a block reads is defined.
-    /// </summary>
     public const uint OrphanBlockBinding = Profiles.Totk.TotkBindings.Orphan;
 
     // The decompiler renumbers constant buffer N to binding N - 3, so the driver's own buffer (c0) comes out as binding = -3.

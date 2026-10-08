@@ -2,17 +2,8 @@ namespace WildRenderingSharp.Rendering;
 
 /// <summary>
 /// Bakes an authored TexSrt (mode, scaleX, scaleY, rotation, translateX, translateY) into the 2x2 rotate-scale matrix plus
-/// translation the compiled shader's <c>gsys_material</c> block stores. It is the runtime twin of
-/// <c>ShaderLibrary.CompileTool.BuildMaterialUbo.TexSrtBake</c>, whose remarks carry the Ghidra derivation
-/// (<c>nn::g3d2::MaterialObj::ConvertDirtyParams</c>'s per-kind callback table, dispatcher 0x7100072448, mode 0 baker 0x7100072860,
-/// mode 1 baker 0x7100072950). Duplicated rather than shared because this library takes no dependency on the offline BFRES and
-/// BFSHA tooling, and it is pure float math.
+/// translation the compiled shader's <c>gsys_material</c> block stores.
 /// </summary>
-/// <remarks>
-/// <see cref="WildRenderingSharp.Rendering.MaterialAnimPose"/> needs it because a material-parameter animation can drive just one sub-field of a TexSrt (a scroll touching only translateY): the untouched
-/// sub-fields come from the material's authored baseline (<c>MaterialUniformEntry.RawSrt</c>) and all six values are re-baked together every frame, as the offline overlay does at export. Writing an
-/// animated curve's raw float into the already-baked buffer only looks right at the identity baseline (scale 1, rotation 0, where the pivot terms cancel) and is wrong for any real scale or rotation.
-/// </remarks>
 public static class TexSrtBake
 {
     public static void Bake(int mode, float sx, float sy, float rot, float tx, float ty, Span<float> outM0, Span<float> outM1)

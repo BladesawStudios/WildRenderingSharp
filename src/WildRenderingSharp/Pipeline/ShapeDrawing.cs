@@ -33,10 +33,6 @@ public static class ShapeDrawing
         gl.DrawElements(PrimitiveType.Triangles, (uint)indexCount, DrawElementsType.UnsignedInt, null);
     }
 
-    /// <summary>
-    /// <see cref="Draw"/> for every visible run of a batch: the same program state, then one instanced call per run, each at that
-    /// run's level of detail. The instance buffer is already bound (<see cref="ActorDrawGroup.BindUbos"/>).
-    /// </summary>
     public static unsafe void DrawInstanced(GL gl, uint materialBinding, uint program, uint vao, LoadedShape shape,
         IReadOnlyList<ShapeSampler> samplers, InstanceBatch batch, IReadOnlyList<(int First, int Count, int Lod)>? runs = null)
     {
@@ -203,11 +199,6 @@ public static class ShapeDrawing
     static Locations _locations;
     static uint _bakeTable;
 
-    /// <summary>
-    /// Multi-draws the given runs of the bound program and VAO - for a pass with a program of its own (the pass-ID mask), whose
-    /// instanced variant reads <c>gl_BaseInstance</c> like the game's. Returns false when multi-draw is unavailable and the caller
-    /// must draw run by run.
-    /// </summary>
     public static unsafe bool MultiDrawRuns(GL gl, LoadedShape shape, IReadOnlyList<(int First, int Count, int Lod)> runs)
     {
         if (!InstancingContract.BaseInstance)
@@ -238,18 +229,12 @@ public static class ShapeDrawing
     static readonly uint[] _textures = new uint[96];
     static int _activeUnit = -1;
 
-    /// <summary>
-    /// Starts trusting what the instanced draws last bound: a pass drawing thousands of shapes in program order (see <see
-    /// cref="GBufferPass"/>) re-bound the same program, uniforms and textures for each. Only valid while nothing else binds in
-    /// between - a non-instanced draw forgets it (<see cref="Draw"/>), and <see cref="EndStateCache"/> must follow.
-    /// </summary>
     public static void BeginStateCache()
     {
         InvalidateStateCache();
         _caching = true;
     }
 
-    /// <summary>Stops trusting the cache and leaves unit 0 active, as every draw used to.</summary>
     public static void EndStateCache(GL? gl = null)
     {
         _caching = false;
@@ -278,12 +263,10 @@ public static class ShapeDrawing
             _textures[unit] = handle;
     }
 
-    /// <summary>Where the static-object shaders read their per-instance bake table from (<c>vp_s0</c>).</summary>
     public const uint BakeTableBinding = 0;
 
     static long _triangles, _instances;
 
-    /// <summary>Reads and resets what instanced draws have submitted.</summary>
     public static (long Triangles, long Instances) TakeCounts()
     {
         var counts = (_triangles, _instances);
@@ -298,11 +281,6 @@ public static class ShapeDrawing
     static readonly List<DrawCommand> Commands = [];
 
     /// <summary>A ring the multi-draw commands are written into, bound as the draw-indirect buffer.</summary>
-    /// <remarks>
-    /// Persistently mapped where the driver has buffer storage: commands are written straight into memory the card reads, in chunks, and a chunk is only waited on when the ring comes back round to it
-    /// (a fence per chunk, a few a second). <c>glBufferSubData</c> per multi-draw into the buffer the next call reads is serialised by the driver, so every draw waited for its own upload: a near-constant
-    /// 0.2-0.4 ms of GPU time per draw however small, most of a 38 ms G-buffer.
-    /// </remarks>
     sealed unsafe class IndirectStream
     {
         const int Capacity = 8 << 20, Chunks = 8, ChunkSize = Capacity / Chunks;

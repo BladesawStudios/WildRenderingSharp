@@ -8,7 +8,6 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 /// <summary>The deferred passes the loaded models (and a terrain host) need, resolved to compiled programs and material buffers.</summary>
 public sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirectories directories) : IDisposable
 {
-    /// <summary>The pass that lights geometry no actor stamped - the terrain's.</summary>
     public const string DefaultPass = "chara_nonmetal";
 
     public const string WaterPass = "field_water";
@@ -48,7 +47,6 @@ public sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirec
         Console.WriteLine($"  deferred passes: {string.Join(", ", _passNames)}");
     }
 
-    /// <summary>Makes sure <paramref name="pass"/> is resolved, for terrain that no actor's pass covers.</summary>
     public void EnsurePass(string pass)
     {
         if (!_hostPasses.Contains(pass))

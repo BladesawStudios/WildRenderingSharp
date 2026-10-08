@@ -8,10 +8,6 @@ namespace WildRenderingSharp.Imaging;
 /// <c>RenderTargets.ReadPixelsRgba8</c> return) as a PNG - with no imaging dependency, so it works on every platform the renderer
 /// does.
 /// </summary>
-/// <remarks>
-/// Straight PNG: 8-bit RGBA, no interlace, every scanline with filter type 0, one IDAT of zlib
-/// data. Real alpha is preserved, which matters for a transparent-background export.
-/// </remarks>
 public static class PngWriter
 {
     static ReadOnlySpan<byte> Signature => [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A];

@@ -3,16 +3,7 @@ using WildRenderingSharp.Assets;
 
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>
-/// Depth prepass (z-only, where a material has one) followed by the real G-buffer draw. The prepass carries the alpha-test discard
-/// several materials' G-buffer program lacks; the G-buffer draw then runs with depth func EQUAL so a texel the prepass cut away has
-/// no matching depth and is rejected, which is the engine's own opaque flow.
-/// </summary>
-/// <remarks>
-/// The caller must have the flipped-projection <c>Context</c> bound before <see cref="Run"/> (the G-buffer renders through NVN's upper-left-origin convention; later passes undo that).
-/// Every placed actor's opaque shapes go into the same G-buffer and depth target, so each occludes every other, with each actor's own skinning uniforms (<see cref="ActorDrawGroup"/>) rebound
-/// immediately before its shapes. The prepass-then-EQUAL technique spans every actor as one shared depth pass (all prepasses first, then all real draws), which is what keeps depth correct between actors.
-/// </remarks>
+/// <summary>Depth prepass (z-only, where a material has one) followed by the real G-buffer draw.</summary>
 public sealed class GBufferPass
 {
     readonly GL _gl;

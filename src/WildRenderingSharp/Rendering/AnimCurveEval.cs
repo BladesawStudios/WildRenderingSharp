@@ -3,25 +3,10 @@ namespace WildRenderingSharp.Rendering;
 /// <summary>
 /// The one implementation of BFRES curve evaluation, shared by every kind of animation WildRenderingSharp plays - skeletal TRS
 /// curves, texture pattern index curves and shader parameter curves all come out of the same <c>ResAnimCurve</c> and are evaluated
-/// by the same two entry points in the game. Reverse engineered from the shipped code, not guessed:
-/// <c>ResAnimCurve::EvaluateFloat</c> (Ghidra 0x7100073d90) finishes with <c>Offset + raw * Scale</c>, reading
-/// <c>ResAnimCurve[0x24]</c> as a FLOAT; <c>ResAnimCurve::EvaluateInt</c> (0x71009b774c) finishes with <c>Offset + raw</c> - the
-/// same field read as an INT, and with NO Scale multiply at all; <c>EvaluateCubic&lt;float&gt;</c> (0x71000733b4) treats the 4 keys
-/// per segment as already-baked polynomial COEFFICIENTS, not Hermite value/tangent pairs; <c>EvaluateLinear&lt;float&gt;</c>
-/// (0x71000736d0) uses the same normalized t, so key[1] is the whole segment's delta rather than a per-frame slope;
-/// <c>EvaluateBakedFloat&lt;float&gt;</c> (0x7100073984) has no frame list - one value per integer frame, blended by the fractional
-/// part; the step evaluator behind <c>EvaluateInt</c> (0x7100073a68) returns <c>keys[FindFrame(frame)]</c> with no interpolation of
-/// any kind; <c>FindFrame&lt;float&gt;</c> (0x710007316c) is the segment search all of them share. Frames outside <c>[startFrame,
-/// endFrame]</c> are CLAMPED here. The game additionally supports repeat/mirror/relative-repeat wrapping (the pre/post wrap bits of
-/// <c>ResAnimCurve[0x10]</c>), which only differ outside an anim's own range - and WildRenderingSharp's playback already keeps the
-/// frame inside it.
+/// by the same two entry points in the game.
 /// </summary>
 public static class AnimCurveEval
 {
-    /// <summary>
-    /// Curve type values, straight from <c>BfresLibrary.AnimCurveType</c> and matching the game's own dispatch on <c>(flags &amp;
-    /// 0x70)</c>.
-    /// </summary>
     public const int Cubic = 0x00;
     public const int Linear = 0x10;
     public const int BakedFloat = 0x20;
@@ -30,10 +15,8 @@ public static class AnimCurveEval
     public const int StepBool = 0x60;
     public const int BakedBool = 0x70;
 
-    /// <summary>True for the curve types whose evaluated value is an integer bit pattern rather than a float.</summary>
     public static bool IsIntCurve(int curveType) => curveType >= StepInt;
 
-    /// <summary><c>Offset + raw * Scale</c> - see the class remarks.</summary>
     public static float EvaluateFloat(int curveType, float startFrame, float endFrame, float scale, float offset,
         float[] frames, float[][] keys, float frame)
     {
@@ -49,7 +32,6 @@ public static class AnimCurveEval
         return offset + raw * scale;
     }
 
-    /// <summary><c>Offset + raw</c>, step-held and with NO Scale multiply - <c>EvaluateInt</c> does not apply one.</summary>
     public static int EvaluateInt(float startFrame, float endFrame, int offset, float[] frames, float[][] keys, float frame)
     {
         if (keys.Length == 0)
@@ -94,11 +76,6 @@ public static class AnimCurveEval
         return key.Length >= 2 ? key[0] + t * key[1] : key[0];
     }
 
-    /// <summary>
-    /// Largest i such that <c>frames[i] &lt;= f</c>, clamped so <c>i+1</c> stays in range - matches
-    /// <c>ResAnimCurve::FindFrame</c>'s linear-search fallback (per-curve keyframe counts are small enough that its cached-hint
-    /// fast path isn't worth reproducing).
-    /// </summary>
     public static int FindFrame(float[] frames, float f)
     {
         int i = 0;

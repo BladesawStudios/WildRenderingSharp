@@ -5,17 +5,13 @@ namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
 /// Bright-pass -> 4 downsampled+blurred levels -> weighted compose, feeding straight into <c>agl_hdr_compose</c>'s own
-/// <c>cBloom</c> sampler (so it lands in the game's own compose, not a separate effect bolted on afterwards). Mirrors
-/// <c>BLOOM_BRIGHT_SRC</c>/ <c>BLOOM_BLUR_SRC</c>/<c>BLOOM_COMPOSE_SRC</c> and the bloom loop in <c>render_scene</c> exactly,
-/// including its slightly asymmetric level 0 (bright-pass only) vs. levels 1-3 (one more blur-and-downsample step before the usual
-/// two-pass separable blur).
+/// <c>cBloom</c> sampler (so it lands in the game's own compose, not a separate effect bolted on afterwards).
 /// </summary>
 public sealed class BloomPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _brightProgram, _blurProgram, _composeProgram;
 
-    /// <summary>Per-blur-level tint (.rgb) and weight (.a). Levels 2/3 carry the warm tint that gives TotK's bloom its orange cast.</summary>
     public static readonly Vector4[] LevelColors =
     [
         new(1f, 1f, 1f, 0.50f),

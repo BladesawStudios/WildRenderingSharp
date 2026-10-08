@@ -5,10 +5,7 @@ namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
 /// Blender-style ground reference grid: this renderer's own small utility shader (not a decompiled game shader), a single large
-/// quad at world Z=0 with a procedural, distance-faded, anti-aliased pattern. Drawn into <see cref="RenderTargets.Scene"/>,
-/// depth-tested against <see cref="RenderTargets.GBufferDepth"/> so opaque geometry occludes it, in the same Y-flipped space
-/// <c>ForwardPass</c> and <c>KnownMaterialFixes</c> draw into, so it takes the flipped view-projection. Runs before the forward
-/// pass so blended materials draw over it, with no depth write of its own.
+/// quad at world Z=0 with a procedural, distance-faded, anti-aliased pattern.
 /// </summary>
 public sealed class GridPass : IDisposable
 {

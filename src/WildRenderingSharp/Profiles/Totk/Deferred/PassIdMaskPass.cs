@@ -10,14 +10,8 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 /// <summary>
 /// A model is not one deferred pass: <c>o_material_behave</c> picks a different resolve program per material (the Master Sword is
 /// <c>chara_metal</c> throughout; a character can span <c>chara_nonmetal</c>, <c>chara_hair</c>, <c>chara_skin</c> and
-/// <c>chara_grossy</c>). The game separates them with stencil; this stamps each shape's pass as a small integer ID into an R8
-/// target, and <see cref="DeferredResolvePass"/> composites each program only where the ID matches.
+/// <c>chara_grossy</c>).
 /// </summary>
-/// <remarks>
-/// The mask must be skinned, because the resolve is masked by it: a pixel the G-buffer wrote but the mask missed gets no resolve program and stays background.
-/// Transforming raw positions was correct only while the exporter baked one bone pose into every vertex; once skinning moved to the GPU it made the mask a stencil of
-/// the bind pose. The skinning below is the same operation as the G-buffer vertex shader.
-/// </remarks>
 public sealed class PassIdMaskPass : IDisposable
 {
     readonly GL _gl;
@@ -142,10 +136,6 @@ public sealed class PassIdMaskPass : IDisposable
               .OrderBy(p => p, StringComparer.Ordinal)
               .ToList();
 
-    /// <summary>
-    /// Both matrices use the unflipped projection: the resolve consumes the ID buffer in true GL (lower-left) orientation, not the
-    /// G-buffer's flipped one.
-    /// </summary>
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
         ReadOnlySpan<Vector4> viewProjRows, float near, float far)
     {

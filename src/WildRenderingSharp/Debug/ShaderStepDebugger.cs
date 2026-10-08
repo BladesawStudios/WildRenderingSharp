@@ -4,15 +4,8 @@ namespace WildRenderingSharp.Debug;
 
 /// <summary>
 /// Instruments a decompiled fragment shader so one chosen intermediate (<c>temp_N</c>, in the decompiler's numbering) is shown as
-/// the final pixel colour instead of the shader's output. This is a text-level splice, not a GPU stepper: it works because these
-/// shaders are plain GLSL with one assignment per line.
+/// the final pixel colour instead of the shader's output.
 /// </summary>
-/// <remarks>
-/// A <c>temp_N</c> can be written more than once along the same executed path ("give it a default, then maybe overwrite it a few lines later" is common), so an early return at the first assignment shows
-/// the stale default instead of the value that reaches the rest of the shader. Every hook is therefore a plain capture, `if (target == N) { captured = value; hit = true; }`, with no early exit; a later
-/// capture on the executed path overwrites an earlier one as the real variable would. Only at the end of <c>main()</c>, before the shader's own final output write, does the debugger divert output_color
-/// to the last capture, or to a solid-orange sentinel if the target's assignment sites never ran on that pixel's path, so "never wrote to it" cannot be mistaken for a real value.
-/// </remarks>
 public static class ShaderStepDebugger
 {
     const string UnreachedSentinel = "vec4(1.0, 0.5, 0.0, 1.0)";
@@ -32,10 +25,6 @@ public static class ShaderStepDebugger
         @"^\s*layout\s*\(location\s*=\s*\d+\)\s*out\s+vec4\s+(\w+(?:\[0\])?)\s*;",
         RegexOptions.Multiline);
 
-    /// <summary>
-    /// Every <c>temp_N</c> local's declared GLSL type, keyed by N - found by scanning the whole file for bare declaration lines (an
-    /// assignment line always has an <c>=</c> right after the name, so it never matches this).
-    /// </summary>
     public static Dictionary<int, string> ParseTempTypes(string fragSource)
     {
         var types = new Dictionary<int, string>();
@@ -48,10 +37,6 @@ public static class ShaderStepDebugger
         return types;
     }
 
-    /// <summary>
-    /// Returns the instrumented raw source (still needs <c>GlslSanitizer.Clean</c> and compilation, like any decompiled shader)
-    /// plus every <c>temp_N</c> that got a hook, sorted ascending, for a step-through UI.
-    /// </summary>
     public static string Instrument(string fragSource, out List<int> availableTargets, bool suppressDiscard = false)
     {
         var types = ParseTempTypes(fragSource);

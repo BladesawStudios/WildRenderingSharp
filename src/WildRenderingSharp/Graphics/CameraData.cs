@@ -22,12 +22,10 @@ public readonly record struct CameraData(
             vp.Aspect, vp.TanHalfFovY, camera.NearPlane, camera.FarPlane, new Vector2(1f / width, 1f / height));
     }
 
-    /// <summary>The light's point of view, sharing the depth range and texel size of <paramref name="scene"/>.</summary>
     public static CameraData ForLight(ShadowPass.LightMatrices light, CameraData scene) => new(
         light.View3Rows, light.ViewProj, light.Proj, Mat4Math.Invert(Mat4Math.ToMat4(light.View3Rows))[..3],
         Aspect: 1f, TanHalfFovY: 1f, scene.Near, scene.Far, scene.TexelSize);
 
-    /// <summary>The same view with the projection's second row negated - the upper-left window origin the games' shaders were written for.</summary>
     public CameraData FlippedY() => this with { Proj = FlipRow1(Proj), ViewProj = FlipRow1(ViewProj) };
 
     static Vector4[] FlipRow1(Vector4[] rows) => [rows[0], -rows[1], rows[2], rows[3]];

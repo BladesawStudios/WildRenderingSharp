@@ -3,14 +3,6 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>Textures shared between models, counted by how many models hold each.</summary>
-/// <remarks>
-/// The preparer copies every texture a model uses into that model's own directory, and the common
-/// ones - <c>CmnTex_*</c> rock, wood, grass - are used by hundreds. With one
-/// <see cref="TextureCache"/> per model each copy was read and uploaded again: a map's 800 models
-/// read 2 GB of textures, 0.45 GB of them unique, and held every duplicate on the card. A texture is
-/// the same one wherever it is copied when its file, sRGB decision, swizzle and wrap modes agree,
-/// which is the key.
-/// </remarks>
 public sealed class SharedTextures : IDisposable
 {
     readonly GL _gl;
@@ -19,7 +11,6 @@ public sealed class SharedTextures : IDisposable
 
     public SharedTextures(GL gl) => _gl = gl;
 
-    /// <summary>How many distinct textures are held.</summary>
     public int Count => _byKey.Count;
 
     internal static string Key(SamplerBinding s, bool srgb) =>

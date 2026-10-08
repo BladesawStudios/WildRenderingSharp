@@ -5,10 +5,7 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
-/// <summary>
-/// Runs the atmosphere precompute once per palette. The bake depends only on the atmosphere's authored parameters, so it needs no
-/// camera and no scene, and its lookup tables serve every frame.
-/// </summary>
+/// <summary>Runs the atmosphere precompute once per palette.</summary>
 public sealed class SkyBake(FrameServices services) : IDisposable
 {
     readonly SkyPrecomputePass _precompute = new(services.Gl, services.Programs);
@@ -18,10 +15,6 @@ public sealed class SkyBake(FrameServices services) : IDisposable
 
     public uint BakedInscatter => _precompute.BakedInscatter;
 
-    /// <summary>
-    /// Bakes for <paramref name="palette"/> unless this palette and tint were already baked. Keyed on the palette's name, not on
-    /// floats read back out of it, because a bake is hundreds of draw calls and must not repeat on float noise.
-    /// </summary>
     public void Ensure(SkyPostFx postFx, EnvPalette? palette, string? paletteName, float tint)
     {
         float tintStep = MathF.Round(Math.Clamp(tint, 0f, 1f) * 20f) / 20f;

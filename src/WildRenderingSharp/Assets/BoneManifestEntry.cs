@@ -34,19 +34,9 @@ public sealed class BoneManifestEntry
         ? Matrix4x4.CreateFromQuaternion(new Quaternion(Rotation[0], Rotation[1], Rotation[2], Rotation[3]))
         : EulerXyzToMatrix(Rotation[0], Rotation[1], Rotation[2]);
 
-    /// <summary>
-    /// Euler XYZ radians to a row-vector rotation matrix: <c>Rx * Ry * Rz</c> (apply X, then Y, then Z). Confirmed against
-    /// <c>nn::g3d2::SkeletalAnimObj::ApplyToImpl&lt;nn::g3d::EulerToMtx&gt;</c> (Ghidra 0x710007a1a0) and
-    /// <c>SkeletonObj::ClearLocalMtx</c> (0x7100ad6978), whose first output row is <c>(cy*cz, cy*sz, -sy)</c> - the row 0 of
-    /// exactly this product, and NOT of the reverse order.
-    /// </summary>
     public static Matrix4x4 EulerXyzToMatrix(float x, float y, float z) =>
         Matrix4x4.CreateRotationX(x) * Matrix4x4.CreateRotationY(y) * Matrix4x4.CreateRotationZ(z);
 
-    /// <summary>
-    /// The inverse of <see cref="EulerXyzToMatrix"/> - used only when an anim's rotation mode disagrees with the skeleton's, so a
-    /// curve-less bone's bind rotation can still be expressed in the anim's own representation.
-    /// </summary>
     public static Vector3 MatrixToEulerXyz(in Matrix4x4 m)
     {
         float sy = Math.Clamp(-m.M13, -1f, 1f);

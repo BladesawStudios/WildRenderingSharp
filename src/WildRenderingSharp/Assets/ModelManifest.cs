@@ -3,10 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>
-/// Deserialized <c>&lt;Model&gt;.manifest.json</c>, written by <c>ShaderLibrary.CompileTool.ExportManifest</c>. This is the one
-/// file a model needs to be fully describable to WildRenderingSharp with no BFRES parsing of its own.
-/// </summary>
+/// <summary>Deserialized <c>&lt;Model&gt;.manifest.json</c>, written by <c>ShaderLibrary.CompileTool.ExportManifest</c>.</summary>
 public sealed class ModelManifest
 {
     [JsonPropertyName("model")] public string Model { get; set; } = "";
@@ -23,12 +20,6 @@ public sealed class ModelManifest
             ?? throw new InvalidDataException($"'{manifestPath}' did not deserialize to a manifest.");
     }
 
-    /// <summary>
-    /// Finds every prepared model under a cache root - one subdirectory per model
-    /// (<c>&lt;cacheRoot&gt;/&lt;ModelName&gt;/&lt;ModelName&gt;.manifest.json</c>, written by <c>ModelPreparer</c>), rather than
-    /// every model's files sharing one flat directory - which is what let two models' same-named shapes/textures clobber each
-    /// other.
-    /// </summary>
     public static IEnumerable<string> ListAvailableModels(string cacheRoot) =>
         Directory.Exists(cacheRoot)
             ? Directory.EnumerateDirectories(cacheRoot)

@@ -4,14 +4,12 @@ namespace WildRenderingSharp.Rendering;
 
 /// <summary>
 /// TotK's in-game item-icon capture: a fixed actor pose, a near-orthographic FOV and a specific sun, palette and exposure, with the
-/// camera distance auto-fitted to the loaded model (the Master Sword's fixed distance cuts off anything bigger). These are the
-/// shipped values, not tuned approximations.
+/// camera distance auto-fitted to the loaded model (the Master Sword's fixed distance cuts off anything bigger).
 /// </summary>
 public static class IconCapturePreset
 {
     public static readonly Vector3 ActorRotationDegrees = new(-134.64f, 165.6f, -59.0f);
     public const float FovDegrees = 2.12f;
-    /// <summary>Direction the light TRAVELS (matches the <c>--light-dir</c> CLI convention), not the direction toward the sun.</summary>
     public static readonly Vector3 LightDirection = new(-0.562f, 0.694f, 0.451f);
     public const string PaletteName = "IconCapture";
     public const float Exposure = 12.0f;
@@ -25,18 +23,8 @@ public static class IconCapturePreset
 
     public readonly record struct Framing(Vector3 CameraPosition, Vector3 CameraTarget, float Near, float Far, float AoRadius, float ShadowBias);
 
-    /// <summary>
-    /// The actor's fixed rotation as a mat3x4 (3 rows) - applied about the model's own local origin, not its bounds centre (this is
-    /// the actor's authored pivot, unlike the default view tilt).
-    /// </summary>
     public static Vector4[] ActorRotationRows() => EulerRotation.MakeXyzRows3(ActorRotationDegrees.X, ActorRotationDegrees.Y, ActorRotationDegrees.Z);
 
-    /// <summary>
-    /// Sun elevation and azimuth (radians) matching <see cref="LightDirection"/>, in the convention <see cref="LightingContext"/>
-    /// uses. EXPERIMENTAL: the sign is flipped from the original formula (which negates <see cref="LightDirection"/> before
-    /// converting), on the hypothesis that a fix elsewhere in the shading pipeline changed the effective sun-facing convention for
-    /// this path.
-    /// </summary>
     public static (float Elevation, float Azimuth) SunElevationAzimuth()
     {
         var towardSun = Vector3.Normalize(LightDirection);
@@ -45,10 +33,6 @@ public static class IconCapturePreset
         return (elevation, azimuth);
     }
 
-    /// <summary>
-    /// Auto-fits the camera distance (and near/far/AO-radius/shadow-bias) to this model's own rotated silhouette - the full vertex
-    /// cloud rotated by <see cref="ActorRotationDegrees"/> and measured directly, not its axis-aligned bounding box.
-    /// </summary>
     public static Framing Frame(IReadOnlyList<Vector3> vertices, float aspect = 1f)
     {
         if (vertices.Count == 0)

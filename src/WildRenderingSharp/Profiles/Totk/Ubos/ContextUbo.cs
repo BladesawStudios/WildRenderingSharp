@@ -4,20 +4,13 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
 /// <summary>TotK <c>gsys_context</c> ("Context", decompiled as <c>fp_c4</c>), binding 1, 2368 bytes.</summary>
-/// <remarks>
-/// Layout recovered statically from <c>gsys::ShaderContext::createContextUBO</c>'s 42 <c>declare_</c> calls (see <c>TestBench/Shaders/Decompiled/gsys_context_layout.glsl</c> and
-/// <c>ENV_CONTEXT_UBO_RE_NOTES.md</c>) and verified three ways: the declarations sum to exactly 2368 bytes, every Context component the deferred passes read lands on a declared
-/// field, and the meanings of decls 0-7 and 33 are confirmed from <c>gsys::ModelRenderContext::calcGpuViewFlush</c>.
-/// Only the fields the pipeline populates (camera, screen and quad parameters) get write methods. The rest (previous-frame matrices, frustum planes, a shadow-cascade-sized matrix
-/// array, a 56-vec4 parameter array) is derived only from array shape and read pattern, so it stays zero rather than fabricated; <see cref="Slots"/> documents where each lives.
-/// </remarks>
 public sealed class ContextUbo : IUboBlock
 {
     public const int ByteSize = 2368;
 
     /// <summary>
     /// Slot indices (16 bytes each) for every declaration in <c>gsys_context_layout.glsl</c>, named after its decl numbers and
-    /// comments. A slot with no matching property has no confirmed fill site and stays zero.
+    /// comments.
     /// </summary>
     public static class Slots
     {
@@ -29,10 +22,6 @@ public sealed class ContextUbo : IUboBlock
         public const int CameraParam1 = 15;              // decl 5                                [VERIFIED]
         public const int CameraParam2 = 16;              // decl 6                                [VERIFIED]
         public const int CameraParam3 = 17;              // decl 7                                [VERIFIED]
-        /// <summary>
-        /// decl 8 ("unk_8" in the static layout). Deferred vertex shader usage pins it as (screen width, screen height, Pre*-buffer
-        /// texel width, texel height); see <see cref="BuildForCamera"/>.
-        /// </summary>
         public const int ScreenResolutionAndPreTexel = 18;
         public const int Unknown9 = 19;                  // decl 9
         public const int Unknown10 = 20;                 // decl 10
@@ -55,11 +44,8 @@ public sealed class ContextUbo : IUboBlock
         public const int Unknown30 = 125;                 // decl 30, 3 rows
         public const int AuxArray = 128;                  // decl 31, 16 rows                      [DERIVED]
         public const int Unknown32 = 144;                 // decl 32
-        /// <summary>decl 33.x copied from ModelRenderContext+0x5d8 [VERIFIED]; .y/.z/.w = decls 34-36.</summary>
         public const int PackedIds = 145;
-        /// <summary>decl 37 (.xy, screen size in pixels) / decl 38 (.zw, screen size as ints).</summary>
         public const int ScreenSize = 146;
-        /// <summary>decl 39/40/41 - in practice always the fullscreen-quad generator constants; see <see cref="BuildForCamera"/>.</summary>
         public const int FullscreenQuadParams = 147;
     }
 
@@ -68,10 +54,6 @@ public sealed class ContextUbo : IUboBlock
     public string Name => "Context";
     public int BindingIndex => (int)TotkBindings.Camera;
 
-    /// <summary>
-    /// Populates the camera-derived fields. <paramref name="view"/> is 3 rows (mat3x4); the rest is computed 4x4 data (<paramref
-    /// name="viewProj"/> = proj * [view;0,0,0,1], <paramref name="viewInv"/> = the inverse of that 4x4, first 3 rows).
-    /// </summary>
     public static ContextUbo BuildForCamera(
         ReadOnlySpan<Vector4> view, ReadOnlySpan<Vector4> viewProj, ReadOnlySpan<Vector4> proj,
         ReadOnlySpan<Vector4> viewInv, float aspect, float tanHalfFovY, float near, float far,
@@ -119,10 +101,6 @@ public sealed class ContextUbo : IUboBlock
         return ctx;
     }
 
-    /// <summary>
-    /// The G-buffer renders through a Y-flipped projection (NVN's upper-left window origin); every later pass works in true GL
-    /// orientation. Returns a copy with the second row of <see cref="Slots.Proj"/> and <see cref="Slots.ViewProj"/> negated.
-    /// </summary>
     public ContextUbo WithFlippedProjectionY()
     {
         var flipped = new ContextUbo();

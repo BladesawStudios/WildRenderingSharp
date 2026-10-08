@@ -2,11 +2,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>
-/// Every size-dependent render target the deferred pipeline uses, plus the fixed-size shadow map. Rebuilt when the viewport
-/// resizes. Framebuffers are two shared scratch objects repointed per pass with <c>glFramebufferTexture2D</c>, rather than one per
-/// texture combination.
-/// </summary>
+/// <summary>Every size-dependent render target the deferred pipeline uses, plus the fixed-size shadow map.</summary>
 public sealed class RenderTargets : IDisposable
 {
     readonly GL _gl;
@@ -31,11 +27,6 @@ public sealed class RenderTargets : IDisposable
     public GpuTexture AoRaw { get; private set; }
     public GpuTexture AoTmp { get; private set; }
 
-    /// <summary>
-    /// Per-pixel lighting for <c>cTex_DeferredLightPrePass</c> (binding 28), a <c>sampler2DArray</c> every <c>chara_*</c> resolve
-    /// shader samples at layer 0 for its main light colour (see <see cref="LightPrePass"/>). Two layers to match the declared array
-    /// size; only layer 0 has a confirmed reader, so layer 1 stays zero.
-    /// </summary>
     public GpuTexture LightPrePassArray { get; private set; }
 
     // Pass-ID mask.
@@ -57,10 +48,6 @@ public sealed class RenderTargets : IDisposable
 
     GpuTexture? _underAlbedo, _underNormal, _underDepth;
 
-    /// <summary>
-    /// Copies of the G-buffer albedo, normal and depth under the terrain, made the first time a frame has terrain and remade with
-    /// the other targets.
-    /// </summary>
     public (GpuTexture Albedo, GpuTexture Normal, GpuTexture Depth) TerrainUnderCopies()
     {
         _underAlbedo ??= CreateColorTexture(Width, Height, InternalFormat.Rgba8, repeat: false, filterNearest: true);
@@ -69,10 +56,6 @@ public sealed class RenderTargets : IDisposable
         return (_underAlbedo.Value, _underNormal.Value, _underDepth.Value);
     }
 
-    /// <summary>
-    /// A copy of G-buffer attachment 0 (<c>cTex_GBuffMaterialID</c>) for shapes drawn over the opaque G-buffer; see
-    /// <c>SceneColorShapePass</c>.
-    /// </summary>
     public GpuTexture MaterialIdCopy { get; private set; }
 
     // Bloom pyramid: four levels, halved per level.
@@ -196,10 +179,6 @@ public sealed class RenderTargets : IDisposable
         }
     }
 
-    /// <summary>
-    /// Retargets the shared single-color-attachment scratch framebuffer to <paramref name="target"/> and sets the viewport to its
-    /// size.
-    /// </summary>
     public void BindColorTarget(GpuTexture target)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorFbo);
@@ -207,10 +186,6 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, (uint)target.Width, (uint)target.Height);
     }
 
-    /// <summary>
-    /// Retargets the shared color+depth scratch framebuffer - for the forward pass, which depth-tests against the G-buffer depth it
-    /// was rasterised alongside.
-    /// </summary>
     public void BindColorAndDepthTarget(GpuTexture color, GpuTexture depth)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorDepthFbo);
@@ -219,10 +194,6 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, (uint)color.Width, (uint)color.Height);
     }
 
-    /// <summary>
-    /// Retargets the shared single-color-attachment scratch framebuffer to one LAYER of a texture array (e.g. <see
-    /// cref="LightPrePassArray"/>) via <c>glFramebufferTextureLayer</c>, rather than a whole <c>Texture2D</c>.
-    /// </summary>
     public void BindColorTargetLayer(GpuTexture arrayTarget, int layer)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorFbo);
@@ -230,11 +201,6 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, (uint)arrayTarget.Width, (uint)arrayTarget.Height);
     }
 
-    /// <summary>
-    /// Reads back the exact RGBA float value of one pixel, for a numeric probe of what a shader value is really doing: a screenshot
-    /// has been through exposure and the tonemap, so merely bright and extremely bright both look white. Read from a scene-referred
-    /// target like <c>Final</c>.
-    /// </summary>
     public unsafe System.Numerics.Vector4 ReadPixel(GpuTexture target, int x, int y)
     {
         x = Math.Clamp(x, 0, target.Width - 1);
@@ -246,10 +212,6 @@ public sealed class RenderTargets : IDisposable
         return new System.Numerics.Vector4(pixel[0], pixel[1], pixel[2], pixel[3]);
     }
 
-    /// <summary>
-    /// Reads back a whole RGBA8 target as top-down rows (GL is bottom-left origin, flipped here). The bulk counterpart to <see
-    /// cref="ReadPixel"/>; only meaningful for a tonemapped 8-bit target like <c>Ldr</c>.
-    /// </summary>
     public unsafe byte[] ReadPixelsRgba8(GpuTexture target)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorFbo);
@@ -266,10 +228,6 @@ public sealed class RenderTargets : IDisposable
         return flipped;
     }
 
-    /// <summary>
-    /// Reads back a whole RGBA32F target as top-down rows of raw linear floats, with no clamping or tonemap. Meant for a
-    /// scene-referred target like <c>Final</c>, so an HDR export carries the scene's dynamic range for the opening tool to expose.
-    /// </summary>
     public unsafe float[] ReadPixelsFloatRgba(GpuTexture target)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorFbo);
@@ -304,13 +262,11 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, (uint)Width, (uint)Height);
     }
 
-    /// <summary>Each shadow cascade's resolution, and how many there can be (see <see cref="FrameRequest.ShadowCascades"/>).</summary>
     public const int CascadeSize = 2048, MaxCascades = 4;
 
     GpuTexture? _cascades;
     uint _cascadeFbo;
 
-    /// <summary>The cascades' depth array, one layer each - made the first time a frame asks for cascades (64 MB).</summary>
     public GpuTexture ShadowCascades => _cascades ??= CreateCascadeArray();
 
     unsafe GpuTexture CreateCascadeArray()
@@ -327,7 +283,6 @@ public sealed class RenderTargets : IDisposable
         return new GpuTexture(handle, CascadeSize, CascadeSize);
     }
 
-    /// <summary>Binds one cascade's layer as the depth target.</summary>
     public void BindShadowCascadeTarget(int cascade)
     {
         var array = ShadowCascades;

@@ -11,27 +11,6 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// Draws the sky with the game's <c>agl_sky_postfx_sky</c> program, sampling the baked inscatter table <see
 /// cref="SkyPrecomputePass"/> produces.
 /// </summary>
-/// <remarks>
-/// <para>
-/// The per-frame sky is cheap: one full-screen quad, one 2D lookup, one lerp. The fragment program is:
-/// </para>
-/// <code>
-/// vec3  d   = normalize(in_attr0.xyz);                      // view ray, Y-UP
-/// float t   = dot(d, RenderInfo[2].xyz) * 0.5 + 0.5;        // sun-view angle
-/// vec2  uv  = vec2(1.0 - acos(t) * (2.0/PI), d.y * 0.5 + 0.5);
-/// vec4  lut = texture(cTexBakedInscatter, uv);
-/// out.rgb   = mix(RenderInfo[6].xyz, lut.rgb * Context[13].x,
-/// clamp(lut.a + RenderInfo[6].w, 0.0, 1.0));
-/// </code>
-/// <para>
-/// The vertex stage needs Context. It builds a view ray <c>v = (ndc.x * Context[0].x, ndc.y * Context[1].y, -1)</c>
-/// and rotates it by rows <c>[4]/[5]/[6]</c>. In a capture the first two were 0.82899 and 0.46631 (a 16:9
-/// aspect and a 50 degree vertical FOV), identifying them as tanHalfFovX and tanHalfFovY, and <c>[5]</c> came
-/// back as <c>(0, 0.9987, 0.05)</c>: world up lands in <c>.y</c>, so the ray is produced in Y-up space, which
-/// the fragment's <c>d.y</c> elevation lookup requires. The renderer's world is Z-up, so rows 1 and 2 are
-/// swapped when filling <c>[4..6]</c>; getting that backwards shows up as a sky whose gradient runs sideways.
-/// </para>
-/// </remarks>
 public sealed class SkyPostFxPass : IDisposable
 {
     // The decompiled per-stage indices collide once both stages share a program, and they disagree on
@@ -135,7 +114,6 @@ public sealed class SkyPostFxPass : IDisposable
     /// <summary>The four values the <c>USE_ADHOC_FOG=1</c> sky program reads, resolved into the units it wants.</summary>
     public readonly record struct AdhocFog(float AttenSky, float ZenithScale, float Density, Vector3 Color);
 
-    /// <summary>Builds the fog parameters for a palette, in the sky's own HDR units.</summary>
     public static AdhocFog Resolve(EnvPalette palette, SkyPostFx postfx, float skyIntensity, float strength,
         bool normaliseHue = true)
     {
@@ -160,13 +138,8 @@ public sealed class SkyPostFxPass : IDisposable
             colour * (skyIntensity * SkyPrecomputePass.NormalisedPeak));
     }
 
-    /// <summary>Context[10].w at the captured noon sky draw. That palette authors FogColor alpha 0, so this is a measured floor.</summary>
     public const float CapturedNoonDensity = 0.089538f;
 
-    /// <summary>
-    /// Context[10].y at the captured sky draw, the elevation exponent. Neither the file's value (0.764) nor the palette's (0), so
-    /// the measured value is used.
-    /// </summary>
     public const float CapturedAttenSky = 0.5f;
 
     internal static byte[] BuildRenderInfo(SkyPostFx postfx, Vector3 sunWorldZUp, Vector3? fogColor = null,
@@ -192,7 +165,6 @@ public sealed class SkyPostFxPass : IDisposable
         return buf;
     }
 
-    /// <summary>Paints the sky over <paramref name="target"/>.</summary>
     public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target,
         uint bakedInscatter, ReadOnlySpan<Vector4> viewInv3Rows, float aspect, float tanHalfFovY,
         Vector3 sunWorldZUp, SkyPostFx postfx, float intensity, Vector3? fogColor = null,

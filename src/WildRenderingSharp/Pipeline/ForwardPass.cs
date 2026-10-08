@@ -8,22 +8,6 @@ namespace WildRenderingSharp.Pipeline;
 /// Draws blended materials forward, after the deferred resolve: a blended surface cannot go through the G-buffer, so the engine
 /// draws it with <c>gsys_assign_material</c> once the scene behind it is resolved.
 /// </summary>
-/// <remarks>
-/// <para>
-/// The same program also composites status-effect overlays (miasma, ice, camouflage, damage flash,
-/// dissolve) on otherwise opaque surfaces. Running it for every opaque shape is wrong: the forward program
-/// is an independent relight with no equivalent of the toon outline baked into the deferred shaders, and
-/// it turns some models cyan (see <c>docs/forward_pass_ubo_map.md</c>). The engine's own per-object gate is
-/// dynamic gameplay state this renderer has no equivalent of, so it is a per-material opt-in
-/// (<see cref="LoadedShape.ForceForward"/>) rather than a global toggle.
-/// </para>
-/// <para>
-/// The G-buffer renders through a Y-flipped projection while the resolve writes true GL orientation, so the
-/// resolved scene is flipped into G-buffer space, drawn into and flipped back; that is what lets the forward
-/// geometry depth-test against the G-buffer depth. <c>cTex_ColorBuffer</c> must be a copy of the scene,
-/// never the live target.
-/// </para>
-/// </remarks>
 public sealed class ForwardPass : IDisposable
 {
     readonly GL _gl;
@@ -102,10 +86,6 @@ public sealed class ForwardPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    /// <summary>
-    /// Like <see cref="FlipInto"/>, but floors the result at <paramref name="floorTex"/> instead of copying <paramref name="src"/>
-    /// (see <c>FloorFragmentSource</c>).
-    /// </summary>
     public void FlipIntoWithFloor(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, GpuTexture floorTex, bool flip)
     {
         _gl.UseProgram(_floorProgram);
@@ -116,10 +96,6 @@ public sealed class ForwardPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    /// <summary>
-    /// Draws every actor's blended and force-forward shapes into the forward-resolved scene, rebinding each actor's skinning
-    /// uniforms first.
-    /// </summary>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
     {
         var forwardGroups = groups

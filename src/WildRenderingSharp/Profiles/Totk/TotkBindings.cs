@@ -13,6 +13,5 @@ public static class TotkBindings
     public const uint Material = 8;
     public const uint SceneMaterial = 10;
 
-    /// <summary>Where blocks the decompiler left with a negative binding are moved to.</summary>
     public const uint Orphan = 30;
 }

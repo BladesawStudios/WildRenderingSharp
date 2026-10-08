@@ -23,7 +23,6 @@ public sealed class GLResourceCache : IDisposable
         _attributelessVao = gl.GenVertexArray();
     }
 
-    /// <summary>Rewrites (or creates) a named uniform buffer's contents, optionally binding it to a binding point immediately.</summary>
     public uint Ubo(string key, ReadOnlySpan<byte> data, uint? bindingIndex = null)
     {
         if (!_ubos.TryGetValue(key, out uint handle))
@@ -38,10 +37,8 @@ public sealed class GLResourceCache : IDisposable
         return handle;
     }
 
-    /// <summary>The context these resources belong to.</summary>
     public GL Gl => _gl;
 
-    /// <summary>Binds a block of <paramref name="size"/> zero bytes, uploaded once and kept.</summary>
     public void BindZeroUbo(uint bindingIndex, int size = 256)
     {
         if (!_zeroUbos.TryGetValue(size, out uint handle))
@@ -63,7 +60,6 @@ public sealed class GLResourceCache : IDisposable
             _gl.BindBufferBase(BufferTargetARB.UniformBuffer, bindingIndex, handle);
     }
 
-    /// <summary>Makes the camera block kept under <paramref name="key"/> the one shaders read.</summary>
     public void BindCamera(string key) => BindUbo(key, Bindings.Camera);
 
     public void BindEnvironment() => BindUbo(FrameUniformKeys.Environment, Bindings.Environment);

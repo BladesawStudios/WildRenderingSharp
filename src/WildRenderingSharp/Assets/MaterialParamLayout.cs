@@ -5,10 +5,7 @@ namespace WildRenderingSharp.Assets;
 
 /// <summary>
 /// Deserialized <c>matubo/&lt;Material&gt;.params.json</c> - where each named shader parameter lives inside that material's
-/// <c>gsys_material</c> block, written by <c>ShaderLibrary.CompileTool.BuildMaterialUbo.WriteParamLayout</c>. This is the missing
-/// half of a shader parameter animation. The anim addresses its target as (parameter NAME, byte offset within that parameter); only
-/// this table knows where that parameter actually sits in the compiled block, because the block's layout comes from the SHADER, not
-/// from the material's own packed parameter blob.
+/// <c>gsys_material</c> block, written by <c>ShaderLibrary.CompileTool.BuildMaterialUbo.WriteParamLayout</c>.
 /// </summary>
 public sealed class MaterialParamLayout
 {
@@ -29,7 +26,6 @@ public sealed class MaterialParamLayout
         return _byName.TryGetValue(paramName, out offset);
     }
 
-    /// <summary>The full entry (needed for its <see cref="MaterialUniformEntry.RawSrt"/> baseline), not just its offset.</summary>
     public bool TryGetEntry(string paramName, out MaterialUniformEntry entry)
     {
         _entryByName ??= Uniforms
@@ -45,10 +41,6 @@ public sealed class MaterialParamLayout
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a material param layout.");
     }
 
-    /// <summary>
-    /// The layout beside a material's own <c>.gsys_material.bin</c>, or null if it wasn't exported (an older cache) - callers
-    /// degrade to "this material cannot be animated" rather than failing to load the model.
-    /// </summary>
     public static MaterialParamLayout? TryLoadBeside(string dataDirectory, string materialUboRelativePath)
     {
         const string suffix = ".gsys_material.bin";

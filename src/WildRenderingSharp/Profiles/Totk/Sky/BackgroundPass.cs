@@ -10,25 +10,11 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// Fills <c>targets.Final</c> with the requested <see cref="BackgroundMode"/> before the deferred resolve, which only writes pixels
 /// its pass-ID mask claims, so whatever is left here survives wherever no actor covers.
 /// </summary>
-/// <remarks>
-/// <see cref="BackgroundMode.Color"/> and <see cref="BackgroundMode.Transparent"/> are a plain clear.
-/// <see cref="BackgroundMode.Sky"/> ray-marches a single-scattering Rayleigh and Mie atmosphere per
-/// pixel, with a horizon fog blend and a sun disc. The game bakes the same model into precomputed
-/// scattering textures (<c>agl::pfx::Sky</c>, after Bruneton and Neyret 2008) from the
-/// <c>master_field.baglsky</c> parameters; its shaders are not available, so this evaluates the model
-/// live. The game's own sky shader draws over it when enabled (see <c>SkyStage</c>).
-/// Brightness is anchored to <c>SceneGain</c> and scaled by <see cref="TotkSettings.AtmosphereIntensity"/>.
-/// </remarks>
 public sealed class BackgroundPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _skyProgram;
 
-    /// <summary>
-    /// What a palette-authored sky colour is scaled by, on top of <c>SceneGain</c>, to survive the exposure multiply that follows.
-    /// A calibration, not measured data: the game renders at exposure 1 and the renderer at a larger stand-in, so anything painted
-    /// into <c>targets.Final</c> pre-divides by roughly that.
-    /// </summary>
     public const float SkyColorAnchor = 0.03f;
 
     // Z-up world: "up" is worldDir.z. Everything keys off worldDir alone, a pure function of the

@@ -2,10 +2,7 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>
-/// What the last shadow map was drawn from, so an unchanged scene can reuse it. Valid for one set of <see cref="RenderTargets"/>
-/// only: a second view rendering into its own targets needs its own cache, or the two would keep invalidating each other.
-/// </summary>
+/// <summary>What the last shadow map was drawn from, so an unchanged scene can reuse it.</summary>
 public sealed class ShadowCache
 {
     internal Vector3? SunWorld;

@@ -40,7 +40,6 @@ public sealed class ScreenSpaceLightingStage(FrameServices services, LinearDepth
         GLDiagnostics.CheckPass(services.Gl, "light pre-pass");
     }
 
-    /// <summary>Runs the same passes again with the parameters <see cref="Run"/> built, after the G-buffer has changed.</summary>
     public void Repeat(FrameContext frame)
     {
         linearDepth.Run(services.Resources, frame.Targets, frame.Camera.NearPlane, frame.Camera.FarPlane);

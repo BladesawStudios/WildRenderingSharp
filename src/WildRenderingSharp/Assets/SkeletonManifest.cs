@@ -7,9 +7,7 @@ namespace WildRenderingSharp.Assets;
 /// <summary>
 /// Deserialized <c>&lt;Model&gt;.skeleton.json</c>: everything needed to build the <c>BonePaletteUbo</c> at bind pose (via <see
 /// cref="WildRenderingSharp.Rendering.SkeletonPose.BindPoseWorldMatrices"/>) or at an animated pose given a <see
-/// cref="SkeletalAnimManifest"/>. The palette has two segments and <see cref="MatrixToBoneList"/> covers both (<see
-/// cref="SmoothCount"/> + <see cref="RigidCount"/> entries), while <see cref="InverseModelMatrices"/> is parallel to the smooth
-/// prefix only; see <c>BonePaletteUbo</c> for the Ghidra citations.
+/// cref="SkeletalAnimManifest"/>.
 /// </summary>
 public sealed class SkeletonManifest
 {
@@ -34,11 +32,6 @@ public sealed class SkeletonManifest
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a skeleton manifest.");
     }
 
-    /// <summary>
-    /// The length of the palette's smooth segment, clamped to what <see cref="MatrixToBoneList"/> can supply. A manifest exported
-    /// before <see cref="SmoothMatrixCount"/> existed gets it counted off the bones' <see
-    /// cref="BoneManifestEntry.SmoothMatrixIndex"/>, the same number, which also splits those manifests correctly.
-    /// </summary>
     public int SmoothCount
     {
         get
@@ -48,15 +41,8 @@ public sealed class SkeletonManifest
         }
     }
 
-    /// <summary>The real length of the palette's rigid segment - whatever <see cref="MatrixToBoneList"/> has left after the smooth prefix.</summary>
     public int RigidCount => MatrixToBoneList.Count - SmoothCount;
 
-    /// <summary>
-    /// Converts each row of 12 floats (3 GPU-style rows of 4, translation in each row's 4th component, as
-    /// <c>ExportTestBench.ExportSkeleton</c> writes) into a native row-vector <see cref="System.Numerics.Matrix4x4"/> (translation
-    /// in row 4), the form the bone-hierarchy math and <c>BonePaletteUbo.Build</c> use. This is the transpose of a naive row-major
-    /// read; getting it backwards silently drops every bone's translation.
-    /// </summary>
     public Matrix4x4[] InverseModelMatricesAsMatrices()
     {
         int smooth = SmoothCount;

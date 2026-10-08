@@ -6,29 +6,8 @@ namespace WildRenderingSharp.Profiles.Totk.Ubos;
 /// <summary>
 /// TotK's skinning matrix palette (the engine's <c>g3d_SkeletonUniformBlock</c>, the shader symbol <c>_Mtx</c>), binding 2. 48
 /// bytes per matrix: a mat3x4 of three vec4 rows, row-vector convention (a vertex is <c>v * M</c>; composition is "apply the first
-/// operand, then the second"; see <c>Mat4Math.Multiply</c> and <c>SkeletonPose</c>). The vertex shader unpacks two 16-bit bone
-/// indices per blend-index float and indexes this block directly, so an index is a plain array index into <see cref="Build"/>'s
-/// output, not a byte offset.
+/// operand, then the second"; see <c>Mat4Math.Multiply</c> and <c>SkeletonPose</c>).
 /// </summary>
-/// <remarks>
-/// <para>
-/// Layout recovered from the game via Ghidra. <c>nn::g3d2::SkeletonObj::SetupBlockBufferImpl</c> (0x7100081dfc) sizes the buffer as <c>(smoothCount + rigidCount) * 0x30</c>
-/// from two ushorts at <c>FSKL[0x3A]</c> and <c>FSKL[0x3C]</c>. <c>SkeletonObj::CalculateSkeleton</c> (0x71000824a8) fills it in two segments, both reading the same
-/// bone-index array (<c>FSKL[0x18]</c>, <c>MatrixToBoneList</c>): slots [0, smoothCount) hold <c>InverseModelMatrix[i] * BoneWorld[MatrixToBoneList[i]]</c>, stepping a
-/// 0x30-stride inverse-bind array (<c>FSKL[0x20]</c>) in lock step; slots [smoothCount, smoothCount + rigidCount) hold <c>BoneWorld[MatrixToBoneList[smoothCount + j]]</c>,
-/// transposed into mat3x4 rows and copied directly with no inverse-bind multiply.
-/// </para>
-/// <para>
-/// The split is easy to get wrong. <c>MatrixToBoneList</c> is one combined array and <c>InverseModelMatrices</c> holds only smoothCount entries, so the inverse-bind list
-/// being shorter is normal, not a truncated file. Treating the whole list as smooth applies an invented inverse-bind to every rigid slot and pushes every later index past
-/// the real palette.
-/// </para>
-/// <para>
-/// A vertex's <c>vBoneIndices</c> is an absolute slot into the combined array: <c>vertex_skin_count &gt;= 2</c> lands in the smooth segment and
-/// <c>vertex_skin_count == 1</c> carries the bone's <c>RigidMatrixIndex</c>, which BFRES already stores offset past the smooth segment. Nothing adds smoothCount a second
-/// time (see <c>ShaderLibrary.CompileTool.ExportTestBench</c> for the export side).
-/// </para>
-/// </remarks>
 public sealed class BonePaletteUbo : IUboBlock
 {
     public const int BytesPerBone = 48;
@@ -42,7 +21,6 @@ public sealed class BonePaletteUbo : IUboBlock
 
     BonePaletteUbo(byte[] data) => _data = data;
 
-    /// <summary>Builds the two-segment palette described above.</summary>
     public static BonePaletteUbo Build(
         ReadOnlySpan<Matrix4x4> boneWorld,
         ReadOnlySpan<int> matrixToBoneList,
@@ -93,11 +71,6 @@ public sealed class BonePaletteUbo : IUboBlock
         block.ToByteArray().CopyTo(data, slot * BytesPerBone);
     }
 
-    /// <summary>
-    /// Tiles one mat3x4 (identity, or <paramref name="modelRows"/> if given) across every bone slot in a <paramref
-    /// name="byteSize"/> buffer. The fallback for a model with no bones: skinned positions are transformed through this block, not
-    /// <see cref="ShapeMatrixUbo"/>, so a rotated model needs its rows here.
-    /// </summary>
     public static BonePaletteUbo FillIdentity(ReadOnlySpan<Vector4> modelRows = default, int byteSize = DefaultByteSize)
     {
         Span<Vector4> rows = stackalloc Vector4[3];

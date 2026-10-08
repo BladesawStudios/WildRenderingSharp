@@ -27,7 +27,6 @@ public static class ShadowSignatures
         return true;
     }
 
-    /// <summary>True when every actor's pose is the one the cached map was drawn with.</summary>
     public static bool PosesEqual(Matrix4x4[]?[]? cached, IReadOnlyList<ActorRenderInput> actors)
     {
         if (cached is null || cached.Length != actors.Count)
@@ -48,7 +47,6 @@ public static class ShadowSignatures
         return true;
     }
 
-    /// <summary>A hash of what the batches will draw: which batches, and which runs of each.</summary>
     public static long InstanceSignature(IReadOnlyList<InstanceBatch> instances, bool shadowRuns)
     {
         var hash = new HashCode();
@@ -61,7 +59,6 @@ public static class ShadowSignatures
         return hash.ToHashCode();
     }
 
-    /// <summary>A hash of every actor's placement and pose.</summary>
     public static long ActorSignature(IReadOnlyList<ActorRenderInput> actors)
     {
         var hash = new HashCode();
@@ -76,7 +73,6 @@ public static class ShadowSignatures
         return hash.ToHashCode();
     }
 
-    /// <summary>The union of every actor's rotated bounding box and every batch's bounds.</summary>
     public static (Vector3 Lo, Vector3 Hi) CombinedBounds(IReadOnlyList<ActorRenderInput> actors, IReadOnlyList<InstanceBatch> instances)
     {
         var lo = new Vector3(float.MaxValue);

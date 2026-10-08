@@ -7,20 +7,8 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 /// The <c>agl::pfx::Sky</c> config the game loads at runtime: <c>postfx/master_field.baglsky</c> inside
 /// <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c> (a SARC of AAMP <c>.bagl*</c> files).
 /// </summary>
-/// <remarks>
-/// <para>
-/// This is a different source from <see cref="EnvPalette"/>: a palette's <c>SkyRParam_*</c> fields are the dynamic per-time-of-day multiplier the game layers on this file's static
-/// physical baseline (scattering heights and coefficients, the sun disc's size and falloff, fog falloff shape, the ground colour seen from orbit). <see cref="Default"/> holds the
-/// values transcribed by hand from a one-off dump; <see cref="SkyPostFxLibrary.LoadFromRomfs"/> replaces them with a live parse, falling back to the same numbers if no romfs is
-/// configured or the reader cannot be reached.
-/// </para>
-/// </remarks>
 public sealed class SkyPostFx
 {
-    /// <summary>
-    /// Per-channel Rayleigh scattering coefficients (why the sky is blue). The field is unnamed in the AAMP hash table;
-    /// <c>WildRenderingSharp.AampReader</c> resolves it by raw CRC32 hash.
-    /// </summary>
     public Vector3 RayleighScatteringCoeff = new(0.0041f, 0.0113f, 0.0284f);
     public float RayleighBaseHeight = 24f;
     public float MieBaseHeight = 2f;
@@ -30,33 +18,22 @@ public sealed class SkyPostFx
     public float MieAmplifierRendering = 8f;
     public Vector3 SunColor = new(1f, 0.86f, 0.68f);
     public float RenderSunIntensity = 100f;
-    /// <summary>Angular size of the drawn sun disc, in the game's own authored unit (1.0 = default).</summary>
     public float RenderSunSize = 1f;
-    /// <summary>Blend weight between a hard disc and a soft glow falloff (1.0 = default).</summary>
     public float RenderSunLerp = 1f;
-    /// <summary>The ground colour seen looking down from the sky, i.e. below the horizon in a screen-space sky pass.</summary>
     public Vector3 GroundColor = new(0.5f, 0.4f, 0.3f);
     public float ScatterFogNear = 0f;
     public float ScatterFogFar = 30000f;
     public float ScatterFogDensity = 0.85f;
     public float ScatterFogAtten = 40f;
-    /// <summary>Horizon fog falloff exponent: how sharply haze thickens as the view ray approaches the horizon.</summary>
     public float ScatterFogHorz = 2.5f;
 
     // Adhoc fog: the coloured haze band at the horizon. Defaults are master_field.baglsky's authored values.
-    /// <summary>
-    /// Exponent on the view ray's upward component, shaping how fast the band falls off with elevation. Never let this reach the
-    /// shader as 0: it is a pow() exponent and pow(0,0) decompiles to exp2(-inf * 0) = NaN.
-    /// </summary>
     public float AdhocFogAttenSky = 0.7642950f;
-    /// <summary>Fog scale at the ZENITH; the horizon end of the same mix is the density itself.</summary>
     public float AdhocFogAttenMinScaleSky = 0.3f;
-    /// <summary>Ground pass (<c>sky_postfx_ground</c>) only - distance fog over real geometry, not the sky band.</summary>
     public float AdhocFogAttenGrd = 4f;
     public float AdhocFogNear;
     public float AdhocFogFar = 300f;
     public Vector3 AdhocFogColor = new(0.5f, 0.5f, 0.5f);
-    /// <summary>The static file's authored density (<c>adhoc_fog_color</c>'s alpha). A palette's own FogColor alpha overrides it per frame.</summary>
     public float AdhocFogDensity;
 
     public static readonly SkyPostFx Default = new();

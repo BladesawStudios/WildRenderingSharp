@@ -7,21 +7,8 @@ namespace WildRenderingSharp.Hosting;
 /// Puts the GL context into the default state the renderer was written against, and puts the host's own state back afterwards:
 /// <c>using (GLHostState.Enter(gl)) { ... render ... }</c>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Every pass sets the state it draws with, but some global conventions no pass thinks to set. The one that matters most is the clip-space depth range: a host that switched to
-/// <c>glClipControl(LOWER_LEFT, ZERO_TO_ONE)</c> (the standard reversed-Z setup) makes every projection built here, all [-1, 1], lose its near half to clipping. A host's clear depth,
-/// polygon offset, sRGB framebuffer, scissor, colour mask, cull mode or unpack alignment can equally leak into a pass that assumed GL's defaults.
-/// </para>
-/// <para>
-/// The renderer leaves its own programs, textures, framebuffers and buffer bindings in place, which a host relying on bindings persisting across frames would find overwritten. So this also
-/// restores the host's framebuffers, program, vertex array, active texture unit and the low indexed uniform and storage buffer bindings.
-/// </para>
-/// <para>A host that never changes any of this does not need it. It is cheap enough to use around every frame and model load regardless.</para>
-/// </remarks>
 public sealed class GLHostState : IDisposable
 {
-    /// <summary>Indexed buffer bindings below this are saved and restored.</summary>
     public const int SavedBufferBindings = 16;
 
     readonly GL _gl;
@@ -115,7 +102,6 @@ public sealed class GLHostState : IDisposable
         ApplyDefaults();
     }
 
-    /// <summary>Saves the host's state and switches to GL defaults; dispose to restore.</summary>
     public static GLHostState Enter(GL gl) => new(gl);
 
     (int, long, long) ReadIndexed(GLEnum binding, GLEnum start, GLEnum size, uint index)

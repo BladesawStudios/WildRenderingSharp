@@ -5,11 +5,7 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 /// <summary>
 /// The real precomputed sky-scattering lookup table from <c>res/master_field.skybin</c> (<c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>)
 /// - see <c>ShaderLibrary.CompileTool.SkyBinTexture</c>'s own remarks for the reverse-engineered format and the
-/// confirmed/unconfirmed parts of it. This class just reads the compact <c>sky_lut.bin</c> that offline extractor writes (see
-/// <c>WildRenderingSharp.Preparation.ModelPreparer.EnsureSkyBinData</c>) - no native Tegra-deswizzle dependency at runtime,
-/// mirroring the rest of this codebase's offline/live split. 37 depth slices x 8x8 discrete cells x RGBA. <see cref="Sample"/> is
-/// the only way <see cref="WildRenderingSharp.Profiles.Totk.Sky.BackgroundPass"/> should read this - see its own remarks for the
-/// (unconfirmed, visually-motivated) axis mapping.
+/// confirmed/unconfirmed parts of it.
 /// </summary>
 public sealed class SkyBinLut
 {
@@ -23,17 +19,8 @@ public sealed class SkyBinLut
 
     public bool IsReal { get; private init; }
 
-    /// <summary>
-    /// A single flat-black/no-fog cell, used everywhere when no real LUT is loaded (no romfs configured yet, or the cache hasn't
-    /// been built) - <see cref="WildRenderingSharp.Profiles.Totk.Sky.BackgroundPass"/> keeps working, just without the real-data
-    /// sky gradient.
-    /// </summary>
     public static readonly SkyBinLut Empty = new(new Vector4[Depth, CellCount, CellCount]) { IsReal = false };
 
-    /// <summary>
-    /// Loads <paramref name="skyDataDirectory"/>/sky_lut.bin if present, else returns <see cref="Empty"/> (with a log line, never
-    /// an exception).
-    /// </summary>
     public static SkyBinLut LoadFromCache(string skyDataDirectory)
     {
         string path = Path.Combine(skyDataDirectory, "sky_lut.bin");
@@ -71,10 +58,6 @@ public sealed class SkyBinLut
         }
     }
 
-    /// <summary>
-    /// Bilinearly samples one depth slice's 8x8 cell grid. <paramref name="u"/>/<paramref name="v"/> are 0..1 (0.5/cell-width
-    /// margin already applied internally, so 0 and 1 land exactly on the outer cell centres rather than overshooting past them).
-    /// </summary>
     public Vector4 Sample(int z, float u, float v)
     {
         z = Math.Clamp(z, 0, Depth - 1);

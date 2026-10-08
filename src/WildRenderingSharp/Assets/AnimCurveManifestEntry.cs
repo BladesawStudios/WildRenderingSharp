@@ -6,10 +6,7 @@ namespace WildRenderingSharp.Assets;
 /// One curve from a <see cref="BoneAnimManifestEntry"/> - a straight transcription of <c>BfresLibrary.AnimCurve</c>'s
 /// already-decoded (float, regardless of on-disk compression) <c>Frames</c>/<c>Keys</c>, plus <see cref="TargetOffset"/>
 /// (<c>AnimCurve.AnimDataOffset</c>) to say which component of the bone's TRS this curve drives: 4=ScaleX, 8=ScaleY, 12=ScaleZ,
-/// 16=TranslateX, 20=TranslateY, 24=TranslateZ, 32=RotateX, 36=RotateY, 40=RotateZ, 44=RotateW. Those offsets are not guessed -
-/// they are the byte offsets <c>nn::g3d2::SkeletalAnimObj::ApplyToImpl</c> (Ghidra 0x710007a1a0) reads out of its per-bone result
-/// struct when it copies scale into the local matrix's scale slot, translation into its translation row, and rotation into the
-/// Euler/quaternion conversion.
+/// 16=TranslateX, 20=TranslateY, 24=TranslateZ, 32=RotateX, 36=RotateY, 40=RotateZ, 44=RotateW.
 /// </summary>
 public sealed class AnimCurveManifestEntry
 {

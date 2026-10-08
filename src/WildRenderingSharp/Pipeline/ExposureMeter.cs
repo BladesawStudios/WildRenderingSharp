@@ -1,30 +1,8 @@
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>Measures what exposure the CURRENT scene actually needs, instead of leaving it a guessed constant.</summary>
-/// <remarks>
-/// <para>
-/// WildRenderingSharp's <c>Exposure</c> defaults to 2.5 while the real game authors <c>Exposure: 1.0</c> in its
-/// palettes. That factor is a stand-in for lighting WildRenderingSharp is missing. It was 9.5 for a
-/// long time, calibrated while <c>cTex_DeferredLightPrePass</c> was identically zero (see
-/// <see cref="LightPrePass"/>), so every <c>chara_*</c> resolve shader received literally no main
-/// light. The default is now 2.5, chosen by hand - still a judgement, not a derivation.
-/// </para>
-/// <para>
-/// This measures rather than guesses. It reads the HDR buffer BEFORE exposure is applied and takes
-/// the GEOMETRIC mean of luminance, which is the standard choice for auto-exposure because it is
-/// driven by the bulk of the image rather than by its brightest pixels - an arithmetic mean would
-/// be dominated by a sun disc or a specular highlight and would swing wildly as one moves through
-/// frame. Near-black pixels are excluded for the same reason in reverse: an empty viewport is
-/// mostly background, and letting that set the level would push the exposure arbitrarily high.
-/// </para>
-/// <para>
-/// It REPORTS, it does not apply. The right exposure is a judgement about how the scene should
-/// look, and silently moving it would make every previous visual comparison incomparable.
-/// </para>
-/// </remarks>
 public static class ExposureMeter
 {
-    /// <summary>Middle grey the geometric mean is aimed at - the usual photographic 18% reference.</summary>
     public const float TargetGrey = 0.18f;
 
     public readonly record struct Result(
@@ -33,10 +11,6 @@ public static class ExposureMeter
         float MaxLuminance,
         int SampleCount);
 
-    /// <summary>
-    /// Samples <paramref name="hdr"/> (pre-exposure) and returns the exposure that would put its geometric mean luminance at <see
-    /// cref="TargetGrey"/>.
-    /// </summary>
     public static Result? Measure(RenderTargets targets, GpuTexture hdr, int stride = 4)
     {
         float[] px;

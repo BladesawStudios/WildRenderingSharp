@@ -8,12 +8,6 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 /// A <c>game::wm::ResEnvPalette</c> record: the per-time-of-day and weather parameter set the runtime feeds the renderer, loaded
 /// from romfs (<c>Pack/EnvPalette.pack.zs</c>; see <see cref="EnvPaletteLibrary.LoadFromRomfs"/>).
 /// </summary>
-/// <remarks>
-/// The source data is loosely typed: some palettes omit fields others have and inherit them through <c>$parent</c>
-/// (resolved before this class sees them), and colours arrive as a <c>{R,G,B,A}</c> map. So this wraps a plain
-/// key/value bag with named accessors for the fields the renderer reads. The <c>IconCapture</c> and <c>UI</c> presets
-/// exist only in code and use <c>[r,g,b,a]</c> arrays; <see cref="TryGetColor"/> accepts both shapes.
-/// </remarks>
 public sealed class EnvPalette
 {
     readonly IReadOnlyDictionary<string, object?> _raw;
@@ -26,10 +20,6 @@ public sealed class EnvPalette
         _raw = raw;
     }
 
-    /// <summary>
-    /// Every field name this palette carries after <c>$parent</c> inheritance, for auditing which authored values the renderer
-    /// consumes.
-    /// </summary>
     public IReadOnlyCollection<string> Keys => _raw.Keys.ToArray();
 
     public bool TryGetFloat(string key, out float value)
@@ -93,66 +83,36 @@ public sealed class EnvPalette
     public Vector3 HemiGroundColor => Xyz(GetColor("HemiGroundColor", Vector4.Zero));
     public float HemiIntensity => GetFloat("HemiIntensity", 1.0f);
 
-    /// <summary>
-    /// A direct multiplier on the hemisphere ambient, authored by 44 of the 131 shipped palettes (absent = 1.0). Multiplies the
-    /// ambient slider rather than replacing it.
-    /// </summary>
     public float AmbientScale => GetFloat("AmbientScale", 1f);
 
     // Sky scattering: what the game feeds its own sky shader, and what the ambient approximation uses (see AmbientLighting).
 
-    /// <summary>How much blue Rayleigh scattering this sky has: 1.0 at overworld noon, 0.25 at night, 0.0 under a blood moon.</summary>
     public float SkyRayleighAmplifier => GetFloat("SkyRParam_rayleigh_amplifier", 1f);
-    /// <summary>How much sun-coloured Mie haze this sky has: 12 at overworld noon, 0 at night, 256 under a blood moon.</summary>
     public float SkyMieAmplifier => GetFloat("SkyRParam_mie_amplifier", 0f);
-    /// <summary>The Mie phase asymmetry. The ambient approximation uses only the amplifiers and the sun colour.</summary>
     public float SkyMieSymmetrical => GetFloat("SkyRParam_mie_symmetrical", 0f);
-    /// <summary>
-    /// The sun colour as the sky sees it, tinting the Mie haze. Distinct from <see cref="BgDifColor"/>, the directional light that
-    /// hits surfaces.
-    /// </summary>
     public Vector3 SkySunColor => Xyz(GetColor("SkySunColor", new Vector4(1, 1, 1, 1)));
     public float SkySunColorIntensity => GetFloat("SkySunColorIntensity", 1f);
-    /// <summary>The palette's own "ignore my SkySunColor" switch.</summary>
     public bool SkySunColorNoUse => GetBool("SkySunColorNoUse", false);
 
-    /// <summary>The palette's distance-fog colour, also used by <c>BackgroundPass</c> as the horizon haze tint.</summary>
     public Vector3 FogColor => Xyz(GetColor("FogColor", new Vector4(0.6f, 0.75f, 1f, 0f)));
 
-    /// <summary>
-    /// The palette's fog far distance. A captured cloud-shader constant buffer holds <c>1/FogEnd</c> (1/300 for that capture's
-    /// palette); see <c>CloudDomePass</c>.
-    /// </summary>
     public float FogEnd => GetFloat("FogEnd", 300f);
     public float FogStart => GetFloat("FogStart", 0f);
 
-    /// <summary>
-    /// <c>FogColor</c>'s alpha: the adhoc-fog density and the palette's on/off for the horizon haze band. Noon authors 0;
-    /// BloodyMoon_DarknessDragon authors 0.6 with a pure-red <c>FogColor</c>.
-    /// </summary>
     public float FogDensity => GetColor("FogColor", new Vector4(0.6f, 0.75f, 1f, 0f)).W;
 
-    /// <summary>
-    /// "Af" is adhoc fog: per-palette counterparts of <c>master_field.baglsky</c>'s <c>adhoc_fog_atten_sky</c> and <c>_grd</c>. See
-    /// <c>SkyPostFxPass</c>.
-    /// </summary>
     public float AdhocFogAttenSky => GetFloat("AfParam_attenuationForSky", 1f);
     public float AdhocFogAttenGrd => GetFloat("AfParam_attenuationForGrd", 4f);
 
-    /// <summary>Height fog (<c>YFogColor</c>, <c>YFogStart</c>). Parsed but not yet consumed.</summary>
     public Vector3 YFogColor => Xyz(GetColor("YFogColor", Vector4.Zero));
     public float YFogDensity => GetColor("YFogColor", Vector4.Zero).W;
     public float YFogStart => GetFloat("YFogStart", 0f);
-    /// <summary>Scatter-fog attenuation (<c>SfParam_attenuation</c>), present verbatim in a captured cloud-shader constant buffer.</summary>
     public float ScatterFogAttenuation => GetFloat("SfParam_attenuation", 40f);
-    /// <summary>Scatter-fog horizon exponent (<c>SfParam_horizontal</c>), likewise confirmed in a capture.</summary>
     public float ScatterFogHorizontal => GetFloat("SfParam_horizontal", 2.5f);
 
     /// <summary>
     /// One of a palette's two cloud layers (<see cref="Cloud0"/>, <see cref="Cloud1"/>): a three-way gradient (shadow, base,
-    /// hilight, each with colour and intensity) plus a backlight term for when the sun is behind the cloud. <see cref="Present"/>
-    /// is false when the layer is absent or disabled by its <c>Cloud0NoUse</c> / <c>Cloud1NoUse</c> switch (a clear noon preset
-    /// authors Cloud0 data but sets <c>Cloud0NoUse</c>).
+    /// hilight, each with colour and intensity) plus a backlight term for when the sun is behind the cloud.
     /// </summary>
     public readonly record struct CloudLayer(
         bool Present, float BacklightPower,
@@ -183,11 +143,6 @@ public sealed class EnvPalette
 
     public Vector3 VolumeMaskColor => Xyz(GetColor("VolumeMaskColor", Vector4.Zero));
     public float VolumeMaskIntensity => GetFloat("VolumeMaskIntensity", 0f);
-    /// <summary>
-    /// The palette's "ignore my VolumeMaskColor" switch. The tint it gates is inert regardless: the resolve applies it as
-    /// <c>cTex_VolumeMask.z * Env[81].w</c> and an all-zero 1x1 volume mask is bound, since the game's indoor system that fills it
-    /// is not rendered.
-    /// </summary>
     public bool VolumeMaskColorNoUse => GetBool("VolumeMaskColorNoUse", false);
 
     public bool BloomEnable => GetBool("BloomEnable", true);

@@ -2,11 +2,10 @@ namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
 /// Vertex stages shared by the fullscreen effects: one oversized triangle generated from <c>gl_VertexID</c>, so no vertex buffer is
-/// needed. Draw three vertices.
+/// needed.
 /// </summary>
 public static class FullscreenShaders
 {
-    /// <summary>Writes <c>vUV</c> over [0, 1] across the screen.</summary>
     public const string Vertex450 = """
         #version 450 core
         out vec2 vUV;
@@ -18,7 +17,6 @@ public static class FullscreenShaders
         }
         """;
 
-    /// <summary>The same triangle for the passes whose fragment stage is GLSL 330.</summary>
     public const string Vertex330 = """
         #version 330 core
         out vec2 vUV;

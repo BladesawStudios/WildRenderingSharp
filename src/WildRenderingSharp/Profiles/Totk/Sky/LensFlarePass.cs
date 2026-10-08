@@ -9,34 +9,8 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// The game's lens flare: <c>agl::pfx::Glare</c>'s <c>flare_filter_flare</c> program, decompiled out of
 /// <c>agl_technique_pfx.sharcb</c>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Its whole interface is one sampler (<c>cSrc</c>) and one 192-byte <c>RegisterUBO</c>, so the block was recoverable from the decompiled math:
-/// </para>
-/// <code>
-/// vertex:    ghost = (0.5 - uv) * C[0].x          a step from this pixel toward screen centre
-/// gl_Position.xy = in_attr0.xy * 2.0   half-unit quad, same convention as the sky pass
-/// fragment:  sum  = src(uv) + src(uv + g*2) + src(uv + g*4) + src(uv + g*6)
-/// halo = src(uv + normalize(g) * C[1].w * 2)
-/// out  = (sum + halo * C[1].xyz) * C[3].xyz
-/// </code>
-/// <para>
-/// So <c>C[0].x</c> is the ghost spacing, <c>C[1].xyz</c> and <c>.w</c> the halo's tint and radius, and <c>C[3].xyz</c> the overall intensity. The ghost count is
-/// the <c>GHOST_NUM</c> macro baked in at extraction (4), hence the unrolled taps.
-/// </para>
-/// <para>
-/// Stepping toward the screen centre and past it lands on the light's reflection through the centre, which is where a lens puts its ghosts. So <c>cSrc</c> must
-/// be a bright-pass of the scene, not the scene: the raw image would drag ordinary geometry into the ghosts. This pass owns that threshold rather than borrowing
-/// <see cref="BloomPass"/>'s intermediates, so their tunings cannot pull against each other.
-/// </para>
-/// <para>
-/// Not implemented: the glare streak chain. <c>glare_filter_blur</c> is extracted (<c>agl_glare_filter_blur0</c> and <c>1</c>) but is a multi-pass separable blur
-/// driven from <c>glare_filter_seed</c>'s own block, which is undecoded. It produces the anamorphic streaks, not the ghosts.
-/// </para>
-/// </remarks>
 public sealed class LensFlarePass : IDisposable
 {
-    /// <summary>Clear of every binding the real program declares.</summary>
     const uint RegisterBinding = 24;
 
     readonly GL _gl;
@@ -49,7 +23,6 @@ public sealed class LensFlarePass : IDisposable
     readonly uint[] _srcTex = new uint[2], _srcFbo = new uint[2];
     int _brightW, _brightH;
 
-    /// <summary>Separable blur iterations (each = one horizontal + one vertical pass).</summary>
     const int BlurIterations = 3;
 
     public bool Available => _program != 0;
@@ -159,7 +132,6 @@ public sealed class LensFlarePass : IDisposable
     public readonly record struct Params(
         float Threshold, float GhostSpacing, Vector3 HaloTint, float HaloRadius, Vector3 Intensity, float Exposure, bool SkyOnly);
 
-    /// <summary>Adds the flare to <paramref name="hdr"/>, reading it as its own source.</summary>
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, GpuTexture hdr, Params p)
     {
         if (!Available)

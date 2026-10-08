@@ -6,10 +6,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>
 /// Exposure, highlight compression, the game's <c>agl_hdr_compose</c> (loaded through <see cref="ShaderProgramCache"/> like any
-/// decompiled game shader), then the bloom add. The highlight compression is this renderer's own (not decompiled): it softly
-/// asymptotes the rare grazing silhouette highlight that saturates to its coded ceiling under a high calibrated exposure (see
-/// <c>HDR_COMPRESS_SRC</c>). Split into two calls because <see cref="BloomPass"/> must run between them, reading the compressed
-/// result.
+/// decompiled game shader), then the bloom add.
 /// </summary>
 public sealed class TonemapPass : IDisposable
 {
@@ -69,7 +66,6 @@ public sealed class TonemapPass : IDisposable
 
     static ReadOnlySpan<byte> MemoryMarshalBytes(float[] values) => System.Runtime.InteropServices.MemoryMarshal.AsBytes<float>(values);
 
-    /// <summary>Exposure multiply (skipped when 1.0) then the highlight-compression knee and ceiling. Returns the resulting texture.</summary>
     public GpuTexture RunExposureAndCompress(GLResourceCache resources, RenderTargets targets, float exposure)
     {
         _gl.Disable(EnableCap.DepthTest);
@@ -93,11 +89,6 @@ public sealed class TonemapPass : IDisposable
         return targets.Compressed;
     }
 
-    /// <summary>
-    /// The <c>agl_hdr_compose</c> draw. Its samplers (<c>fp_t_tcb_8</c> = cColor, <c>fp_t_tcb_A</c> = cBloom) carry an explicit
-    /// <c>layout(binding=N)</c> from the BNSH reflection, so binding the texture unit is enough, as for every decompiled game
-    /// shader.
-    /// </summary>
     public void RunHdrComposite(GLResourceCache resources, RenderTargets targets, uint hdrComposeProgram, GpuTexture hdrSource, GpuTexture bloomSource, byte[] hdrComposeParamsBytes)
     {
         EnsureHdrQuadVao(hdrComposeProgram);

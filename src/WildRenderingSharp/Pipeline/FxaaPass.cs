@@ -4,13 +4,6 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>A simplified single-pass FXAA-style edge-aware blur, the anti-aliasing used instead of supersampling by default.</summary>
-/// <remarks>
-/// Supersampling doubles the fragment-shading resolution, which changes the density of any per-pixel dither the game's shaders evaluate against <c>gl_FragCoord</c>: hair's screen-door edge dither
-/// looks right at native resolution but aliases into evenly spaced dark bands at 2x that survive the box downsample. Post-process AA keeps shading native, so the dither stays as the shader intends
-/// and this pass only smooths the finished image's edges.
-/// It approximates NVIDIA's public FXAA (luma edge detection, a single directional blend toward the higher-contrast neighbour) rather than a full multi-tap sub-pixel search, which suffices
-/// because the artifact targeted is isolated high-contrast single-texel dither cells along thin bright strands, not general polygon-edge aliasing.
-/// </remarks>
 public sealed class FxaaPass : IDisposable
 {
     readonly GL _gl;
@@ -92,7 +85,6 @@ public sealed class FxaaPass : IDisposable
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "fxaa");
     }
 
-    /// <summary>The caller must have bound the destination framebuffer and viewport, as for <see cref="PresentPass"/>.</summary>
     public void Run(GLResourceCache resources, GpuTexture source)
     {
         _gl.UseProgram(_program);

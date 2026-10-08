@@ -11,64 +11,33 @@ namespace WildRenderingSharp.Pipeline;
 /// Every placement of one model, drawn with instanced calls through the game's own shaders (see <c>InstancedShaderPatch</c> for how
 /// they read it).
 /// </summary>
-/// <remarks>
-/// <para>
-/// Built for static placements in bind pose: a map's trees, rocks and buildings. Each instance carries the two blocks the
-/// per-actor path would bind for it, its <c>ShpMtx</c> rows (placement, then row 8; see <see cref="SetBake"/>) and its
-/// <c>_Mtx</c> bone palette (the bind-pose palette with the placement folded in, as <c>BonePaletteUbo.Build</c> does), back
-/// to back in one storage buffer.
-/// </para>
-/// <para>
-/// The host decides what is drawn: <see cref="Visible"/> holds runs of instances and the level of detail of each, refilled
-/// as often as the host culls. A batch with nothing visible draws nothing.
-/// </para>
-/// </remarks>
 public sealed class InstanceBatch : IDisposable
 {
     readonly GL _gl;
 
     public LoadedModel Model { get; }
 
-    /// <summary>How many placements the buffer holds.</summary>
     public int Count { get; }
 
-    /// <summary>vec4s per instance: three ShpMtx rows, ShpMtx row 8, then three per palette slot.</summary>
     public int Stride { get; }
 
-    /// <summary>vec4s of bone palette per instance.</summary>
     public int PaletteVec4s { get; }
 
-    /// <summary>True for a model with no skeleton, whose palette is its placement in every slot.</summary>
     public bool PaletteRepeats { get; }
 
-    /// <summary>The union of every placement's box, world space.</summary>
     public Vector3 BoundsMin { get; }
     public Vector3 BoundsMax { get; }
 
-    /// <summary>The placements' own rows, as given - kept for picking and bounds.</summary>
     public IReadOnlyList<Vector4[]> Placements { get; }
 
     internal uint Buffer { get; }
 
     readonly Vector4[] _data;
 
-    /// <summary>
-    /// Runs of instances to draw this frame, and the level of detail each draws at - a level past a shape's own chain draws its
-    /// coarsest (<see cref="LoadedShape.Lod"/>).
-    /// </summary>
     public List<(int First, int Count, int Lod)> Visible { get; } = [];
 
-    /// <summary>
-    /// Whether the model's blended (see-through) shapes draw too. A host compositing this frame under its own see-through layers -
-    /// water, say - turns it off and draws those itself.
-    /// </summary>
     public bool IncludeBlended { get; set; } = true;
 
-    /// <summary>
-    /// Runs of instances inside the shadow focus, which the shadow map draws when a frame has one (<see
-    /// cref="FrameRequest.ShadowFocus"/>). Chosen by the shadow region, not the camera, so turning the view neither redraws the map
-    /// nor drops a caster just off-screen.
-    /// </summary>
     public List<(int First, int Count, int Lod)> ShadowVisible { get; } = [];
 
     ShadowFocus? _shadowFocus;
@@ -88,11 +57,6 @@ public sealed class InstanceBatch : IDisposable
     readonly List<(int First, int Count, int Lod)>?[] _cascadeRuns = new List<(int, int, int)>?[RenderTargets.MaxCascades];
     readonly (ShadowFocus Focus, Vector3 Right, Vector3 Up)?[] _cascadeFocus = new (ShadowFocus, Vector3, Vector3)?[RenderTargets.MaxCascades];
 
-    /// <summary>
-    /// Which shadow cascades these instances cast into, a bit per cascade; all by default. A host swapping a model for a cruder
-    /// stand-in by distance (a landmark's <c>_Far</c> model) never draws both, but casters are chosen by region, so both cast and
-    /// the stand-in's shell shadowed the real model in patches.
-    /// </summary>
     public int ShadowCascadeMask
     {
         get => _shadowCascadeMask;
@@ -241,13 +205,8 @@ public sealed class InstanceBatch : IDisposable
 
     internal const int Row8Offset = 3, PaletteOffset = 4;
 
-    /// <summary>
-    /// The bake atlas each instance samples, as an index into <see cref="BakeAtlases"/>; -1 for none (the material's own
-    /// <c>bake0</c>).
-    /// </summary>
     public int[]? BakeAtlasOfInstance { get; private set; }
 
-    /// <summary>The distinct bake atlases this batch's instances use.</summary>
     public IReadOnlyList<LoadedTexture> BakeAtlases { get; private set; } = [];
 
     internal uint BakeTable { get; private set; }
@@ -256,14 +215,6 @@ public sealed class InstanceBatch : IDisposable
     // 28), so the table starts past it.
     const int BakeTableHead = 64;
 
-    /// <summary>
-    /// Gives each instance its baked lighting, as the game does: static-object shaders read <c>ShpMtx</c> row 8, and when its top
-    /// two bits are <c>01</c> they take the bake texcoord scale and offset from a storage buffer at binding 0, entry <c>(row8.y
-    /// &amp; 0xFFFFF) + gsys_material_id</c> (16 bytes each), instead of the material's <c>gsys_bake_st0</c>, then sample
-    /// <c>bake0</c> there. So each baked instance gets a run of entries, one per material index, with its base written into row 8;
-    /// the caller sets each shape's <c>gsys_material_id</c> to its material index and the draw binds the instance's atlas to
-    /// <c>bake0</c>.
-    /// </summary>
     public void SetBake(IReadOnlyList<BakeActor?> perInstance)
     {
         var atlases = new List<LoadedTexture>();
@@ -315,7 +266,6 @@ public sealed class InstanceBatch : IDisposable
         BakeAtlases = atlases;
     }
 
-    /// <summary>Draws every visible run.</summary>
     public void ShowAll(int lod = 0)
     {
         Visible.Clear();

@@ -7,32 +7,11 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 /// G-buffer shapes whose program reads the lit scene behind them - water above all - drawn the way the game draws them: after the
 /// opaque scene is lit, over a copy of it.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Water's G-buffer program (<c>Mt_TerraWater_A</c>, <c>o_material_behave</c> 103) samples
-/// <c>cTex_ColorBuffer</c> at a normal-offset screen position, attenuates it by how much water lies
-/// between the surface and the opaque depth under it (<c>cTex_NormalizedLinearDepth</c>, with which
-/// it also discards itself where it is behind the scene), and writes the result to the emission
-/// attachment with the emission bit set in albedo alpha - refraction, delivered through the same
-/// emission compose every other surface uses. Its albedo carries only the water's own scatter
-/// colour, which <c>field_water</c> lights. It also reads <c>cTex_GBuffMaterialID</c> (attachment
-/// 0) to fold the material under it into its own ID. Drawn with the rest of the G-buffer, every one
-/// of those inputs is either empty or the very target being written, and the water came out black.
-/// </para>
-/// <para>
-/// So the frame runs in two halves. The opaque half is lit and resolved as usual, without these
-/// shapes. Then the lit scene is copied (into the G-buffer's orientation, and into the game's
-/// units - see <see cref="CopyInputs"/>), so is attachment 0, and these shapes draw into the same
-/// G-buffer over the opaque depth. The caller then re-derives the screen-space inputs and resolves
-/// only these shapes' passes, which composite only where the pass-ID mask names them.
-/// </para>
-/// </remarks>
 public sealed class SceneColorShapePass : IDisposable
 {
     readonly GL _gl;
     readonly uint _copyProgram;
 
-    /// <summary>The units the game's programs read these from - fixed by their own bindings.</summary>
     public const int MaterialIdUnit = 2, LinearDepthUnit = 4, LinearDepthHalfUnit = 5, ColorBufferUnit = 27;
 
     const string CopyFragmentSource = """
@@ -54,13 +33,8 @@ public sealed class SceneColorShapePass : IDisposable
         _copyProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, CopyFragmentSource, "scene_color_copy");
     }
 
-    /// <summary>Whether any group has a shape this pass draws.</summary>
     public static bool Any(IReadOnlyList<ActorDrawGroup> groups) => groups.Any(g => g.Shapes.Any(s => s.ReadsSceneColor));
 
-    /// <summary>
-    /// Copies the lit opaque scene into <see cref="RenderTargets.Behind"/> as <c>cTex_ColorBuffer</c>, and attachment 0 into <see
-    /// cref="RenderTargets.MaterialIdCopy"/> as <c>cTex_GBuffMaterialID</c>.
-    /// </summary>
     public void CopyInputs(GLResourceCache resources, RenderTargets targets, float emissionUnits)
     {
         _gl.Disable(EnableCap.DepthTest);
@@ -76,10 +50,6 @@ public sealed class SceneColorShapePass : IDisposable
             (uint)targets.Width, (uint)targets.Height, 1);
     }
 
-    /// <summary>
-    /// Draws these shapes into the G-buffer, over the opaque depth. The flipped-projection <c>Context</c> must be bound at binding
-    /// 1, as for <see cref="GBufferPass"/>.
-    /// </summary>
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
     {
         targets.BindGBuffer();

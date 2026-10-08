@@ -7,14 +7,13 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// TotK's environment for one frame: the palette in effect plus the static sky, cloud and colour-grade settings that come with the
-/// game's data. Missing pieces fall back to the defaults.
+/// game's data.
 /// </summary>
 public sealed class TotkEnvironment(
     EnvPalette palette, SkyPostFx? skyPostFx = null, CloudPostFx? cloudPostFx = null,
     SkyBinLut? skyBin = null, ColorCorrectionPostFx? colorCorrection = null, ITerrainHost? terrain = null,
     TotkSettings? settings = null) : IFrameEnvironment
 {
-    /// <summary>A host whose terrain is shaded with the game's terrain programs, or null.</summary>
     public ITerrainHost? Terrain { get; } = terrain;
 
     public TotkSettings Settings { get; } = settings ?? new();

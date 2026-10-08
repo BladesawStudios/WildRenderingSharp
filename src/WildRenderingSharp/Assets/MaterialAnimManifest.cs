@@ -5,9 +5,7 @@ namespace WildRenderingSharp.Assets;
 
 /// <summary>
 /// Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.matanim.json</c> - a shader PARAMETER animation, which is the single mechanism
-/// behind BFRES's <c>_fsp</c> (shader param), <c>_fcl</c> (colour) and <c>_fts</c> (texture SRT) anims alike. Every one of them
-/// writes 4-byte words into the material's <c>gsys_material</c> block; see <c>ShaderLibrary.CompileTool.ExportMaterialAnim</c> for
-/// the derivation and <see cref="WildRenderingSharp.Rendering.MaterialAnimPose"/> for the runtime.
+/// behind BFRES's <c>_fsp</c> (shader param), <c>_fcl</c> (colour) and <c>_fts</c> (texture SRT) anims alike.
 /// </summary>
 public sealed class MaterialAnimManifest : IAnimClip
 {
@@ -29,7 +27,6 @@ public sealed class MaterialAnimManifest : IAnimClip
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a material anim manifest.");
     }
 
-    /// <summary>Every material anim's name next to a model's manifest (<c>&lt;modelName&gt;.&lt;AnimName&gt;.matanim.json</c>).</summary>
     public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
         Directory.Exists(dataDirectory)
             ? Directory.EnumerateFiles(dataDirectory, $"{modelName}.*.matanim.json")

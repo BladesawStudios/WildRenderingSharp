@@ -6,16 +6,8 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 /// <summary>
 /// One <c>CloudParamN</c> block of <c>postfx/master_field.baglclwd</c>: the per-layer parameters of the <c>agl::fx::Cloud</c>
 /// billboard-dome shading model, every field (see <c>WildRenderingSharp.AampReader.SkyPostFxJson.ParseObject</c>, which dumps the
-/// object generically). Names match the AAMP names exactly, including the "m" prefix and the authored typo "Distotion", so they
-/// cross-reference the decompiled <c>agl_cloud.vert</c>/<c>.frag</c> and its uniform reflection without a mapping table.
+/// object generically).
 /// </summary>
-/// <remarks>
-/// <c>CloudParam2</c> is byte-identical to <c>CloudParam1</c>, so <see cref="CloudPostFx"/> exposes two layers. The <c>*No</c> and <c>*No_Blend</c> fields are slot indices into a small
-/// fixed array, not names. Traced via Ghidra, index 1 (both <see cref="NoiseTextureNo"/> and <see cref="NoiseTextureNoBlend"/> are always 1) resolves through a runtime
-/// name-to-texture dispatcher (<c>FUN_71008da38c</c>) to a texture named <c>"cloud_noise"</c>, which is baked by the <c>noise_cloud</c> shading model in
-/// <c>agl_technique_proc.sharcb</c> (see <c>TestAglShader.ExtractCloudNoiseShader</c>), not loaded from romfs. Indices 0 and 2 (the base texture) are static romfs assets whose
-/// filenames were not found; treat them as unconfirmed.
-/// </remarks>
 public sealed class CloudPostFxLayer
 {
     public bool IsEnable = true;

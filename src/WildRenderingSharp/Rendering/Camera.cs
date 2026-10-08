@@ -2,10 +2,7 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Rendering;
 
-/// <summary>
-/// A GL-convention (right-handed, column-vector) look-at camera. The view and projection matrices are returned as row arrays (see
-/// <see cref="Mat4Math"/>), not <see cref="Matrix4x4"/>, to keep the convention the rest of the pipeline expects.
-/// </summary>
+/// <summary>A GL-convention (right-handed, column-vector) look-at camera.</summary>
 public class Camera
 {
     public float FovDegrees { get; set; } = 38.0f;
@@ -15,7 +12,6 @@ public class Camera
     public Vector3 Eye { get; set; } = new(0, 0, 3);
     public Vector3 Target { get; set; } = Vector3.Zero;
 
-    /// <summary>TotK/BFRES models are Z-up; the icon-capture preset uses the in-game Y-up convention instead.</summary>
     public Vector3 Up { get; set; } = new(0, 0, 1);
 
     public readonly record struct ViewProjection(Vector4[] View, Vector4[] Proj, float Aspect, float TanHalfFovY);

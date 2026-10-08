@@ -5,32 +5,6 @@ using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>Makes a decompiled game vertex shader draw many placements in one instanced call, without changing anything it computes.</summary>
-/// <remarks>
-/// <para>
-/// The game issues one draw per placed model shape: each draw rebinds the shape's own
-/// <c>ShpMtx</c> (binding 4, its placement) and <c>_Mtx</c> (binding 2, its bone palette) and the
-/// vertex shader reads them at fixed or computed indices - confirmed in the binary, where gsys has
-/// no instancing path for material shaders at all. NVN makes that cheap; desktop GL does not, and a
-/// map section is fifteen thousand placements.
-/// </para>
-/// <para>
-/// So the only thing this changes is where those two blocks' values come from. Each block's
-/// declaration is removed and every <c>NAME.data[expr]</c> becomes a call returning the same vec4
-/// for this instance, out of one storage buffer holding every placement's ShpMtx rows and bone
-/// palette back to back (<see cref="InstanceBatch"/>). The decompiled <c>main</c> is renamed and a
-/// new <c>main</c> works out this instance's base before calling it - the same wrapper technique
-/// <see cref="Sky.CloudDistanceFade"/> uses - so every original instruction runs unmodified, in order,
-/// on the same values the per-actor path feeds it.
-/// </para>
-/// <para>
-/// What a read past the end returns is reproduced too: <c>ShpMtx</c> holds three rows and zeros
-/// after them - except row 8, the instance's baked-lighting table entry, which each instance
-/// carries (<see cref="InstanceBatch.SetBake"/>) - and a bone palette is filled past its last bone with identity matrices - or, for a
-/// model with no skeleton, with its placement in every slot (<see cref="Ubos.BonePaletteUbo"/>).
-/// Fragment shaders are left alone: the two that declare <c>ShpMtx</c> read only a reserved,
-/// always-zero row, which the zero block bound alongside instanced draws still supplies.
-/// </para>
-/// </remarks>
 public static class InstancedShaderPatch
 {
     static readonly Regex MainSignature = new(@"\bvoid\s+main\s*\(\s*\)", RegexOptions.Compiled);
@@ -39,7 +13,6 @@ public static class InstancedShaderPatch
         @"layout\s*\([^)]*\)\s*uniform\s+" + Regex.Escape(blockName) + @"\s*\{[^}]*\}\s*(\w+)\s*;",
         RegexOptions.Compiled);
 
-    /// <summary>Patches a decompiled vertex shader. Returns null when it has no <c>main</c> to wrap, which no real one lacks.</summary>
     public static string? Apply(string vertexSource)
     {
         string source = vertexSource;

@@ -14,10 +14,6 @@ public sealed class DeferredResolvePass : IDisposable
     readonly uint _composeProgram;
     readonly uint _texPreFog, _texVolumeMask;
 
-    /// <summary>
-    /// <c>o_material_behave = 2</c> spans the whole field_* family, none of which runs correctly without the preshading passes and
-    /// the undecoded Env tail; substituted with a logged fallback rather than rendering black.
-    /// </summary>
     public const string FieldFallbackPass = "chara_nonmetal";
 
     // The field passes that run their own program. field_water reads the same screen-space inputs as the chara passes plus
@@ -76,10 +72,6 @@ public sealed class DeferredResolvePass : IDisposable
         SetEnvironmentColor(new System.Numerics.Vector3(0.5f));
     }
 
-    /// <summary>
-    /// Fills <c>cTex_CubeEnvMap</c>. No environment cube is rendered, so every face is the palette's sky colour, which is what an
-    /// open-air reflection mostly shows.
-    /// </summary>
     public unsafe void SetEnvironmentColor(System.Numerics.Vector3 color)
     {
         _gl.BindTexture(TextureTarget.TextureCubeMap, _cubeEnvMap);
@@ -92,11 +84,6 @@ public sealed class DeferredResolvePass : IDisposable
         _gl.BindTexture(TextureTarget.TextureCubeMap, 0);
     }
 
-    /// <summary>
-    /// Resolves each distinct deferred-pass name to its compiled program (globbed by name, so a model resolving through a different
-    /// pass just works) and its material bytes, once per loaded model. A <c>field_*</c> pass is substituted with <see
-    /// cref="FieldFallbackPass"/>.
-    /// </summary>
     public static List<ResolvedDeferredPass> ResolveDeferredPasses(
         GL gl, ShaderProgramCache programs, string decompiledDir, string deferredMaterialsDir, IEnumerable<string> passNames)
     {

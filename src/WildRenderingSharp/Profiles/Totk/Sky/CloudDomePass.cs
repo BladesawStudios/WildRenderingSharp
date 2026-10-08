@@ -12,17 +12,6 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// Draws the game's own <c>agl_cloud</c> program on the procedural cloud dome (<see cref="CloudDomeMesh"/>, ported from
 /// <c>Cloud::initVertex_</c>).
 /// </summary>
-/// <remarks>
-/// The program's two uniform blocks have no name table. Their layout was recovered by capturing a
-/// frame of the running game, reading the cloud draw's literal block bytes and matching them against
-/// the ROM: <c>master_field.baglclwd</c> supplies the shape and noise scalars and the active
-/// palette's <c>Cloud0</c> block the colours (<c>xyz</c> = colour * intensity, <c>w</c> = the
-/// intensity). Rebuilding the block that way reproduces 191 of the capture's 192 floats exactly; the
-/// other is the dome's height above the viewer (slot 33.y).
-/// Still approximate: the base and noise masks are the best-evidenced candidates rather than proven
-/// ones, the scatter texture is the sky bake's output or a flat stand-in, and the placement-point
-/// proximity fades (slots 9, 13, 17, 21) keep their captured values.
-/// </remarks>
 public sealed class CloudDomePass : IDisposable
 {
     const uint CommonBinding = 20;

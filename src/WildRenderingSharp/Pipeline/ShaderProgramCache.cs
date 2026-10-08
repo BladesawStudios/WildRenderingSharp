@@ -6,8 +6,7 @@ namespace WildRenderingSharp.Pipeline;
 /// <summary>
 /// Loads and links a decompiled <c>&lt;base&gt;.vert</c>/<c>&lt;base&gt;.frag</c> pair from <c>Shaders/Decompiled</c> into a GL
 /// program, caching by base name - many shapes/materials across a model (and across the deferred resolve passes) share the same
-/// compiled program, so this is what makes that sharing actually happen instead of relinking per shape. Mirrors <c>load_prog</c>
-/// (minus its <c>PROBE_TEMP</c> NaN-bisection diagnostic, which is a developer-only debugging aid, not part of the pipeline).
+/// compiled program, so this is what makes that sharing actually happen instead of relinking per shape.
 /// </summary>
 public sealed class ShaderProgramCache : IDisposable
 {
@@ -59,10 +58,6 @@ public sealed class ShaderProgramCache : IDisposable
 
     readonly Dictionary<string, uint> _instancedPrograms = new(StringComparer.Ordinal);
 
-    /// <summary>
-    /// The same program with its vertex stage patched to draw many placements at once - see <c>InstancedShaderPatch</c>. Cached
-    /// apart from the plain one; 0 when the patch finds nothing to wrap.
-    /// </summary>
     public uint LoadInstanced(string baseName, bool isForwardProgram = false)
     {
         lock (_sync)

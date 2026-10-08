@@ -25,11 +25,6 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
 
     public bool Available => shading.Available;
 
-    /// <summary>
-    /// The terrain's G-buffer half, after the actors': the linear depth and G-buffer under it are copied first, for the soft edge
-    /// where the ground meets something set into it, then the host draws through the game's terrain program with a camera in the
-    /// game's Y-up world.
-    /// </summary>
     public void DrawGBuffer(ITerrainHost host, RenderTargets targets, Camera camera, CameraData terrainCamera)
     {
         linearDepth.Run(Resources, targets, camera.NearPlane, camera.FarPlane);
@@ -70,10 +65,6 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         GLDiagnostics.CheckPass(Gl, "terrain");
     }
 
-    /// <summary>
-    /// The host's water, through the game's water program: drawn into the G-buffer over the lit opaque scene, or, when <paramref
-    /// name="stamp"/>, marked in the pass-ID mask for <c>field_water</c>.
-    /// </summary>
     public void DrawWater(ITerrainHost host, RenderTargets targets, Camera camera, bool stamp)
     {
         if (!shading.BindWater())
@@ -114,7 +105,6 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         GLDiagnostics.CheckPass(Gl, stamp ? "terrain water stamp" : "terrain water");
     }
 
-    /// <summary>Draws the terrain into one shadow cascade.</summary>
     public void DrawShadow(ITerrainHost host, int cascade, Camera camera, ShadowFocus focus, ShadowPass.LightMatrices light, CameraData sceneCamera)
     {
         services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, CameraData.ForLight(light, sceneCamera)).Bind(Resources);
