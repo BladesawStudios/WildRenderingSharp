@@ -1,4 +1,3 @@
-using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>

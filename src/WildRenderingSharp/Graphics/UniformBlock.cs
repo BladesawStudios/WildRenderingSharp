@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Graphics;
 

@@ -1,6 +1,5 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Assets;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline;

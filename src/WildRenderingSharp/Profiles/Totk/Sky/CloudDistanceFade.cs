@@ -1,5 +1,4 @@
 using System.Numerics;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;

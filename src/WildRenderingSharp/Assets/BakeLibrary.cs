@@ -26,7 +26,6 @@ public sealed record BakeActor(LoadedTexture Atlas, Vector4[] StByMaterial, IRea
 /// </remarks>
 public sealed class BakeLibrary : IDisposable
 {
-    readonly GL _gl;
     readonly string _dir;
     readonly TextureCache _textures;
     ulong[] _hashes = [];
@@ -39,7 +38,6 @@ public sealed class BakeLibrary : IDisposable
 
     public BakeLibrary(GL gl, string bakeDirectory)
     {
-        _gl = gl;
         _dir = bakeDirectory;
         _textures = new TextureCache(gl, bakeDirectory);
     }

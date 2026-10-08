@@ -1,6 +1,5 @@
 using System.Numerics;
 using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 

@@ -1,6 +1,5 @@
 using WildRenderingSharp.Assets;
 using System.Numerics;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Rendering;
 

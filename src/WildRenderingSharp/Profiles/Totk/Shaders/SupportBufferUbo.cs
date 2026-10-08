@@ -1,4 +1,3 @@
-using WildRenderingSharp.Pipeline;
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>

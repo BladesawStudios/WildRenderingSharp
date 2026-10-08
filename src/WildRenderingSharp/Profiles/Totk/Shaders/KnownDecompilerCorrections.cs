@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
