@@ -57,9 +57,9 @@ enemy). Files (already decompiled, plain GLSL, in `%AppData%\Marrow\cache\_shade
 - `material_prog3248_extracted.frag` — Enemy_Bokoblin, `Mt_Skin` shape, forward program.
 
 Two UBOs are involved: `fp_c9` = `gsys_environment` ("Env", binding 6, see
-`src/WildRenderingSharp/Shaders/Profiles/Totk/Ubos/EnvUbo.cs` and the pre-existing `docs/gsys_environment.md`), and
+`src/WildRenderingSharp/Profiles/Totk/Ubos/EnvUbo.cs` and the pre-existing `docs/gsys_environment.md`), and
 `fp_c13` = `gsys_scene_material` ("SceneMat", binding 10, see
-`src/WildRenderingSharp/Shaders/Profiles/Totk/Ubos/SceneMatUbo.cs`). Unlike Env, **every SceneMat field name and
+`src/WildRenderingSharp/Profiles/Totk/Ubos/SceneMatUbo.cs`). Unlike Env, **every SceneMat field name and
 byte offset is already known for certain** — it comes straight from the shading model's own BFSHA
 reflection metadata, not guesswork (see the `Fields` class in `SceneMatUbo.cs`). Marrow's
 `SceneMatUbo.BuildFromLighting` only ever *writes* about 10 of its 88 named fields; everything else
@@ -168,5 +168,5 @@ For each of the two Findings above and the secondary thread, please give:
 
 Cross-reference files already in this repo for context, in case useful: `CLAUDE.md` (project
 overview), `docs/gsys_environment.md` (existing Env UBO recovery, its own section 5 lists the exact
-unexplored callers above), `src/WildRenderingSharp/Shaders/Profiles/Totk/Ubos/EnvUbo.cs` and
+unexplored callers above), `src/WildRenderingSharp/Profiles/Totk/Ubos/EnvUbo.cs` and
 `SceneMatUbo.cs` (current Marrow-side field tables and what's actually populated today).

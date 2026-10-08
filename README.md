@@ -2,7 +2,7 @@
 
 A C# OpenGL rendering library for the Wild Era Zelda games.
 
-*Breath of the Wild* is planned; Everything below is TotK.
+*Breath of the Wild* is planned. The renderer is built around game profiles, and TotK is the only one so far; everything below is TotK.
 
 
 ## Using it from a tool
@@ -56,6 +56,10 @@ It builds two helpers into folders beside your executable, on build and on publi
   BFRES needs 2.x, so it lives in its own load context.
 - `wrs-prepare\` - the out-of-process preparer. Set `<WrsOutOfProcessPreparer>false</WrsOutOfProcessPreparer>`
   if you prepare in-process and do not need it.
+
+## Architecture
+
+A game-neutral core plus one profile per game; see [docs/architecture.md](docs/architecture.md) for the layout, the frame and how to add a game.
 
 ## Building
 

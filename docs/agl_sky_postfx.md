@@ -77,7 +77,7 @@ Extracted output matches the archive metadata exactly: plain sky 1 sampler / 2 b
 
 ## Running the chain: `SkyPrecomputePass`
 
-`src/WildRenderingSharp/Pipeline/SkyPrecomputePass.cs` runs the real chain. **Transmittance is implemented and
+`src/WildRenderingSharp/Profiles/Totk/Sky/SkyPrecomputePass.cs` runs the real chain. **Transmittance is implemented and
 numerically verified; the inscatter stages are not yet** (see the blocker below).
 
 ### The two blocks are opaque blobs — no name table exists

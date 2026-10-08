@@ -35,7 +35,7 @@ binding 8), `_Env` (`fp_c9`, binding 6), `_SceneMat` (`fp_c13`, binding 10).
 
 ---
 
-## UBO 1: `_Context` / `fp_c4` (binding 1) - `src/WildRenderingSharp/Shaders/Profiles/Totk/Ubos/ContextUbo.cs`
+## UBO 1: `_Context` / `fp_c4` (binding 1) - `src/WildRenderingSharp/Profiles/Totk/Ubos/ContextUbo.cs`
 
 Slots referenced by both forward programs, and their status per `ContextUbo.Slots`:
 
@@ -77,7 +77,7 @@ This is the per-shape `MaterialUbo`, already correctly built offline per-materia
 material's own `ShaderParams`). Not a target for this investigation - already solved by the
 existing offline pipeline, verified working for every other pass.
 
-## UBO 3: `_Env` / `fp_c9` (binding 6) - `src/WildRenderingSharp/Shaders/Profiles/Totk/Ubos/EnvUbo.cs`
+## UBO 3: `_Env` / `fp_c9` (binding 6) - `src/WildRenderingSharp/Profiles/Totk/Ubos/EnvUbo.cs`
 
 Every slot either shader reads, cross-referenced against `EnvUbo.Slots`/`PowExponentSlots`:
 
@@ -132,7 +132,7 @@ section 5 - same list as before, still not walked): `FUN_7100c97b18`, `agl::pfx:
 `game::gfx::MiasmaRenderer::initialize` at `0x7100c88bc0` - worth trying first given the "miasma"
 name is directly relevant to the two broken creatures.)
 
-## UBO 4: `_SceneMat` / `fp_c13` (binding 10) - `src/WildRenderingSharp/Shaders/Profiles/Totk/Ubos/SceneMatUbo.cs`
+## UBO 4: `_SceneMat` / `fp_c13` (binding 10) - `src/WildRenderingSharp/Profiles/Totk/Ubos/SceneMatUbo.cs`
 
 Unlike Env, every field name here is already known for certain (real BFSHA reflection, not
 guesswork - see `SceneMatUbo.Fields`). The only open question is which of the 88 fields
