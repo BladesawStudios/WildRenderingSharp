@@ -72,6 +72,19 @@ var (center, radius) = renderer.FrameFor(camera);
 camera.Target = center;
 camera.Eye = center + SceneFramingCalculator.DefaultViewDirection * radius * 3.5f;
 
+if (options.TryGetValue("lookup", out var lookup))
+{
+    var flat = Vector3.Normalize(new Vector3(center.X - camera.Eye.X, center.Y - camera.Eye.Y, 0));
+    float pitch = float.DegreesToRadians(float.Parse(lookup));
+    camera.Target = camera.Eye + flat * MathF.Cos(pitch) * radius + Vector3.UnitZ * MathF.Sin(pitch) * radius;
+}
+if (options.TryGetValue("tint", out var tint))
+    renderer.Totk.SkyPaletteTint = float.Parse(tint);
+if (options.ContainsKey("noclouds"))
+    renderer.Totk.UseRealCloudDome = false;
+if (options.TryGetValue("exposure", out var exposure))
+    renderer.Lighting.Exposure = float.Parse(exposure);
+
 // Several frames: the sky bake, shadow cache and exposure probe settle over the first few.
 for (int i = 0; i < 4; i++)
     renderer.Render(camera, size, size, 1f / 60f);
@@ -79,6 +92,10 @@ for (int i = 0; i < 4; i++)
 var errors = new List<GLEnum>();
 for (var e = gl.GetError(); e != GLEnum.NoError; e = gl.GetError())
     errors.Add(e);
+
+if (options.ContainsKey("probe"))
+    foreach (float v in new[] { 0.05f, 0.2f, 0.4f, 0.6f, 0.75f })
+        Console.WriteLine($"HDR v={v:F2}: {renderer.View.ProbeHdr(new Vector2(0.85f, v))}");
 
 byte[] rgba = renderer.View.ReadOutputRgba8();
 PngWriter.Write(outPath, rgba, size, size);

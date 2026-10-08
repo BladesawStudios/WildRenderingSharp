@@ -21,9 +21,8 @@ public sealed class TotkSettings
 
     public bool SkyFogNormaliseHue { get; set; } = true;
 
-    public float SkyPaletteTint { get; set; } = 1.0f;
+    public float SkyPaletteTint { get; set; }
 
-    public float SkyHdrLevel { get; set; } = 1.8f;
 
     public bool UseLensFlare { get; set; } = true;
 

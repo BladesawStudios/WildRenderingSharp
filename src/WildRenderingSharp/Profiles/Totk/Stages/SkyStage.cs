@@ -1,4 +1,4 @@
-using WildRenderingSharp.Assets;
+﻿using WildRenderingSharp.Assets;
 using System.Numerics;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Sky;
@@ -15,6 +15,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
 {
     readonly BackgroundPass _background = new(services.Gl);
     readonly SkyPostFxPass _skyPostFx = new(services.Gl, services.Programs);
+    readonly GroundPass _ground = new(services.Gl);
     readonly SkyBodyPass _skyBody = new(services.Gl, services.Directories.SystemTextures);
     readonly CloudDomePass _cloudDome = new(services.Gl, services.Programs, services.Directories.SystemTextures);
 
@@ -33,7 +34,10 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             return;
 
         if (settings.UseRealSkyShader && _skyPostFx.Available)
+        {
             DrawSky(frame);
+            DrawGround(frame);
+        }
         if (settings.ShowSun || settings.ShowMoon)
             DrawBodies(frame);
         if (settings.UseRealCloudDome)
@@ -44,6 +48,10 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     // land the brightest texel above 1 before the tonemap, which has the headroom to bring it down; the palette's own sky
     // brightness (relative to its default of 5) then makes night palettes darker. The ground colour is mixed in unscaled by the
     // shader, so it arrives pre-scaled.
+    // The game multiplies its raw table by 1 (Context[13].x in a capture). This renderer's lit path is scaled down by SceneGain, and
+    // the real skybin's high-sun zenith (0.69, 1.08, 1.28) sits at about 0.55-0.6 of this bake's, so the sky takes the same scale.
+    const float SkyGain = 0.6f;
+
     void DrawSky(FrameContext frame)
     {
         var lighting = frame.Lighting;
@@ -52,10 +60,9 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var palette = environment.Palette;
         var cam = frame.Cam;
 
-        float paletteBrightness = palette.BgDifIntensity / 5.0f;
-        float intensity = settings.AtmosphereIntensity * paletteBrightness * settings.SkyHdrLevel
-            / (SkyPrecomputePass.NormalisedPeak * MathF.Max(1e-4f, lighting.Exposure));
-        Vector3 groundColor = palette.BgDifColor * intensity;
+        float skyUnit = lighting.SceneGain * SkyGain * palette.BgDifIntensity / 5.0f;
+        float intensity = settings.AtmosphereIntensity * skyUnit;
+        Vector3 groundColor = environment.SkyPostFx.GroundColor * skyUnit;
         var fog = settings.UseSkyFog
             ? SkyPostFxPass.Resolve(palette, environment.SkyPostFx, intensity, settings.SkyFogStrength, settings.SkyFogNormaliseHue)
             : default;
@@ -64,6 +71,14 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             cam.ViewInv, cam.Aspect, cam.TanHalfFovY, frame.SunWorld, environment.SkyPostFx, intensity, groundColor,
             settings.SkyPaletteTint, fog);
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
+    }
+
+    void DrawGround(FrameContext frame)
+    {
+        var cam = frame.Cam;
+        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, cam.ViewInv, cam.Aspect, cam.TanHalfFovY,
+            frame.HemiGround * frame.Lighting.SceneGain * frame.TotkEnvironment().Palette.BgDifIntensity / 5.0f);
+        GLDiagnostics.CheckPass(services.Gl, "sky ground");
     }
 
     void DrawBodies(FrameContext frame)
@@ -109,6 +124,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     {
         _background.Dispose();
         _skyPostFx.Dispose();
+        _ground.Dispose();
         _skyBody.Dispose();
         _cloudDome.Dispose();
     }

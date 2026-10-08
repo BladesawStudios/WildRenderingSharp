@@ -124,10 +124,8 @@ public sealed class SkyPostFxPass : IDisposable
         // The captured value, not the file's 0.764 (see the remarks). Guarded strictly positive: it is a pow() exponent (see AttenSky).
         float atten = CapturedAttenSky > 1e-4f ? CapturedAttenSky : 0.5f;
 
-        // Raw, per the capture, but lifted into this renderer's sky units. The game runs this against an unnormalised
-        // table with Context[13].x = 1; here the table is normalised to NormalisedPeak and skyIntensity is passed
-        // instead, so one unit of game sky brightness is NormalisedPeak * skyIntensity. Unscaled FogColor would blow
-        // out, and FogColor * skyIntensity alone lands on black.
+        // Raw, per the capture, but in this renderer's sky units: the game runs this against the same raw table with
+        // Context[13].x = 1, and skyIntensity stands in for that one.
         var colour = palette.FogColor;
         if (normaliseHue)
         {
@@ -135,7 +133,7 @@ public sealed class SkyPostFxPass : IDisposable
             if (peak > 1e-6f) colour /= peak;
         }
         return new AdhocFog(atten, Math.Clamp(postfx.AdhocFogAttenMinScaleSky, 0f, 1f), density,
-            colour * (skyIntensity * SkyPrecomputePass.NormalisedPeak));
+            colour * skyIntensity);
     }
 
     public const float CapturedNoonDensity = 0.089538f;

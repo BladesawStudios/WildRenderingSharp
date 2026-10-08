@@ -513,8 +513,6 @@ public sealed class SkyPrecomputePass : IDisposable
 
     public Vector3 PaletteTint { get; set; } = Vector3.One;
 
-    public const float NormalisedPeak = 60f;
-
     uint _calibProgram;
 
     static readonly string CalibVert = GlslFiles.Load("Totk/Sky/SkyPrecompute/Calib.vert");
@@ -525,20 +523,9 @@ public sealed class SkyPrecomputePass : IDisposable
     // sampler).
     void ApplySpectralCalibration()
     {
-        // Normalise the peak before tinting: a palette's amplifiers change the table's magnitude
-        // enormously (Mie x256 takes the peak from about 60 to 427) and a fixed exposure then clips the
-        // channels unevenly, turning deep red to pink or white. The solve gives hue and shape;
-        // brightness is left to BgDifIntensity and the atmosphere intensity slider.
-        float[] pre = ReadBack2D(_bakedInscatter, BakedInscatterW, BakedInscatterH);
-        float peak = 0f;
-        for (int i = 0; i < pre.Length; i++)
-            if ((i & 3) != 3 && float.IsFinite(pre[i]) && pre[i] > peak)
-                peak = pre[i];
-
-        float normalise = peak > 1e-6f ? NormalisedPeak / peak : 1f;
-        Vector3 gain = SpectralCalibration * PaletteTint * normalise;
-        Console.WriteLine($"[SkyPrecomputePass] LUT peak {peak:G4} -> normalised x{normalise:G4} " +
-            $"(tint {PaletteTint.X:F2},{PaletteTint.Y:F2},{PaletteTint.Z:F2})");
+        Vector3 gain = SpectralCalibration * PaletteTint;
+        if (gain == Vector3.One)
+            return;
 
         if (_calibProgram == 0)
             _calibProgram = GLProgramBuilder.Build(_gl, CalibVert, CalibFrag, "sky_spectral_calibration");

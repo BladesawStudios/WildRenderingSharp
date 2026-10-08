@@ -232,11 +232,18 @@ on screen:
    came out with a perfectly healthy ALPHA range of [0,1] and identically **zero RGB**, so every
    range check passed while the sky rendered pure black. `BuildBakeRenderInfo` now starts from the
    captured block and overwrites only what is understood - the same pattern as `CloudUboBaseline`.
-2. **Unanchored magnitude.** The LUT is in the game's own units (RGB reaches ~60) and the pass
-   paints into `targets.Final` *ahead* of `TonemapPass`'s Exposure multiply, so handing it over raw
-   makes a pure-white screen as surely as the zero-RGB LUT made a black one. It now carries
-   `AtmosphereIntensity * SkyColorAnchor * SceneGain`, the same anchor `BackgroundPass` applies to
-   its own sky.
+2. **Unanchored magnitude.** The LUT is in the game's own units and the pass paints into
+   `targets.Final` *ahead* of `TonemapPass`'s Exposure multiply, so the raw table needs a scale. It is
+   `AtmosphereIntensity * SceneGain * 0.6 * BgDifIntensity / 5`: the game multiplies the raw table by 1
+   (`Context[13].x` in a capture), the lit path here is already scaled by `SceneGain`, and 0.6 is where this
+   bake's noon zenith sits against the real `skybin` (high-sun zenith about 0.69, 1.08, 1.28). The table is
+   not renormalised per palette any more: normalising its peak (the sun disc) darkened every other
+   direction whenever a palette raised the Mie amplifier.
+
+   Palette tint (`SkyPaletteTint`) defaults to 0, the game's behaviour. At 1 the table is multiplied by
+   the fog colour's hue, which turned a blue noon sky green. The part of the view below the horizon is
+   covered by `GroundPass` with the palette's hemisphere ground colour instead of whatever the table holds
+   for rays into the planet.
 
 The lesson for the range checks in `Verify()`: they cover RGB and alpha **separately** now.
 Aggregate stats over all four channels hid a fully black LUT behind a healthy-looking [0,1].
