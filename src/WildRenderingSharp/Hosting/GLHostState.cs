@@ -4,33 +4,11 @@ using Silk.NET.OpenGL.Extensions.ARB;
 namespace WildRenderingSharp.Hosting;
 
 /// <summary>
-/// Puts the GL context into the default state the renderer was written against, and puts the
-/// host's own state back afterwards: <c>using (GLHostState.Enter(gl)) { ... render ... }</c>.
+/// Puts the GL context into the default state the renderer was written against, and puts the host's own state back afterwards:
+/// <c>using (GLHostState.Enter(gl)) { ... render ... }</c>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Every pass sets the state it draws with, but each one was written inside a viewer that never
-/// changed the context's GLOBAL conventions, and some conventions no pass thinks to set. The one
-/// that matters most is the clip-space depth range: a host that switched to
-/// <c>glClipControl(LOWER_LEFT, ZERO_TO_ONE)</c> (the standard reversed-Z setup) makes every
-/// projection this renderer builds - all [-1, 1] - lose its near half to clipping. A host's
-/// clear depth, polygon offset, sRGB framebuffer, scissor, colour mask, cull mode or unpack
-/// alignment can equally leak into a pass that assumed GL's defaults.
-/// </para>
-/// <para>
-/// Going the other way, the renderer leaves its own programs, textures, framebuffers and buffer
-/// bindings in place - a host that relies on bindings persisting across frames would otherwise find
-/// them overwritten. So this restores the host's framebuffers, program, vertex array, active
-/// texture unit and the low indexed uniform/storage buffer bindings as well.
-/// </para>
-/// <para>
-/// A host that never changes any of this (the original Marrow viewer) does not need it. Cheap
-/// enough to use around every frame and every model load regardless.
-/// </para>
-/// </remarks>
 public sealed class GLHostState : IDisposable
 {
-    /// <summary>Indexed buffer bindings below this are saved and restored.</summary>
     public const int SavedBufferBindings = 16;
 
     readonly GL _gl;
@@ -69,8 +47,7 @@ public sealed class GLHostState : IDisposable
 
         if (_clipControl is not null)
         {
-            // An error the host left pending would otherwise read as "clip control queries are
-            // unsupported" below.
+            // An error the host left pending would otherwise read as "clip control queries are unsupported" below.
             DrainErrors(gl);
             _clipOrigin = gl.GetInteger((GetPName)GLEnum.ClipOrigin);
             _clipDepth = gl.GetInteger((GetPName)GLEnum.ClipDepthMode);
@@ -119,14 +96,12 @@ public sealed class GLHostState : IDisposable
             _ssbos[i] = ReadIndexed(GLEnum.ShaderStorageBufferBinding, GLEnum.ShaderStorageBufferStart, GLEnum.ShaderStorageBufferSize, i);
         }
 
-        // Anything a query above raised (an enum this context does not know) is ours, not the
-        // renderer's - drain it so GLDiagnostics does not blame the first pass for it.
+        // Anything a query above raised (an enum this context does not know) is ours, not the renderer's; drain it so GLDiagnostics does not blame the first pass.
         DrainErrors(gl);
 
         ApplyDefaults();
     }
 
-    /// <summary>Saves the host's state and switches to GL defaults; dispose to restore.</summary>
     public static GLHostState Enter(GL gl) => new(gl);
 
     (int, long, long) ReadIndexed(GLEnum binding, GLEnum start, GLEnum size, uint index)
@@ -225,7 +200,6 @@ public sealed class GLHostState : IDisposable
         DrainErrors(gl);
     }
 
-    /// <summary>Bounded, because a lost context reports GL_CONTEXT_LOST from every call forever.</summary>
     static void DrainErrors(GL gl)
     {
         for (int i = 0; i < 32 && gl.GetError() != GLEnum.NoError; i++) { }

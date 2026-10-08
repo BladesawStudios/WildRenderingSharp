@@ -29,4 +29,12 @@
     <PackageReference Include="TotkCommon" Version="1.3.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Glsl\**\*" LogicalName="Glsl/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\vendor\AampSharp\src\AampSharp\AampSharp.csproj" />
+  </ItemGroup>
+
 </Project>

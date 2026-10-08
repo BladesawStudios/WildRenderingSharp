@@ -2,16 +2,7 @@ using WildRenderingSharp.Hosting;
 
 namespace WildRenderingSharp.Preparation;
 
-/// <summary>
-/// <see cref="IModelPreparer"/> on a background thread of this process, through
-/// <see cref="ModelPreparer"/>.
-/// </summary>
-/// <remarks>
-/// Only for hosts that do not load their own BfresLibrary build - this loads ShaderLibrary's. See
-/// <see cref="IModelPreparer"/>'s remarks, and <see cref="OutOfProcessPreparer"/> otherwise.
-/// Preparations are serialised: ShaderLibrary keeps process-wide state (the romfs overlay, its
-/// string table, the overlay's file recorder) that two concurrent preparations would share.
-/// </remarks>
+/// <summary><see cref="IModelPreparer"/> on a background thread of this process, through <see cref="ModelPreparer"/>.</summary>
 public sealed class InProcessPreparer : IModelPreparer
 {
     static readonly SemaphoreSlim Gate = new(1, 1);

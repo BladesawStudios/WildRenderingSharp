@@ -77,7 +77,7 @@ Extracted output matches the archive metadata exactly: plain sky 1 sampler / 2 b
 
 ## Running the chain: `SkyPrecomputePass`
 
-`src/WildRenderingSharp/Pipeline/SkyPrecomputePass.cs` runs the real chain. **Transmittance is implemented and
+`src/WildRenderingSharp/Profiles/Totk/Sky/SkyPrecomputePass.cs` runs the real chain. **Transmittance is implemented and
 numerically verified; the inscatter stages are not yet** (see the blocker below).
 
 ### The two blocks are opaque blobs — no name table exists
@@ -232,28 +232,30 @@ on screen:
    came out with a perfectly healthy ALPHA range of [0,1] and identically **zero RGB**, so every
    range check passed while the sky rendered pure black. `BuildBakeRenderInfo` now starts from the
    captured block and overwrites only what is understood - the same pattern as `CloudUboBaseline`.
-2. **Unanchored magnitude.** The LUT is in the game's own units (RGB reaches ~60) and the pass
-   paints into `targets.Final` *ahead* of `TonemapPass`'s Exposure multiply, so handing it over raw
-   makes a pure-white screen as surely as the zero-RGB LUT made a black one. It now carries
-   `AtmosphereIntensity * SkyColorAnchor * SceneGain`, the same anchor `BackgroundPass` applies to
-   its own sky.
+2. **Unanchored magnitude.** The LUT is in the game's own units and the pass paints into
+   `targets.Final` *ahead* of `TonemapPass`'s Exposure multiply, so the raw table needs a scale. It is
+   `AtmosphereIntensity * SceneGain * 0.6 * BgDifIntensity / 5`: the game multiplies the raw table by 1
+   (`Context[13].x` in a capture), the lit path here is already scaled by `SceneGain`, and 0.6 is where this
+   bake's noon zenith sits against the real `skybin` (high-sun zenith about 0.69, 1.08, 1.28). The table is
+   not renormalised per palette any more: normalising its peak (the sun disc) darkened every other
+   direction whenever a palette raised the Mie amplifier.
+
+   Palette tint (`SkyPaletteTint`) defaults to 0, the game's behaviour. At 1 the table is multiplied by
+   the fog colour's hue, which turned a blue noon sky green. The part of the view below the horizon is
+   covered by `GroundPass` with the palette's hemisphere ground colour instead of whatever the table holds
+   for rays into the planet.
 
 The lesson for the range checks in `Verify()`: they cover RGB and alpha **separately** now.
 Aggregate stats over all four channels hid a fully black LUT behind a healthy-looking [0,1].
 
-### The open residual
+### The open residual: resolved
 
-Blue sits ~23% below the real table while green matches exactly. It is **not** the order count
-(the sweep converges to ~0.80) and **not** the inputs (`betaR` matches byte-for-byte). The leading
-suspect is **`Config[1].x`**, which is read by exactly the four multiple-scattering passes
-(`delta_inscatter_step2/3`, `irradiance_step2`, `bake_inscatter`) and by none of the
-single-scattering or transmittance passes — so it is a constant those terms need and the others do
-not. Bruneton's candidates in those exact functions are the Mie phase asymmetry and the average
-ground reflectance. **The Mie-asymmetry reading was tested and rejected**: feeding 0.85 moved blue
-from 0.702 to 0.704 and slightly worsened correlation, so the slot is left at zero as a documented
-omission rather than filled with a wrong value. Capturing a frame in which the precompute actually
-runs would settle it — note the solve is *not* in a normal mid-game capture (only one draw in 2519
-binds `SizeInfo`), because it runs at init or on parameter change.
+`Config[1].x` is the Mie phase asymmetry. The solve passes read it as `g`, `g*g`, `2+g*g` and `1+g*g` (Cornette-Shanks), and the bake pass reads the
+same constant from `RenderInfo[1].x`, which holds **0.75** in the captured block. It was left at zero, which made Mie scattering isotropic, so with a
+palette's Mie amplifier of 12 the whole sky washed out. At 0.75 the sky is a clean gradient with the glare concentrated at the sun.
+
+`SkyPrecomputePass.HorizonClampY` blends the table's rows near the horizon toward the row about 9 degrees above it. Those rows hold the longest light
+paths, where blue is gone completely, and they drew a thin saturated yellow or red line along the horizon.
 
 ## What wiring the sky pass then requires
 

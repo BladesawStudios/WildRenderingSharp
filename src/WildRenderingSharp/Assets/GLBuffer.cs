@@ -13,13 +13,6 @@ public static class GLBuffer
         return handle;
     }
 
-    /// <summary>
-    /// A uniform buffer padded to <paramref name="totalSize"/> zero bytes past its real content -
-    /// different shading models declare a different "Mat"/skinning-palette block size, so the
-    /// bound buffer must be at least as large as whichever program reads it expects, regardless of
-    /// how small the material's own real data is. Mirrors every <c>bytearray(4096 * 16)</c> /
-    /// <c>bytearray(65536)</c> pad-and-copy in <c>render_deferred_master_sword.py</c>.
-    /// </summary>
     public static uint CreatePaddedUniformBuffer(GL gl, ReadOnlySpan<byte> data, int totalSize = 65536)
     {
         var padded = new byte[totalSize];

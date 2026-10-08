@@ -1,16 +1,14 @@
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline;
 
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// Turns a <see cref="ModelManifest"/> into a ready-to-draw <see cref="LoadedModel"/> - GL
-/// buffers/VAOs/textures/material UBOs for every shape. Mirrors <c>load_shapes</c> (plus
-/// <c>model_bounds</c> for the world-space AABB), with no BFRES/BNSH parsing of its own - that
-/// already happened offline in <c>ShaderLibrary.CompileTool</c>.
+/// Turns a <see cref="ModelManifest"/> into a ready-to-draw <see cref="LoadedModel"/>: GL buffers, VAOs, textures and material
+/// buffers for every shape.
 /// </summary>
 public sealed class ModelLoader
 {
@@ -20,10 +18,8 @@ public sealed class ModelLoader
 
     readonly ExternalTextures? _external;
 
-    /// <summary>Textures shared with other models (see <see cref="Assets.SharedTextures"/>); null loads this model's own.</summary>
     public SharedTextures? SharedTextures { get; init; }
 
-    /// <param name="external">A host's shared textures - see <see cref="ExternalTextures"/>.</param>
     public ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
     {
         _gl = gl;
@@ -32,37 +28,8 @@ public sealed class ModelLoader
         _external = external;
     }
 
-    /// <param name="modelName">The model to load.</param>
-    /// <param name="enableKnownDecompilerCorrections">
-    /// Mirrors <see cref="Rendering.LightingContext.EnableKnownMaterialFixes"/> ("WildRenderingSharp Related
-    /// Improvements" in the UI) - gates <see cref="KnownDecompilerCorrections"/>'s forward-program
-    /// regex the same opt-in way as the rest of that category, now that DebugMode shader
-    /// translation (the offline decompiler's <c>TranslationFlags.DebugMode</c>) is suspected to fix
-    /// the root decompiler bug this regex was patching around - lets the user A/B test "did
-    /// DebugMode alone actually fix it" by reloading with this off, without needing a rebuild. Only
-    /// takes effect on (re)load, since shader programs are compiled once here, not re-checked per
-    /// frame.
-    /// </param>
-    /// <summary>
-    /// Uploads only what the model's own programs read, for a model that is only ever drawn
-    /// standing still in its bind pose - a map's worth of static objects. Every attribute no
-    /// program of a shape reads is left out of its vertex buffer (the exported vertex carries every
-    /// attribute any program might want, 192 bytes of floats). A smooth-skinned shape (two or more
-    /// weights per vertex) also drops its blend weights and indices when the model's bind-pose
-    /// palette is the identity in every smooth slot, which it is for a model whose inverse binds
-    /// match its skeleton: every vertex then lands on the same matrix whatever its weights say, so
-    /// they are replaced by one shared "all on slot 0" vertex. A shape that keeps its weights
-    /// (one weight per vertex, or a palette that is not the identity) keeps them.
-    /// </summary>
-    /// <remarks>Never for a model that will be posed or animated - its weights are gone.</remarks>
     public bool CompactVertices { get; init; }
 
-    /// <summary>
-    /// Leaves the vertex arrays to <see cref="LoadedModel.FinishOnRenderThread"/>, for a load on a
-    /// worker thread with a context of its own: buffers, textures and programs are shared between
-    /// contexts, vertex arrays are not - one made on the worker's context is nothing on the
-    /// renderer's.
-    /// </summary>
     public bool DeferVertexArrays { get; init; }
 
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
@@ -118,9 +85,7 @@ public sealed class ModelLoader
             uint gbufferVao = DeferVertexArrays ? 0 : MakeVao(gbufferProgram);
             var gbufferSamplers = textures.Resolve(sh.Samplers);
 
-            // Depth prepass (z-only): many materials carry no inline alpha-test discard in their
-            // G-buffer program and rely on this variant to do the cut instead - it has its OWN
-            // sampler layout (the same texture can sit on a different unit here).
+            // Depth prepass (z-only): many materials carry no inline alpha-test discard in their G-buffer program and rely on this variant to cut, and it has its own sampler layout.
             uint zonlyVao = 0;
             IReadOnlyList<ShapeSampler> zonlySamplers = [];
             if (zonlyProgram != 0)
@@ -129,22 +94,12 @@ public sealed class ModelLoader
                 zonlySamplers = textures.Resolve(sh.ZOnlySamplers);
             }
 
-            // Forward (gsys_assign_material) - built for ANY shape that resolved one, not only
-            // blended surfaces. A blended surface has no choice (it can't go through the deferred
-            // G-buffer - there's nothing to blend against yet), but this program is NOT merely a
-            // blend-only fallback: the real decompiled shader for e.g. Enemy_Bokoblin's opaque
-            // Mt_Skin material genuinely reads gsys_material fields no other resolved program
-            // touches (p_miasma_ratio/p_kari_mottled_ratio/p_kari_chemical_ice_ratio0/
-            // p_proc_vanishing/p_damage_color, ...) to composite status-effect overlays (miasma
-            // corruption, ice/chemical status, camouflage mottling, hit-flash, procedural
-            // dissolve) on top of the G-buffer's own opaque result - see ForwardPass.Run, which
-            // draws this shape depth-EQUAL-tested against the G-buffer depth it was rasterised
-            // alongside, using the shape's OWN render state (opaque materials' default blend
-            // resolves to a full replace whenever the shader's own alpha constant is 1, which it
-            // is for every material checked so far), so an object with no active status effect
-            // redraws its own unchanged colour and one that does gets the effect - never gating
-            // this on RenderState.Blend, which only ever meant "can this NOT go through the
-            // G-buffer," not "does this shape's forward program do anything."
+            // Forward (gsys_assign_material), built for any shape that resolved one, not only blended surfaces. A blended surface has no
+            // choice, but this program is not a blend-only fallback: opaque materials such as Enemy_Bokoblin's Mt_Skin read gsys_material
+            // fields no other program touches (p_miasma_ratio, p_damage_color, p_proc_vanishing, ...) to composite status effects over
+            // the G-buffer result. ForwardPass draws it depth-EQUAL against the G-buffer depth with the shape's own render state, so an
+            // object with no active effect redraws its unchanged colour. Never gate this on RenderState.Blend, which only means
+            // "cannot go through the G-buffer".
             uint forwardVao = 0;
             IReadOnlyList<ShapeSampler> forwardSamplers = [];
             if (forwardProgram != 0)
@@ -153,9 +108,9 @@ public sealed class ModelLoader
                 forwardSamplers = textures.Resolve(sh.MaterialSamplers);
             }
 
-            byte[] materialUbo = File.ReadAllBytes(Path.Combine(_dataDirectory, sh.MaterialUbo));
+            byte[] materialUbo = File.ReadAllBytes(Path.Combine(_dataDirectory, sh.MaterialFile));
             uint materialUboBuffer = GLBuffer.CreatePaddedUniformBuffer(_gl, materialUbo);
-            var materialParams = MaterialParamLayout.TryLoadBeside(_dataDirectory, sh.MaterialUbo);
+            var materialParams = MaterialParamLayout.TryLoadBeside(_dataDirectory, sh.MaterialFile);
             uint passIdVao = DeferVertexArrays ? 0 : BuildPassIdVao(layout, stride, vbo, ibo, constantSkin);
 
             // The material's own static options, exported beside its geometry.
@@ -170,7 +125,8 @@ public sealed class ModelLoader
                 CastsShadow = !hideNormalPass && sh.RenderState.DepthWriteEnabled,
                 Name = sh.Name,
                 Material = sh.Material,
-                DeferredPass = sh.DeferredPass,
+                Tags = sh.Extensions.Where(e => e.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number)
+                    .ToDictionary(e => e.Key, e => e.Value.ToString()),
                 AlphaTest = sh.AlphaTest,
                 Blend = sh.RenderState.Blend,
                 RenderState = sh.RenderState,
@@ -194,8 +150,8 @@ public sealed class ModelLoader
                 GBufferShaderName = sh.GBufferShader,
                 ZOnlyShaderName = zonlyProgram != 0 ? sh.ZOnlyShader : "",
                 ReadsSceneColor = _gl.GetUniformLocation(gbufferProgram, "cTex_ColorBuffer") >= 0,
-                MaterialUboBuffer = materialUboBuffer,
-                MaterialUboBytes = materialUbo,
+                MaterialBuffer = materialUboBuffer,
+                MaterialBytes = materialUbo,
                 MaterialParams = materialParams,
                 PassIdVao = passIdVao,
             };
@@ -213,7 +169,7 @@ public sealed class ModelLoader
                     shape.PassIdVao = BuildPassIdVao(vaoLayout, vaoStride, vbo, ibo, vaoConstantSkin);
                 });
             }
-            Console.WriteLine($"  {sh.Name}: {sh.GBufferShader}, {gbufferSamplers.Count} textures, pass={sh.DeferredPass}");
+            Console.WriteLine($"  {sh.Name}: {sh.GBufferShader}, {gbufferSamplers.Count} textures");
         }
 
         if (shapes.Count == 0)
@@ -239,7 +195,6 @@ public sealed class ModelLoader
         };
     }
 
-    /// <summary>Position is always the vertex's first vec4 (see <c>ExportTestBench</c>'s fixed interleaved layout) regardless of which attributes a given program actually samples.</summary>
     static void AccumulateBounds(byte[] vertexBytes, int stride, ref Vector3 lo, ref Vector3 hi, List<Vector3> allPositions)
     {
         int count = vertexBytes.Length / stride;
@@ -253,15 +208,10 @@ public sealed class ModelLoader
         }
     }
 
-    /// <summary>
-    /// Binds each attribute the manifest's fixed layout describes at its location, for every
-    /// location THIS linked program actually reads - a linked program drops an input its code
-    /// never reads. Matched by location, not name: every decompiled program declares its inputs
-    /// at explicit locations that are the exporter's layout, but not always under the layout's
-    /// names. Location 3 is the layout's <c>aU254</c> and 356 programs' <c>aTexCoordBake</c> (the
-    /// baked-lighting UV), location 10 is <c>aTexCoord2</c> to some and <c>aNormal0</c> to others -
-    /// matched by name, those were never bound at all. Mirrors <c>build_vertex_format</c>.
-    /// </summary>
+    // Binds each attribute of the manifest's fixed layout at its location, for every location this linked program reads (a
+    // linked program drops inputs its code never reads). Matched by location, not name: the programs declare inputs at the
+    // exporter's locations but not always under its names (location 3 is aU254 to the layout and aTexCoordBake to 356 programs;
+    // location 10 is aTexCoord2 to some and aNormal0 to others).
     unsafe uint BuildVertexArray(uint program, List<VertexLayoutEntry> layout, int stride, uint vbo, uint ibo, bool constantSkin = false)
     {
         uint vao = _gl.GenVertexArray();
@@ -287,7 +237,6 @@ public sealed class ModelLoader
 
     static readonly string[] BlendAttributes = ["aBlendWeight0", "aBlendWeight1", "aBlendIndex0", "aBlendIndex1"];
 
-    /// <summary>The locations of every vertex input <paramref name="program"/> actually reads.</summary>
     HashSet<int> ActiveLocations(uint program)
     {
         var locations = new HashSet<int>();
@@ -302,7 +251,9 @@ public sealed class ModelLoader
         return locations;
     }
 
-    /// <summary>The attributes a shape's vertex buffer must carry: whatever any of its programs reads, plus position and, for a skinned shape, the blend attributes the pass-ID stamp skins with - less those, when they are replaced by the shared constant vertex.</summary>
+    // The attributes a shape's vertex buffer must carry: whatever any of its programs reads, plus position and, for a skinned
+    // shape, the blend attributes the pass-ID stamp skins with - less those, when they are replaced by the shared constant
+    // vertex.
     HashSet<string> UsedAttributes(List<VertexLayoutEntry> layout, int skinCount, bool constantSkin, params uint[] programs)
     {
         var used = new HashSet<string> { "aPosition" };
@@ -322,7 +273,6 @@ public sealed class ModelLoader
         return used;
     }
 
-    /// <summary>The vertices with only the <paramref name="used"/> attributes, packed in their original order.</summary>
     static (List<VertexLayoutEntry> Layout, int Stride, byte[] Bytes) Compact(List<VertexLayoutEntry> layout, int stride, byte[] bytes, HashSet<string> used)
     {
         var kept = layout.Where(e => used.Contains(e.Name)).OrderBy(e => e.Offset).ToList();
@@ -344,12 +294,9 @@ public sealed class ModelLoader
         return (packed, newStride, result);
     }
 
-    /// <summary>
-    /// Binds the blend attributes to one shared vertex holding all weight on palette slot 0, fed
-    /// through a divisor no instance count reaches, so every vertex of every instance reads the same
-    /// element. The instancing shaders address instances through their own uniform, never through a
-    /// base instance, so element 0 is always the one read.
-    /// </summary>
+    // Binds the blend attributes to one shared vertex holding all weight on palette slot 0, through a divisor no instance count
+    // reaches so every vertex of every instance reads element 0 (the instancing shaders address instances through their own
+    // uniform, never a base instance).
     unsafe void BindConstantSkin(Func<string, int> location)
     {
         uint buffer = ConstantSkinBuffer(_gl);
@@ -365,7 +312,6 @@ public sealed class ModelLoader
         }
     }
 
-    /// <summary>The one constant-skin vertex per GL context, made on first use and kept for the context's life (64 bytes).</summary>
     static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GL, StrongBox<uint>> ConstantSkinBuffers = new();
 
     static uint ConstantSkinBuffer(GL gl)
@@ -385,7 +331,6 @@ public sealed class ModelLoader
         return box.Value;
     }
 
-    /// <summary>True when every smooth slot of the bind-pose palette is the identity - see <see cref="CompactVertices"/>.</summary>
     static bool SmoothPaletteIsIdentity(SkeletonManifest? skeleton)
     {
         if (skeleton is null)
@@ -404,7 +349,9 @@ public sealed class ModelLoader
         return true;
     }
 
-    /// <summary>Position and the four blend attributes the pass-ID stamp skins with, at the FIXED locations <see cref="Pipeline.PassIdMaskPass"/>'s own shader declares - which are the same locations the manifest layout already assigns them, so they are looked up by name rather than hardcoded here. The stamp needs the same silhouette and depth as the real draw, which since skinning moved to the GPU means it has to skin too; everything else in the vertex is skipped.</summary>
+    // Position and the four blend attributes the pass-ID stamp skins with, at the locations the pass-ID shader declares (the
+    // manifest layout already assigns them, so they are found by name). The stamp needs the same silhouette and depth as the
+    // real draw, so it has to skin too.
     static readonly string[] PassIdAttributes = ["aPosition", "aBlendWeight0", "aBlendWeight1", "aBlendIndex0", "aBlendIndex1"];
 
     unsafe uint BuildPassIdVao(List<VertexLayoutEntry> layout, int stride, uint vbo, uint ibo, bool constantSkin = false)
@@ -414,9 +361,7 @@ public sealed class ModelLoader
         _gl.BindBuffer(BufferTargetARB.ArrayBuffer, vbo);
         _gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, ibo);
 
-        // Blend indices are integers stored in the float attribute's bit pattern, which is why they
-        // are read as Float here and unpacked with floatBitsToInt in the shader - the same thing
-        // BuildVertexArray does for the real programs.
+        // Blend indices are integers in the float attribute's bit pattern: read as Float here and unpacked with floatBitsToInt in the shader, as BuildVertexArray does.
         foreach (var entry in layout)
         {
             if (Array.IndexOf(PassIdAttributes, entry.Name) < 0)
@@ -432,7 +377,6 @@ public sealed class ModelLoader
         return vao;
     }
 
-    /// <summary>The pass-ID shader's own fixed blend locations (<see cref="Pipeline.PassIdMaskPass"/>).</summary>
     static int PassIdLocation(string name) => name switch
     {
         "aBlendWeight0" => 4,

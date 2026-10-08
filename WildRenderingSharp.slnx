@@ -1,7 +1,15 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/WildRenderingSharp/WildRenderingSharp.csproj" />
-    <Project Path="src/WildRenderingSharp.AampReader/WildRenderingSharp.AampReader.csproj" />
     <Project Path="src/WildRenderingSharp.Preparation/WildRenderingSharp.Preparation.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WildRenderingSharp.Tests/WildRenderingSharp.Tests.csproj" />
+    <Project Path="tests/WildRenderingSharp.TestBench/WildRenderingSharp.TestBench.csproj" />
+  </Folder>
+  <Folder Name="/vendor/" />
+  <Folder Name="/vendor/AampSharp/" />
+  <Folder Name="/vendor/AampSharp/src/">
+    <Project Path="vendor/AampSharp/src/AampSharp/AampSharp.csproj" />
   </Folder>
 </Solution>

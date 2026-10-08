@@ -3,17 +3,13 @@ using System.Numerics;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// TotK's own in-game item-icon capture: a fixed actor pose, a near-orthographic FOV, and a
-/// specific sun/palette/exposure combination, with the camera distance auto-fit to whichever
-/// model is loaded (rather than the Master Sword's own fixed distance, which cuts off anything
-/// bigger). Mirrors <c>viewer.Viewer._enable_icon_capture</c>/<c>render_deferred_master_sword.frame_icon_capture</c>
-/// exactly - these are the real shipped values, not tuned approximations.
+/// TotK's in-game item-icon capture: a fixed actor pose, a near-orthographic FOV and a specific sun, palette and exposure, with the
+/// camera distance auto-fitted to the loaded model (the Master Sword's fixed distance cuts off anything bigger).
 /// </summary>
 public static class IconCapturePreset
 {
     public static readonly Vector3 ActorRotationDegrees = new(-134.64f, 165.6f, -59.0f);
     public const float FovDegrees = 2.12f;
-    /// <summary>Direction the light TRAVELS (matches the <c>--light-dir</c> CLI convention), not the direction toward the sun.</summary>
     public static readonly Vector3 LightDirection = new(-0.562f, 0.694f, 0.451f);
     public const string PaletteName = "IconCapture";
     public const float Exposure = 12.0f;
@@ -21,28 +17,14 @@ public static class IconCapturePreset
     public const float MidScale = 7.78f;
     public const float HighlightScale = 1.00f;
 
-    /// <summary>
-    /// Pads the exact silhouette fit by a hair so antialiasing at the edge always has headroom -
-    /// not compensating for looseness in the fit itself (unlike an AABB-based fit, whose
-    /// tightness depends on how box-shaped the mesh happens to be).
-    /// </summary>
+    // Pads the exact silhouette fit by a hair so antialiasing at the edge always has headroom - not compensating for looseness
+    // in the fit itself (unlike an AABB-based fit, whose tightness depends on how box-shaped the mesh happens to be).
     const float FitMargin = 1.10f;
 
     public readonly record struct Framing(Vector3 CameraPosition, Vector3 CameraTarget, float Near, float Far, float AoRadius, float ShadowBias);
 
-    /// <summary>The actor's fixed rotation as a mat3x4 (3 rows) - applied about the model's own local origin, not its bounds centre (this is the actor's authored pivot, unlike the default view tilt).</summary>
     public static Vector4[] ActorRotationRows() => EulerRotation.MakeXyzRows3(ActorRotationDegrees.X, ActorRotationDegrees.Y, ActorRotationDegrees.Z);
 
-    /// <summary>
-    /// Sun elevation/azimuth (radians) matching <see cref="LightDirection"/>, in the same
-    /// convention <see cref="LightingContext"/> uses.
-    ///
-    /// EXPERIMENTAL: sign flipped from what <c>viewer.py</c>'s own formula produces (which negates
-    /// <see cref="LightDirection"/> before converting) - on the hypothesis that a fix made
-    /// elsewhere in the shading pipeline changed the effective sun-facing convention for this
-    /// specific path. Revert to <c>Vector3.Normalize(-LightDirection)</c> if this doesn't actually
-    /// match the game's own icon capture any better.
-    /// </summary>
     public static (float Elevation, float Azimuth) SunElevationAzimuth()
     {
         var towardSun = Vector3.Normalize(LightDirection);
@@ -51,11 +33,6 @@ public static class IconCapturePreset
         return (elevation, azimuth);
     }
 
-    /// <summary>
-    /// Auto-fits the camera distance (and near/far/AO-radius/shadow-bias) to this model's own
-    /// rotated silhouette - the full vertex cloud rotated by <see cref="ActorRotationDegrees"/>
-    /// and measured directly, not its axis-aligned bounding box.
-    /// </summary>
     public static Framing Frame(IReadOnlyList<Vector3> vertices, float aspect = 1f)
     {
         if (vertices.Count == 0)

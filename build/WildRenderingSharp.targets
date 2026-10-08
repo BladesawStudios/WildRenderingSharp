@@ -5,13 +5,7 @@
 
       <Import Project="path\to\WildRenderingSharp\build\WildRenderingSharp.targets" />
 
-    The renderer needs two helpers that it deliberately does NOT reference, because each would pull
-    an assembly into the host's process that clashes with one the host very likely has already:
-
-      aampreader\   WildRenderingSharp.AampReader - AAMP parsing through AampLibrary, which needs
-                    Syroot.* 5.x while anything reading BFRES needs Syroot.* 2.x. Loaded at runtime
-                    into its own AssemblyLoadContext (WildRenderingSharp.Hosting.IsolatedAamp).
-                    Always built.
+    The renderer needs one helper that it deliberately does NOT reference:
 
       wrs-prepare\  WildRenderingSharp.Preparation - the offline model preparer, run as a child
                     process by WildRenderingSharp.Hosting.OutOfProcessPreparer. It carries
@@ -20,12 +14,11 @@
                     true (the default). A host that references WildRenderingSharp.Preparation
                     directly and prepares in-process can set it to false.
 
-    Both land beside the host's executable on build, and beside the published executable on publish.
+    It lands beside the host's executable on build, and beside the published executable on publish.
   -->
 
   <PropertyGroup>
     <WrsRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</WrsRoot>
-    <WrsAampReaderProject>$(WrsRoot)\src\WildRenderingSharp.AampReader\WildRenderingSharp.AampReader.csproj</WrsAampReaderProject>
     <WrsPreparationProject>$(WrsRoot)\src\WildRenderingSharp.Preparation\WildRenderingSharp.Preparation.csproj</WrsPreparationProject>
     <WrsOutOfProcessPreparer Condition="'$(WrsOutOfProcessPreparer)' == ''">true</WrsOutOfProcessPreparer>
   </PropertyGroup>
@@ -45,18 +38,10 @@
     "project.assets.json not found".
   -->
   <Target Name="WrsBuildHelpers" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
-    <MSBuild Projects="$(WrsAampReaderProject)" Targets="Restore"
-             Properties="Configuration=$(Configuration);_WrsRestoreEvaluation=true"
-             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing" />
     <MSBuild Projects="$(WrsPreparationProject)" Targets="Restore" Condition="'$(WrsOutOfProcessPreparer)' == 'true'"
              Properties="Configuration=$(Configuration);_WrsRestoreEvaluation=true"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing" />
 
-    <MSBuild Projects="$(WrsAampReaderProject)" Targets="Build"
-             Properties="Configuration=$(Configuration)"
-             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing">
-      <Output TaskParameter="TargetOutputs" ItemName="_WrsAampReaderOutput" />
-    </MSBuild>
     <MSBuild Projects="$(WrsPreparationProject)" Targets="Build" Condition="'$(WrsOutOfProcessPreparer)' == 'true'"
              Properties="Configuration=$(Configuration)"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing">
@@ -64,21 +49,17 @@
     </MSBuild>
 
     <PropertyGroup>
-      <_WrsAampReaderDir>@(_WrsAampReaderOutput->'%(RootDir)%(Directory)')</_WrsAampReaderDir>
       <_WrsPreparationDir Condition="'@(_WrsPreparationOutput)' != ''">@(_WrsPreparationOutput->'%(RootDir)%(Directory)')</_WrsPreparationDir>
     </PropertyGroup>
     <ItemGroup>
-      <_WrsAampReaderFiles Include="$(_WrsAampReaderDir)**\*" />
       <_WrsPreparationFiles Include="$(_WrsPreparationDir)**\*" Condition="'$(_WrsPreparationDir)' != ''" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(_WrsAampReaderFiles)" DestinationFiles="@(_WrsAampReaderFiles->'$(TargetDir)aampreader\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_WrsPreparationFiles)" DestinationFiles="@(_WrsPreparationFiles->'$(TargetDir)wrs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
   <!--
-    On publish. The AAMP reader is loaded into the host's own process, so the build output serves
-    whatever the host is. The preparer is a process of its own: beside a framework-dependent host
+    On publish. The preparer is a process of its own: beside a framework-dependent host
     the build output is right, but beside a SELF-CONTAINED host - one handed to people who have no
     .NET installed - a framework-dependent preparer would not start. So for those it is published
     self-contained for the host's runtime identifier (not single-file: ShaderLibrary's native
@@ -90,7 +71,6 @@
       <_WrsPreparationPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)wrs-prepare-publish\$(RuntimeIdentifier)\'))</_WrsPreparationPublishDir>
     </PropertyGroup>
 
-    <Copy SourceFiles="@(_WrsAampReaderFiles)" DestinationFiles="@(_WrsAampReaderFiles->'$(PublishDir)aampreader\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy Condition="'$(_WrsSelfContainedPreparer)' != 'true'" SourceFiles="@(_WrsPreparationFiles)" DestinationFiles="@(_WrsPreparationFiles->'$(PublishDir)wrs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
 
     <MSBuild Condition="'$(_WrsSelfContainedPreparer)' == 'true'" Projects="$(WrsPreparationProject)" Targets="Restore"

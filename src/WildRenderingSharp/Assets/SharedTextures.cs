@@ -2,17 +2,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>
-/// Textures shared between models, counted by how many models hold each.
-/// </summary>
-/// <remarks>
-/// The preparer copies every texture a model uses into that model's own directory, and the common
-/// ones - <c>CmnTex_*</c> rock, wood, grass - are used by hundreds. With one
-/// <see cref="TextureCache"/> per model each copy was read and uploaded again: a map's 800 models
-/// read 2 GB of textures, 0.45 GB of them unique, and held every duplicate on the card. A texture is
-/// the same one wherever it is copied when its file, sRGB decision, swizzle and wrap modes agree,
-/// which is the key.
-/// </remarks>
+/// <summary>Textures shared between models, counted by how many models hold each.</summary>
 public sealed class SharedTextures : IDisposable
 {
     readonly GL _gl;
@@ -21,13 +11,11 @@ public sealed class SharedTextures : IDisposable
 
     public SharedTextures(GL gl) => _gl = gl;
 
-    /// <summary>How many distinct textures are held.</summary>
     public int Count => _byKey.Count;
 
     internal static string Key(SamplerBinding s, bool srgb) =>
         $"{s.File}|{srgb}|{(s.CompSelect is { } c ? string.Join(',', c) : "-")}|{s.WrapU}|{s.WrapV}";
 
-    /// <summary>Takes another hold on the texture under <paramref name="key"/>, if there is one.</summary>
     internal bool TryAcquire(string key, out LoadedTexture texture)
     {
         lock (_byKey)
@@ -43,7 +31,6 @@ public sealed class SharedTextures : IDisposable
         }
     }
 
-    /// <summary>Adds a texture just loaded, held once.</summary>
     internal void Add(string key, LoadedTexture texture)
     {
         lock (_byKey)
@@ -53,14 +40,12 @@ public sealed class SharedTextures : IDisposable
         }
     }
 
-    /// <summary>Whether <paramref name="texture"/> is one of these.</summary>
     internal bool Owns(LoadedTexture texture)
     {
         lock (_byKey)
             return _keyOf.ContainsKey(texture);
     }
 
-    /// <summary>Lets go of one hold, deleting the texture with the last.</summary>
     internal void Release(LoadedTexture texture)
     {
         lock (_byKey)

@@ -4,35 +4,22 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Rendering;
 
 /// <summary>
-/// Applies shader parameter animations by rewriting the affected materials' <c>gsys_material</c>
-/// uniform blocks - which is exactly what <c>nn::g3d2::MaterialAnimObj::ApplyTo</c> (Ghidra
-/// 0x7100080894) does: evaluate each curve, then copy the resulting 4-byte word into the material's
-/// parameter block. The only translation WildRenderingSharp adds is turning the anim's (parameter NAME, byte
-/// within parameter) address into a block offset, via the layout sidecar
-/// <c>BuildMaterialUbo.WriteParamLayout</c> exports.
-///
-/// Several anims can be applied at once (a colour anim and a texture-SRT scroll on the same
-/// material, say). <see cref="Apply"/> takes them together and rebuilds each material's block ONCE
-/// from its untouched baseline, so a later anim overwriting an earlier one's parameter behaves the
-/// same as the engine's own sequential ApplyTo, and dropping an anim restores the baseline rather
-/// than leaving the last value it wrote.
+/// Applies shader parameter animations by rewriting the affected materials' <c>gsys_material</c> uniform blocks - which is exactly
+/// what <c>nn::g3d2::MaterialAnimObj::ApplyTo</c> (Ghidra 0x7100080894) does: evaluate each curve, then copy the resulting 4-byte
+/// word into the material's parameter block.
 /// </summary>
 public static class MaterialAnimPose
 {
     /// <summary>One anim and the frame to sample it at.</summary>
     public readonly record struct Playing(MaterialAnimManifest Anim, float Frame);
 
-    /// <summary>
-    /// Rewrites every material an anim in <paramref name="playing"/> touches, and restores every
-    /// material that was rewritten on a previous call but is no longer touched.
-    /// </summary>
     public static void Apply(GL gl, LoadedModel model, IReadOnlyList<Playing> playing)
     {
         var patched = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var shape in model.Shapes)
         {
-            if (shape.MaterialParams is not { } layout || shape.MaterialUboBytes.Length == 0)
+            if (shape.MaterialParams is not { } layout || shape.MaterialBytes.Length == 0)
                 continue;
 
             byte[]? buffer = null;
@@ -67,12 +54,12 @@ public static class MaterialAnimPose
                         }
 
                         int offset = paramOffset + target.ByteOffset;
-                        if (offset < 0 || offset + 4 > shape.MaterialUboBytes.Length)
+                        if (offset < 0 || offset + 4 > shape.MaterialBytes.Length)
                             continue;
 
                         // Copy-on-first-write: a material no anim actually touches never allocates
                         // and never re-uploads, which is most of them on most frames.
-                        buffer ??= (byte[])shape.MaterialUboBytes.Clone();
+                        buffer ??= (byte[])shape.MaterialBytes.Clone();
                         BitConverter.TryWriteBytes(buffer.AsSpan(offset, 4), target.Bits(frame));
                     }
                 }
@@ -80,34 +67,30 @@ public static class MaterialAnimPose
 
             if (srtGroups is not null)
             {
-                buffer ??= (byte[])shape.MaterialUboBytes.Clone();
+                buffer ??= (byte[])shape.MaterialBytes.Clone();
                 foreach (var (paramOffset, group) in srtGroups)
                     ApplyTexSrtGroup(layout, buffer, paramOffset, group.paramName, group.bitsByFieldOffset);
             }
 
             if (buffer is not null)
             {
-                UploadBlock(gl, shape.MaterialUboBuffer, buffer);
+                UploadBlock(gl, shape.MaterialBuffer, buffer);
                 patched.Add(shape.Name);
             }
-            else if (shape.MaterialUboIsPatched)
+            else if (shape.MaterialIsPatched)
             {
-                UploadBlock(gl, shape.MaterialUboBuffer, shape.MaterialUboBytes);
+                UploadBlock(gl, shape.MaterialBuffer, shape.MaterialBytes);
             }
         }
 
         foreach (var shape in model.Shapes)
-            shape.MaterialUboIsPatched = patched.Contains(shape.Name);
+            shape.MaterialIsPatched = patched.Contains(shape.Name);
     }
 
-    /// <summary>
-    /// Fills in the six raw TexSrt sub-fields from the material's own authored baseline
-    /// (<see cref="MaterialUniformEntry.RawSrt"/>), overlays whichever ones the playing anims
-    /// actually drive this frame, re-bakes the whole set, and writes the 24 meaningful bytes
-    /// (a 2x2 matrix + translation) at the parameter's block offset - mirroring exactly what the
-    /// offline static overlay does in <c>BuildMaterialUbo.BuildBlock</c>, just per-frame instead of
-    /// once at export time.
-    /// </summary>
+    // Fills in the six raw TexSrt sub-fields from the material's own authored baseline (RawSrt), overlays whichever ones the
+    // playing anims actually drive this frame, re-bakes the whole set, and writes the 24 meaningful bytes (a 2x2 matrix +
+    // translation) at the parameter's block offset - mirroring exactly what the offline static overlay does in
+    // BuildMaterialUbo.BuildBlock, just per-frame instead of once at export time.
     static void ApplyTexSrtGroup(MaterialParamLayout layout, byte[] buffer, int paramOffset, string paramName, Dictionary<int, uint> bitsByFieldOffset)
     {
         int mode = 0;
@@ -142,24 +125,20 @@ public static class MaterialAnimPose
             BitConverter.TryWriteBytes(buffer.AsSpan(paramOffset + 16 + i * 4, 4), m1[i]);
     }
 
-    /// <summary>Restores every material's block to what its own <c>.gsys_material.bin</c> says, and forgets that anything was patched.</summary>
     public static void Clear(GL gl, LoadedModel model)
     {
         foreach (var shape in model.Shapes)
         {
-            if (!shape.MaterialUboIsPatched)
+            if (!shape.MaterialIsPatched)
                 continue;
-            UploadBlock(gl, shape.MaterialUboBuffer, shape.MaterialUboBytes);
-            shape.MaterialUboIsPatched = false;
+            UploadBlock(gl, shape.MaterialBuffer, shape.MaterialBytes);
+            shape.MaterialIsPatched = false;
         }
     }
 
-    /// <summary>
-    /// Uploads just the material's own bytes, leaving the rest of the padded buffer alone - the
-    /// buffer is allocated at a fixed 65536 bytes so any shading model's declared block size fits
-    /// (see <see cref="GLBuffer.CreatePaddedUniformBuffer"/>), and re-sending all of that every
-    /// frame for a few hundred bytes of real change would be pure waste.
-    /// </summary>
+    // Uploads just the material's own bytes, leaving the rest of the padded buffer alone - the buffer is allocated at a fixed
+    // 65536 bytes so any shading model's declared block size fits (see CreatePaddedUniformBuffer), and re-sending all of that
+    // every frame for a few hundred bytes of real change would be pure waste.
     static unsafe void UploadBlock(GL gl, uint handle, byte[] bytes)
     {
         gl.BindBuffer(BufferTargetARB.UniformBuffer, handle);

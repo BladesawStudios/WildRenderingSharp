@@ -1,0 +1,81 @@
+using System.Text.RegularExpressions;
+using Silk.NET.OpenGL;
+using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Profiles.Totk.Shaders;
+
+namespace WildRenderingSharp.Profiles.Totk.Terrain;
+
+/// <summary>
+/// What a host draws its terrain with when the renderer shades it: the game's own terrain fragment programs, linked with the host's
+/// vertex stage, and the hooks inside a frame where it draws.
+/// </summary>
+public sealed partial class TerrainShading : IDisposable
+{
+    readonly GL _gl;
+    readonly string _shadersDir;
+    readonly ShaderBindings _bindings;
+    uint _materialBuffer;
+
+    public const string TileLayerVarying = "wrs_tile_layer";
+
+    public const int TileLayerLocation = 15;
+
+    public const int NormalUnit = 17, MaterialUnit = 18, MaterialLinearUnit = 19, BakeUnit = 20, AlbedoArrayUnit = 13, CombinedArrayUnit = 14;
+    public const uint TerrainSystemBinding = 11;
+
+    internal TerrainShading(GL gl, string shadersDir, ShaderBindings bindings)
+    {
+        _gl = gl;
+        _shadersDir = shadersDir;
+        _bindings = bindings;
+    }
+
+    public bool Available => File.Exists(Path.Combine(_shadersDir, "terrain_prog2_extracted.frag"));
+
+    public uint LinkGBufferProgram(string hostVertexSource, int program = 2)
+    {
+        string frag = File.ReadAllText(Path.Combine(_shadersDir, $"terrain_prog{program}_extracted.frag"));
+        frag = PatchTileSamplers(GlslSanitizer.Clean(frag));
+        return GLProgramBuilder.Build(_gl, hostVertexSource, frag, $"terrain_prog{program}");
+    }
+
+    public uint LinkShadowProgram(string hostVertexSource) =>
+        GLProgramBuilder.Build(_gl, hostVertexSource, GlslFiles.Load("Totk/Terrain/TerrainShading/ShadowStub.frag"), "terrain_shadow");
+
+    static readonly Regex TileSamplerDeclaration = new(@"uniform\s+sampler2D\s+(cTeraTexNode\w+)\s*;", RegexOptions.Compiled);
+    static readonly Regex TileSamplerRead = new(@"\b(texture|textureLod)\((cTeraTexNode\w+),\s*vec2\(", RegexOptions.Compiled);
+
+    static string PatchTileSamplers(string source)
+    {
+        source = TileSamplerDeclaration.Replace(source, "uniform sampler2DArray $1;");
+        // vec2(a, b) -> vec3(a, b, layer): the arguments are plain temporaries, never nested calls.
+        source = TileSamplerRead.Replace(source, m => $"{m.Groups[1].Value}({m.Groups[2].Value}, vec3(");
+        source = Regex.Replace(source, @"(\b(?:texture|textureLod)\(cTeraTexNode\w+, vec3\()([^()]*)\)",
+            m => $"{m.Groups[1].Value}{m.Groups[2].Value}, {TileLayerVarying})");
+        int at = source.IndexOf("layout (location", StringComparison.Ordinal);
+        string declaration = $"layout (location = {TileLayerLocation}) flat in float {TileLayerVarying};\n";
+        return at < 0 ? source : source.Insert(at, declaration);
+    }
+
+    internal uint MaterialBuffer
+    {
+        get
+        {
+            if (_materialBuffer == 0)
+            {
+                string path = Path.Combine(_shadersDir, "terrain_gsys_material.bin");
+                byte[] bytes = File.Exists(path) ? File.ReadAllBytes(path) : [];
+                _materialBuffer = Assets.GLBuffer.CreatePaddedUniformBuffer(_gl, bytes);
+            }
+            return _materialBuffer;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_materialBuffer != 0)
+            _gl.DeleteBuffer(_materialBuffer);
+        DisposeWater();
+    }
+}

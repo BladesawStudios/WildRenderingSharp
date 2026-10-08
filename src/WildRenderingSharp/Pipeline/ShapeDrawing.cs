@@ -3,15 +3,13 @@ using WildRenderingSharp.Assets;
 
 namespace WildRenderingSharp.Pipeline;
 
-/// <summary>The one draw call every shape variant (G-buffer, z-only, forward) needs - bind its program, its own material UBO at binding 8, its sampler set, and issue the indexed draw.</summary>
+/// <summary>
+/// The one draw call every shape variant (G-buffer, z-only, forward) needs - bind its program, its own material UBO at binding 8,
+/// its sampler set, and issue the indexed draw.
+/// </summary>
 public static class ShapeDrawing
 {
-    /// <param name="overrides">
-    /// Sampler key -> a texture to bind instead of the one <paramref name="samplers"/> resolved for
-    /// that key, or null for none. This is how a texture pattern anim takes effect: it re-points a
-    /// sampler at a different texture without touching the program, the VAO, or the material UBO.
-    /// </param>
-    public static unsafe void Draw(GL gl, uint program, uint vao, uint materialUboBuffer,
+    public static unsafe void Draw(GL gl, uint materialBinding, uint program, uint vao, uint materialUboBuffer,
         IReadOnlyList<ShapeSampler> samplers, int indexCount,
         IReadOnlyDictionary<string, LoadedTexture>? overrides = null)
     {
@@ -20,7 +18,7 @@ public static class ShapeDrawing
 
         InvalidateStateCache();
         gl.UseProgram(program);
-        gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, materialUboBuffer);
+        gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, materialUboBuffer);
         foreach (var (unit, key, texture) in samplers)
         {
             var bound = texture;
@@ -35,18 +33,13 @@ public static class ShapeDrawing
         gl.DrawElements(PrimitiveType.Triangles, (uint)indexCount, DrawElementsType.UnsignedInt, null);
     }
 
-    /// <summary>
-    /// <see cref="Draw"/> for every visible run of a batch: the same program state, then one
-    /// instanced call per run, each at that run's level of detail. The instance buffer is already
-    /// bound (<see cref="ActorDrawGroup.BindUbos"/>).
-    /// </summary>
-    public static unsafe void DrawInstanced(GL gl, uint program, uint vao, LoadedShape shape,
+    public static unsafe void DrawInstanced(GL gl, uint materialBinding, uint program, uint vao, LoadedShape shape,
         IReadOnlyList<ShapeSampler> samplers, InstanceBatch batch, IReadOnlyList<(int First, int Count, int Lod)>? runs = null)
     {
         if (vao == 0 || program == 0)
             return;
 
-        bool multi = InstancedShaderPatch.BaseInstance;
+        bool multi = InstancingContract.BaseInstance;
         if (!_caching || _program != program)
         {
             gl.UseProgram(program);
@@ -67,10 +60,10 @@ public static class ShapeDrawing
             _uniformBatch = batch;
         }
 
-        if (!_caching || _material != shape.MaterialUboBuffer)
+        if (!_caching || _material != shape.MaterialBuffer)
         {
-            gl.BindBufferBase(BufferTargetARB.UniformBuffer, 8, shape.MaterialUboBuffer);
-            _material = shape.MaterialUboBuffer;
+            gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, shape.MaterialBuffer);
+            _material = shape.MaterialBuffer;
         }
 
         // Baked lighting (InstanceBatch.SetBake): the per-instance table at binding 0, and each
@@ -107,10 +100,8 @@ public static class ShapeDrawing
             _vao = vao;
         }
 
-        // Every visible run - coalesced where Prism-style cells leave neighbouring runs at one level
-        // of detail - goes out as one multi-draw per atlas, each run a command whose base instance
-        // says where its instances start. One call per run used to be tens of thousands of draws a
-        // frame for a map, and the card sat idle between them.
+        // Every visible run, coalesced where neighbouring runs share a level of detail, goes out as one multi-draw per atlas, each run a command whose base instance says where its instances start.
+        // One call per run was tens of thousands of draws a frame for a map, with the card idle between them.
         Commands.Clear();
         int pendingAtlas = int.MinValue;
         var list = runs ?? batch.Visible;
@@ -199,7 +190,6 @@ public static class ShapeDrawing
 
     static IndirectStream? _stream;
 
-    /// <summary>The context's command ring, remembered for the context last asked about.</summary>
     static IndirectStream StreamFor(GL gl)
     {
         if (_stream is not { } stream || !ReferenceEquals(stream.Gl, gl))
@@ -209,14 +199,9 @@ public static class ShapeDrawing
     static Locations _locations;
     static uint _bakeTable;
 
-    /// <summary>
-    /// Multi-draws the given runs of the bound program and VAO - for a pass with a program of its own
-    /// (the pass-ID mask), whose instanced variant reads <c>gl_BaseInstance</c> like the game's.
-    /// Returns false when multi-draw is unavailable and the caller must draw run by run.
-    /// </summary>
     public static unsafe bool MultiDrawRuns(GL gl, LoadedShape shape, IReadOnlyList<(int First, int Count, int Lod)> runs)
     {
-        if (!InstancedShaderPatch.BaseInstance)
+        if (!InstancingContract.BaseInstance)
             return false;
         Commands.Clear();
         for (int r = 0; r < runs.Count; r++)
@@ -244,19 +229,12 @@ public static class ShapeDrawing
     static readonly uint[] _textures = new uint[96];
     static int _activeUnit = -1;
 
-    /// <summary>
-    /// Starts trusting what the instanced draws last bound: a pass drawing thousands of shapes in
-    /// program order (see <see cref="GBufferPass"/>) re-bound the same program, uniforms and
-    /// textures for each. Only valid while nothing else binds in between - a non-instanced draw
-    /// forgets it (<see cref="Draw"/>), and <see cref="EndStateCache"/> must follow.
-    /// </summary>
     public static void BeginStateCache()
     {
         InvalidateStateCache();
         _caching = true;
     }
 
-    /// <summary>Stops trusting the cache and leaves unit 0 active, as every draw used to.</summary>
     public static void EndStateCache(GL? gl = null)
     {
         _caching = false;
@@ -285,13 +263,10 @@ public static class ShapeDrawing
             _textures[unit] = handle;
     }
 
-    /// <summary>Where the static-object shaders read their per-instance bake table from (<c>vp_s0</c>).</summary>
     public const uint BakeTableBinding = 0;
 
-    /// <summary>Triangles and instances submitted by instanced draws since the counters were last read - see <see cref="TakeCounts"/>.</summary>
     static long _triangles, _instances;
 
-    /// <summary>Reads and resets what instanced draws have submitted.</summary>
     public static (long Triangles, long Instances) TakeCounts()
     {
         var counts = (_triangles, _instances);
@@ -305,17 +280,7 @@ public static class ShapeDrawing
 
     static readonly List<DrawCommand> Commands = [];
 
-    /// <summary>
-    /// A ring the multi-draw commands are written into, bound as the draw-indirect buffer.
-    /// </summary>
-    /// <remarks>
-    /// Persistently mapped where the driver has buffer storage: commands are written straight into
-    /// memory the card reads, in chunks, and a chunk is only waited on when the ring comes back
-    /// round to it - a fence per chunk, a few a second. It used to be <c>glBufferSubData</c> per
-    /// multi-draw into the buffer the very next call reads from, which the driver serialises: every
-    /// draw waited for its own upload. Measured as a near-constant 0.2-0.4 ms of GPU time per draw
-    /// however small - thousands of them, most of a 38 ms G-buffer.
-    /// </remarks>
+    /// <summary>A ring the multi-draw commands are written into, bound as the draw-indirect buffer.</summary>
     sealed unsafe class IndirectStream
     {
         const int Capacity = 8 << 20, Chunks = 8, ChunkSize = Capacity / Chunks;
@@ -385,7 +350,6 @@ public static class ShapeDrawing
         }
     }
 
-    /// <summary>Drops every remembered location - the programs they were looked up in are being deleted.</summary>
     internal static void ForgetPrograms(IEnumerable<uint> programs)
     {
         foreach (uint program in programs)
@@ -396,20 +360,17 @@ public static class ShapeDrawing
 
     static readonly Dictionary<uint, Locations> LocationCache = [];
 
-    /// <summary>
-    /// The instancing uniforms' locations, looked up once per program. Keyed by program name, which
-    /// GL reuses after a delete - so <see cref="ShaderProgramCache"/> calls <see cref="ForgetPrograms"/>
-    /// when it deletes the programs these belong to.
-    /// </summary>
+    // The instancing uniforms' locations, looked up once per program. Keyed by program name, which GL reuses after a delete -
+    // so ShaderProgramCache calls ForgetPrograms when it deletes the programs these belong to.
     static Locations InstancedLocations(GL gl, uint program)
     {
         if (!LocationCache.TryGetValue(program, out var l))
         {
             l = new Locations(
-                gl.GetUniformLocation(program, InstancedShaderPatch.FirstInstanceUniform),
-                gl.GetUniformLocation(program, InstancedShaderPatch.StrideUniform),
-                gl.GetUniformLocation(program, InstancedShaderPatch.PaletteVec4sUniform),
-                gl.GetUniformLocation(program, InstancedShaderPatch.PaletteRepeatUniform));
+                gl.GetUniformLocation(program, InstancingContract.FirstInstanceUniform),
+                gl.GetUniformLocation(program, InstancingContract.StrideUniform),
+                gl.GetUniformLocation(program, InstancingContract.PaletteVec4sUniform),
+                gl.GetUniformLocation(program, InstancingContract.PaletteRepeatUniform));
             LocationCache[program] = l;
         }
         return l;

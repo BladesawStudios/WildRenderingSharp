@@ -31,20 +31,9 @@
     <ProjectReference Include="$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
   </ItemGroup>
 
-  <!--
-    MeshCodec's CLI decoder for the .bfres.mc container (see ShaderLibrary's TestMaterialDump for
-    why it shells out rather than reimplementing the codec). ShaderLibrary finds it relative to its
-    own SOURCE location, which only exists on the machine that built it - so it also ships beside
-    this assembly, and ModelPreparer points ShaderLibrary at that copy (MESHCODEC_CLI).
-  -->
+  <!-- The managed BNTX reader, with its own Tegra deswizzle. -->
   <ItemGroup>
-    <Content Include="..\..\vendor\MeshCodec\meshcodec_cli.exe" Link="meshcodec_cli.exe" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <!-- The captured cloud masks ship with the preparer; see res/cloud/README.md for why this is the
-       one place game data is checked in rather than extracted, and how to remove it. -->
-  <ItemGroup>
-    <Content Include="..\..\res\cloud\*.bc4" Link="res\cloud\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="..\..\vendor\BntxSharp\src\BntxSharp\BntxSharp.csproj" />
   </ItemGroup>
 
 </Project>

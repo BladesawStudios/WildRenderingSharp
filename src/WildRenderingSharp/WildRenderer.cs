@@ -5,40 +5,15 @@ using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Scene;
+using WildRenderingSharp.Profiles.Totk.Terrain;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 namespace WildRenderingSharp;
 
 /// <summary>
-/// The whole live renderer in one object: a pipeline, the world it is lit by, the actors placed in
-/// it, and a view to draw them into. The quickest way for a tool to show a prepared model the way
-/// the game draws it.
+/// The whole live renderer in one object: a pipeline, the world it is lit by, the actors placed in it, and a view to draw them
+/// into.
 /// </summary>
-/// <remarks>
-/// <para>Typical use, from a host with a GL 4.5-capable context:</para>
-/// <code>
-/// // Off the GL thread, once: the shared assets the pipeline needs, then a model.
-/// IModelPreparer preparer = new OutOfProcessPreparer();   // or InProcessPreparer
-/// await preparer.EnsureSystemAssetsAsync(romfs, CacheLayout.Default);
-/// string model = await preparer.PrepareAsync(new PrepareRequest(romfs, "Npc_Zelda", CacheLayout.Default));
-///
-/// // On the GL thread.
-/// var renderer = new WildRenderer(gl, CacheLayout.Default, romfs);
-/// var actor = renderer.AddActor(model);
-/// ...
-/// renderer.Advance(deltaSeconds);
-/// renderer.Render(camera, width, height, deltaSeconds);   // then draw renderer.View.OutputTexture
-/// </code>
-/// <para>
-/// Everything here is also usable piecemeal - <see cref="DeferredPipeline"/>, <see cref="SceneView"/>,
-/// <see cref="RenderActor"/>, <see cref="RenderEnvironment"/> - for a host that wants its own
-/// arrangement (several views of one scene, its own actor type, its own frame loop).
-/// </para>
-/// <para>
-/// <see cref="Render"/> and <see cref="LoadModel"/> run inside a <see cref="GLHostState"/>, so a
-/// host that changed GL's global conventions (reversed depth through <c>glClipControl</c>, say)
-/// gets its own state back afterwards untouched.
-/// </para>
-/// </remarks>
 public sealed class WildRenderer : IDisposable
 {
     readonly GL _gl;
@@ -48,35 +23,24 @@ public sealed class WildRenderer : IDisposable
     public string? RomfsRoot { get; }
     public RenderEnvironment Environment { get; }
     public LightingContext Lighting { get; } = new();
+    public TotkSettings Totk { get; } = new();
     public DeferredPipeline Pipeline { get; }
 
-    /// <summary>The main view <see cref="Render"/> draws into.</summary>
     public SceneView View { get; }
 
-    /// <summary>Textures a host supplies by name - the terrain's material arrays (<c>MaterialAlb</c>, <c>MaterialCmb</c>) that ground-blending objects sample. See <see cref="Assets.ExternalTextures"/>.</summary>
     public ExternalTextures ExternalTextures { get; }
 
-    /// <summary>Textures every loaded model shares, one GL texture per distinct texture however many models copy it.</summary>
     public SharedTextures SharedTextures { get; }
 
     public IReadOnlyList<RenderActor> Actors => _actors;
 
-    /// <summary>Incremented once per <see cref="Render"/> - see <see cref="RenderActor.EvaluatePosedSkeleton"/> for why physics needs it.</summary>
     public ulong FrameId { get; private set; }
 
-    /// <summary>Screen-space AO radius and shadow bias, in world units. Set from <see cref="SceneFramingCalculator"/> by <see cref="FrameFor"/>.</summary>
     public float AoRadius { get; set; } = 0.035f;
     public float ShadowBias { get; set; } = 0.0015f;
 
-    /// <summary>Which actor/shape to draw a flat highlight over, or null.</summary>
     public (int ActorIndex, int ShapeIndex)? Highlight { get; set; }
 
-    /// <summary>
-    /// Creates the pipeline and its view, loads the world from the romfs and bakes the sky. Needs
-    /// the GL context current, and <paramref name="cache"/> to hold the system assets
-    /// (<see cref="CacheLayout.HasSystemAssets"/>) - see <see cref="IModelPreparer.EnsureSystemAssetsAsync"/>.
-    /// </summary>
-    /// <param name="environment">An environment already loaded off the GL thread, or null to load one here.</param>
     public WildRenderer(GL gl, CacheLayout cache, string? romfsRoot, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
     {
         if (!cache.HasSystemAssets)
@@ -95,34 +59,17 @@ public sealed class WildRenderer : IDisposable
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
-            // The atmosphere bake is scene-independent and ~600 draw calls, so it runs once here
-            // against the palette that will actually be used rather than inside the first frame.
-            Pipeline.EnsureSkyPrecomputed(Environment.SkyPostFx, Environment.Palettes.Get(Lighting.PaletteName),
-                Lighting.PaletteName, Lighting.SkyPaletteTint);
+            // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
+            Pipeline.PrepareEnvironment(Environment.Resolve(Totk));
         }
     }
 
-    /// <summary>
-    /// Loads models with only the vertex data their own programs read, and without skin weights
-    /// that cannot matter in the bind pose - for a host drawing static placements only (a map),
-    /// where it saves a large share of vertex memory. See <see cref="ModelLoader.CompactVertices"/>;
-    /// a model loaded this way can not be posed or animated. Affects models loaded after it is set.
-    /// </summary>
     public bool CompactModelVertices { get; set; }
 
     BakeLibrary? _bakes;
 
-    /// <summary>The game's baked lighting for placed actors, from <see cref="CacheLayout.Bake"/>.</summary>
     public BakeLibrary Bakes => _bakes ?? Interlocked.CompareExchange(ref _bakes, new BakeLibrary(_gl, Cache.Bake), null) ?? _bakes!;
 
-    /// <summary>
-    /// Gives a batch's instances their baked lighting, found by each placement's hash (parallel to
-    /// the placements the batch was made from) - see <see cref="InstanceBatch.SetBake"/>. Also sets
-    /// each of the model's shapes' <c>gsys_material_id</c> to its material index, which is how the
-    /// shader finds the material's entry in an instance's run. Returns the tiles those placements
-    /// need that are not exported yet; prepare them (<see cref="OutOfProcessPreparer.PrepareBakeAsync"/>),
-    /// call <see cref="BakeLibrary.Refresh"/> and attach again.
-    /// </summary>
     public IReadOnlyList<string> AttachBake(InstanceBatch batch, IReadOnlyList<ulong> hashes)
     {
         using var _ = GLHostState.Enter(_gl);
@@ -131,7 +78,6 @@ public sealed class WildRenderer : IDisposable
         return missing;
     }
 
-    /// <summary>The render-thread half of <see cref="AttachBake"/>: material ids and the batch's bake table.</summary>
     public void ApplyBake(InstanceBatch batch, BakeActor?[] perInstance)
     {
         using var _ = GLHostState.Enter(_gl);
@@ -142,13 +88,13 @@ public sealed class WildRenderer : IDisposable
                 if (!any.MaterialIndexByName.TryGetValue(shape.Material, out int index))
                     continue;
                 var entry = shape.MaterialParams?.Uniforms.FirstOrDefault(u => u.Name == "gsys_material_id");
-                if (entry is null || entry.Offset + 4 > shape.MaterialUboBytes.Length)
+                if (entry is null || entry.Offset + 4 > shape.MaterialBytes.Length)
                     continue;
-                BitConverter.TryWriteBytes(shape.MaterialUboBytes.AsSpan(entry.Offset, 4), index);
+                BitConverter.TryWriteBytes(shape.MaterialBytes.AsSpan(entry.Offset, 4), index);
                 unsafe
                 {
-                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, shape.MaterialUboBuffer);
-                    fixed (byte* p = &shape.MaterialUboBytes[entry.Offset])
+                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, shape.MaterialBuffer);
+                    fixed (byte* p = &shape.MaterialBytes[entry.Offset])
                         _gl.BufferSubData(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, entry.Offset, 4, p);
                     _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, 0);
                 }
@@ -157,13 +103,6 @@ public sealed class WildRenderer : IDisposable
         batch.SetBake(perInstance);
     }
 
-    /// <summary>
-    /// <see cref="LoadModel"/> for a worker thread whose current context shares objects with the
-    /// renderer's: everything a model needs - its buffers, textures, and the plain and instanced
-    /// programs - is made there, leaving only its vertex arrays, which contexts do not share. Call
-    /// <see cref="LoadedModel.FinishOnRenderThread"/> on the renderer's thread before using it.
-    /// Waits for the worker's context to finish, so the objects are complete when handed over.
-    /// </summary>
     public LoadedModel LoadModelOnWorker(string resolvedModelName)
     {
         var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName), ExternalTextures)
@@ -172,17 +111,13 @@ public sealed class WildRenderer : IDisposable
             SharedTextures = SharedTextures,
             DeferVertexArrays = true,
         };
-        var model = loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Lighting.EnableKnownMaterialFixes);
+        var model = loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Totk.EnableKnownMaterialFixes);
         foreach (var shape in model.Shapes)
             ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
         _gl.Finish();
         return model;
     }
 
-    /// <summary>
-    /// The bake half of <see cref="AttachBake"/> that reads files and loads textures - safe on a
-    /// loading thread with a shared context. Hand the result to <see cref="ApplyBake"/>.
-    /// </summary>
     public (BakeActor?[] PerInstance, IReadOnlyList<string> Missing) FindBakes(IReadOnlyList<ulong> hashes)
     {
         var library = Bakes;
@@ -191,7 +126,6 @@ public sealed class WildRenderer : IDisposable
         return (perInstance, missing);
     }
 
-    /// <summary>Loads a prepared model from the cache. Needs the GL context current; compiles the model's shader programs, so it can take a moment for a large model.</summary>
     public LoadedModel LoadModel(string resolvedModelName)
     {
         using var _ = GLHostState.Enter(_gl);
@@ -200,10 +134,9 @@ public sealed class WildRenderer : IDisposable
             CompactVertices = CompactModelVertices,
             SharedTextures = SharedTextures,
         };
-        return loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Lighting.EnableKnownMaterialFixes);
+        return loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Totk.EnableKnownMaterialFixes);
     }
 
-    /// <summary>Loads a prepared model and places it, standing upright at the origin.</summary>
     public RenderActor AddActor(string resolvedModelName)
     {
         var actor = new RenderActor { Model = LoadModel(resolvedModelName), ModelName = resolvedModelName, Name = resolvedModelName };
@@ -213,39 +146,19 @@ public sealed class WildRenderer : IDisposable
 
     readonly List<InstanceBatch> _instances = [];
 
-    /// <summary>Batches of placements drawn instanced - a map's static objects. See <see cref="AddInstances"/>.</summary>
     public IReadOnlyList<InstanceBatch> Instances => _instances;
 
-    /// <summary>
-    /// Where the shadow map is fitted, instead of every actor's bounds - set it, around the camera,
-    /// for a scene far larger than one shadow map can cover. Null fits the actors as before.
-    /// </summary>
     public ShadowFocus? ShadowFocus { get; set; }
 
-    /// <summary>Nested shadow regions, finest first - see <see cref="FrameRequest.ShadowCascades"/>. Takes the place of <see cref="ShadowFocus"/> when set.</summary>
     public IReadOnlyList<ShadowFocus>? ShadowCascades { get; set; }
 
-    /// <summary>A host whose terrain the renderer shades with the game's own terrain programs - see <see cref="TerrainShading"/>.</summary>
     public ITerrainHost? Terrain { get; set; }
 
-    /// <summary>
-    /// Places every one of <paramref name="placements"/> as an instance of <paramref name="model"/>,
-    /// all drawn instanced through the game's own shaders. Nothing draws until the host fills the
-    /// batch's <see cref="InstanceBatch.Visible"/> runs; <see cref="InstanceBatch.ShowAll"/> shows
-    /// them all.
-    /// </summary>
-    /// <param name="placements">Each placement's model rows, as <see cref="ActorRenderInput.ModelMatrixRows"/> - <see cref="Hosting.YUpWorld.ActorRows"/> makes them from a Y-up host's matrix.</param>
-    /// <param name="updateScene">
-    /// False to skip re-resolving the scene's deferred passes - for adding many batches in a row;
-    /// call <see cref="SceneChanged"/> once after the last.
-    /// </param>
     public InstanceBatch AddInstances(LoadedModel model, IReadOnlyList<Vector4[]> placements, bool updateScene = true)
     {
         using var _ = GLHostState.Enter(_gl);
-        var batch = new InstanceBatch(_gl, model, placements);
-        // Linked now, while the host is loading, rather than lazily on the first frame the batch
-        // is visible - a link that misses the program binary cache costs 100-500 ms, and paid
-        // mid-frame that is a hitch every time a new model comes into view.
+        var batch = new InstanceBatch(_gl, model, placements, Pipeline.Profile.World);
+        // Linked now, while the host is loading: a link that misses the program binary cache costs 100-500 ms and would hitch the first visible frame.
         foreach (var shape in model.Shapes)
             ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
         _instances.Add(batch);
@@ -254,7 +167,6 @@ public sealed class WildRenderer : IDisposable
         return batch;
     }
 
-    /// <summary>Removes a batch, disposing its buffer and, unless told not to, its model.</summary>
     public void RemoveInstances(InstanceBatch batch, bool disposeModel = true)
     {
         if (!_instances.Remove(batch))
@@ -266,7 +178,6 @@ public sealed class WildRenderer : IDisposable
             batch.Model.Dispose();
     }
 
-    /// <summary>Removes every batch, disposing their buffers and models.</summary>
     public void ClearInstances()
     {
         var all = _instances.ToList();
@@ -288,7 +199,6 @@ public sealed class WildRenderer : IDisposable
         SceneChanged();
     }
 
-    /// <summary>Removes an actor, and disposes it (its model's GL objects) unless told not to.</summary>
     public void RemoveActor(RenderActor actor, bool dispose = true)
     {
         if (!_actors.Remove(actor))
@@ -314,11 +224,6 @@ public sealed class WildRenderer : IDisposable
         }
     }
 
-    /// <summary>
-    /// Re-resolves the deferred passes the placed actors need and drops the cached shadow map - call
-    /// after changing which shapes of an actor are enabled, or anything else <see cref="AddActor(RenderActor)"/>
-    /// would otherwise have caught.
-    /// </summary>
     public void SceneChanged()
     {
         using var _ = GLHostState.Enter(_gl);
@@ -326,7 +231,6 @@ public sealed class WildRenderer : IDisposable
         Pipeline.InvalidateShadowCache();
     }
 
-    /// <summary>Advances every actor's animation. True if anything moved, i.e. the next frame will differ.</summary>
     public bool Advance(float deltaSeconds)
     {
         bool moved = false;
@@ -335,7 +239,6 @@ public sealed class WildRenderer : IDisposable
         return moved;
     }
 
-    /// <summary>Sizes the AO radius, shadow bias and the camera's clip planes for the placed actors, and returns the bounds it used.</summary>
     public (Vector3 Center, float Radius) FrameFor(Camera camera)
     {
         var (center, radius) = RenderActor.CombinedBounds(_actors.Where(a => a.Visible));
@@ -347,26 +250,16 @@ public sealed class WildRenderer : IDisposable
         return (center, radius);
     }
 
-    /// <summary>
-    /// The pipeline's input for one frame through <paramref name="camera"/>: applies every actor's
-    /// material/pattern animations to its model and poses its skeleton. Advances
-    /// <see cref="FrameId"/>, so physics steps once per call.
-    /// </summary>
     public FrameRequest BuildRequest(Camera camera, float deltaSeconds)
     {
         FrameId++;
         foreach (var actor in _actors)
             actor.ApplyMaterialAnimations(_gl);
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
-        return new FrameRequest(camera, Lighting, Environment.Palettes.Get(Lighting.PaletteName), inputs,
-            AoRadius, ShadowBias, Highlight, Environment.SkyPostFx, Environment.CloudPostFx, Environment.SkyBin,
-            Environment.ColorCorrection, _instances, ShadowFocus, ShadowCascades, Terrain);
+        return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain), inputs,
+            AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades);
     }
 
-    /// <summary>
-    /// Renders one frame into <see cref="View"/> and returns its output texture, or null when no
-    /// visible actor is placed (the pipeline draws nothing without one).
-    /// </summary>
     public uint? Render(Camera camera, int width, int height, float deltaSeconds)
     {
         if (!_actors.Any(a => a.Visible) && !_instances.Any(b => b.Visible.Count > 0))
@@ -378,7 +271,6 @@ public sealed class WildRenderer : IDisposable
         return View.OutputTexture;
     }
 
-    /// <summary>Returns the view's render-target memory while it is not being shown - see <see cref="SceneView.ReleaseTargets"/>.</summary>
     public void ReleaseTargets()
     {
         using var _ = GLHostState.Enter(_gl);
