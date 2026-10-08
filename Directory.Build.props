@@ -4,8 +4,8 @@
     not see this file unless their own project sits under this directory, so nothing here may be
     something a host's build depends on - see build/WildRenderingSharp.targets for that.
   -->
-  <!-- BntxSharp, McSharp and their TexSharp keep their own target frameworks and language settings. -->
-  <PropertyGroup Condition="!$(MSBuildProjectFullPath.Contains('BntxSharp')) And !$(MSBuildProjectFullPath.Contains('McSharp')) And !$(MSBuildProjectFullPath.Contains('TexSharp'))">
+  <!-- BntxSharp, McSharp, TxtgSharp and their TexSharp keep their own target frameworks and language settings. -->
+  <PropertyGroup Condition="!$(MSBuildProjectFullPath.Contains('BntxSharp')) And !$(MSBuildProjectFullPath.Contains('McSharp')) And !$(MSBuildProjectFullPath.Contains('TexSharp')) And !$(MSBuildProjectFullPath.Contains('TxtgSharp'))">
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

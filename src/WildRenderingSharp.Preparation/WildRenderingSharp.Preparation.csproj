@@ -31,10 +31,9 @@
     <ProjectReference Include="$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
   </ItemGroup>
 
-  <!-- The BNTX reader with its own Tegra deswizzle, and McSharp, which unpacks .bfres.mc in place of ShaderLibrary's Windows-only CLI. Both are managed. -->
+  <!-- The managed BNTX reader, with its own Tegra deswizzle. -->
   <ItemGroup>
     <ProjectReference Include="..\..\vendor\BntxSharp\src\BntxSharp\BntxSharp.csproj" />
-    <ProjectReference Include="..\..\vendor\McSharp\src\McSharp\McSharp.csproj" />
   </ItemGroup>
 
 </Project>

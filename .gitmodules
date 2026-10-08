@@ -10,3 +10,6 @@
 [submodule "vendor/BntxSharp"]
 	path = vendor/BntxSharp
 	url = https://github.com/BladesawStudios/BntxSharp
+[submodule "vendor/TxtgSharp"]
+	path = vendor/TxtgSharp
+	url = https://github.com/BladesawStudios/TxtgSharp

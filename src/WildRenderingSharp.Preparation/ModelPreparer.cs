@@ -21,7 +21,6 @@ public static class ModelPreparer
             if (_patched)
                 return;
             BfresLibraryPatches.EnsureApplied();
-            McSharpDecompression.EnsureApplied();
             _patched = true;
         }
     }
