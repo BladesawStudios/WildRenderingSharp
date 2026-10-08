@@ -13,15 +13,8 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// </summary>
 public sealed class SkyPrecomputePass : IDisposable
 {
-    // SizeInfo was read from the game's bound constant buffer during a sky bake draw, found by
-    // searching every draw for a vec4 of shape (a, b, 1/a, 1/b); the block cannot be identified by
-    // size because the emulator declares every block as data[4096]. All nine slots:
-    //   [0] 256, 64,  1/256, 1/64      [4] 32, 1/32, 1/31, 1/15
-    //   [1] 64,  64,  1/64,  1/64      [5] 32, 1/32, 1/31, 1/15
-    //   [2] 256, 256, 1/256, 1/256     [6] 8,  1/8,  1/7,  1/3
-    //   [3] 64,  64,  1/64,  1/64      [7] 16, 1/16, 1/15, 1/7
-    //   [8] 6360, 6420, 0, 0
-    // The transmittance size and Rg/Rt derived independently from the shader maths matched exactly.
+    // SizeInfo, read from the game's constant buffer during a bake draw (the emulator declares every block as data[4096], so only its shape, a vec4 of
+    // (a, b, 1/a, 1/b), identifies it). Slots 0-8: 256x64, 64x64, 256x256, 64x64, 32, 32, 8, 16, then the radii 6360 and 6420.
     public const int TransmittanceW = 256;
     public const int TransmittanceH = 64;
     public const int IrradianceW = 64;

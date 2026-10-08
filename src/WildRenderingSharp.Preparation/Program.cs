@@ -2,32 +2,14 @@ using WildRenderingSharp;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Preparation;
 
-// The preparer's command line - what OutOfProcessPreparer runs, and usable by hand:
+// ensure-system --romfs <dir> [--cache <dir>]
+// prepare --romfs <dir> --actor <name> [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]
+// prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]
+// prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]
 //
-//   WildRenderingSharp.Preparation ensure-system --romfs <dir> [--cache <dir>]
-//   WildRenderingSharp.Preparation prepare --romfs <dir> --actor <name> [--cache <dir>]
-//                                  [--mod <romfs dir>]... [--no-anims] [--force]
-//   WildRenderingSharp.Preparation prepare-batch --romfs <dir> --list <file> [--cache <dir>]
-//                                  [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]
-//   WildRenderingSharp.Preparation prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]
-//
-// --cache defaults to CacheLayout.DefaultRoot. --mod is a mod's romfs folder, repeated, highest
-// priority first. `prepare` also builds the system assets, so a fresh cache needs nothing else.
-//
-// Progress goes to stdout as it happens. On success the last stdout line is
-// "WRS_RESULT <resolved model name>" (prepare only) and the exit code is 0; on failure the error
-// goes to stderr and the exit code is 1 (2 for a bad command line).
-//
-// prepare-batch prepares every name in --list (one per line), --jobs at a time. Its stdout is a
-// line protocol rather than progress - the per-model chatter is dropped unless --verbose:
-//   WRS_BEGIN <name>                 a name has started
-//   WRS_DONE  <name>	<model>        it is prepared (or was already up to date)
-//   WRS_FAIL  <name>	<message>      it failed; the batch carries on
-// prepare-bake builds the baked-lighting index (<cache>/_bake/index.bin) if it is missing, then
-// exports every bake tile named in --list (one per line), speaking the same protocol with the tile
-// name in place of the model.
-// A batch that exits non-zero was killed partway - a native decoder can abort the whole process -
-// and the names begun but not finished are the suspects (OutOfProcessPreparer retries the rest).
+// Progress goes to stdout; exit code 0 on success, 1 on failure (error on stderr), 2 for a bad command line. `prepare` ends with
+// "WRS_RESULT <model>". The batch commands print WRS_BEGIN <name>, WRS_DONE <name>\t<model> and WRS_FAIL <name>\t<message> lines instead of progress,
+// so a batch killed partway (a native decoder can abort the process) leaves the names begun but not finished as the suspects.
 
 return Cli.Run(args);
 

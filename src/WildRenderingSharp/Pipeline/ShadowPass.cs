@@ -60,16 +60,7 @@ public sealed class ShadowPass
         _gl.DepthFunc(DepthFunction.Less);
         _gl.DepthMask(true);
 
-        // Depth-only target, no colour attachment - the real G-buffer fragment shader's actual
-        // output is thrown away here regardless, but it still SAMPLES every one of the material's
-        // textures and runs its full lighting/normal-map math to produce that discarded output,
-        // for every shape, every frame. GBufferPass's own Z-prepass already solved exactly this
-        // problem for its Z-only-then-EQUAL-test trick: a shape with a resolved Z-only program is
-        // the real game's own cheap depth-only variant (still correctly alpha-testing a cutout
-        // material, since it's the same shader the game uses for its own depth prepass) - reusing
-        // it here writes the identical depth value for a fraction of the fragment cost. Only a
-        // shape with no resolved Z-only variant falls back to the full G-buffer program, same as
-        // GBufferPass's own fallback.
+        // Depth only: a shape with a Z-only program uses it (the game's own cheap variant, still alpha-testing cutouts), the rest fall back to the G-buffer program.
         foreach (var group in groups)
         {
             group.BindUbos(resources);
