@@ -1,3 +1,6 @@
 [submodule "vendor/ShaderLibrary"]
 	path = vendor/ShaderLibrary
 	url = https://github.com/BladesawStudios/ShaderLibrary.git
+[submodule "vendor/AampSharp"]
+	path = vendor/AampSharp
+	url = https://github.com/BladesawStudios/AampSharp

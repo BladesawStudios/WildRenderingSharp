@@ -50,10 +50,8 @@ in-process preparation), and import the targets file:
 <Import Project="vendor\WildRenderingSharp\build\WildRenderingSharp.targets" />
 ```
 
-It builds two helpers into folders beside your executable, on build and on publish:
+It builds the out-of-process preparer into a folder beside your executable, on build and on publish:
 
-- `aampreader\` - the isolated AAMP reader (always). It needs `Syroot.*` 5.x where anything reading
-  BFRES needs 2.x, so it lives in its own load context.
 - `wrs-prepare\` - the out-of-process preparer. Set `<WrsOutOfProcessPreparer>false</WrsOutOfProcessPreparer>`
   if you prepare in-process and do not need it.
 

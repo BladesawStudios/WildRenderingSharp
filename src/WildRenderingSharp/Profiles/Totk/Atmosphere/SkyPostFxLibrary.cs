@@ -4,10 +4,7 @@ using SarcLibrary;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
-/// <summary>
-/// Loads <see cref="SkyPostFx"/> and <see cref="CloudPostFx"/> once from <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>, opening the archive as <see cref="EnvPaletteLibrary.LoadFromRomfs"/> does,
-/// then hands the two extracted <c>.bagl*</c> blobs to <see cref="IsolatedAampReader"/> (the AAMP parsing cannot happen in this assembly). Cached process-wide, since the data is static.
-/// </summary>
+/// <summary>Loads the sky, cloud and colour-correction post-fx once from <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>; cached process-wide.</summary>
 public static class SkyPostFxLibrary
 {
     static (SkyPostFx Sky, CloudPostFx Cloud, ColorCorrectionPostFx ColorCorrection)? _cached;
@@ -77,13 +74,7 @@ public static class SkyPostFxLibrary
             if (skyBytes is null) Console.WriteLine("[SkyPostFxLibrary] 'postfx/master_field.baglsky' not found in genvb archive - using defaults for sky.");
             if (cloudBytes is null) Console.WriteLine("[SkyPostFxLibrary] 'postfx/master_field.baglclwd' not found in genvb archive - using defaults for clouds.");
 
-            string? json = IsolatedAampReader.TryParseToJson(skyBytes, cloudBytes, ccrBytes);
-            if (json is null)
-            {
-                Console.WriteLine("[SkyPostFxLibrary] real AAMP parse unavailable - using hand-transcribed defaults.");
-                return fallback;
-            }
-
+            string json = PostFxAamp.ToJson(skyBytes, cloudBytes, ccrBytes);
             using var doc = JsonDocument.Parse(json);
             var sky = doc.RootElement.TryGetProperty("sky", out var skyEl) ? SkyPostFx.FromJson(skyEl) : SkyPostFx.Default;
             var cloud = doc.RootElement.TryGetProperty("cloud", out var cloudEl) ? CloudPostFx.FromJson(cloudEl) : CloudPostFx.Default;
