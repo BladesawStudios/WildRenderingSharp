@@ -25,7 +25,7 @@ void main()
 
     // The dome stretches its noise across the last few degrees above the horizon until it aliases; the game hides that band
     // behind terrain, which a model viewer does not have.
-    fade *= smoothstep(0.05, 0.3, mrw_local.y);
+    fade *= smoothstep(0.01, 0.12, mrw_local.y);
 
     // Distant cloud loses opacity AND takes the sky's colour, which is what actually
     // reads as distance - fading alpha alone just makes far cloud thin, not far away.

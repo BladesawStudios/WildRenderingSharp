@@ -219,7 +219,12 @@ public sealed class CloudDomePass : IDisposable
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureSwizzleG, (int)GLEnum.Red);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureSwizzleB, (int)GLEnum.Red);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureSwizzleA, (int)GLEnum.Red);
+        // The game's textures carry a full mip chain; without one the dome's far end samples a 512x512 mask far below its
+        // resolution and aliases into speckle.
+        gl.GenerateMipmap(TextureTarget.Texture2D);
         gl.SetSampling(TextureTarget.Texture2D, GLEnum.Linear, GLEnum.Repeat);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.LinearMipmapLinear);
+        gl.TexParameter(TextureTarget.Texture2D, (TextureParameterName)GLEnum.TextureMaxAnisotropy, 8f);
         Console.WriteLine($"[CloudDomePass] loaded real {name} mask ({w}x{h}) from the system-texture cache.");
         return tex;
     }

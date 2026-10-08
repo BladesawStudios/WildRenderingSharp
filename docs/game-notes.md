@@ -180,8 +180,14 @@ in this order: slot 0 `cloudtexture03` (the wispy base), slot 1 `cloudtexture02`
 different tone curve). They are byte-identical to a GPU capture of a real cloud draw once deswizzled. `mUseProcedualTexture` is false, so none of the
 `noise_*` programs in `agl_technique_proc.sharcb` are involved; they have no CPU callers for the cloud.
 
-The renderer binds the indices `master_field.baglclwd` names (base 0, blended base 2, noise 1, blended noise 1). A GPU capture of a real draw bound 0, 0, 1, 2
-instead; in game the weather's `PrequelPrCloud` parameters can override the postfx file, and they are not read here.
+The renderer binds the indices `master_field.baglclwd` names (base 0, blended base 2, noise 1, blended noise 1). The weather's own
+parameters (`WorldMgr/PrequelPrCloud/000-002.game__wm__PrequelPrCloud.bgyml` in `Pack/Bootup.Nin_NX_NVN.pack.zs`) override the
+postfx file in game, and all three also select 0, 2, 1, 1 and turn the texture blend off (`BCloudTexBlend: false`,
+`CloudTexBlendRate: 0`). A GPU capture bound 0, 0, 1, 2, a transition with the blend on. The weather files also carry per-layer scale and
+scroll (`BaseTexScale` 1.5, 4 and 11, `ScrollSpd` -0.9 to -0.1) that this renderer does not read yet.
+
+The masks have a full 10-level mip chain and the shader's base samples read `.xw`; the BNTX channel select is red for every channel, so
+R8 with an RRRR swizzle is exact. Sampling without the mips turned the far end of the dome into speckle.
 
 `TexToGo/cloud_noise.txtg` (64x64 BC4) is unrelated: the scene material samples it as `cTex_DeferredCloudNoise` for cloud shadows on terrain.
 
