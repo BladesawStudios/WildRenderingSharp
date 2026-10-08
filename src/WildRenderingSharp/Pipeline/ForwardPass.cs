@@ -15,18 +15,7 @@ public sealed class ForwardPass : IDisposable
     readonly uint _texWhite, _texVolumeMask, _texNoise3D, _texArrayWhite, _texShadowCascadeArray;
     static readonly int[] WhiteNeutralUnits = [7, 11, 13, 14, 15, 31];
 
-    const string FlipFragmentSource = """
-        #version 450 core
-        uniform sampler2D t;
-        uniform int uFlip;
-        in vec2 vUV;
-        out vec4 fragColor;
-        void main() {
-            vec4 c = texture(t, uFlip == 1 ? vec2(vUV.x, 1.0 - vUV.y) : vUV);
-            // Insurance against an already-broken upstream value on the plain pre-forward copies; the real combine step is FloorFragmentSource.
-            fragColor = vec4(max(c.rgb, -1.0), c.a);
-        }
-        """;
+    static readonly string FlipFragmentSource = GlslFiles.Load("Pipeline/Forward/Flip.frag");
 
     // Used only for the final Scene to Final step, after forward geometry has been additively drawn into
     // Scene. Floors the combined result at tFloor (Behind, the deferred-only content captured before any
@@ -35,20 +24,7 @@ public sealed class ForwardPass : IDisposable
     // artifact), and no fixed floor survives a channel whose delta exceeds the deferred value (deferred red
     // 0.0018 against a forward delta of -0.0812). Flooring against the real deferred value means the forward
     // pass can only brighten a pixel, never darken it below what the G-buffer computed.
-    const string FloorFragmentSource = """
-        #version 450 core
-        uniform sampler2D t;       // Scene: deferred + forward, additively combined
-        uniform sampler2D tFloor;  // Behind: deferred-only, captured before any forward drawing
-        uniform int uFlip;
-        in vec2 vUV;
-        out vec4 fragColor;
-        void main() {
-            vec2 uv = uFlip == 1 ? vec2(vUV.x, 1.0 - vUV.y) : vUV;
-            vec3 combined = texture(t, uv).rgb;
-            vec3 floorRgb = texture(tFloor, uv).rgb;
-            fragColor = vec4(max(combined, floorRgb), texture(t, uv).a);
-        }
-        """;
+    static readonly string FloorFragmentSource = GlslFiles.Load("Pipeline/Forward/Floor.frag");
 
     public unsafe ForwardPass(GL gl, string? systemTexturesDirectory = null)
     {

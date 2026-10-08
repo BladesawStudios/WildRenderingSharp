@@ -41,7 +41,7 @@ public sealed partial class TerrainShading : IDisposable
     }
 
     public uint LinkShadowProgram(string hostVertexSource) =>
-        GLProgramBuilder.Build(_gl, hostVertexSource, "#version 450 core\nvoid main() { }\n", "terrain_shadow");
+        GLProgramBuilder.Build(_gl, hostVertexSource, GlslFiles.Load("Totk/Terrain/TerrainShading/ShadowStub.frag"), "terrain_shadow");
 
     static readonly Regex TileSamplerDeclaration = new(@"uniform\s+sampler2D\s+(cTeraTexNode\w+)\s*;", RegexOptions.Compiled);
     static readonly Regex TileSamplerRead = new(@"\b(texture|textureLod)\((cTeraTexNode\w+),\s*vec2\(", RegexOptions.Compiled);

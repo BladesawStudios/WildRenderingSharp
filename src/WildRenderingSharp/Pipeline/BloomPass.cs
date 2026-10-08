@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using System.Numerics;
 using Silk.NET.OpenGL;
 
@@ -22,45 +23,11 @@ public sealed class BloomPass : IDisposable
     public static readonly Vector3 ComposeColor = new(1.0f, 0.935f, 0.833f);
     public static readonly Vector3 Balance = Vector3.One;
 
-    const string BrightFragmentSource = """
-        #version 450 core
-        uniform sampler2D t; uniform vec3 uBalance; uniform float uThreshold, uClamp;
-        in vec2 vUV; out vec4 fragColor;
-        void main() {
-            vec3 c = texture(t, vUV).rgb * uBalance;
-            c = max(c - uThreshold, 0.0);
-            fragColor = vec4(min(c, uClamp), 1.0);
-        }
-        """;
+    static readonly string BrightFragmentSource = GlslFiles.Load("Pipeline/Bloom/Bright.frag");
 
-    const string BlurFragmentSource = """
-        #version 450 core
-        uniform sampler2D t; uniform vec2 uStep; in vec2 vUV; out vec4 fragColor;
-        void main() {
-            float w[5] = float[](0.2270270, 0.1945946, 0.1216216, 0.0540541, 0.0162162);
-            vec3 acc = texture(t, vUV).rgb * w[0];
-            for (int i = 1; i < 5; ++i) {
-                acc += texture(t, vUV + uStep * float(i)).rgb * w[i];
-                acc += texture(t, vUV - uStep * float(i)).rgb * w[i];
-            }
-            fragColor = vec4(acc, 1.0);
-        }
-        """;
+    static readonly string BlurFragmentSource = GlslFiles.Load("Pipeline/Bloom/Blur.frag");
 
-    const string ComposeFragmentSource = """
-        #version 450 core
-        uniform sampler2D l0; uniform sampler2D l1; uniform sampler2D l2; uniform sampler2D l3;
-        uniform vec4 c0; uniform vec4 c1; uniform vec4 c2; uniform vec4 c3;
-        uniform vec3 uCompose; uniform float uIntensity;
-        in vec2 vUV; out vec4 fragColor;
-        void main() {
-            vec3 b = texture(l0, vUV).rgb * c0.rgb * c0.a
-                   + texture(l1, vUV).rgb * c1.rgb * c1.a
-                   + texture(l2, vUV).rgb * c2.rgb * c2.a
-                   + texture(l3, vUV).rgb * c3.rgb * c3.a;
-            fragColor = vec4(b * uCompose * uIntensity, 1.0);
-        }
-        """;
+    static readonly string ComposeFragmentSource = GlslFiles.Load("Pipeline/Bloom/Compose.frag");
 
     public BloomPass(GL gl)
     {

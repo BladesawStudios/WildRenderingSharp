@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline;
@@ -12,28 +13,9 @@ public sealed class LinearDepthPass : IDisposable
     readonly GL _gl;
     readonly uint _fullProgram, _halfProgram;
 
-    const string FullFragmentSource = """
-        #version 450 core
-        uniform sampler2D tex_depth;
-        uniform float uNear; uniform float uFar;
-        in vec2 vUV; out vec4 fragColor;
-        void main() {
-            float d = texture(tex_depth, vUV).r;
-            float ndc = d * 2.0 - 1.0;
-            float viewZ = (2.0 * uNear * uFar) / (uFar + uNear - ndc * (uFar - uNear));
-            fragColor = vec4(clamp((viewZ - uNear) / (uFar - uNear), 0.0, 1.0));
-        }
-        """;
+    static readonly string FullFragmentSource = GlslFiles.Load("Pipeline/LinearDepth/Full.frag");
 
-    const string HalfFragmentSource = """
-        #version 450 core
-        uniform sampler2D tex_nld;
-        in vec2 vUV; out vec4 fragColor;
-        void main() {
-            vec4 s = textureGather(tex_nld, vUV, 0);
-            fragColor = vec4(min(min(s.x, s.y), min(s.z, s.w)));
-        }
-        """;
+    static readonly string HalfFragmentSource = GlslFiles.Load("Pipeline/LinearDepth/Half.frag");
 
     public LinearDepthPass(GL gl)
     {

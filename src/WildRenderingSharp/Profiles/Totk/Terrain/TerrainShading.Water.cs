@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
@@ -62,42 +63,10 @@ public sealed partial class TerrainShading
         if (main < 0)
             throw new InvalidOperationException($"{WaterProgramName}: no main");
         vert = vert[..main] + "// ---- host ----\n" + host + "\n// ---- game ----\n" + vert[main..].Replace("void main()", "void wrs_game_water_main()");
-        return vert + """
-
-            void main()
-            {
-                if (!wrs_water_place())
-                {
-                    gl_Position = vec4(0.0, 0.0, -2.0, 1.0);
-                    return;
-                }
-                wrs_game_water_main();
-            }
-            """;
+        return vert + GlslFiles.Load("Totk/Terrain/TerrainShading/WaterVertexEpilogue.glsl");
     }
 
-    const string StampFragment = """
-        #version 450 core
-        layout (binding = 28) uniform sampler2D wrs_gbuffer_depth;
-        layout (binding = 3, std140) uniform _WrsStamp { vec4 wrs_stamp; vec4 wrs_viewport; };
-        layout (location = 0) out vec4 fragColor;
-        float viewDepth(float d)
-        {
-            float n = wrs_stamp.y, f = wrs_stamp.z;
-            return (2.0 * n * f) / (f + n - (d * 2.0 - 1.0) * (f - n));
-        }
-        void main()
-        {
-            vec2 g = vec2(gl_FragCoord.x * wrs_viewport.x, 1.0 - gl_FragCoord.y * wrs_viewport.y);
-            float kept = texture(wrs_gbuffer_depth, g).r;
-            if (kept >= 1.0)
-                discard;
-            float zKept = viewDepth(kept), zThis = viewDepth(gl_FragCoord.z);
-            if (abs(zKept - zThis) > max(0.02, zKept * 0.002))
-                discard;
-            fragColor = vec4(wrs_stamp.x, 0.0, 0.0, 1.0);
-        }
-        """;
+    static readonly string StampFragment = GlslFiles.Load("Totk/Terrain/TerrainShading/Stamp.frag");
 
     // Binds the water's material (8) and textures, once they are loaded - the first call starts decoding them off the render
     // thread and returns false until they are ready.

@@ -7,4 +7,9 @@
     <Project Path="tests/WildRenderingSharp.Tests/WildRenderingSharp.Tests.csproj" />
     <Project Path="tests/WildRenderingSharp.TestBench/WildRenderingSharp.TestBench.csproj" />
   </Folder>
+  <Folder Name="/vendor/" />
+  <Folder Name="/vendor/AampSharp/" />
+  <Folder Name="/vendor/AampSharp/src/">
+    <Project Path="vendor/AampSharp/src/AampSharp/AampSharp.csproj" />
+  </Folder>
 </Solution>

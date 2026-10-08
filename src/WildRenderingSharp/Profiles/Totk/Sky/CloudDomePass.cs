@@ -37,13 +37,7 @@ public sealed class CloudDomePass : IDisposable
     int _cloudW, _cloudH;
 
 
-    const string CompositeFrag = """
-        #version 330 core
-        in vec2 vUV;
-        uniform sampler2D tCloud;
-        out vec4 oCol;
-        void main() { oCol = texture(tCloud, vUV); }
-        """;
+    static readonly string CompositeFrag = GlslFiles.Load("Totk/Sky/CloudDome/Composite.frag");
 
     unsafe void EnsureCloudTarget(int width, int height)
     {

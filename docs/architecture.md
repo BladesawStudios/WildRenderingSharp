@@ -9,6 +9,7 @@ src/WildRenderingSharp/
   Pipeline/        the pipeline, its render targets, and the passes that do not depend on a game
     Frame/         FrameContext, IFrameStage and the stages that are game-neutral
   Profiles/Totk/   everything specific to Tears of the Kingdom
+  Glsl/            the renderer's own shaders, one file each, embedded; Pipeline/ is shared, Totk/ is TotK's
   Assets/          prepared-model loading: manifests, textures, shapes
   Rendering/       camera, lighting state, palettes, animation evaluation
   Scene/           RenderActor
@@ -74,6 +75,13 @@ accessors (`LoadedShape.DeferredPass()` for TotK).
 
 AAMP files are read with the AampSharp submodule (`vendor/AampSharp`), which any code can reference; a
 profile decides which fields it takes from them (`PostFxAamp` for TotK).
+
+## Shaders
+
+The renderer's own GLSL lives as files under `src/WildRenderingSharp/Glsl/` and is read with
+`GlslFiles.Load("Totk/Sky/LensFlare/Bright.frag")`. The game's decompiled shaders are never committed: the
+preparer writes them into the cache and the pipeline loads them from there. `GlslFilesTests` fails the build if
+GLSL reappears inside C# or a decompiler-named symbol turns up in `Glsl/`.
 
 ## Tests
 

@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
@@ -6,24 +7,7 @@ namespace WildRenderingSharp.Pipeline;
 /// </summary>
 public static class FullscreenShaders
 {
-    public const string Vertex450 = """
-        #version 450 core
-        out vec2 vUV;
-        void main() {
-            float x = -1.0 + float((gl_VertexID & 1) * 4);
-            float y = -1.0 + float((gl_VertexID & 2) * 2);
-            vUV = vec2(x, y) * 0.5 + 0.5;
-            gl_Position = vec4(x, y, 0.0, 1.0);
-        }
-        """;
+    public static readonly string Vertex450 = GlslFiles.Load("Pipeline/FullscreenShaders/Vertex450.vert");
 
-    public const string Vertex330 = """
-        #version 330 core
-        out vec2 vUV;
-        void main()
-        {
-            vUV = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-            gl_Position = vec4(vUV * 2.0 - 1.0, 0.0, 1.0);
-        }
-        """;
+    public static readonly string Vertex330 = GlslFiles.Load("Pipeline/FullscreenShaders/Vertex330.vert");
 }

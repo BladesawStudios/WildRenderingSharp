@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline;
@@ -21,31 +22,12 @@ public sealed class TonemapPass : IDisposable
     public const float HdrCompressKnee = 0.8f;
     public const float HdrCompressCeil = 1.0f;
 
-    const string ExposureFragmentSource = """
-        #version 450 core
-        uniform sampler2D t; uniform float k; in vec2 vUV; out vec4 fragColor;
-        void main() { fragColor = vec4(texture(t, vUV).rgb * k, 1.0); }
-        """;
+    static readonly string ExposureFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Exposure.frag");
 
     // Compresses on the brightest channel and scales the colour as a whole. Per-channel compression desaturates by construction: for a saturated colour only the dominant channel exceeds the knee, so it
     // alone is pulled down and the three converge toward grey (a blood-moon red (3.0, 0.6, 0.45) went from saturation 0.850 to 0.772 at this step alone, the "deep red comes out pink" failure). Scaling
     // by compressed/max keeps every channel ratio, so hue and saturation are preserved while the magnitude lands under the ceiling. Neutral colours are unaffected.
-    const string CompressFragmentSource = """
-        #version 450 core
-        uniform sampler2D t; uniform float uKnee, uCeil;
-        in vec2 vUV; out vec4 fragColor;
-        void main() {
-            vec3 c = texture(t, vUV).rgb;
-            float m = max(max(c.r, c.g), c.b);
-            if (m > uKnee) {
-                float excess = m - uKnee;
-                float range = max(uCeil - uKnee, 1e-4);
-                float compressed = uKnee + excess / (1.0 + excess / range);
-                c *= compressed / max(m, 1e-6);
-            }
-            fragColor = vec4(c, 1.0);
-        }
-        """;
+    static readonly string CompressFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Compress.frag");
 
     public TonemapPass(GL gl)
     {

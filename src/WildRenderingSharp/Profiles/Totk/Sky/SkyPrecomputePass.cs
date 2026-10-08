@@ -517,21 +517,9 @@ public sealed class SkyPrecomputePass : IDisposable
 
     uint _calibProgram;
 
-    const string CalibVert = """
-        #version 330 core
-        const vec2 P[4] = vec2[4](vec2(-1,-1), vec2(1,-1), vec2(-1,1), vec2(1,1));
-        out vec2 vUV;
-        void main() { vUV = P[gl_VertexID] * 0.5 + 0.5; gl_Position = vec4(P[gl_VertexID], 0, 1); }
-        """;
+    static readonly string CalibVert = GlslFiles.Load("Totk/Sky/SkyPrecompute/Calib.vert");
 
-    const string CalibFrag = """
-        #version 330 core
-        in vec2 vUV;
-        uniform sampler2D tSrc;
-        uniform vec3 uGain;
-        out vec4 oCol;
-        void main() { vec4 c = texture(tSrc, vUV); oCol = vec4(c.rgb * uGain, c.a); }
-        """;
+    static readonly string CalibFrag = GlslFiles.Load("Totk/Sky/SkyPrecompute/Calib.frag");
 
     // Multiplies the baked table in place by the calibration, through a scratch copy (a texture cannot be its own target and
     // sampler).

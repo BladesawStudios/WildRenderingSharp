@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline;
 
@@ -14,18 +15,7 @@ public sealed class SceneColorShapePass : IDisposable
 
     public const int MaterialIdUnit = 2, LinearDepthUnit = 4, LinearDepthHalfUnit = 5, ColorBufferUnit = 27;
 
-    const string CopyFragmentSource = """
-        #version 450 core
-        uniform sampler2D t;
-        uniform float uScale;
-        in vec2 vUV;
-        out vec4 fragColor;
-        void main() {
-            vec3 c = texture(t, vec2(vUV.x, 1.0 - vUV.y)).rgb;
-            if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0);
-            fragColor = vec4(max(c, vec3(0.0)) * uScale, 1.0);
-        }
-        """;
+    static readonly string CopyFragmentSource = GlslFiles.Load("Totk/Deferred/SceneColorShape/Copy.frag");
 
     public SceneColorShapePass(GL gl)
     {
