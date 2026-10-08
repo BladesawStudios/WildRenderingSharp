@@ -118,11 +118,49 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var palette = environment.Palette;
         var cam = frame.Cam;
 
-        _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, environment.CloudPostFx.Layer0,
+        float seconds = _cloudDome.Advance(settings.AnimateClouds);
+        var layers = ResolveCloudLayers(environment, seconds, frame.Camera.Eye.Z);
+
+        _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, layers, seconds,
             cam.View, cam.Proj, frame.Camera.Eye, frame.SunWorld,
-            settings.CloudBrightness, lighting.Exposure, settings.AnimateClouds, settings.CloudFade, palette.FogColor,
+            settings.CloudBrightness, lighting.Exposure, settings.CloudFade, palette.FogColor,
             settings.CloudResolutionScale, bake.BakedInscatter);
         GLDiagnostics.CheckPass(services.Gl, "cloud dome");
+    }
+
+    // The layers the weather leaves visible, far to near. Without the weather's data only the first layer's baseline is drawn.
+    static List<CloudDomePass.Layer> ResolveCloudLayers(TotkEnvironment environment, float seconds, float altitude)
+    {
+        var settings = environment.Settings;
+        var weather = environment.CloudWeather;
+        var palette = environment.Palette;
+        var baseline = environment.CloudPostFx.Layers;
+        int set = Math.Clamp(settings.CloudWeatherSet, 0, CloudWeather.WeatherCount - 1);
+
+        var resolved = new List<(int Index, CloudPostFxLayer Layer)>();
+        for (int i = 0; i < CloudWeather.LayerCount; i++)
+        {
+            if (!settings.CloudLayerEnabled[i])
+                continue;
+            var layer = weather == CloudWeather.Empty
+                ? (i == 0 ? baseline[0] : null)
+                : CloudLayerResolver.Resolve(baseline[i], weather.Motion[i],
+                    i < CloudWeather.LookLayerCount ? weather.Looks[set, i] : null, settings.CloudWind, seconds, altitude);
+            if (layer is not null)
+                resolved.Add((i, layer));
+        }
+
+        // The palette authors two colour sets: the first layer's, and the one the others share.
+        var colours = new[] { palette.Cloud0, palette.Cloud1 };
+        return resolved
+            .OrderByDescending(r => r.Layer.SkyHeight)
+            .Select(r =>
+            {
+                int own = Math.Min(r.Index, 1);
+                return new CloudDomePass.Layer(r.Layer,
+                    colours[own].Present ? colours[own] : colours[own ^ 1].Present ? colours[own ^ 1] : CloudDomePass.FallbackCloudLayer(r.Layer));
+            })
+            .ToList();
     }
 
     public void Dispose()

@@ -1,3 +1,4 @@
+using System.Numerics;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
@@ -55,4 +56,13 @@ public sealed class TotkSettings
     public CloudFadeSettings CloudFade { get; set; } = new();
 
     public float CloudResolutionScale { get; set; } = 0.5f;
+
+    /// <summary>Which of the game's cloud weathers (the <c>PrequelCwCloud</c> file number, 0 to 2) the layers look like.</summary>
+    public int CloudWeatherSet { get; set; }
+
+    /// <summary>Which of the three cloud layers are drawn, still subject to the weather leaving one invisible.</summary>
+    public bool[] CloudLayerEnabled { get; } = [true, true, true];
+
+    /// <summary>The unit wind the clouds scroll along; the default is the one a capture of the game's cloud draw implies.</summary>
+    public Vector2 CloudWind { get; set; } = CloudLayerResolver.CapturedWind;
 }

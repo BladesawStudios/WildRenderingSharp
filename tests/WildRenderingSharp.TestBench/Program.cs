@@ -79,6 +79,12 @@ if (options.TryGetValue("lookup", out var lookup))
     float pitch = float.DegreesToRadians(float.Parse(lookup));
     camera.Target = camera.Eye + flat * MathF.Cos(pitch) * radius + Vector3.UnitZ * MathF.Sin(pitch) * radius;
 }
+if (options.TryGetValue("altitude", out var altitude))
+{
+    var lift = Vector3.UnitZ * float.Parse(altitude);
+    camera.Eye += lift;
+    camera.Target += lift;
+}
 if (options.TryGetValue("exposure", out var exposure))
     renderer.Lighting.Exposure = float.Parse(exposure);
 

@@ -168,7 +168,7 @@ One `CloudParamN` block of `postfx/master_field.baglclwd`: the per-layer paramet
 `WildRenderingSharp.AampReader.SkyPostFxJson.ParseObject`, which dumps the object generically). Names match the AAMP names exactly, including the "m" prefix and the
 authored typo "Distotion", so they cross-reference the decompiled `agl_cloud.vert`/`.frag` and its uniform reflection without a mapping table.
 
-`CloudParam2` is byte-identical to `CloudParam1`, so `CloudPostFx` exposes two layers. The `*No` and `*No_Blend` fields are slot indices into the cloud's
+`CloudParam2` is byte-identical to `CloudParam1`; `CloudPostFx` carries all three as the baseline the weather data overrides. The `*No` and `*No_Blend` fields are slot indices into the cloud's
 texture table (defaults 0, 2, 1, 1 for base, blended base, noise, blended noise).
 
 ## Cloud dome masks
@@ -180,16 +180,38 @@ in this order: slot 0 `cloudtexture03` (the wispy base), slot 1 `cloudtexture02`
 different tone curve). They are byte-identical to a GPU capture of a real cloud draw once deswizzled. `mUseProcedualTexture` is false, so none of the
 `noise_*` programs in `agl_technique_proc.sharcb` are involved; they have no CPU callers for the cloud.
 
-The renderer binds the indices `master_field.baglclwd` names (base 0, blended base 2, noise 1, blended noise 1). The weather's own
-parameters (`WorldMgr/PrequelPrCloud/000-002.game__wm__PrequelPrCloud.bgyml` in `Pack/Bootup.Nin_NX_NVN.pack.zs`) override the
-postfx file in game, and all three also select 0, 2, 1, 1 and turn the texture blend off (`BCloudTexBlend: false`,
-`CloudTexBlendRate: 0`). A GPU capture bound 0, 0, 1, 2, a transition with the blend on. The weather files also carry per-layer scale and
-scroll (`BaseTexScale` 1.5, 4 and 11, `ScrollSpd` -0.9 to -0.1) that this renderer does not read yet.
+The renderer binds the indices the layer names (the weather's, see below).
 
 The masks have a full 10-level mip chain and the shader's base samples read `.xw`; the BNTX channel select is red for every channel, so
 R8 with an RRRR swizzle is exact. Sampling without the mips turned the far end of the dome into speckle.
 
 `TexToGo/cloud_noise.txtg` (64x64 BC4) is unrelated: the scene material samples it as `cTex_DeferredCloudNoise` for cloud shadows on terrain.
+
+## Cloud weather
+
+`agl::fx::Cloud` has three layers (struct stride 0x1298 in the object; `FUN_71009548e4` draws layer N, skipping it if it is disabled or its `AlphaMul` is 0 or less).
+`WorldEnvMgr::applyEnvironment` (0x7100b42e84) fills each from three sources, all in `Pack/Bootup.Nin_NX_NVN.pack.zs`:
+
+- `WorldMgr/PrequelPrCloud/00N` (one per layer): the texture indices (0, 2, 1, 1 for base, blended base, noise, blended noise), `BaseTexScale`, `ScrollSpd`,
+  the four `NoiseAdd*` terms and the altitude limit. Layer 1 has `EnableLimitAltitude` from 900 to 950, so it only appears once the camera is above 900.
+- `WorldMgr/PrequelCwCloud/NNN_L` (weather NNN, layer L; only layers 0 and 1 have files): `AlphaMul`, `AlphaThreshold`, `Density`, `Distotion`, `SkyHeight`, the
+  backlight, emboss, highlight and far-fade fields. A value with `Min`, `Max` and `SinSeedAdd` and no `_IsUseBase: true` breathes between the two on
+  `(sin(phase) + 1) / 2`, the phase advancing by `SinSeedAdd` a frame; `FUN_7100b4bc00` is the evaluator. Layer 2 has no file and is not drawn.
+- `PrequelSkyPalette` (eight per layer) and `PrequelCloudPat` (event overrides) replace some of the same fields when the game turns them on; the renderer does not
+  apply either.
+
+`CloudWeather` reads the first two, `CloudLayerResolver` lays them over `CloudParamN`, and `TotkSettings.CloudWeatherSet` picks the file number (the capture below
+is weather 0). Wind and the sine run on a 30 frames a second clock.
+
+The fill routine (`FUN_7100de5c80`) writes the layer's floats into the Common block in a fixed order, which settled the slots (see `CloudDomePass.BuildCommonBlock`):
+0.x time, 0.y `Distotion`, 0.z `Density`, then the four noise offsets, the noise and emboss fields, `AlphaMul / (1 - AlphaThreshold)` in 4.y, the threshold in 4.z,
+`BacklightPower`, `BacklightRange`, `BacklightParam0` and `BacklightParam1` in 4.w to 5.z, and `BaseTexScale` in 5.w (the shader divides by it). With weather 0 and
+`PrequelPrCloud/000`, every compared slot of a capture of the game's cloud draw comes out equal, the animated ones lying inside their Min and Max.
+
+The noise offsets are accumulated speed times time, with the speed `wind.x * NoiseAdd + wind.y * NoiseAdd_side` (and the side term first for the other axis). The
+capture's four offsets (0.436, -0.083, -1.034, 1.299) give a wind of (0.442, -0.897) and one multiplier; its scroll offsets (-0.0384, 0.0782) solve to the same wind.
+Those two multipliers (1.74e-4 and 8.73e-5 a second) and the wind are what `CloudLayerResolver` and `TotkSettings.CloudWind` use: the game's own wind state is computed
+elsewhere and was not found. The 30 frames a second is likewise an assumption; the range check is all it has been tested against.
 
 ## WildRenderingSharp/Profiles/Totk/Deferred/KnownMaterialFixes.cs
 

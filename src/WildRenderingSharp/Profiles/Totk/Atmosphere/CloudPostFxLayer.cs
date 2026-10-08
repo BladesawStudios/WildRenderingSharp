@@ -80,6 +80,8 @@ public sealed class CloudPostFxLayer
 
     public static readonly CloudPostFxLayer Default = new();
 
+    public CloudPostFxLayer Copy() => (CloudPostFxLayer)MemberwiseClone();
+
     internal static CloudPostFxLayer FromJson(JsonElement layer)
     {
         var d = Default;

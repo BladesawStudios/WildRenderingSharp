@@ -49,7 +49,7 @@ static class PostFxAamp
     static Dictionary<string, object?> ReadCloud(ParameterIO file)
     {
         var d = new Dictionary<string, object?>();
-        foreach (var (key, name) in new[] { ("cloud", "Cloud"), ("layer0", "CloudParam0"), ("layer1", "CloudParam1") })
+        foreach (var (key, name) in new[] { ("cloud", "Cloud"), ("layer0", "CloudParam0"), ("layer1", "CloudParam1"), ("layer2", "CloudParam2") })
             if (file.Root.Object(name) is { } obj) d[key] = ReadObject(obj);
         return d;
     }

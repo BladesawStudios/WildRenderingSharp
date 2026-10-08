@@ -33,7 +33,6 @@ public sealed class CloudDomePass : IDisposable
     float _animSeconds;
     double _animBase;
     bool _dumped;
-    string _lastColourKey = "";
     readonly Stopwatch _clock = Stopwatch.StartNew();
 
     // Clouds render into a smaller target and are composited up: the program is large, the dome
@@ -115,7 +114,7 @@ public sealed class CloudDomePass : IDisposable
         _scatterTex = CreatePlaceholderTexture(gl, 0.05f);
     }
 
-    static EnvPalette.CloudLayer FallbackCloudLayer(CloudPostFxLayer layer) => new(
+    internal static EnvPalette.CloudLayer FallbackCloudLayer(CloudPostFxLayer layer) => new(
         Present: true,
         BacklightPower: layer.BacklightPower,
         ColorBackLight: layer.BacklightColor,
@@ -127,15 +126,16 @@ public sealed class CloudDomePass : IDisposable
         IntensityShadow: layer.ShadowColorIntensity);
 
 
-    // The Common block read from the game's own cloud draw in a capture. The assembled block is compared against the listed
-    // slots once per session so a discrepancy announces itself; the remaining slots are legitimately per-palette or per-camera.
+    // The Common block read from the game's own cloud draw in a capture, in its first weather. The assembled block is compared against the
+    // listed slots once per session so a discrepancy announces itself; slots the weather and the clock animate (1.x to 1.z, 4.y, 4.z, 5.w) and the remaining
+    // per-palette or per-camera ones are not compared.
     static readonly (int Slot, float X, float Y, float Z, float W)[] CapturedCommon =
     [
-        (1, -0.0825223f, -1.03371f, 1.29866f, 4f),
+        (1, float.NaN, float.NaN, float.NaN, 4f),
         (2, 8f, 0.5f, 0.5f, 0.05f),
         (3, -0.0066f, 0.01f, 0.1f, 1.3f),
-        (4, 0.05f, 1.94855f, 0.662316f, 1.2f),
-        (5, 0.5f, 0.35f, 0.7f, 1.54626f),
+        (4, 0.05f, float.NaN, float.NaN, 1.2f),
+        (5, 0.5f, 0.35f, 0.7f, float.NaN),
         (7, 8f, 1.8f, 0.8f, 0.15f),
         (8, 0.15f, 0.7f, 0.95f, -1f),
         // [25].y carries the brightness gain, so it is expected to differ from the captured 2.75.
@@ -241,31 +241,41 @@ public sealed class CloudDomePass : IDisposable
         return tex;
     }
 
-    public unsafe void Run(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
-        CloudPostFxShared shared, CloudPostFxLayer layer,
-        ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows, Vector3 cameraEye, Vector3 sunWorld,
-        float brightness, float exposure, bool animate,
-        CloudFadeSettings fade, Vector3 skyColor, float resolutionScale, uint scatterTexture)
+    /// <summary>One cloud layer to draw: its resolved parameters and the palette colours that shade it.</summary>
+    public readonly record struct Layer(CloudPostFxLayer Params, EnvPalette.CloudLayer Colours);
+
+    /// <summary>Moves the cloud clock on (or holds it) and returns the seconds every layer's offsets and weather values are evaluated at.</summary>
+    public float Advance(bool animate)
     {
-        if (_program == 0 || !layer.IsEnable)
-            return;
-
-        var cloud = palette.Cloud0.Present ? palette.Cloud0
-                  : palette.Cloud1.Present ? palette.Cloud1
-                  : FallbackCloudLayer(layer);
-
         double now = _clock.Elapsed.TotalSeconds;
-        // Scrolls at the base texture's authored speed, measured against wall-clock time so the
-        // offset is right whenever a frame is drawn (the viewport only redraws on input).
+        // Measured against wall-clock time so the offset is right whenever a frame is drawn (the viewport only redraws on input).
         if (animate)
             _animSeconds = (float)(now - _animBase);
         else
             _animBase = now - _animSeconds;
+        return _animSeconds;
+    }
 
-        float scroll1X = layer.BaseTexScrollSpdX * _animSeconds;
-        float scroll1Y = layer.BaseTexScrollSpdY * _animSeconds;
-        float scroll2X = scroll1X;
-        float scroll2Y = scroll1Y;
+    /// <summary>Draws the layers in the order given, which should be far to near.</summary>
+    public void Run(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
+        CloudPostFxShared shared, IReadOnlyList<Layer> layers, float seconds,
+        ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows, Vector3 cameraEye, Vector3 sunWorld,
+        float brightness, float exposure, CloudFadeSettings fade, Vector3 skyColor, float resolutionScale, uint scatterTexture)
+    {
+        if (_program == 0)
+            return;
+        foreach (var layer in layers)
+            DrawLayer(resources, targets, palette, shared, layer, seconds, viewRows, projRows, cameraEye, sunWorld,
+                brightness, exposure, fade, skyColor, resolutionScale, scatterTexture);
+    }
+
+    unsafe void DrawLayer(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
+        CloudPostFxShared shared, Layer drawn, float seconds,
+        ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows, Vector3 cameraEye, Vector3 sunWorld,
+        float brightness, float exposure, CloudFadeSettings fade, Vector3 skyColor, float resolutionScale, uint scatterTexture)
+    {
+        var layer = drawn.Params;
+        var cloud = drawn.Colours;
 
         // The renderer's world is Z-up, so altitude is Z.
         float skyHeightAboveCamera = MathF.Max(1f, layer.SkyHeight - cameraEye.Z);
@@ -277,25 +287,11 @@ public sealed class CloudDomePass : IDisposable
         // The game renders under its own exposure, this buffer is multiplied by the renderer's later,
         // so it is divided back out to keep the authored cloud colour at its authored magnitude.
         float skyColorGain = brightness / MathF.Max(1e-4f, exposure);
-        byte[] common = BuildCommonBlock(palette, cloud, shared, layer, sunWorld,
-            scroll1X, scroll1Y, scroll2X, scroll2Y, skyHeightAboveCamera, skyColorGain);
-
-        // Dumps the assembled Common block for diffing against a capture.
-        string colourSource = palette.Cloud0.Present ? "palette Cloud0"
-                            : palette.Cloud1.Present ? "palette Cloud1"
-                            : "master_field.baglclwd fallback";
-        string colourKey = $"{colourSource}|{cloud.ColorBase}|{cloud.IntensityBase}";
-        if (colourKey != _lastColourKey)
-        {
-            _lastColourKey = colourKey;
-            Console.WriteLine($"[CloudDomePass] cloud colours from {colourSource}: " +
-                $"base={cloud.ColorBase}x{cloud.IntensityBase:G4} hilight={cloud.ColorHilight}x{cloud.IntensityHilight:G4} shadow={cloud.ColorShadow}x{cloud.IntensityShadow:G4}");
-        }
+        byte[] common = BuildCommonBlock(palette, cloud, shared, layer, sunWorld, seconds, skyHeightAboveCamera, skyColorGain);
 
         if (!_dumped)
         {
             _dumped = true;
-            // States the colour source outright: a palette that authors no clouds is the likeliest silent error.
             ReportCommonBlockDrift(common);
             if ((Environment.GetEnvironmentVariable("WRS_CLOUD_DUMP") ?? Environment.GetEnvironmentVariable("MARROW_CLOUD_DUMP")) is { Length: > 0 } dumpPath)
                 File.WriteAllBytes(dumpPath, common);
@@ -368,16 +364,25 @@ public sealed class CloudDomePass : IDisposable
     }
 
     // The 768-byte Common block: the captured baseline with every identified slot overwritten from live data (see
-    // CloudUboBaseline for what is left alone).
+    // CloudUboBaseline for what is left alone). The slot of each layer field is the order the game's own fill routine
+    // (FUN_7100de5c80) writes them in.
     internal static byte[] BuildCommonBlock(EnvPalette palette, EnvPalette.CloudLayer cloud,
         CloudPostFxShared shared, CloudPostFxLayer layer, Vector3 sunWorld,
-        float scroll1X, float scroll1Y, float scroll2X, float scroll2Y,
-        float skyHeightAboveCamera, float skyColorGain)
+        float seconds, float skyHeightAboveCamera, float skyColorGain)
     {
         byte[] buf = CloudUboBaseline.Common();
         var u = new UniformWriter(buf);
 
-        // Per-layer scalars from master_field.baglclwd.
+        u.Set(0, 0, seconds);
+        u.Set(0, 1, layer.Distotion);
+        u.Set(0, 2, layer.Density);
+
+        // The noise layers' texture offsets, which the game accumulates as speed times time. Noise 1's two components land in slots 0.w and 1.x,
+        // noise 2's in 1.y and 1.z.
+        u.Set(0, 3, layer.NoiseSpeed1X * seconds);
+        u.Set(1, 0, layer.NoiseSpeed1Y * seconds);
+        u.Set(1, 1, layer.NoiseSpeed2X * seconds);
+        u.Set(1, 2, layer.NoiseSpeed2Y * seconds);
         u.Set(1, 3, layer.NoiseScale1);
         u.Set(2, 0, layer.NoiseScale2);
         u.Set(2, 1, layer.NoiseDensity1);
@@ -388,7 +393,20 @@ public sealed class CloudDomePass : IDisposable
         u.Set(3, 2, layer.ShadowPower);
         u.Set(3, 3, layer.HighlightRange);
         u.Set(4, 0, layer.HighlightAmbient);
-        u.Set(4, 3, layer.BacklightParam1);
+
+        // The alpha multiplier is pre-divided by what the threshold removes.
+        u.Set(4, 1, layer.AlphaThreshold != 1f ? layer.AlphaMul / (1f - layer.AlphaThreshold) : layer.AlphaMul);
+        u.Set(4, 2, layer.AlphaThreshold);
+        u.Set(4, 3, layer.BacklightPower);
+        u.Set(5, 0, layer.BacklightRange);
+        u.Set(5, 1, layer.BacklightParam0);
+        u.Set(5, 2, layer.BacklightParam1);
+        u.Set(5, 3, layer.BaseTexScale);
+
+        // The base texture's offsets, the same for both texture pairs.
+        float scrollX = layer.BaseTexScrollSpdX * seconds, scrollY = layer.BaseTexScrollSpdY * seconds;
+        u.Set(6, 0, scrollX); u.Set(6, 1, scrollY); u.Set(6, 2, scrollX); u.Set(6, 3, scrollY);
+
         u.Set(7, 0, layer.FarUVPow);
         u.Set(7, 1, layer.FarUVMul);
         u.Set(7, 2, layer.FarDensityChgStart);
@@ -396,7 +414,8 @@ public sealed class CloudDomePass : IDisposable
         u.Set(8, 0, layer.FarDensityChgPower);
         u.Set(8, 1, layer.FarAlphaChgStart);
         u.Set(8, 2, layer.FarAlphaChgEnd);
-        // 8.w (the far alpha power) keeps its captured value: the authored -0.5 disagrees with the -1 the game runs.
+        u.Set(8, 3, layer.FarAlphaChgPower);
+        u.Set(27, 0, layer.FarDistotionChgPower);
 
         // Zeroed so the distance fade decides alpha; a non-zero data[45].x is a constant floor under it.
         u.Set(45, 0, 0f);
@@ -436,9 +455,6 @@ public sealed class CloudDomePass : IDisposable
 
         // Negated and Y-up: the slot holds the direction light travels, per the capture.
         u.Set(42, 0, -sunWorld.X); u.Set(42, 1, -sunWorld.Z); u.Set(42, 2, -sunWorld.Y);
-
-        // Time-integrated UV scroll for the base and base-blend pairs.
-        u.Set(6, 0, scroll1X); u.Set(6, 1, scroll1Y); u.Set(6, 2, scroll2X); u.Set(6, 3, scroll2Y);
 
         return buf;
     }

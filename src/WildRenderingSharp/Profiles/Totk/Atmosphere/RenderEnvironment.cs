@@ -16,15 +16,18 @@ public sealed class RenderEnvironment
 
     public ColorCorrectionPostFx ColorCorrection { get; private set; } = ColorCorrectionPostFx.Default;
 
+    public CloudWeather CloudWeather { get; private set; } = CloudWeather.Empty;
+
 
     public void LoadFromRomfs(string? romfsRoot)
     {
         Palettes = EnvPaletteLibrary.LoadFromRomfs(romfsRoot);
         (SkyPostFx, CloudPostFx, ColorCorrection) = SkyPostFxLibrary.LoadFromRomfs(romfsRoot);
+        CloudWeather = CloudWeather.LoadFromRomfs(romfsRoot);
     }
 
     public TotkEnvironment Resolve(TotkSettings settings, ITerrainHost? terrain = null) =>
-        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings);
+        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings, CloudWeather);
 
 
     public static RenderEnvironment Load(string? romfsRoot, CacheLayout cache)

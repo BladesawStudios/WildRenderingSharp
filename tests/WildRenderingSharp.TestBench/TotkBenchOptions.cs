@@ -6,7 +6,7 @@ namespace WildRenderingSharp.TestBench;
 static class TotkBenchOptions
 {
     public const string Usage = "[--palette <name>] [--atmosphere <x>] [--tint <0-1>] [--haze <0-1>] [--fog <x>] [--cloud-brightness <x>] " +
-        "[--flare-threshold <x>] [--noclouds 1] [--noflare 1] [--nobodies 1] [--list-palettes 1] [--palette-info 1]";
+        "[--flare-threshold <x>] [--cloud-weather <0-2>] [--cloud-layers <e.g. 101>] [--noclouds 1] [--noflare 1] [--nobodies 1] [--list-palettes 1] [--palette-info 1]";
 
     public static void Apply(WildRenderer renderer, IReadOnlyDictionary<string, string> options)
     {
@@ -28,6 +28,11 @@ static class TotkBenchOptions
             totk.CloudBrightness = float.Parse(cloudBrightness);
         if (options.TryGetValue("flare-threshold", out var flareThreshold))
             totk.LensFlareThreshold = float.Parse(flareThreshold);
+        if (options.TryGetValue("cloud-weather", out var cloudWeather))
+            totk.CloudWeatherSet = int.Parse(cloudWeather);
+        if (options.TryGetValue("cloud-layers", out var cloudLayers))
+            for (int i = 0; i < totk.CloudLayerEnabled.Length; i++)
+                totk.CloudLayerEnabled[i] = i < cloudLayers.Length && cloudLayers[i] == '1';
         if (options.ContainsKey("noclouds"))
             totk.UseRealCloudDome = false;
         if (options.ContainsKey("noflare"))

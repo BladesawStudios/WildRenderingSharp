@@ -5,8 +5,12 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 public sealed class CloudPostFx
 {
     public CloudPostFxShared Shared = CloudPostFxShared.Default;
-    public CloudPostFxLayer Layer0 = CloudPostFxLayer.Default;
-    public CloudPostFxLayer Layer1 = CloudPostFxLayer.Default;
+
+    /// <summary><c>CloudParam0</c> to <c>CloudParam2</c>: the baseline of the three cloud layers.</summary>
+    public CloudPostFxLayer[] Layers = [CloudPostFxLayer.Default, CloudPostFxLayer.Default, CloudPostFxLayer.Default];
+
+    public CloudPostFxLayer Layer0 => Layers[0];
+    public CloudPostFxLayer Layer1 => Layers[1];
 
     public static readonly CloudPostFx Default = new();
 
@@ -14,8 +18,9 @@ public sealed class CloudPostFx
     {
         var result = new CloudPostFx();
         if (cloud.TryGetProperty("cloud", out var shared)) result.Shared = CloudPostFxShared.FromJson(shared);
-        if (cloud.TryGetProperty("layer0", out var l0)) result.Layer0 = CloudPostFxLayer.FromJson(l0);
-        if (cloud.TryGetProperty("layer1", out var l1)) result.Layer1 = CloudPostFxLayer.FromJson(l1);
+        for (int i = 0; i < result.Layers.Length; i++)
+            if (cloud.TryGetProperty($"layer{i}", out var layer))
+                result.Layers[i] = CloudPostFxLayer.FromJson(layer);
         return result;
     }
 }
