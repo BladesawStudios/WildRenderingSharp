@@ -79,7 +79,6 @@ public sealed class ContextUbo : IUboBlock
 
     public string Name => "Context";
     public int BindingIndex => (int)TotkBindings.Camera;
-    public int SizeBytes => ByteSize;
 
     /// <summary>
     /// Populates the camera-derived fields of a Context block. <paramref name="view"/> is 3 rows
@@ -160,6 +159,5 @@ public sealed class ContextUbo : IUboBlock
         return flipped;
     }
 
-    public void WriteTo(Span<byte> destination) => _block.WriteTo(destination);
     public byte[] ToByteArray() => _block.ToByteArray();
 }

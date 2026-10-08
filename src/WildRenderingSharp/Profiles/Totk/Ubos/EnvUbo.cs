@@ -97,7 +97,6 @@ public sealed class EnvUbo : IUboBlock
 
     public string Name => "Env";
     public int BindingIndex => (int)TotkBindings.Environment;
-    public int SizeBytes => ByteSize;
 
     /// <summary>
     /// Packs the fields a real deferred resolve pass (chara_metal/chara_nonmetal) reads. Mirrors
@@ -215,6 +214,5 @@ public sealed class EnvUbo : IUboBlock
         return env;
     }
 
-    public void WriteTo(Span<byte> destination) => _block.WriteTo(destination);
     public byte[] ToByteArray() => _block.ToByteArray();
 }

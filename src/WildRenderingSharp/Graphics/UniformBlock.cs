@@ -10,6 +10,8 @@ namespace WildRenderingSharp.Graphics;
 public readonly record struct UniformBlock(string Key, uint Binding, byte[]? Data)
 {
     public static UniformBlock Zeroed(uint binding) => new("", binding, null);
+
+    public static UniformBlock From(string key, IUboBlock block) => new(key, (uint)block.BindingIndex, block.ToByteArray());
 }
 
 public static class UniformBlockExtensions

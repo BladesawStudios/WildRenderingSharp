@@ -67,10 +67,6 @@ public class UboSnapshotTests
     }
 
     [Fact]
-    public void Material_bytes() => Snapshot.Verify("material_bytes",
-        new MaterialUbo("Mt_Test", [1, 2, 3, 4, 5, 6, 7, 8]).ToByteArray());
-
-    [Fact]
     public void HdrComposeParams_default() => Snapshot.Verify("hdrcompose_default", HdrComposeParamsUbo.BuildDefault().ToByteArray());
 
     [Fact]

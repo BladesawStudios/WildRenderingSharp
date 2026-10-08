@@ -72,7 +72,7 @@ public sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirec
     void DeleteMaterialBuffers()
     {
         foreach (var pass in _resolvedPasses)
-            gl.DeleteBuffer(pass.MaterialUboBuffer);
+            gl.DeleteBuffer(pass.MaterialBuffer);
     }
 
     public void Dispose()

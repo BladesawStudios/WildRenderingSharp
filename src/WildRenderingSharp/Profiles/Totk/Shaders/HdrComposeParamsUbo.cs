@@ -20,7 +20,6 @@ public sealed class HdrComposeParamsUbo : IUboBlock
 
     public string Name => "cContext";
     public int BindingIndex => (int)Profiles.Totk.TotkBindings.HdrComposeParams;
-    public int SizeBytes => ByteSize;
 
     /// <summary>
     /// <c>cParam</c>: <c>out = mix(maxChannel, colour, cParam.y * (1 - s) + cParam.x)</c> where
@@ -34,6 +33,5 @@ public sealed class HdrComposeParamsUbo : IUboBlock
         return ubo;
     }
 
-    public void WriteTo(Span<byte> destination) => _block.WriteTo(destination);
     public byte[] ToByteArray() => _block.ToByteArray();
 }

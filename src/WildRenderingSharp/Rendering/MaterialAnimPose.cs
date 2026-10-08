@@ -32,7 +32,7 @@ public static class MaterialAnimPose
 
         foreach (var shape in model.Shapes)
         {
-            if (shape.MaterialParams is not { } layout || shape.MaterialUboBytes.Length == 0)
+            if (shape.MaterialParams is not { } layout || shape.MaterialBytes.Length == 0)
                 continue;
 
             byte[]? buffer = null;
@@ -67,12 +67,12 @@ public static class MaterialAnimPose
                         }
 
                         int offset = paramOffset + target.ByteOffset;
-                        if (offset < 0 || offset + 4 > shape.MaterialUboBytes.Length)
+                        if (offset < 0 || offset + 4 > shape.MaterialBytes.Length)
                             continue;
 
                         // Copy-on-first-write: a material no anim actually touches never allocates
                         // and never re-uploads, which is most of them on most frames.
-                        buffer ??= (byte[])shape.MaterialUboBytes.Clone();
+                        buffer ??= (byte[])shape.MaterialBytes.Clone();
                         BitConverter.TryWriteBytes(buffer.AsSpan(offset, 4), target.Bits(frame));
                     }
                 }
@@ -80,24 +80,24 @@ public static class MaterialAnimPose
 
             if (srtGroups is not null)
             {
-                buffer ??= (byte[])shape.MaterialUboBytes.Clone();
+                buffer ??= (byte[])shape.MaterialBytes.Clone();
                 foreach (var (paramOffset, group) in srtGroups)
                     ApplyTexSrtGroup(layout, buffer, paramOffset, group.paramName, group.bitsByFieldOffset);
             }
 
             if (buffer is not null)
             {
-                UploadBlock(gl, shape.MaterialUboBuffer, buffer);
+                UploadBlock(gl, shape.MaterialBuffer, buffer);
                 patched.Add(shape.Name);
             }
-            else if (shape.MaterialUboIsPatched)
+            else if (shape.MaterialIsPatched)
             {
-                UploadBlock(gl, shape.MaterialUboBuffer, shape.MaterialUboBytes);
+                UploadBlock(gl, shape.MaterialBuffer, shape.MaterialBytes);
             }
         }
 
         foreach (var shape in model.Shapes)
-            shape.MaterialUboIsPatched = patched.Contains(shape.Name);
+            shape.MaterialIsPatched = patched.Contains(shape.Name);
     }
 
     /// <summary>
@@ -147,10 +147,10 @@ public static class MaterialAnimPose
     {
         foreach (var shape in model.Shapes)
         {
-            if (!shape.MaterialUboIsPatched)
+            if (!shape.MaterialIsPatched)
                 continue;
-            UploadBlock(gl, shape.MaterialUboBuffer, shape.MaterialUboBytes);
-            shape.MaterialUboIsPatched = false;
+            UploadBlock(gl, shape.MaterialBuffer, shape.MaterialBytes);
+            shape.MaterialIsPatched = false;
         }
     }
 

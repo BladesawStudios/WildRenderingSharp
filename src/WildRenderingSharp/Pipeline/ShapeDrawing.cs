@@ -67,10 +67,10 @@ public static class ShapeDrawing
             _uniformBatch = batch;
         }
 
-        if (!_caching || _material != shape.MaterialUboBuffer)
+        if (!_caching || _material != shape.MaterialBuffer)
         {
-            gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, shape.MaterialUboBuffer);
-            _material = shape.MaterialUboBuffer;
+            gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, shape.MaterialBuffer);
+            _material = shape.MaterialBuffer;
         }
 
         // Baked lighting (InstanceBatch.SetBake): the per-instance table at binding 0, and each

@@ -107,20 +107,20 @@ public sealed class LoadedShape
     /// </summary>
     public IReadOnlyDictionary<string, LoadedTexture>? SamplerOverrides { get; set; }
 
-    public required uint MaterialUboBuffer { get; init; }
+    public required uint MaterialBuffer { get; init; }
 
     /// <summary>
     /// The material's <c>gsys_material</c> block exactly as its <c>.gsys_material.bin</c> declares
     /// it - the baseline a shader parameter animation is applied ON TOP of, kept so dropping an
     /// anim restores the material instead of leaving the last value it wrote.
     /// </summary>
-    public required byte[] MaterialUboBytes { get; init; }
+    public required byte[] MaterialBytes { get; init; }
 
     /// <summary>Where each named shader parameter sits inside that block, or null when the cache predates the layout sidecar - in which case this material simply cannot be parameter-animated (and says so) rather than being animated at a guessed offset.</summary>
     public MaterialParamLayout? MaterialParams { get; init; }
 
-    /// <summary>Whether <see cref="MaterialUboBuffer"/> currently holds animated values rather than <see cref="MaterialUboBytes"/> - so the restore upload happens once, not every frame.</summary>
-    public bool MaterialUboIsPatched { get; set; }
+    /// <summary>Whether <see cref="MaterialBuffer"/> currently holds animated values rather than <see cref="MaterialBytes"/> - so the restore upload happens once, not every frame.</summary>
+    public bool MaterialIsPatched { get; set; }
 
     /// <summary>Position-only VAO (location 0, matching <c>PassIdMaskPass</c>'s fixed shader ABI) over the same vertex/index buffers - used to stamp this shape's resolved deferred-pass ID.</summary>
     public uint PassIdVao { get; internal set; }

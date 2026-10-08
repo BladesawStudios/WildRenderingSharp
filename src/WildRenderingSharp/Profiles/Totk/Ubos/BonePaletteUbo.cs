@@ -50,7 +50,6 @@ public sealed class BonePaletteUbo : IUboBlock
     public string Name => "_Mtx";
     public const uint Binding = TotkBindings.Bones;
     public int BindingIndex => (int)Binding;
-    public int SizeBytes => _data.Length;
 
     BonePaletteUbo(byte[] data) => _data = data;
 
@@ -165,6 +164,5 @@ public sealed class BonePaletteUbo : IUboBlock
         return new BonePaletteUbo(data);
     }
 
-    public void WriteTo(Span<byte> destination) => _data.CopyTo(destination);
     public byte[] ToByteArray() => (byte[])_data.Clone();
 }

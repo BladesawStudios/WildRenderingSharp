@@ -73,7 +73,7 @@ public sealed class LoadedModel : IDisposable
             _gl.DeleteVertexArray(shape.PassIdVao);
             _gl.DeleteBuffer(shape.VertexBuffer);
             _gl.DeleteBuffer(shape.IndexBuffer);
-            _gl.DeleteBuffer(shape.MaterialUboBuffer);
+            _gl.DeleteBuffer(shape.MaterialBuffer);
         }
         Textures.Dispose();
     }

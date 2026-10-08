@@ -22,7 +22,6 @@ public sealed class ShapeMatrixUbo : IUboBlock
     public string Name => "ShpMtx";
     public const uint Binding = TotkBindings.ShapeMatrix;
     public int BindingIndex => (int)Binding;
-    public int SizeBytes => ByteSize;
 
     /// <summary>Rows 0-2 = the model/shape transform (mat3x4); everything else stays zero.</summary>
     public static ShapeMatrixUbo BuildFromModelMatrix(ReadOnlySpan<Vector4> modelRows)
@@ -34,6 +33,5 @@ public sealed class ShapeMatrixUbo : IUboBlock
         return shp;
     }
 
-    public void WriteTo(Span<byte> destination) => _block.WriteTo(destination);
     public byte[] ToByteArray() => _block.ToByteArray();
 }

@@ -17,8 +17,8 @@ static class TotkActorUniforms
 
         return
         [
-            new UniformBlock("bones", (uint)bones.BindingIndex, bones.ToByteArray()),
-            new UniformBlock("shpmtx", (uint)shape.BindingIndex, shape.ToByteArray()),
+            UniformBlock.From(FrameUniformKeys.Bones, bones),
+            UniformBlock.From(FrameUniformKeys.ShapeMatrix, shape),
         ];
     }
 

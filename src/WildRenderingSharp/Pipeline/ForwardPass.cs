@@ -297,7 +297,7 @@ public sealed class ForwardPass : IDisposable
                 _gl.UseProgram(program);
                 _gl.SetInt(program, "uDebugStepTarget", sh.DebugStepTarget);
             }
-            ShapeDrawing.Draw(_gl, programs.Bindings.Material, program, sh.ForwardVao, sh.MaterialUboBuffer, sh.ForwardSamplers, sh.IndexCount, sh.SamplerOverrides);
+            ShapeDrawing.Draw(_gl, programs.Bindings.Material, program, sh.ForwardVao, sh.MaterialBuffer, sh.ForwardSamplers, sh.IndexCount, sh.SamplerOverrides);
         }
         }
 

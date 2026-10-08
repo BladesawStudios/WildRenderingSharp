@@ -143,13 +143,13 @@ public sealed class WildRenderer : IDisposable
                 if (!any.MaterialIndexByName.TryGetValue(shape.Material, out int index))
                     continue;
                 var entry = shape.MaterialParams?.Uniforms.FirstOrDefault(u => u.Name == "gsys_material_id");
-                if (entry is null || entry.Offset + 4 > shape.MaterialUboBytes.Length)
+                if (entry is null || entry.Offset + 4 > shape.MaterialBytes.Length)
                     continue;
-                BitConverter.TryWriteBytes(shape.MaterialUboBytes.AsSpan(entry.Offset, 4), index);
+                BitConverter.TryWriteBytes(shape.MaterialBytes.AsSpan(entry.Offset, 4), index);
                 unsafe
                 {
-                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, shape.MaterialUboBuffer);
-                    fixed (byte* p = &shape.MaterialUboBytes[entry.Offset])
+                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, shape.MaterialBuffer);
+                    fixed (byte* p = &shape.MaterialBytes[entry.Offset])
                         _gl.BufferSubData(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, entry.Offset, 4, p);
                     _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, 0);
                 }

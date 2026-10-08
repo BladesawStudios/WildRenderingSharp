@@ -97,7 +97,7 @@ public sealed class GBufferPass
                     // set before Draw's own UseProgram, not after.
                     _gl.UseProgram(program);
                     _gl.SetInt(program, "uDebugStepTarget", sh.DebugGBufferStepTarget);
-                    ShapeDrawing.Draw(_gl, programs.Bindings.Material, program, sh.GBufferVao, sh.MaterialUboBuffer, sh.GBufferSamplers, sh.IndexCount, sh.SamplerOverrides);
+                    ShapeDrawing.Draw(_gl, programs.Bindings.Material, program, sh.GBufferVao, sh.MaterialBuffer, sh.GBufferSamplers, sh.IndexCount, sh.SamplerOverrides);
                 }
             }
             _gl.DepthMask(true);
@@ -131,7 +131,7 @@ public sealed class GBufferPass
                 {
                     ActorDrawGroup.EnsureInstancedPrograms(programs, sh);
                     uint program = which == ShapeProgram.ZOnly ? sh.InstancedZOnlyProgram : sh.InstancedGBufferProgram;
-                    key = (1UL << 63) | ((ulong)program << 32) | sh.MaterialUboBuffer;
+                    key = (1UL << 63) | ((ulong)program << 32) | sh.MaterialBuffer;
                 }
                 _items.Add((key, g, sh));
             }

@@ -10,7 +10,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 /// how its pixels are found. Not its position among the resolved passes: a pass with no program is
 /// skipped, and every pass after it used to be matched to the next one's pixels.
 /// </param>
-public sealed record ResolvedDeferredPass(string Name, uint Program, uint MaterialUboBuffer, int PassIndex);
+public sealed record ResolvedDeferredPass(string Name, uint Program, uint MaterialBuffer, int PassIndex);
 
 /// <summary>
 /// Runs each distinct deferred resolve program the loaded model actually needs - a real,
@@ -220,7 +220,7 @@ public sealed class DeferredResolvePass : IDisposable
             // and normal), which would otherwise be pass i-1's own output on the second and later
             // passes of a multi-pass model.
             BindResolveInputs(targets);
-            resources.BindMaterial(pass.MaterialUboBuffer);
+            resources.BindMaterial(pass.MaterialBuffer);
 
             targets.BindColorTarget(targets.ResolvePass);
             _gl.ClearColor(0, 0, 0, 1);

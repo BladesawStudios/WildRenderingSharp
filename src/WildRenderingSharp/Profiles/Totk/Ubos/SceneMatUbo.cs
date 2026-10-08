@@ -125,7 +125,6 @@ public sealed class SceneMatUbo : IUboBlock
 
     public string Name => "SceneMat";
     public int BindingIndex => (int)TotkBindings.SceneMaterial;
-    public int SizeBytes => ByteSize;
 
     /// <summary>
     /// Starts from the REAL authored defaults for all 88 fields, then overlays the handful WildRenderingSharp
@@ -287,6 +286,5 @@ public sealed class SceneMatUbo : IUboBlock
         return scn;
     }
 
-    public void WriteTo(Span<byte> destination) => _block.WriteTo(destination);
     public byte[] ToByteArray() => _block.ToByteArray();
 }

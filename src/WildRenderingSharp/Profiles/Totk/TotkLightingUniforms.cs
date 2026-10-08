@@ -16,8 +16,8 @@ static class TotkLightingUniforms
 
         return
         [
-            new UniformBlock("env", (uint)env.BindingIndex, env.ToByteArray()),
-            new UniformBlock("scenemat", (uint)sceneMaterial.BindingIndex, sceneMaterial.ToByteArray()),
+            UniformBlock.From(FrameUniformKeys.Environment, env),
+            UniformBlock.From(FrameUniformKeys.SceneMaterial, sceneMaterial),
         ];
     }
 }

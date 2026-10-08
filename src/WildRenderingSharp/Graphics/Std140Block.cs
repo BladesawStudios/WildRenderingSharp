@@ -85,11 +85,4 @@ public sealed class Std140Block
         }
         return bytes;
     }
-
-    public void WriteTo(Span<byte> destination)
-    {
-        if (destination.Length < SizeBytes)
-            throw new ArgumentException($"destination must be at least {SizeBytes} bytes", nameof(destination));
-        ToByteArray().CopyTo(destination);
-    }
 }
