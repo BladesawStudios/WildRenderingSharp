@@ -5,6 +5,7 @@ using WildRenderingSharp.Assets.Textures;
 namespace WildRenderingSharp.Pipeline.Drawing;
 
 // The baked-lighting sampler a batch's shape draws with: its unit, the material's own texture for it, and which atlas each instance uses.
+/// <summary>The baked-lighting sampler a batch's shape draws with: its unit, the material's own texture for it, and which atlas each instance uses.</summary>
 readonly record struct BakeSlot(int Unit, LoadedTexture Own, int[] AtlasOf);
 
 /// <summary>Draws a batch's visible runs of one shape, merging neighbouring runs and splitting them wherever the baked-lighting atlas changes.</summary>

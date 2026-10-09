@@ -1,6 +1,7 @@
 
 namespace WildRenderingSharp.Hosting.Views;
 
+/// <summary>What a scene view shows: the finished frame, an HDR view, or one of the buffers a frame is made of.</summary>
 public enum SceneViewMode
 {
     Final,
@@ -19,12 +20,12 @@ public enum SceneViewMode
     FieldLightLayer1,
     CharaLightLayer0,
 
-    /// <summary>What the last deferred resolve pass wrote, before it was composited (scaled down).</summary>
+    // What the last deferred resolve pass wrote, before it was composited (scaled down).
     LastResolve,
     AfterResolve,
     AfterForward,
     AfterFlare,
 
-    /// <summary>What one deferred resolve pass wrote on its own (<see cref="SceneView.ResolvePassIndex"/>), shown in HDR.</summary>
+    // What one deferred resolve pass wrote on its own (ResolvePassIndex), shown in HDR.
     ResolvePass,
 }

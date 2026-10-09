@@ -37,7 +37,7 @@ public sealed class CloudMotionLayer
         LimitAltitudeMax = CloudWeatherParams.Float(map, "LimitAltitude_Max", 0f),
     };
 
-    /// <summary>1 above <see cref="LimitAltitudeMax"/>, 0 below <see cref="LimitAltitudeMin"/>, linear between; always 1 without a limit.</summary>
+    // 1 above LimitAltitudeMax, 0 below LimitAltitudeMin, linear between; always 1 without a limit.
     public float AltitudeVisibility(float altitude)
     {
         if (!EnableLimitAltitude)

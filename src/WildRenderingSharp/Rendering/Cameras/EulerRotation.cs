@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Rendering.Cameras;
 /// </summary>
 internal static class EulerRotation
 {
-    /// <summary>Scales, rolls, pitches and yaws about <paramref name="pivot"/>, then moves by <paramref name="translation"/>.</summary>
+    // Scales, rolls, pitches and yaws about pivot, then moves by translation.
     public static Vector4[] MakeYawPitchRollScaleAboutPivot(float yawRadians, float pitchRadians, float rollRadians, Vector3 scale, Vector3 pivot, Vector3 translation) =>
         GpuMatrix.Rows(
             Matrix4x4.CreateTranslation(-pivot)

@@ -10,7 +10,7 @@ namespace WildRenderingSharp.Scene.Posing;
 /// </summary>
 internal static class TexturePatternPose
 {
-    /// <summary>One anim and the frame to sample it at.</summary>
+    // One anim and the frame to sample it at.
     public readonly record struct Playing(TexturePatternAnimManifest Anim, float Frame);
 
     public static void Apply(LoadedModel model, IReadOnlyList<Playing> playing, TextureCache textures)

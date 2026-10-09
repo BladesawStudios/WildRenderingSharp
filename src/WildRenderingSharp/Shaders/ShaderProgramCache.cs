@@ -59,7 +59,7 @@ internal sealed class ShaderProgramCache : IDisposable
 
     readonly Dictionary<string, bool> _discards = new(StringComparer.Ordinal);
 
-    /// <summary>Whether a program's fragment stage can discard, read once from its source. An unreadable program counts as discarding.</summary>
+    // Whether a program's fragment stage can discard, read once from its source. An unreadable program counts as discarding.
     public bool FragmentDiscards(string baseName)
     {
         lock (_sync)

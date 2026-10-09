@@ -3,6 +3,7 @@ using AampSharp;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 
+/// <summary>Reads the game's post-effect AAMP files into plain values.</summary>
 static class PostFxAamp
 {
     static readonly string[] SkyScalars =

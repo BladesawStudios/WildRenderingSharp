@@ -7,6 +7,7 @@ using WildRenderingSharp.Profiles.Totk.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk;
 
+/// <summary>The Tears of the Kingdom profile: its bindings, uniform builders, shader sources and frame graph.</summary>
 internal sealed class TotkProfile : IGameProfile
 {
     public string Name => "Tears of the Kingdom";

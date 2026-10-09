@@ -45,7 +45,7 @@ internal sealed class ResolveTrace : IDisposable
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
     }
 
-    /// <summary>Makes the traced program for <paramref name="baseName"/>, recording the pixel (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    // Makes the traced program for baseName, recording the pixel (x, y).
     public static ResolveTrace Begin(GL gl, ShaderProgramCache programs, string baseName, string path, string header, int x, int y)
     {
         List<string> names = [];

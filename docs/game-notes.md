@@ -419,3 +419,9 @@ This is the runtime half of what `nn::g3d2::MaterialAnimObj::ApplyTo` (Ghidra 0x
 does - it writes the texture the pattern curve selected into the material object's sampler slot.
 The selection itself is `Evaluate`, a step curve; see
 `ShaderLibrary.CompileTool.ExportTexturePatternAnim` for the full derivation.
+
+## Evidence behind some constants
+
+- `SkyStage.SkyGain` (0.6): the game multiplies its raw sky table by 1 (`Context[13].x` in a capture). This renderer's lit path is scaled down by `SceneGain`, and the real skybin's high-sun zenith (0.69, 1.08, 1.28) sits at about 0.55 to 0.6 of the bake's, so the sky takes the same scale.
+- `EnvPaletteLibrary`'s studio preset: the magnitudes (`BgDifIntensity` 5.0, `HemiIntensity` 0.35) are the icon-capture preset's, and only the hues are neutralised.
+

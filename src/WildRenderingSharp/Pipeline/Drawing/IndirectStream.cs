@@ -4,6 +4,7 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline.Drawing;
 
 // One command of a multi-draw: GL's DrawElementsIndirectCommand.
+/// <summary>One command of a multi-draw: GL's DrawElementsIndirectCommand.</summary>
 [StructLayout(LayoutKind.Sequential)]
 readonly record struct DrawCommand(uint Count, uint InstanceCount, uint FirstIndex, int BaseVertex, uint BaseInstance);
 

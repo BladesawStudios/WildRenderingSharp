@@ -4,6 +4,7 @@ using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Shaders;
 
+/// <summary>How Breath of the Wild's decompiled GLSL is cleaned, corrected and instanced.</summary>
 internal sealed partial class BotwShaderSources : IShaderSources
 {
     static readonly Dictionary<string, uint> BlockBindings = new(StringComparer.Ordinal)

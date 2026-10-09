@@ -20,10 +20,8 @@ internal sealed class ShadowPass
 
     public readonly record struct LightMatrices(Matrix4x4 View, Matrix4x4 Proj, Matrix4x4 ViewProj);
 
-    /// <summary>
-    /// An orthographic sun camera framing the bounding sphere of the box <paramref name="lo"/>..<paramref name="hi"/>: the eye sits
-    /// 2.5 radii out along the sun direction looking at the centre, and the depth range covers 5 radii.
-    /// </summary>
+    // An orthographic sun camera framing the bounding sphere of the box lo..hi: the eye sits 2.5 radii out along the sun direction looking at the
+    // centre, and the depth range covers 5 radii.
     public static LightMatrices BuildLightMatrices(Vector3 lo, Vector3 hi, Vector3 sunWorld)
     {
         var center = (lo + hi) * 0.5f;

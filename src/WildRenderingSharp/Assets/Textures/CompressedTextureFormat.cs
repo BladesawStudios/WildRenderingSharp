@@ -8,11 +8,8 @@ namespace WildRenderingSharp.Assets.Textures;
 /// <summary>Maps a TotK texture's format string (as exported by <c>ExportTestBench</c>/<c>TxtgTexture</c>, e.g.</summary>
 internal static partial class CompressedTextureFormat
 {
-    /// <summary>
-    /// <see cref="AstcFootprint"/> is set only for ASTC formats - <see cref="TextureCache"/> uses that to decode on the CPU instead
-    /// of calling <c>glCompressedTexImage2D</c> with <see cref="Format"/>/<see cref="FormatSrgb"/> (which for ASTC are the plain,
-    /// uncompressed RGBA targets the decoded bytes upload to, not a compressed internal format).
-    /// </summary>
+    // AstcFootprint is set only for ASTC formats - TextureCache uses that to decode on the CPU instead of calling glCompressedTexImage2D with
+    // Format/FormatSrgb (which for ASTC are the plain, uncompressed RGBA targets the decoded bytes upload to, not a compressed internal format).
     public readonly record struct Info(InternalFormat Format, InternalFormat FormatSrgb, int BlockWidth, int BlockHeight, int BytesPerBlock, FootprintType? AstcFootprint);
 
     [GeneratedRegex(@"^ASTC_(\d+)x(\d+)")]

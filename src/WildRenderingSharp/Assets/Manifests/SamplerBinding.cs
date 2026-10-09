@@ -18,18 +18,12 @@ public sealed class SamplerBinding
     [JsonPropertyName("format")] public string Format { get; set; } = "";
     [JsonPropertyName("width")] public int Width { get; set; }
     [JsonPropertyName("height")] public int Height { get; set; }
-    /// <summary>
-    /// The container's per-texture channel-selector bytes (source channel per output, R/G/B/A order: <c>0=R, 1=G, 2=B, 3=A</c>, with <c>4/5</c> meaning constant 0/1 on other Nintendo containers, not observed
-    /// in this game's TXTG data). Applied in <c>TextureCache.ApplySwizzle</c>, whose remarks explain why an earlier Ghidra-derived encoding was reverted. Null when the manifest predates the field or the TXTG
-    /// could not be read, so the caller falls back to the format-based heuristic instead of applying a wrong swizzle. <c>int[]</c>, not <c>byte[]</c>, because <c>System.Text.Json</c>'s <c>byte[]</c> converter
-    /// expects a base64 string.
-    /// </summary>
+    // The container's channel-selector bytes (0=R, 1=G, 2=B, 3=A, 4/5 constant 0/1) applied by the texture uploader, or null when the manifest
+    // predates them, so the format heuristic decides; an int[] because System.Text.Json's byte[] converter expects base64.
     [JsonPropertyName("comp_select")] public int[]? CompSelect { get; set; }
 
-    // The authored GX2 wrap mode for this sampler's U/V axes (GX2TexClamp's names: "Wrap", "Mirror", "Clamp", "ClampBorder",
-    // "ClampToEdge", ...; see ExportManifest.BuildSamplers), applied in TextureCache.MapWrapMode. Hardcoding GL_REPEAT made
-    // textures the game clamps (an eye iris scrolled by a texture-SRT anim) tile once animated UVs left 0..1. Null on a
-    // manifest prepared before the field existed, which falls back to Wrap.
+    // The authored GX2 wrap mode of the sampler's U/V axes (GX2TexClamp's names), applied by the texture uploader; null on a manifest that predates
+    // it, which keeps Wrap. Hardcoding GL_REPEAT made textures the game clamps tile once animated UVs left 0..1.
     [JsonPropertyName("wrap_u")] public string? WrapU { get; set; }
     [JsonPropertyName("wrap_v")] public string? WrapV { get; set; }
 }

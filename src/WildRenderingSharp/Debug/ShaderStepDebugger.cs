@@ -70,8 +70,8 @@ internal static class ShaderStepDebugger
         var outputNames = OutputDeclRegex.Matches(string.Join('\n', output))
             .Select(m => m.Groups[1].Value).Distinct().ToList();
 
-        // The point where debug mode takes over every output. It must run before the shader's own final output write, not merely before main()'s closing brace: these files end with an unconditional
-        // "return;" right before that brace, so inserting after it would be dead code. Insert before the last bare "return;" if there is one, else before the closing brace.
+        // The point where debug mode takes over every output must precede the shader's own final output write, and these files end with an
+        // unconditional "return;" before the closing brace, so it goes before the last bare return when there is one.
         int insertBefore = output.FindLastIndex(l => l.Trim() == "return;");
         if (insertBefore < 0)
             insertBefore = output.FindLastIndex(l => l.Trim() == "}");

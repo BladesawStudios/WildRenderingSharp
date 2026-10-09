@@ -54,7 +54,7 @@ public sealed class RenderTargets : IDisposable
 
     public GpuTexture LightPrePassArray { get; private set; }
 
-    /// <summary>The light pre-pass as the <c>field_*</c> programs read it: layer 0 is the sky's ambient alone, which they multiply by albedo themselves.</summary>
+    // The light pre-pass as the field_* programs read it: layer 0 is the sky's ambient alone, which they multiply by albedo themselves.
     public GpuTexture FieldLightPrePassArray { get; private set; }
 
     public GpuTexture PassId { get; private set; }
@@ -96,16 +96,16 @@ public sealed class RenderTargets : IDisposable
         CreateBloomPyramid(width, height);
     }
 
-    /// <summary>Copies <see cref="Final"/> as it stands into stage slot <paramref name="slot"/>, for looking at the frame between passes.</summary>
+    // Copies Final as it stands into stage slot slot, for looking at the frame between passes.
     public void SnapshotFinal(int slot) => _snapshots.Capture(slot, Final);
 
-    /// <summary>Copies what the deferred pass just resolved into stage slot 3.</summary>
+    // Copies what the deferred pass just resolved into stage slot 3.
     public void SnapshotResolve() => _snapshots.Capture(FrameSnapshots.Slots - 1, ResolvePass);
 
-    /// <summary>The frame as <see cref="SnapshotFinal"/> last saw it, or null.</summary>
+    // The frame as SnapshotFinal last saw it, or null.
     public GpuTexture? Stage(int slot) => _snapshots.Stage(slot);
 
-    /// <summary>One layer of a texture array as a plain texture, for looking at it. Overwritten by the next call.</summary>
+    // One layer of a texture array as a plain texture, for looking at it. Overwritten by the next call.
     public GpuTexture LayerCopy(GpuTexture array, int layer) => _snapshots.LayerCopy(array, layer);
 
     public (GpuTexture Albedo, GpuTexture Normal, GpuTexture Depth) TerrainUnderCopies() => _snapshots.TerrainUnderCopies(Width, Height);

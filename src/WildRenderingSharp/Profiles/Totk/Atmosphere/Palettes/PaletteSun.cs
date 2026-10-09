@@ -13,7 +13,7 @@ internal static class PaletteSun
         ("Evening1", 38f), ("Evening2", 18f), ("Sunset", 4f), ("Night", -30f),
     ];
 
-    /// <summary>The sun's height above the horizon in degrees that suits the palette, or null when its name says no time of day.</summary>
+    // The sun's height above the horizon in degrees that suits the palette, or null when its name says no time of day.
     public static float? ElevationDegrees(string? paletteName)
     {
         if (string.IsNullOrEmpty(paletteName))

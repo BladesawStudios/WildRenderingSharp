@@ -50,12 +50,9 @@ internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameSta
             DrawClouds(frame);
     }
 
-    // The game's sky shader sampling the baked atmosphere. The table is in the game's own units, so its intensity is scaled to
-    // land the brightest texel above 1 before the tonemap, which has the headroom to bring it down; the palette's own sky
-    // brightness (relative to its default of 5) then makes night palettes darker. The ground colour is mixed in unscaled by the
-    // shader, so it arrives pre-scaled.
-    // The game multiplies its raw table by 1 (Context[13].x in a capture). This renderer's lit path is scaled down by SceneGain, and
-    // the real skybin's high-sun zenith (0.69, 1.08, 1.28) sits at about 0.55-0.6 of this bake's, so the sky takes the same scale.
+    // The game's sky shader sampling the baked atmosphere, whose table is in the game's own units, so it is scaled by the palette's sky brightness
+    // (relative to its default of 5) and by SkyGain, which matches the lit path's SceneGain scale; the ground colour is mixed in unscaled by the
+    // shader, so it arrives pre-scaled. The game itself multiplies its raw table by 1 (Context[13].x in a capture).
     const float SkyGain = 0.6f;
 
     void DrawSky(FrameContext frame)

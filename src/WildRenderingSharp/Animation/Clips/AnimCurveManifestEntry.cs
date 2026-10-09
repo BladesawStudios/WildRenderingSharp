@@ -17,12 +17,11 @@ public sealed class AnimCurveManifestEntry
     [JsonPropertyName("start_frame")] public float StartFrame { get; set; }
     [JsonPropertyName("end_frame")] public float EndFrame { get; set; }
     [JsonPropertyName("scale")] public float Scale { get; set; } = 1f;
-    // The curve's BASE value - AnimCurve.Offset, the field at ResAnimCurve[0x24]. nn::g3d2::ResAnimCurve::EvaluateFloat (Ghidra
-    // 0x7100073d90) finishes every curve with Offset + raw * Scale, where raw is the (usually quantized-integer) polynomial the
-    // Cubic/Linear/Baked evaluator produced. Do not confuse this with Delta.
+    // The curve's BASE value, AnimCurve.Offset at ResAnimCurve[0x24]: nn::g3d2::ResAnimCurve::EvaluateFloat (Ghidra 0x7100073d90) finishes every
+    // curve with Offset + raw * Scale. Not to be confused with Delta.
     [JsonPropertyName("offset")] public float Offset { get; set; }
-    // AnimCurve.Delta (ResAnimCurve[0x28]) - the per-loop increment that ONLY the relative-repeat wrap mode adds, and 0 on
-    // essentially every curve. It is not part of the normal in-range evaluation; Offset is. Carried for completeness.
+    // AnimCurve.Delta (ResAnimCurve[0x28]) is the per-loop increment only the relative-repeat wrap mode adds, and 0 on essentially every curve. It
+    // plays no part in normal in-range evaluation, which uses Offset.
     [JsonPropertyName("delta")] public float Delta { get; set; }
     // Wrap mode before StartFrame (0 = Clamp, 1 = Repeat, 2 = Mirror). SkeletonPose clamps regardless, which only differs
     // outside the anim's own frame range.

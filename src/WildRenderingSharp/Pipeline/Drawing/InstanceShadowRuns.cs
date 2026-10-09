@@ -46,9 +46,8 @@ public sealed class InstanceShadowRuns(IReadOnlyList<Vector4[]> placements, floa
         });
     }
 
-    // Fills a cascade's runs if its region or the sun moved: every instance whose placement falls inside the square the cascade's light
-    // projection covers, halfExtent along the light's right and up axes about the region's centre, at any depth along the sun. Choosing
-    // by the region's own box left out casters standing outside it whose shadow falls inside. Far cascades draw coarser levels of detail.
+    // Fills a cascade's runs when its region or the sun moved: every instance whose placement lies in the square the cascade's light projection
+    // covers, so casters outside the region whose shadow falls inside are not left out. Far cascades draw coarser levels of detail.
     internal void UpdateCascade(int cascade, ShadowFocus focus, Vector3 right, Vector3 up, float halfExtent)
     {
         if (_cascadeFocus[cascade] == (focus, right, up) && _cascadeRuns[cascade] is not null)

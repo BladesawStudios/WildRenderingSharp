@@ -14,7 +14,7 @@ public sealed class TexturePatternAnimManifest : IAnimClip
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("frame_count")] public int FrameCount { get; set; }
     [JsonPropertyName("loop")] public bool Loop { get; set; }
-    /// <summary>The anim's own texture list - <see cref="TexturePatternSamplerEntry.Values"/> indexes into this.</summary>
+    // The anim's own texture list - Values indexes into this.
     [JsonPropertyName("textures")] public List<TexturePatternTextureEntry> Textures { get; set; } = [];
     [JsonPropertyName("materials")] public List<TexturePatternMaterialEntry> Materials { get; set; } = [];
 

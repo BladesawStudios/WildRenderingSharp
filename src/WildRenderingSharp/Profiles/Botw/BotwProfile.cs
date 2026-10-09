@@ -7,6 +7,7 @@ using WildRenderingSharp.Profiles.Botw.Ubos;
 
 namespace WildRenderingSharp.Profiles.Botw;
 
+/// <summary>The Breath of the Wild profile: its bindings, shader sources and frame graph.</summary>
 internal sealed class BotwProfile : IGameProfile
 {
     public string Name => "Breath of the Wild";

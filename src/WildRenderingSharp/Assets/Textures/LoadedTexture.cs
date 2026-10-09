@@ -2,6 +2,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets.Textures;
 
+/// <summary>A GL texture with its size and the name it was loaded under.</summary>
 public sealed class LoadedTexture
 {
     public required uint Handle { get; set; }

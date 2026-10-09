@@ -9,7 +9,7 @@ public sealed class TexturePatternSamplerEntry
     [JsonPropertyName("start_frame")] public float StartFrame { get; set; }
     [JsonPropertyName("end_frame")] public float EndFrame { get; set; }
     [JsonPropertyName("frames")] public float[] Frames { get; set; } = [];
-    /// <summary>Index into the anim's own <see cref="TexturePatternAnimManifest.Textures"/>, already including the curve's integer <c>Offset</c>.</summary>
+    // Index into the anim's own Textures, already including the curve's integer Offset.
     [JsonPropertyName("values")] public int[] Values { get; set; } = [];
 
     public int Evaluate(float frame)

@@ -24,6 +24,6 @@ public sealed class CloudLookLayer
         SkyHeight = CloudWeatherValue.Read(map, "SkyHeight", 0f);
     }
 
-    /// <summary>The file's value for <paramref name="key"/>, or <paramref name="current"/> when the file does not name it.</summary>
+    // The file's value for key, or current when the file does not name it.
     public float Override(string key, float current) => CloudWeatherParams.Float(_map, key, current);
 }

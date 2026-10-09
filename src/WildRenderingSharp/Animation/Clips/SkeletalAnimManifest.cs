@@ -18,7 +18,8 @@ public sealed class SkeletalAnimManifest : IAnimClip
     // offsets 32/36/40 are Euler XYZ RADIANS and the W slot is unused - reading them as a quaternion produces a normalized
     // garbage rotation, not a slightly-off one.
     [JsonPropertyName("rotation_is_quaternion")] public bool RotationIsQuaternion { get; set; } = true;
-    /// <summary><c>SkeletalAnim.FlagsScale</c>, same encoding as <see cref="SkeletonScalingMode"/>. Carried for completeness; the hierarchy walk uses the SKELETON's mode, which is what <c>SkeletonObj::CalculateWorldMtx</c> reads.</summary>
+    // SkeletalAnim.FlagsScale, same encoding as SkeletonScalingMode. Carried for completeness; the hierarchy walk uses the SKELETON's mode, which is
+    // what SkeletonObj::CalculateWorldMtx reads.
     [JsonPropertyName("scaling_mode")] public SkeletonScalingMode ScalingMode { get; set; } = SkeletonScalingMode.Standard;
     [JsonPropertyName("bone_anims")] public List<BoneAnimManifestEntry> BoneAnims { get; set; } = [];
 

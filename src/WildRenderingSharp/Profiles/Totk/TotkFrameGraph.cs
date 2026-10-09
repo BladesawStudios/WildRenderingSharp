@@ -20,10 +20,10 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     readonly List<IFrameStage> _stages;
     readonly List<IDisposable> _owned = [];
 
-    /// <summary>The game's terrain programs, for a host that hands its terrain over (<see cref="TotkEnvironment.Terrain"/>).</summary>
+    // The game's terrain programs, for a host that hands its terrain over (Terrain).
     public TerrainShading Terrain { get; }
 
-    /// <summary>The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like.</summary>
+    // The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like.
     public CaveShading Cave { get; }
 
     public TotkFrameGraph(StageServices services)

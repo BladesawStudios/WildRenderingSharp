@@ -63,7 +63,7 @@ public sealed class LoadedShape
 
     internal MaterialParamLayout? MaterialParams { get; init; }
 
-    /// <summary>Whether the instance's baked lighting has a region for this material; one that does not keeps its own bake0.</summary>
+    // Whether the instance's baked lighting has a region for this material; one that does not keeps its own bake0.
     public bool HasBakeRegion { get; set; } = true;
 
     public uint PassIdVao { get; internal set; }

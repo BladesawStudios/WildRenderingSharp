@@ -13,7 +13,7 @@ internal sealed class PreShadingTargets(GL gl) : IDisposable
 
     public uint Texture(int attachment) => _textures[attachment];
 
-    /// <summary>A one-layer array holding a copy of an attachment, for the passes that read a pre-shading buffer as an array.</summary>
+    // A one-layer array holding a copy of an attachment, for the passes that read a pre-shading buffer as an array.
     public uint Array => _array;
 
     public unsafe void Ensure(int width, int height)
@@ -41,7 +41,7 @@ internal sealed class PreShadingTargets(GL gl) : IDisposable
         SetSampling(TextureTarget.Texture2DArray, _array);
     }
 
-    /// <summary>Draws into these attachments only; the rest are switched off, so a pass cannot write where it should not.</summary>
+    // Draws into these attachments only; the rest are switched off, so a pass cannot write where it should not.
     public void Bind(params int[] attachments)
     {
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, _framebuffer);

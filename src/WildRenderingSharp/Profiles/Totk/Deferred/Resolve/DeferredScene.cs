@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 /// <summary>The deferred passes the loaded models (and a terrain host) need, resolved to compiled programs and material buffers.</summary>
 internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirectories directories) : IDisposable
 {
-    /// <summary>The pass that lights a host's terrain, and every pixel the pass-ID mask leaves unstamped.</summary>
+    // The pass that lights a host's terrain, and every pixel the pass-ID mask leaves unstamped.
     public const string DefaultPass = "field_hybrid";
 
     public const string WaterPass = "field_water";
@@ -56,7 +56,7 @@ internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDir
         Console.WriteLine($"  deferred passes: {string.Join(", ", _passNames)}");
     }
 
-    /// <summary>The priority and pass index of every resolved pass a G-buffer material ID can select.</summary>
+    // The priority and pass index of every resolved pass a G-buffer material ID can select.
     public IReadOnlyList<(int Priority, int PassIndex)> MaterialIdPasses()
     {
         var passes = new List<(int Priority, int PassIndex)>();

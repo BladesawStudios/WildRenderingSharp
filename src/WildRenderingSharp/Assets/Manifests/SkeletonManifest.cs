@@ -20,7 +20,7 @@ public sealed class SkeletonManifest
     [JsonPropertyName("rigid_matrix_count")] public int RigidMatrixCount { get; set; } = -1;
     [JsonPropertyName("bones")] public List<BoneManifestEntry> Bones { get; set; } = [];
     [JsonPropertyName("matrix_to_bone_list")] public List<int> MatrixToBoneList { get; set; } = [];
-    /// <summary>Smooth slot -&gt; that bone's inverse bind matrix, 12 floats (3 rows of 4) each, parallel to the first <see cref="SmoothCount"/> entries of <see cref="MatrixToBoneList"/>.</summary>
+    // Smooth slot -> that bone's inverse bind matrix, 12 floats (3 rows of 4) each, parallel to the first SmoothCount entries of MatrixToBoneList.
     [JsonPropertyName("inverse_model_matrices")] public List<float[]> InverseModelMatrices { get; set; } = [];
 
     static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

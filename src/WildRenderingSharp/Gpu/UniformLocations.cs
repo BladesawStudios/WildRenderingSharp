@@ -4,9 +4,8 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Gpu;
 
 /// <summary>
-/// Uniform locations by program and name, asked of the driver once. A program's locations are fixed after it links, and a lookup costs
-/// about a microsecond, which a frame's few hundred uniform sets would otherwise pay each time. Programs must be deleted through
-/// <see cref="ReleaseProgram"/>, since the driver reuses a deleted program's name.
+/// Uniform locations by program and name, asked of the driver once, since a lookup costs about a microsecond and a frame sets a few
+/// hundred. Programs must be deleted through ReleaseProgram, because the driver reuses a deleted program's name.
 /// </summary>
 internal static class UniformLocations
 {

@@ -44,10 +44,10 @@ public sealed class SceneView : IDisposable
 
     public SceneViewMode Mode { get; set; } = SceneViewMode.Final;
 
-    /// <summary>For <see cref="SceneViewMode.ResolvePass"/>: which of the pipeline's deferred passes.</summary>
+    // For ResolvePass: which of the pipeline's deferred passes.
     public int ResolvePassIndex { get; set; }
 
-    /// <summary>Keeps the chosen resolve pass's output every frame, for <see cref="ProbeCentre"/>.</summary>
+    // Keeps the chosen resolve pass's output every frame, for ProbeCentre.
     public bool ProbeEnabled { get; set; }
 
     public int Supersample => AntiAliasing is AntiAliasingMode.Supersample2x or AntiAliasingMode.Supersample2xFxaa ? 2 : 1;
@@ -74,7 +74,8 @@ public sealed class SceneView : IDisposable
 
     bool ApplyFxaa => AntiAliasing is AntiAliasingMode.Fxaa or AntiAliasingMode.Supersample2xFxaa;
 
-    /// <summary>The exact values of every input the deferred resolve reads, and what it wrote, at the middle of the frame. Set <see cref="ProbeEnabled"/> and <see cref="ResolvePassIndex"/> first.</summary>
+    // The exact values of every input the deferred resolve reads, and what it wrote, at the middle of the frame. Set ProbeEnabled and
+    // ResolvePassIndex first.
     public string ProbeCentre() => LastFrame is null ? "" : FrameProbe.Describe(_gl, Pipeline, Targets);
 
     public Vector4? ProbeHdr(Vector2 uvTopLeft)

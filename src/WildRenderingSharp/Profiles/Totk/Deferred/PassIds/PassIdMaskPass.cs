@@ -26,21 +26,14 @@ internal sealed class PassIdMaskPass : IDisposable
     readonly uint _instancedProgram;
     float _near, _far;
 
-    // Mirrors the compiled TotK vertex shader's skinning: - blend indices are FLOAT attributes carrying an integer bit pattern,
-    // unpacked with floatBitsToInt(v) & 0xFFFF (the real shader reads a second index from the high half, which the exporter
-    // never packs); - _Mtx at binding 2 is a flat vec4 array, three rows per bone (48 bytes), each dotted with vec4(pos, 1) for
-    // one output component, row-vector convention, as BonePalette writes; - a skinned draw does not apply the shape
-    // transform separately: the model matrix is folded into every palette entry, so skinned vertices go through uViewProj and
-    // only SKIN_COUNT == 0 (pose baked into the positions) uses uMVP.
+    // Mirrors the compiled TotK vertex shader's skinning: blend indices are float attributes carrying an integer bit pattern (floatBitsToInt(v) &
+    // 0xFFFF), and _Mtx at binding 2 is three vec4 rows per bone in row-vector convention, as BonePalette writes. A skinned draw has the model matrix
+    // folded into every palette entry, so only SKIN_COUNT == 0 (pose baked into the positions) uses uMVP and skinned vertices go through uViewProj.
     static readonly string VertexSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.vert");
 
-    // Stamps the ID, but only where the G-buffer actually wrote a fragment. The mask needs exactly the G-buffer's visibility,
-    // and rasterising alone cannot give it: a mask-mode material's alpha cutout lives in its Z-only program's discard, which
-    // this pass lacks, so it stamped whole uncut quads (Ganondorf_Miasma's masked hair and miasma cards covered 47% more of the
-    // mask than the G-buffer and hid the eyes behind them). Rather than reproduce the cutout, it reads the answer the G-buffer
-    // computed, its depth: a fragment is stamped only where its depth matches the G-buffer's, i.e. where this shape is the
-    // surface the G-buffer kept, which inherits the cutout and the occlusion and lets whatever shows through a hole stamp its
-    // own ID.
+    // Stamps the ID only where the G-buffer wrote a fragment, by reading the G-buffer's own depth and stamping where it matches, which inherits the
+    // Z-only program's alpha cutout and the occlusion that rasterising alone cannot reproduce. Without it, mask-mode quads were stamped whole
+    // (Ganondorf_Miasma's masked hair and miasma cards covered 47% more of the mask than the G-buffer and hid the eyes).
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.frag");
 
     public PassIdMaskPass(GL gl, ShapeDrawer drawer)

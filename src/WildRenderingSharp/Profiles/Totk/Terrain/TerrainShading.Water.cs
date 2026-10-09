@@ -152,7 +152,7 @@ public sealed partial class TerrainShading
         _waterMaterial?.Dispose();
     }
 
-    /// <summary>The water's textures decoded for upload: <c>WaterAlb</c> as half floats, <c>WaterNrm</c> as RGBA8, <c>WaterEmm</c> as R8.</summary>
+    // The water's textures decoded for upload: WaterAlb as half floats, WaterNrm as RGBA8, WaterEmm as R8.
     sealed class WaterTextures
     {
         public byte[] Alb = [], Nrm = [], Emm = [];

@@ -8,18 +8,16 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 /// </summary>
 internal static class CloudLayerResolver
 {
-    /// <summary>
-    /// Texture units per second per unit of <c>ScrollSpd</c>, and per unit of <c>NoiseAdd*</c>, along a unit wind. The game scales both by wind state it
-    /// computes elsewhere; these are fitted to a capture of its cloud draw, where the noise offsets (0.436, -0.083, -1.034, 1.299) and the scroll offsets
-    /// (-0.0384, 0.0782) all follow from one wind direction (<see cref="CapturedWind"/>) and one multiplier each over the same 1107 seconds.
-    /// </summary>
+    // Texture units per second per unit of ScrollSpd, and per unit of NoiseAdd*, along a unit wind. The game scales both by wind state it computes
+    // elsewhere; these are fitted to a capture of its cloud draw, where the noise offsets (0.436, -0.083, -1.034, 1.299) and the scroll offsets
+    // (-0.0384, 0.0782) all follow from one wind direction (CapturedWind) and one multiplier each over the same 1107 seconds.
     const float WindScrollUnit = 8.73e-5f;
     const float WindNoiseUnit = 1.74e-4f;
 
-    /// <summary>The unit wind the capture implies: the ratios of its four noise offsets and of its two scroll offsets both solve to it.</summary>
+    // The unit wind the capture implies: the ratios of its four noise offsets and of its two scroll offsets both solve to it.
     public static readonly Vector2 CapturedWind = new(0.442f, -0.897f);
 
-    /// <summary>The layer as drawn, or null if the weather leaves it invisible (no look for it, or no alpha at this altitude).</summary>
+    // The layer as drawn, or null if the weather leaves it invisible (no look for it, or no alpha at this altitude).
     public static CloudPostFxLayer? Resolve(
         CloudPostFxLayer baseline, CloudMotionLayer? motion, CloudLookLayer? look, Vector2 wind, double seconds, float altitude)
     {

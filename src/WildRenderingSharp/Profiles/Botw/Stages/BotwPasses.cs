@@ -24,7 +24,7 @@ internal sealed class BotwPasses(StageServices services) : IDisposable
     public uint Black { get; } = Texture1x1(services.Gl, Vector4.Zero);
     public uint LightAnalyzed => _lightAnalyzed;
 
-    /// <summary>The pass lighting material IDs <paramref name="idLow"/> to <paramref name="idHigh"/>, or null when the cache has no such pass.</summary>
+    // The pass lighting material IDs idLow to idHigh, or null when the cache has no such pass.
     public BotwPass? Load(string name, float? idLow = null, float? idHigh = null)
     {
         string? file = Directory.EnumerateFiles(services.Directories.Decompiled, $"deferred_{name}_prog*_extracted.frag").Order().FirstOrDefault();
@@ -63,7 +63,7 @@ internal sealed class BotwPasses(StageServices services) : IDisposable
             "    float materialId = texture(uIdTex, gl_FragCoord.xy / vec2(textureSize(uIdTex, 0))).x * 255.0;\n" +
             FormattableString.Invariant($"    if (materialId < {low - 0.5f:F1} || materialId > {high + 0.5f:F1}) discard;\n"));
 
-    /// <summary>The vertex shader blends two samples of this strip, at 9/24 and 11/24, into the ambient colour it hands the fragment stage by screen height.</summary>
+    // The vertex shader blends two samples of this strip, at 9/24 and 11/24, into the ambient colour it hands the fragment stage by screen height.
     public unsafe void EnsureLightAnalyzed(Vector3 sky, Vector3 ground)
     {
         if (_lightAnalyzed != 0 && _analyzed == (sky, ground))

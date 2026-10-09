@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Hosting.Views;
 /// <summary>Puts a <see cref="SceneView"/>'s output into a host's framebuffer: copied, blended over its background, or written with depth.</summary>
 internal sealed class FrameCompositor(GL gl) : IDisposable
 {
-    /// <summary>How a host's depth buffer is laid out. <paramref name="Pass"/> is the ordinary in-front test, restored afterwards.</summary>
+    // How a host's depth buffer is laid out. Pass is the ordinary in-front test, restored afterwards.
     public readonly record struct DepthLayout(bool Reversed, float ClearDepth, DepthFunction PassOrEqual, DepthFunction Pass);
 
     static readonly string Vertex = GlslFiles.Load("Pipeline/FrameCompositor/Vertex.vert");
@@ -28,7 +28,7 @@ internal sealed class FrameCompositor(GL gl) : IDisposable
         gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)read);
     }
 
-    /// <summary>Clears the bound framebuffer to <paramref name="background"/> and blends the view's output over it, leaving depth writes on.</summary>
+    // Clears the bound framebuffer to background and blends the view's output over it, leaving depth writes on.
     public void OverBackground(SceneView view, Vector3 background)
     {
         Ensure(ref _overProgram, OverFragment, "frame_over");
@@ -50,10 +50,8 @@ internal sealed class FrameCompositor(GL gl) : IDisposable
         gl.DepthMask(true);
     }
 
-    /// <summary>
-    /// Writes the view's colour and depth into the host's frame, depth-tested against what is there, converting the view's depth to the host's
-    /// projection. A sky is written at the far plane.
-    /// </summary>
+    // Writes the view's colour and depth into the host's frame, depth-tested against what is there, converting the view's depth to the host's
+    // projection. A sky is written at the far plane.
     public void WithDepth(SceneView view, in DepthLayout layout, float near, float far, Matrix4x4 hostProjection, bool sky)
     {
         Ensure(ref _depthProgram, DepthFragment, "frame_depth");

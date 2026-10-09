@@ -64,10 +64,9 @@ internal sealed class BackgroundPass : IDisposable
                 _gl.SetVec2(_skyProgram, "uTanHalf", tanHalf);
                 _gl.SetVec3(_skyProgram, "uSunWorld", sunWorld);
 
-                // Atmosphere parameters from master_field.baglsky. The postfx coefficients are the static
-                // baseline; the palette's rayleigh and mie amplifiers are the per-scene layer on top
-                // (Rayleigh 1 at noon, 0.25 at night, 0 under a blood moon; Mie 12, 0 and 256). The reference
-                // amplifiers are the postfx defaults, which is the neutral point.
+                // Atmosphere parameters from master_field.baglsky: the postfx coefficients are the static baseline and the palette's rayleigh and mie
+                // amplifiers (Rayleigh 1 at noon, 0.25 at night, 0 under a blood moon; Mie 12, 0 and 256) are the per-scene layer on top. The
+                // reference amplifiers are the postfx defaults, the neutral point.
                 const float ReferenceRayleighAmplifier = 1.0f;
                 const float ReferenceMieAmplifier = 12.0f;
                 float rayleighAmplifier = MathF.Max(0f, palette.SkyRayleighAmplifier) / ReferenceRayleighAmplifier;

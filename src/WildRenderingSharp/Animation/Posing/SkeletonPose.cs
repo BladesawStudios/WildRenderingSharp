@@ -13,7 +13,7 @@ namespace WildRenderingSharp.Animation.Posing;
 /// </summary>
 internal static class SkeletonPose
 {
-    /// <summary>A bone's resolved local transform for one frame - the inputs <see cref="World"/> composes.</summary>
+    // A bone's resolved local transform for one frame - the inputs World composes.
     public readonly record struct BoneLocal(Vector3 Scale, Matrix4x4 Rotation, Vector3 Translation);
 
     static readonly ConditionalWeakTable<SkeletonManifest, Matrix4x4[]> BindPoses = new();

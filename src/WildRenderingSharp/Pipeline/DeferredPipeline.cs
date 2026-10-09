@@ -29,10 +29,10 @@ public sealed class DeferredPipeline : IDisposable
 
     internal IFrameGraph Graph { get; }
 
-    /// <summary>The graph's debug hooks, or null when it has none.</summary>
+    // The graph's debug hooks, or null when it has none.
     internal IDeferredDebug? Debug => Graph as IDeferredDebug;
 
-    /// <summary>Keeps a copy of the HDR frame after the deferred resolve, the forward pass and the lens flare, for the scene view's debug modes.</summary>
+    // Keeps a copy of the HDR frame after the deferred resolve, the forward pass and the lens flare, for the scene view's debug modes.
     public bool SnapshotStages { get; set; }
 
     public GpuPassTimer Timer { get; }

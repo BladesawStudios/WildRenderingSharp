@@ -20,6 +20,6 @@ public interface IFrameEnvironment
 
     PresentGrade PresentGrade { get; }
 
-    /// <summary>Whether the environment brings geometry of its own (a host's ground), so a frame with no placed actors still draws.</summary>
+    // Whether the environment brings geometry of its own (a host's ground), so a frame with no placed actors still draws.
     bool HasOwnGeometry => false;
 }

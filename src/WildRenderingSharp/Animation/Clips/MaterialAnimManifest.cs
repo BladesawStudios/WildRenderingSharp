@@ -10,7 +10,8 @@ namespace WildRenderingSharp.Animation.Clips;
 public sealed class MaterialAnimManifest : IAnimClip
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
-    /// <summary>"TexSrt" when every parameter this anim drives is an SRT type, else the BFRES bucket ("ShaderParam"/"Color"). Classified by what it actually touches, because BfresLibrary's own bucketing files <c>_fts</c> anims under ShaderParam.</summary>
+    // "TexSrt" when every parameter this anim drives is an SRT type, else the BFRES bucket ("ShaderParam"/"Color"). Classified by what it actually
+    // touches, because BfresLibrary's own bucketing files _fts anims under ShaderParam.
     [JsonPropertyName("kind")] public string Kind { get; set; } = "";
     [JsonPropertyName("frame_count")] public int FrameCount { get; set; }
     [JsonPropertyName("loop")] public bool Loop { get; set; }

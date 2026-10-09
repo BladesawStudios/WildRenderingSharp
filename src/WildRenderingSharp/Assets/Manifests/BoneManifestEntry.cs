@@ -22,7 +22,7 @@ public sealed class BoneManifestEntry
     // composing, so the parent's scale does not cascade into it - see SkeletonPose.
     [JsonPropertyName("segment_scale_compensate")] public bool SegmentScaleCompensate { get; set; }
     [JsonPropertyName("scale")] public float[] Scale { get; set; } = [1, 1, 1];
-    /// <summary>Quaternion (x, y, z, w) if <see cref="RotationIsQuaternion"/>, else Euler XYZ radians in (x, y, z, unused).</summary>
+    // Quaternion (x, y, z, w) if RotationIsQuaternion, else Euler XYZ radians in (x, y, z, unused).
     [JsonPropertyName("rotation")] public float[] Rotation { get; set; } = [0, 0, 0, 1];
     [JsonPropertyName("rotation_is_quaternion")] public bool RotationIsQuaternion { get; set; } = true;
     [JsonPropertyName("position")] public float[] Position { get; set; } = [0, 0, 0];

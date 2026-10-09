@@ -8,21 +8,12 @@ internal sealed class MaterialUniformEntry
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("offset")] public int Offset { get; set; }
 
-    /// <summary>
-    /// The BFRES <c>ShaderParamType</c> name (e.g. "Float4", "Int", "TexSrt") the MATERIAL itself
-    /// declares for this parameter, or null when the uniform sits at the shader's own default with
-    /// no material override - there is then no authored type to report (the compiled block carries
-    /// no component-count/type of its own on this platform). A live editor should treat null as
-    /// "no known widget for this one" rather than guessing.
-    /// </summary>
+    // The BFRES ShaderParamType name the material declares for this parameter, or null when the uniform sits at the shader's default with no
+    // override, which a live editor should treat as no known widget.
     [JsonPropertyName("type")] public string? Type { get; set; }
 
-    /// <summary>
-    /// Whether this shape's own real decompiled shader (G-buffer/Z-only/forward, whichever exist)
-    /// actually references this parameter - null when unknown (an older cache predating this
-    /// field, or <see cref="Type"/> is itself null). A live editor should treat null the same as
-    /// true (show it) rather than hide anything it isn't certain about.
-    /// </summary>
+    // Whether the shape's own decompiled shader references this parameter; null when unknown (an older cache, or Type is null), which a live editor
+    // should treat as true.
     [JsonPropertyName("used")] public bool? Used { get; set; }
 
     // The material's AUTHORED (mode, scaleX, scaleY, rotation, translateX, translateY) for a TexSrt/TexSrtEx-typed parameter

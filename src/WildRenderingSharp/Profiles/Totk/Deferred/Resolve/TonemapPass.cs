@@ -19,17 +19,17 @@ internal sealed class TonemapPass : IDisposable
     uint _hdrQuadVbo, _hdrQuadVao;
     uint _hdrQuadVaoProgram;
 
-    // The compression asymptotes to knee + (ceil - knee) = HdrCompressCeil, the brightest value that can leave this pass. It was 2.2, which a display cannot show: values from 1 to 2.2 survived the
-    // tonemap only to be clipped at present, and clipping the dominant channel shifts the ratio (a red sky at (2.5, 0, 0.55) presents as (1, 0, 0.42), nearly double the relative blue, toward magenta).
-    // Asymptoting to 1.0 means nothing needs clipping later and the computed hue reaches the screen.
+    // The compression asymptotes to HdrCompressCeil, the brightest value that can leave this pass; it was 2.2, which a display cannot show, so values
+    // from 1 to 2.2 were clipped at present and clipping the dominant channel shifted hue (a red sky at (2.5, 0, 0.55) presented as (1, 0, 0.42),
+    // toward magenta). Asymptoting to 1.0 means nothing needs clipping later and the computed hue reaches the screen.
     public const float HdrCompressKnee = 0.8f;
     public const float HdrCompressCeil = 1.0f;
 
     static readonly string ExposureFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Exposure.frag");
 
-    // Compresses on the brightest channel and scales the colour as a whole. Per-channel compression desaturates by construction: for a saturated colour only the dominant channel exceeds the knee, so it
-    // alone is pulled down and the three converge toward grey (a blood-moon red (3.0, 0.6, 0.45) went from saturation 0.850 to 0.772 at this step alone, the "deep red comes out pink" failure). Scaling
-    // by compressed/max keeps every channel ratio, so hue and saturation are preserved while the magnitude lands under the ceiling. Neutral colours are unaffected.
+    // Compresses on the brightest channel and scales the colour as a whole, because per-channel compression desaturates (a blood-moon red (3.0, 0.6,
+    // 0.45) fell from saturation 0.850 to 0.772 and came out pink). Scaling by compressed/max keeps every channel ratio, so hue and saturation
+    // survive and neutral colours are unaffected.
     static readonly string CompressFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Compress.frag");
 
     public TonemapPass(GL gl)

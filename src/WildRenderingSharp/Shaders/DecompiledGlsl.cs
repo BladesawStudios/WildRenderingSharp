@@ -32,7 +32,7 @@ internal static partial class DecompiledGlsl
     [GeneratedRegex(@"^[ \t]*fp_s\d+\.data\[[^\]\n]*\][ \t]*=(?!=)[^;\n]*;", RegexOptions.Multiline)]
     private static partial Regex FragmentStorageWrite();
 
-    /// <param name="orphanBinding">The binding the buffers that come out with a negative one are moved to.</param>
+    // Buffers that come out of the decompiler with a negative binding are moved to orphanBinding.
     public static string Clean(string source, uint orphanBinding)
     {
         var output = new List<string>();

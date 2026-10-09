@@ -1,5 +1,6 @@
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 
+/// <summary>Reads a typed value from a cloud weather file's parameters, with a fallback for a missing one.</summary>
 static class CloudWeatherParams
 {
     public static float Float(IReadOnlyDictionary<string, object?> map, string key, float fallback) =>

@@ -8,9 +8,11 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Assets.Loading;
 
 // How a model's shapes are built: compacted vertices, vertex arrays left for the GL thread, and the forward programs' decompiler corrections.
+/// <summary>How a model's shapes are built: compacted vertices, vertex arrays left for the GL thread, and the forward programs' decompiler corrections.</summary>
 readonly record struct ShapeBuildOptions(bool CompactVertices, bool DeferVertexArrays, bool ForwardCorrections);
 
 // The programs a shape draws with; zero where the shape has no such variant.
+/// <summary>The programs a shape draws with; zero where the shape has no such variant.</summary>
 readonly record struct ShapePrograms(uint GBuffer, uint ZOnly, uint Forward);
 
 /// <summary>Builds the shapes of one model from its manifest: programs, buffers, samplers, material block and vertex arrays.</summary>

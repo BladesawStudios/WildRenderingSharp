@@ -8,9 +8,9 @@ namespace WildRenderingSharp.Hosting.Preparers;
 public sealed record LoaderResult(Func<bool> Apply, Action Discard);
 
 /// <summary>
-/// Runs a host's model loads on a thread of its own, with a GL context sharing the host's. Buffers, textures and programs are shared, so a job does
-/// those on the loader and hands back a step for the render thread to make the vertex arrays. A result is applied only if its owner is still the one
-/// passed to <see cref="ApplyFinished"/>.
+/// Runs a host's model loads on a thread of its own with a GL context sharing the host's, so a job does its buffers, textures and
+/// programs there and hands back a step for the render thread to make the vertex arrays. A result is applied only if its owner is
+/// still the one passed to ApplyFinished.
 /// </summary>
 public sealed class BackgroundLoader : IDisposable
 {
@@ -29,8 +29,7 @@ public sealed class BackgroundLoader : IDisposable
     bool _unavailable;
     int _generation;
 
-    /// <param name="createContext">Makes the loader's context on the render thread; null keeps loading there.</param>
-    /// <param name="failed">The result for a job that threw.</param>
+    // createContext makes the loader's context on the render thread (null keeps loading there), and failed gives the result for a job that threw.
     public BackgroundLoader(GL gl, Func<IGLContext?> createContext, Func<Exception, LoaderResult> failed, Action<string>? log = null)
     {
         _gl = gl;
@@ -39,7 +38,7 @@ public sealed class BackgroundLoader : IDisposable
         _log = log;
     }
 
-    /// <summary>Starts the thread once; false when the host gave it no context.</summary>
+    // Starts the thread once; false when the host gave it no context.
     public bool EnsureStarted()
     {
         if (_thread is not null)
@@ -99,7 +98,7 @@ public sealed class BackgroundLoader : IDisposable
         _context.Clear();
     }
 
-    /// <summary>Applies what the loader has finished, on the render thread. True when anything was added to the scene.</summary>
+    // Applies what the loader has finished, on the render thread. True when anything was added to the scene.
     public bool ApplyFinished(object? currentOwner, Action<Exception>? applyFailed = null)
     {
         bool added = false;
@@ -124,7 +123,7 @@ public sealed class BackgroundLoader : IDisposable
         return added;
     }
 
-    /// <summary>Drops queued jobs and waits for the one in flight, before an owner goes away.</summary>
+    // Drops queued jobs and waits for the one in flight, before an owner goes away.
     public void WaitIdle()
     {
         Interlocked.Increment(ref _generation);

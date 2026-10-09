@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 /// </summary>
 public readonly record struct CloudWeatherValue(float Base, float Min, float Max, bool UseBase, float SinSeedAdd)
 {
-    /// <summary>The game runs at 30 frames a second; the per-frame phase step is converted to seconds with it.</summary>
+    // The game runs at 30 frames a second; the per-frame phase step is converted to seconds with it.
     const float FramesPerSecond = 30f;
 
     public static CloudWeatherValue Constant(float value) => new(value, value, value, true, 0f);
@@ -19,10 +19,8 @@ public readonly record struct CloudWeatherValue(float Base, float Min, float Max
         return Min + (Max - Min) * s;
     }
 
-    /// <summary>
-    /// Reads <c>name</c>, <c>nameMin</c>, <c>nameMax</c>, <c>nameSinSeedAdd</c> and <c>name_IsUseBase</c>. The flag is false when absent, as in the
-    /// shipped files, so a value with no Min and Max can only hold its base.
-    /// </summary>
+    // Reads name, nameMin, nameMax, nameSinSeedAdd and name_IsUseBase. The flag is false when absent, as in the shipped files, so a value with no Min
+    // and Max can only hold its base.
     public static CloudWeatherValue Read(IReadOnlyDictionary<string, object?> map, string name, float fallback)
     {
         float baseValue = CloudWeatherParams.Float(map, name, fallback);

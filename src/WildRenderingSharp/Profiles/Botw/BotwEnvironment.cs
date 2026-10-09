@@ -12,7 +12,7 @@ internal sealed class BotwEnvironment : IFrameEnvironment
     public Vector3 HemiGround { get; set; } = new(0.25f, 0.22f, 0.18f);
     public Vector3 Background { get; set; } = new(0.35f, 0.5f, 0.75f);
 
-    /// <summary>Shows one pre-shading buffer instead of the lit frame, to see what the game's passes produce; negative shows the frame.</summary>
+    // Shows one pre-shading buffer instead of the lit frame, to see what the game's passes produce; negative shows the frame.
     public int DebugPreShading { get; set; } = -1;
 
     public EnvironmentLighting ResolveLighting(LightingContext lighting) =>

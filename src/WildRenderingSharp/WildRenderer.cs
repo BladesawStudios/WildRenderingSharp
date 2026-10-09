@@ -43,10 +43,10 @@ public sealed class WildRenderer : IDisposable
 
     public SharedTextures SharedTextures { get; }
 
-    /// <summary>The game's terrain programs, for a host that hands its terrain over (<see cref="Terrain"/>); null when the pipeline is not TotK's.</summary>
+    // The game's terrain programs, for a host that hands its terrain over (Terrain); null when the pipeline is not TotK's.
     public TerrainShading? TerrainShading => (Pipeline.Graph as TotkFrameGraph)?.Terrain;
 
-    /// <summary>The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like; null when the pipeline is not TotK's.</summary>
+    // The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like; null when the pipeline is not TotK's.
     public CaveShading? CaveShading => (Pipeline.Graph as TotkFrameGraph)?.Cave;
 
     public IReadOnlyList<RenderActor> Actors => _actors;

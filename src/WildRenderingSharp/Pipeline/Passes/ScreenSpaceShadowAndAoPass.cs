@@ -33,7 +33,7 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
         float AoRadius, float AoStrength, uint ShadowTexture,
         CascadeParams? Cascades = null);
 
-    /// <summary>The cascades a frame's shadows come from - see <see cref="FrameRequest.ShadowCascades"/>.</summary>
+    // The cascades a frame's shadows come from - see ShadowCascades.
     public sealed record CascadeParams(uint Texture, Matrix4x4[] ViewProj, float[] TexelWorld, float[] Bias);
 
     readonly GL _gl;

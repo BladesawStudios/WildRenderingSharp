@@ -14,7 +14,7 @@ internal static class DeferredPassPriorities
         return bytes.Length >= PriorityOffset + 4 ? (int)MathF.Round(BitConverter.ToSingle(bytes, PriorityOffset)) : null;
     }
 
-    /// <summary>The lighting passes by the non-zero ID they light. Priority 0 is what the field pass claims, and <c>preshading_*</c> belong to the phase before.</summary>
+    // The lighting passes by the non-zero ID they light. Priority 0 is what the field pass claims, and preshading_* belong to the phase before.
     public static IReadOnlyDictionary<int, string> ByPriority(string deferredMaterialsDirectory)
     {
         var passes = new SortedDictionary<int, string>();

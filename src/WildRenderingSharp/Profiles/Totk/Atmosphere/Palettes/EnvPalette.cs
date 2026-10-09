@@ -110,10 +110,8 @@ public sealed class EnvPalette
     public float ScatterFogAttenuation => GetFloat("SfParam_attenuation", 40f);
     public float ScatterFogHorizontal => GetFloat("SfParam_horizontal", 2.5f);
 
-    /// <summary>
-    /// One of a palette's two cloud layers (<see cref="Cloud0"/>, <see cref="Cloud1"/>): a three-way gradient (shadow, base,
-    /// hilight, each with colour and intensity) plus a backlight term for when the sun is behind the cloud.
-    /// </summary>
+    // One of a palette's two cloud layers (Cloud0, Cloud1): a three-way gradient (shadow, base, hilight, each with colour and intensity) plus a
+    // backlight term for when the sun is behind the cloud.
     public readonly record struct CloudLayer(
         bool Present, float BacklightPower,
         Vector3 ColorBackLight, Vector3 ColorBase, Vector3 ColorHilight, Vector3 ColorShadow,

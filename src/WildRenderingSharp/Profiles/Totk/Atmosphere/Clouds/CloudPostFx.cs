@@ -2,11 +2,12 @@ using System.Text.Json;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 
+/// <summary>The baseline of the three cloud layers from the sky post-effect file, and the parameters they share.</summary>
 public sealed class CloudPostFx
 {
     public CloudPostFxShared Shared = CloudPostFxShared.Default;
 
-    /// <summary><c>CloudParam0</c> to <c>CloudParam2</c>: the baseline of the three cloud layers.</summary>
+    // CloudParam0 to CloudParam2: the baseline of the three cloud layers.
     public CloudPostFxLayer[] Layers = [CloudPostFxLayer.Default, CloudPostFxLayer.Default, CloudPostFxLayer.Default];
 
     public CloudPostFxLayer Layer0 => Layers[0];

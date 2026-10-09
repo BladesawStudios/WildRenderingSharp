@@ -4,6 +4,7 @@ using WildRenderingSharp.Gpu;
 namespace WildRenderingSharp.Pipeline.Drawing;
 
 // The locations of an instanced program's instancing uniforms.
+/// <summary>The locations of an instanced program's instancing uniforms.</summary>
 readonly record struct InstanceUniforms(int First, int Stride, int PaletteVec4s, int PaletteRepeat)
 {
     public static InstanceUniforms Find(GL gl, uint program) => new(
