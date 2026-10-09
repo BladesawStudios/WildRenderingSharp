@@ -8,7 +8,7 @@ public partial class LayeringTests
     // Lowest first. The root namespace, which holds the renderer itself, sits above all of them.
     static readonly (string Namespace, int Layer)[] Layers =
     [
-        ("Storage", 0), ("Rom", 0), ("Imaging", 0),
+        ("Storage", 0), ("Rom", 0), ("Imaging", 0), ("Logging", 0),
         ("Gpu", 1),
         ("Rendering", 2), ("Assets.Manifests", 2),
         ("Animation", 3),

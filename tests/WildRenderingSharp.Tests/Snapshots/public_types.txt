@@ -40,6 +40,8 @@ Hosting.Views.SceneView
 Hosting.Views.SceneViewMode
 Imaging.HdrWriter
 Imaging.PngWriter
+Logging.Log
+Logging.LogLevel
 Pipeline.ActorRenderInput
 Pipeline.DeferredPipeline
 Pipeline.Drawing.InstanceBatch

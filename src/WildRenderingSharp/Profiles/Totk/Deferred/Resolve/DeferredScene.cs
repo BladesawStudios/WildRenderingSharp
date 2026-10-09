@@ -1,6 +1,8 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 using WildRenderingSharp.Shaders;
 
@@ -53,7 +55,7 @@ internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDir
         _passNames = passNames;
         DeleteMaterialBuffers();
         _resolvedPasses = DeferredPassLoader.Load(gl, programs, directories.Decompiled, directories.DeferredMaterials, _passNames);
-        Console.WriteLine($"  deferred passes: {string.Join(", ", _passNames)}");
+        Log.Info($"  deferred passes: {string.Join(", ", _passNames)}");
     }
 
     // The priority and pass index of every resolved pass a G-buffer material ID can select.

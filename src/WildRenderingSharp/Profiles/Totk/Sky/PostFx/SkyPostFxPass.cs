@@ -1,6 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
@@ -32,7 +33,7 @@ internal sealed class SkyPostFxPass : IDisposable
         _gl = gl;
         if (!programs.Exists("agl_sky_postfx_sky"))
         {
-            Console.WriteLine("[SkyPostFxPass] agl_sky_postfx_sky not in the shader cache - disabled.");
+            Log.Warning("[SkyPostFxPass] agl_sky_postfx_sky not in the shader cache - disabled.");
             return;
         }
 
@@ -54,7 +55,7 @@ internal sealed class SkyPostFxPass : IDisposable
             _gl.SetSamplerUnit(_fogProgram, "fp_t_tcb_8", 0);
         }
 
-        Console.WriteLine($"[SkyPostFxPass] real agl_sky_postfx_sky linked - blocks rebound: " +
+        Log.Info($"[SkyPostFxPass] real agl_sky_postfx_sky linked - blocks rebound: " +
             $"Context(vert)={vctx}, Context(frag)={fctx}, RenderInfo(frag)={frin}; " +
             $"adhoc-fog variant={(_fogProgram != 0 ? "yes" : "MISSING (re-run sky shader extraction)")}");
 
@@ -121,7 +122,7 @@ internal sealed class SkyPostFxPass : IDisposable
         if (!_logged)
         {
             _logged = true;
-            Console.WriteLine($"[SkyPostFxPass] first draw: lut={bakedInscatter} intensity={intensity:G6} " +
+            Log.Info($"[SkyPostFxPass] first draw: lut={bakedInscatter} intensity={intensity:G6} " +
                 $"aspect={aspect:G6} tanHalfFovY={tanHalfFovY:G6} sun={sunWorld} " +
                 $"adhocFog={(useFog ? $"density {fog.Density:G4}, atten {fog.AttenSky:G4}, colour {fog.Color}" : "off")}");
         }

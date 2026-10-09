@@ -3,6 +3,7 @@ using EffectLibraryTest;
 using ShaderLibrary;
 using CompileToolControlShader = ShaderLibrary.CompileTool.ControlShader;
 using ShaderLibrary.Sharc;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
@@ -52,7 +53,7 @@ public static class AglDecompiler
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[AglDecompiler] {program.Name}{suffix} failed: {ex.Message}");
+                Log.Warning($"[AglDecompiler] {program.Name}{suffix} failed: {ex.Message}");
             }
         }
     }

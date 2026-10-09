@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Text.Json;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 using WildRenderingSharp.Rom;
 
@@ -49,7 +50,7 @@ internal static class SkyPostFxLibrary
             return fallback;
         if (!rom.Exists(Archive))
         {
-            Console.WriteLine($"[SkyPostFxLibrary] no {Archive} - TotK Sky background falls back to hand-transcribed defaults.");
+            Log.Info($"[SkyPostFxLibrary] no {Archive} - TotK Sky background falls back to hand-transcribed defaults.");
             return fallback;
         }
 
@@ -58,8 +59,8 @@ internal static class SkyPostFxLibrary
             byte[]? skyBytes = ReadEntry(rom, "master_field.baglsky");
             byte[]? cloudBytes = ReadEntry(rom, "master_field.baglclwd");
             byte[]? ccrBytes = ReadEntry(rom, "master_field.baglccr");
-            if (skyBytes is null) Console.WriteLine("[SkyPostFxLibrary] 'postfx/master_field.baglsky' not found in genvb archive - using defaults for sky.");
-            if (cloudBytes is null) Console.WriteLine("[SkyPostFxLibrary] 'postfx/master_field.baglclwd' not found in genvb archive - using defaults for clouds.");
+            if (skyBytes is null) Log.Warning("[SkyPostFxLibrary] 'postfx/master_field.baglsky' not found in genvb archive - using defaults for sky.");
+            if (cloudBytes is null) Log.Warning("[SkyPostFxLibrary] 'postfx/master_field.baglclwd' not found in genvb archive - using defaults for clouds.");
 
             string json = PostFxAamp.ToJson(skyBytes, cloudBytes, ccrBytes);
             using var doc = JsonDocument.Parse(json);
@@ -69,13 +70,13 @@ internal static class SkyPostFxLibrary
             var cc = doc.RootElement.TryGetProperty("colorCorrection", out var ccEl)
                 ? ColorCorrectionFromJson(ccEl) : ColorCorrectionPostFx.Default;
 
-            Console.WriteLine($"[SkyPostFxLibrary] loaded real sky/cloud postfx from romfs " +
+            Log.Info($"[SkyPostFxLibrary] loaded real sky/cloud postfx from romfs " +
                 $"(colour correction: enable={cc.Enable} saturation={cc.Saturation:G4} brightness={cc.Brightness:G4} gamma={cc.Gamma:G4} toycam={cc.ToycamEnable}).");
             return (sky, cloud, cc);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SkyPostFxLibrary] failed to load real postfx from romfs, using defaults: {ex.Message}");
+            Log.Warning($"[SkyPostFxLibrary] failed to load real postfx from romfs, using defaults: {ex.Message}");
             return fallback;
         }
     }

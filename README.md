@@ -41,6 +41,7 @@ uint? texture = renderer.Render(camera, width, height, deltaSeconds);
 - `LightingContext` - exposure, palette, sun, background mode, sky/cloud/flare switches.
 - `WildRenderer.Totk` - the TotK profile's live settings (`TotkSettings`): palette, atmosphere, sun and moon, lens flare, and the clouds
   (`CloudWeatherSet` 0-2, `CloudLayerEnabled`, `CloudWind`, `AnimateClouds`, `CloudBrightness`).
+- `Log.Sink` - the library writes its messages to the console unless a host sets this to take them (or to null to silence them).
 - `GLHostState` - see below.
 - The world is right-handed and Y-up, the games' own: cameras, actor placements and the sun are given in it as they are.
 - `Imaging.PngWriter` / `Imaging.HdrWriter` - dependency-free export.

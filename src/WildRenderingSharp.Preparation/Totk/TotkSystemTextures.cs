@@ -1,6 +1,7 @@
 using BntxSharp;
 using ShaderLibrary.CompileTool;
 using TexSharp;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
@@ -24,7 +25,7 @@ public static class TotkSystemTextures
             RedChannel(TextureFormat.Bc4, blocks.AsSpan(z * sliceBytes, sliceBytes), width, height, decoded.AsSpan(z * width * height));
 
         Write(outDir, "Proc3DNoise", ".r8", decoded, $"{width} {height} {depth}");
-        Console.WriteLine($"[SystemTextures] cTex_Proc3DNoise <- {NoiseAsset}: {width}x{height}x{depth}, {decoded.Length} bytes -> {outDir}");
+        Log.Info($"[SystemTextures] cTex_Proc3DNoise <- {NoiseAsset}: {width}x{height}x{depth}, {decoded.Length} bytes -> {outDir}");
     }
 
     public static void ExtractSkyBodies(IRomAccess rom, string outDir)
@@ -46,7 +47,7 @@ public static class TotkSystemTextures
         var decoded = new byte[texture.Width * texture.Height];
         RedChannel(TextureFormat.Bc4, texture.Surfaces[0].Data, texture.Width, texture.Height, decoded);
         Write(outDir, outName, ".r8", decoded, $"{texture.Width} {texture.Height} 1");
-        Console.WriteLine($"[SystemTextures] {outName} <- {textureName}: {texture.Width}x{texture.Height}, {decoded.Length} bytes -> {outDir}");
+        Log.Info($"[SystemTextures] {outName} <- {textureName}: {texture.Width}x{texture.Height}, {decoded.Length} bytes -> {outDir}");
     }
 
     static void ExtractRg(IRomAccess rom, string outDir, string textureName, string outName)
@@ -62,7 +63,7 @@ public static class TotkSystemTextures
             decoded[i * 2 + 1] = rgba[i * 4 + 1];
         }
         Write(outDir, outName, ".rg8", decoded, $"{texture.Width} {texture.Height} 2");
-        Console.WriteLine($"[SystemTextures] {outName} <- {textureName}: {texture.Width}x{texture.Height} BC5, {decoded.Length} bytes -> {outDir}");
+        Log.Info($"[SystemTextures] {outName} <- {textureName}: {texture.Width}x{texture.Height} BC5, {decoded.Length} bytes -> {outDir}");
     }
 
     static TxtgTexture? LoadFirstSurface(IRomAccess rom, string textureName, TxtgFormat expected)
@@ -70,14 +71,14 @@ public static class TotkSystemTextures
         string path = $"TexToGo/{textureName}.txtg";
         if (!rom.Exists(path))
         {
-            Console.WriteLine($"[SystemTextures] '{path}' not found.");
+            Log.Warning($"[SystemTextures] '{path}' not found.");
             return null;
         }
 
         var texture = TotkTextures.Load(rom, path, surfaces: 1);
         if (texture.Format == expected)
             return texture;
-        Console.WriteLine($"[SystemTextures] '{textureName}' is {texture.Format}, expected {expected} - skipping.");
+        Log.Info($"[SystemTextures] '{textureName}' is {texture.Format}, expected {expected} - skipping.");
         return null;
     }
 
@@ -97,6 +98,6 @@ public static class TotkSystemTextures
     static void Try(Action work, string what)
     {
         try { work(); }
-        catch (Exception ex) { Console.WriteLine($"[SystemTextures] {what} unavailable: {ex.Message}"); }
+        catch (Exception ex) { Log.Warning($"[SystemTextures] {what} unavailable: {ex.Message}"); }
     }
 }

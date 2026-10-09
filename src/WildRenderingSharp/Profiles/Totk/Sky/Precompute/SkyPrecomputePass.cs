@@ -1,8 +1,10 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
+using WildRenderingSharp.Profiles.Totk.Sky;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.Precompute;
@@ -54,7 +56,7 @@ internal sealed class SkyPrecomputePass : IDisposable
 
         _canvas = new SkyCanvas(gl, chain);
         _tables = new SkyTables(gl);
-        Console.WriteLine($"[SkyPrecomputePass] linked all real agl sky programs; inscatter LUT {InscatterW}x{InscatterH}x{InscatterD}, transmittance {TransmittanceW}x{TransmittanceH}.");
+        Log.Info($"[SkyPrecomputePass] linked all real agl sky programs; inscatter LUT {InscatterW}x{InscatterH}x{InscatterD}, transmittance {TransmittanceW}x{TransmittanceH}.");
     }
 
     public bool Available => _tables is not null;
@@ -112,7 +114,7 @@ internal sealed class SkyPrecomputePass : IDisposable
     static void LogAtmosphere(SkyPostFx postfx)
     {
         var rayleigh = postfx.RayleighScatteringCoeff;
-        Console.WriteLine($"[SkyPrecomputePass] atmosphere: betaR=({rayleigh.X:G6}, {rayleigh.Y:G6}, {rayleigh.Z:G6}) " +
+        Log.Info($"[SkyPrecomputePass] atmosphere: betaR=({rayleigh.X:G6}, {rayleigh.Y:G6}, {rayleigh.Z:G6}) " +
             $"betaM={postfx.MieScatteringCoeff:G6} HR={postfx.RayleighBaseHeight:G6} HM={postfx.MieBaseHeight:G6}");
     }
 

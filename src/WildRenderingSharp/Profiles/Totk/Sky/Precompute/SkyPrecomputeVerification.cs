@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Logging;
 using static WildRenderingSharp.Profiles.Totk.Sky.Precompute.SkyPrecomputePass;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.Precompute;
@@ -41,7 +42,7 @@ static class SkyPrecomputeVerification
     public static bool Run(GL gl, SkyTables tables, int scatteringOrders)
     {
         var (sizeOk, sizeError, sizeSlot) = VerifySizeInfoAgainstCapture();
-        Console.WriteLine("[SkyPrecomputePass] SizeInfo vs real capture: " +
+        Log.Info("[SkyPrecomputePass] SizeInfo vs real capture: " +
             (sizeOk ? "EXACT" : $"MISMATCH (worst rel err {sizeError:E2} at slot {sizeSlot})"));
 
         bool ok = sizeOk;
@@ -56,7 +57,7 @@ static class SkyPrecomputeVerification
         ReportBakedChannels(baked);
         DumpInscatter(gl, tables);
 
-        Console.WriteLine($"[SkyPrecomputePass] chain ({scatteringOrders} scattering orders) -> {(ok ? "PASS" : "FAIL")}");
+        Log.Info($"[SkyPrecomputePass] chain ({scatteringOrders} scattering orders) -> {(ok ? "PASS" : "FAIL")}");
         return ok;
     }
 
@@ -64,7 +65,7 @@ static class SkyPrecomputeVerification
     {
         var (min, max, nonFinite, negative) = Stats(texels);
         bool good = nonFinite == 0 && negative == 0 && max > 0f;
-        Console.WriteLine($"[SkyPrecomputePass]   {name,-12} range [{min:E3}, {max:E3}] non-finite={nonFinite} negative={negative} -> {(good ? "ok" : "BAD")}");
+        Log.Info($"[SkyPrecomputePass]   {name,-12} range [{min:E3}, {max:E3}] non-finite={nonFinite} negative={negative} -> {(good ? "ok" : "BAD")}");
         return good;
     }
 
@@ -82,7 +83,7 @@ static class SkyPrecomputeVerification
         }
         var (rgbMin, rgbMax, _, _) = Stats(rgb);
         var (alphaMin, alphaMax, _, _) = Stats(alpha);
-        Console.WriteLine($"[SkyPrecomputePass]   bakedInscat RGB range [{rgbMin:E3}, {rgbMax:E3}], ALPHA range [{alphaMin:E3}, {alphaMax:E3}]");
+        Log.Info($"[SkyPrecomputePass]   bakedInscat RGB range [{rgbMin:E3}, {rgbMax:E3}], ALPHA range [{alphaMin:E3}, {alphaMax:E3}]");
     }
 
     // Written when WRS_SKY_DUMP names a file, for diffing against a table lifted from a GPU capture (8 MB).
@@ -95,7 +96,7 @@ static class SkyPrecomputeVerification
         var bytes = new byte[texels.Length * 4];
         System.Buffer.BlockCopy(texels, 0, bytes, 0, bytes.Length);
         File.WriteAllBytes(path, bytes);
-        Console.WriteLine($"[SkyPrecomputePass] dumped inscatter ({InscatterW}x{InscatterH}x{InscatterD}, float32 RGBA) to {path}");
+        Log.Info($"[SkyPrecomputePass] dumped inscatter ({InscatterW}x{InscatterH}x{InscatterD}, float32 RGBA) to {path}");
     }
 
     static unsafe float[] ReadBack2D(GL gl, uint texture, int width, int height)

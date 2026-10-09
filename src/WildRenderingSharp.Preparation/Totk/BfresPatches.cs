@@ -5,6 +5,7 @@ using BfresLibrary.Switch;
 using BfresLibrary.Switch.Core;
 using HarmonyLib;
 using Syroot.BinaryData;
+using WildRenderingSharp.Logging;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
@@ -55,7 +56,7 @@ public static class BfresPatches
     {
         if (!(bool)ContainsKey.Invoke(__instance, [key])!)
             return true;
-        Console.WriteLine($"[BfresPatches] skipped duplicate ResDict key \"{key}\"");
+        Log.Info($"[BfresPatches] skipped duplicate ResDict key \"{key}\"");
         return false;
     }
 

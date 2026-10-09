@@ -1,5 +1,6 @@
 using BfresLibrary;
 using ShaderLibrary.CompileTool;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
@@ -17,11 +18,11 @@ public sealed class TotkAssets(IRomAccess rom) : IGameAssets
             return cached;
         if (TotkModelFiles.Find(rom, modelName) is not { } path)
         {
-            Console.WriteLine($"[ExportTestBench] {TotkModelFiles.Explain(rom, modelName)}");
+            Log.Info($"[ExportTestBench] {TotkModelFiles.Explain(rom, modelName)}");
             return null;
         }
 
-        Console.WriteLine($"[ExportTestBench] Decompressing {path}...");
+        Log.Info($"[ExportTestBench] Decompressing {path}...");
         return _models[modelName] = Mcpk.ToBfres(rom.ReadAllBytesDirectSpan(path).ToArray(), path);
     }
 
@@ -44,7 +45,7 @@ public sealed class TotkAssets(IRomAccess rom) : IGameAssets
             if (rom.Exists(path))
                 yield return path;
             else
-                Console.WriteLine($"[ExportTestBench] Actor named anim archive '{pack}.anim.bfres.zs' not found under Model/ - skipping.");
+                Log.Warning($"[ExportTestBench] Actor named anim archive '{pack}.anim.bfres.zs' not found under Model/ - skipping.");
         }
     }
 
@@ -65,7 +66,7 @@ public sealed class TotkAssets(IRomAccess rom) : IGameAssets
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExportTestBench] SKIPPED anim archive {path}: decompress failed ({ex.Message})");
+            Log.Warning($"[ExportTestBench] SKIPPED anim archive {path}: decompress failed ({ex.Message})");
             return null;
         }
 
@@ -76,7 +77,7 @@ public sealed class TotkAssets(IRomAccess rom) : IGameAssets
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExportTestBench] SKIPPED anim archive {path}: not a readable BFRES ({ex.Message})");
+            Log.Warning($"[ExportTestBench] SKIPPED anim archive {path}: not a readable BFRES ({ex.Message})");
             return null;
         }
     }

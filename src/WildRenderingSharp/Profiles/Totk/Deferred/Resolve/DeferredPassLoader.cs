@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Materials;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
@@ -24,7 +25,7 @@ static class DeferredPassLoader
             string materialPath = Path.Combine(deferredMaterialsDir, $"{name}.gsys_material.bin");
             var material = MaterialBlock.FromFile(gl, materialPath);
             if (material.Authored.Length == 0)
-                Console.WriteLine($"  [warn] no deferred gsys_material for pass '{name}' at '{materialPath}' - resolving with an all-zero Mat block");
+                Log.Warning($"  [warn] no deferred gsys_material for pass '{name}' at '{materialPath}' - resolving with an all-zero Mat block");
 
             resolved.Add(new ResolvedDeferredPass(requested, program, material, passIndex,
                 FieldLights: name.StartsWith("field_", StringComparison.Ordinal), Tiled: name is "field_hybrid" or "field_hybrid_all_shadow", Source: source));
@@ -40,14 +41,14 @@ static class DeferredPassLoader
             return (name, own);
         if (name == FieldFallbackPass)
         {
-            Console.WriteLine($"  [skip] no extracted deferred shader for pass '{name}'");
+            Log.Warning($"  [skip] no extracted deferred shader for pass '{name}'");
             return null;
         }
 
-        Console.WriteLine($"  [approx] no extracted deferred shader for pass '{name}'; resolving through {FieldFallbackPass}");
+        Log.Warning($"  [approx] no extracted deferred shader for pass '{name}'; resolving through {FieldFallbackPass}");
         if (Find(decompiledDir, FieldFallbackPass) is { } fallback)
             return (FieldFallbackPass, fallback);
-        Console.WriteLine($"  [skip] no extracted deferred shader for pass '{FieldFallbackPass}'");
+        Log.Warning($"  [skip] no extracted deferred shader for pass '{FieldFallbackPass}'");
         return null;
     }
 

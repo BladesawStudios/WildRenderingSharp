@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.Precompute;
@@ -39,7 +40,7 @@ sealed class SkyChainPrograms
     {
         foreach (string name in Names.Where(n => !cache.Exists(n)))
         {
-            Console.WriteLine($"[SkyPrecomputePass] '{name}' missing from the shader cache - sky precompute disabled.");
+            Log.Warning($"[SkyPrecomputePass] '{name}' missing from the shader cache - sky precompute disabled.");
             return null;
         }
 

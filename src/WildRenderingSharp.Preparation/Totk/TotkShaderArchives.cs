@@ -1,3 +1,4 @@
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 using WildRenderingSharp.Storage;
 
@@ -18,7 +19,7 @@ public static class TotkShaderArchives
 
         string plain = $"Shader/{name}{Suffix}";
         string source = baseRom.Exists(plain) ? plain : plain + ".zs";
-        Console.WriteLine($"[TotkShaderArchives] decompressing '{source}' -> {path}");
+        Log.Info($"[TotkShaderArchives] decompressing '{source}' -> {path}");
         AtomicFile.WriteAllBytes(path, baseRom.ReadAllBytesNested(source));
         return path;
     }

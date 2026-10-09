@@ -1,4 +1,5 @@
 using ShaderLibrary.CompileTool;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Storage;
 
@@ -95,7 +96,7 @@ public static class TotkSystemAssets
         {
             failures.Add($"'{name}': {ex.Message}");
             log?.Invoke($"[prepare] system asset step '{name}' failed: {ex.Message}");
-            Console.WriteLine($"[ModelPreparer] system asset step '{name}' failed: {ex}");
+            Log.Error($"[ModelPreparer] system asset step '{name}' failed: {ex}");
         }
     }
 }

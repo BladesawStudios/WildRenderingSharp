@@ -8,7 +8,7 @@ Dependencies point one way. A namespace may use the ones with a lower layer numb
 
 | Layer | Namespaces | What it is |
 | --- | --- | --- |
-| 0 | `Storage`, `Rom`, `Imaging` | the cache layout, ROM access and image export; nothing here knows about rendering |
+| 0 | `Storage`, `Rom`, `Imaging`, `Logging` | the cache layout, ROM access, image export and the log; nothing here knows about rendering |
 | 1 | `Gpu` | GL helpers: program building, uniform and texture helpers, the host's GL state, GPU matrix layout |
 | 2 | `Rendering`, `Assets.Manifests` | camera and lighting state; the plain-data manifests of a prepared model |
 | 3 | `Animation` | clips, curve evaluation and skeleton posing |

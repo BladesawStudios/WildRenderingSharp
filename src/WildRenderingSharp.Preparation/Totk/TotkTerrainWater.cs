@@ -2,6 +2,7 @@ using System.Text.Json;
 using BfresLibrary;
 using ShaderLibrary;
 using ShaderLibrary.CompileTool;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
@@ -52,7 +53,7 @@ public static class TotkTerrainWater
         {
             if (TotkTextures.Find(rom, name) is not { } path)
             {
-                Console.WriteLine($"[ExportTerrainWater] texture not found: {name}");
+                Log.Warning($"[ExportTerrainWater] texture not found: {name}");
                 continue;
             }
 
@@ -62,7 +63,7 @@ public static class TotkTerrainWater
                 foreach (var surface in texture.Surfaces)
                     stream.Write(surface.Data);
             written.Add(new { name, file, format = texture.Format.ToString(), width = texture.Width, height = texture.Height, layers = texture.ArrayCount });
-            Console.WriteLine($"[ExportTerrainWater] {name}: {texture.Width}x{texture.Height}, {texture.ArrayCount} slice(s), {texture.Format}");
+            Log.Info($"[ExportTerrainWater] {name}: {texture.Width}x{texture.Height}, {texture.ArrayCount} slice(s), {texture.Format}");
         }
         File.WriteAllText(Path.Combine(shadersDir, TexturesFile), JsonSerializer.Serialize(written));
     }

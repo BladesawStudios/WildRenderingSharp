@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
+using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Shaders;
 
@@ -190,7 +192,7 @@ public sealed partial class TerrainShading
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[terrain water] {ex.Message}");
+                Log.Error($"[terrain water] {ex.Message}");
                 return null;
             }
         }

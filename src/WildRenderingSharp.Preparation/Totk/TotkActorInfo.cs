@@ -1,5 +1,6 @@
 using BymlLibrary;
 using SarcLibrary;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
@@ -19,7 +20,7 @@ public static class TotkActorInfo
         var entries = sarc.Select(kv => kv.Key).ToList();
         if (ModelInfoKey(sarc, entries, actorName) is not { } modelInfoKey)
         {
-            Console.WriteLine($"[ActorInfo] '{actorName}' has a pack but no Component/ModelInfo, so no model can be resolved from it.");
+            Log.Warning($"[ActorInfo] '{actorName}' has a pack but no Component/ModelInfo, so no model can be resolved from it.");
             return null;
         }
 
@@ -32,13 +33,13 @@ public static class TotkActorInfo
         }
         if (project == null || fmdb == null)
         {
-            Console.WriteLine($"[ActorInfo] '{actorName}' has a Component/ModelInfo but no ModelProjectName/FmdbName in it - not a real model.");
+            Log.Info($"[ActorInfo] '{actorName}' has a Component/ModelInfo but no ModelProjectName/FmdbName in it - not a real model.");
             return null;
         }
 
         string modelName = $"{project.GetString()}.{fmdb.GetString()}";
         var animPacks = AnimPackNames(sarc, entries);
-        Console.WriteLine($"[ActorInfo] '{actorName}' -> model '{modelName}', anim archives: [{string.Join(", ", animPacks)}]");
+        Log.Info($"[ActorInfo] '{actorName}' -> model '{modelName}', anim archives: [{string.Join(", ", animPacks)}]");
         return new Resolved(modelName, animPacks);
     }
 

@@ -1,3 +1,4 @@
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Targets;
 
 namespace WildRenderingSharp.Pipeline.Frame;
@@ -19,10 +20,10 @@ internal sealed class ExposureProbe
 
         Last = ExposureMeter.Measure(targets, targets.Final);
         if (Last is { } m)
-            Console.WriteLine($"[ExposureMeter] geometric-mean luminance {m.GeometricMeanLuminance:G4}, " +
+            Log.Info($"[ExposureMeter] geometric-mean luminance {m.GeometricMeanLuminance:G4}, " +
                 $"max {m.MaxLuminance:G4}, {m.SampleCount} samples -> suggested Exposure {m.SuggestedExposure:G4} " +
                 $"(currently {currentExposure:G4})");
         else
-            Console.WriteLine("[ExposureMeter] nothing lit enough to measure.");
+            Log.Info("[ExposureMeter] nothing lit enough to measure.");
     }
 }

@@ -1,3 +1,4 @@
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
@@ -61,7 +62,7 @@ public sealed class EnvPaletteLibrary
             return lib;
         if (!rom.Exists(Pack))
         {
-            Console.WriteLine($"[EnvPaletteLibrary] no {Pack} - only the built-in presets are available.");
+            Log.Info($"[EnvPaletteLibrary] no {Pack} - only the built-in presets are available.");
             return lib;
         }
 
@@ -100,13 +101,13 @@ public sealed class EnvPaletteLibrary
             // Presets win a name collision: they must stay exactly what their builders say, whatever a romfs pack is called.
             if (lib._byName.ContainsKey(name))
             {
-                Console.WriteLine($"[EnvPaletteLibrary] romfs palette '{name}' shadows a built-in preset - keeping the preset.");
+                Log.Info($"[EnvPaletteLibrary] romfs palette '{name}' shadows a built-in preset - keeping the preset.");
                 continue;
             }
             lib._byName[name] = new EnvPalette(name, Resolve(name, new HashSet<string>(StringComparer.Ordinal)));
         }
 
-        Console.WriteLine($"[EnvPaletteLibrary] loaded {rawByName.Count} palettes from '{Pack}'.");
+        Log.Info($"[EnvPaletteLibrary] loaded {rawByName.Count} palettes from '{Pack}'.");
         return lib;
     }
 

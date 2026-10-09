@@ -1,7 +1,9 @@
 using System.Numerics;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
+using WildRenderingSharp.Profiles.Totk.Sky;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 
@@ -24,7 +26,7 @@ internal sealed class SkyBake(StageServices services) : IDisposable
 
         var look = SkyLook.From(palette);
         _key = key;
-        Console.WriteLine($"[SkyBake] baking sky LUT for palette '{key}' (rayleigh x{look.RayleighAmplifier:G4}, mie x{look.MieAmplifier:G4})");
+        Log.Info($"[SkyBake] baking sky LUT for palette '{key}' (rayleigh x{look.RayleighAmplifier:G4}, mie x{look.MieAmplifier:G4})");
 
         _precompute.Run(services.Resources, postFx, _sun, TintColor(palette, tintStep), look);
         GLDiagnostics.CheckPass(services.Gl, "sky precompute");

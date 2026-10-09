@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WildRenderingSharp.Logging;
 
 namespace WildRenderingSharp.Assets.Materials;
 
@@ -55,7 +56,7 @@ internal sealed class MaterialParamLayout
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[MaterialParamLayout] SKIPPED '{path}': {ex.Message}");
+            Log.Warning($"[MaterialParamLayout] SKIPPED '{path}': {ex.Message}");
             return null;
         }
     }

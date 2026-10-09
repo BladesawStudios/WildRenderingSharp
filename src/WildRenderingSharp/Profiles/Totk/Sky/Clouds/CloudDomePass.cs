@@ -4,6 +4,7 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
@@ -110,7 +111,7 @@ internal sealed unsafe class CloudDomePass : IDisposable
         bool fragCommon = _gl.BindUniformBlock(_program, "_fp_c3", CloudBlocks.Common.Binding);
         bool vertCommon = _gl.BindUniformBlock(_program, "_vp_c4", CloudBlocks.Common.Binding);
         bool vertView = _gl.BindUniformBlock(_program, "_vp_c3", CloudBlocks.View.Binding);
-        Console.WriteLine($"[CloudDomePass] real agl_cloud linked - uniform blocks rebound: " +
+        Log.Info($"[CloudDomePass] real agl_cloud linked - uniform blocks rebound: " +
             $"Common(frag)={fragCommon}, Common(vert)={vertCommon}, View(vert)={vertView}");
 
         _gl.UseProgram(_program);

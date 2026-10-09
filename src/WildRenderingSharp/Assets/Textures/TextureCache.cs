@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Logging;
 
 namespace WildRenderingSharp.Assets.Textures;
 
@@ -75,7 +76,7 @@ internal sealed class TextureCache : IDisposable
 
         if (CompressedTextureFormat.Resolve(s.Format) is not { } info)
         {
-            Console.WriteLine($"[TextureCache] SKIPPED '{s.Texture}': unhandled format '{s.Format}'");
+            Log.Warning($"[TextureCache] SKIPPED '{s.Texture}': unhandled format '{s.Format}'");
             return null;
         }
 
@@ -87,7 +88,7 @@ internal sealed class TextureCache : IDisposable
         string path = Path.Combine(_dataDirectory, s.File);
         if (!File.Exists(path))
         {
-            Console.WriteLine($"[TextureCache] SKIPPED '{s.Texture}': missing file '{s.File}'");
+            Log.Warning($"[TextureCache] SKIPPED '{s.Texture}': missing file '{s.File}'");
             return null;
         }
 

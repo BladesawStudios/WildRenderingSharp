@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using BymlLibrary;
 using ShaderLibrary.CompileTool;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 using WildRenderingSharp.Storage;
 
@@ -60,7 +61,7 @@ public static class TotkBakeTile
                     textures.Add(new Texture(names[i], file, texture.Format.ToString(), texture.Width, texture.Height));
                 }
                 else
-                    Console.WriteLine($"[ExportBake] {tile}: texture not found: {names[i]}");
+                    Log.Warning($"[ExportBake] {tile}: texture not found: {names[i]}");
                 textureIndex[names[i]] = at;
             }
             local[i] = at;

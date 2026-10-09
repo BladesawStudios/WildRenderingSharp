@@ -1,6 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Targets;
@@ -27,7 +28,7 @@ internal sealed class SkyBodyPass : IDisposable
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "sky_body");
         if (string.IsNullOrEmpty(systemTexturesDirectory) || !Directory.Exists(systemTexturesDirectory))
         {
-            Console.WriteLine("[SkyBodyPass] no system-texture directory - sun/moon unavailable until extraction runs.");
+            Log.Warning("[SkyBodyPass] no system-texture directory - sun/moon unavailable until extraction runs.");
             return;
         }
 
@@ -35,7 +36,7 @@ internal sealed class SkyBodyPass : IDisposable
         for (int i = 0; i < 8; i++)
             _moonTex[i] = LoadSingle(systemTexturesDirectory, $"Moon{i + 1}", channels: 2);
 
-        Console.WriteLine($"[SkyBodyPass] sun={(_sunTex != 0 ? "loaded" : "missing")}, " +
+        Log.Info($"[SkyBodyPass] sun={(_sunTex != 0 ? "loaded" : "missing")}, " +
             $"moon phases loaded: {_moonTex.Count(t => t != 0)}/8");
     }
 

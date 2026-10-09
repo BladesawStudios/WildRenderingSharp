@@ -3,6 +3,7 @@ using WildRenderingSharp.Assets.Manifests;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Assets.Textures;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Assets.Loading;
@@ -31,7 +32,7 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
     {
         if (sh.Programs.GBuffer < 0)
         {
-            Console.WriteLine($"  [skip] {sh.Name}: no gbuffer program resolved");
+            Log.Warning($"  [skip] {sh.Name}: no gbuffer program resolved");
             return null;
         }
 

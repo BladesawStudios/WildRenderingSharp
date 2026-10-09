@@ -1,3 +1,5 @@
+using WildRenderingSharp.Logging;
+
 namespace WildRenderingSharp.Profiles.Totk.Sky.Clouds;
 
 /// <summary>
@@ -44,7 +46,7 @@ static class CloudCommonCapture
                     differences.Add($"[{slot}].{"xyzw"[component]} ours={built:G6} game={captured[component]:G6}");
             }
         }
-        Console.WriteLine(differences.Count == 0
+        Log.Info(differences.Count == 0
             ? "[CloudDomePass] Common block matches the captured game block on every compared slot."
             : $"[CloudDomePass] Common block DIFFERS from the game on {differences.Count} component(s): {string.Join("  ", differences)}");
     }

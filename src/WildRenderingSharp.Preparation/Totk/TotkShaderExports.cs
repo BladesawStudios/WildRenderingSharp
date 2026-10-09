@@ -3,6 +3,7 @@ using BfresLibrary;
 using EffectLibraryTest;
 using ShaderLibrary;
 using ShaderLibrary.CompileTool;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 using WildRenderingSharp.Storage;
 
@@ -35,7 +36,7 @@ public static class TotkShaderExports
         var block = shadingModel.UniformBlocks["gsys_material"];
         byte[] defaults = block.DefaultBuffer ?? new byte[block.Size];
         File.WriteAllBytes(Path.Combine(shadersDir, export.MaterialFile), defaults);
-        Console.WriteLine($"[TotkShaderExports] {export.Archive} programs {string.Join(", ", export.Programs)} and gsys_material defaults ({defaults.Length} bytes)");
+        Log.Info($"[TotkShaderExports] {export.Archive} programs {string.Join(", ", export.Programs)} and gsys_material defaults ({defaults.Length} bytes)");
     }
 
     static BfshaFile OpenArchive(IRomAccess rom, string archive)

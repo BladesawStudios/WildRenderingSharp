@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Logging;
 
 namespace WildRenderingSharp.Gpu;
 
@@ -35,7 +36,7 @@ internal static class GLDiagnostics
     {
         var errors = Drain(gl);
         foreach (var error in errors)
-            Console.WriteLine($"[GL] {error} during {context}");
+            Log.Error($"[GL] {error} during {context}");
         return errors.Count > 0;
     }
 
@@ -43,7 +44,7 @@ internal static class GLDiagnostics
     {
         var errors = Drain(gl);
         foreach (var error in errors)
-            Console.WriteLine($"[GL] {error} was already pending before {context} - raised by something earlier, not by it");
+            Log.Error($"[GL] {error} was already pending before {context} - raised by something earlier, not by it");
         return errors.Count > 0;
     }
 }

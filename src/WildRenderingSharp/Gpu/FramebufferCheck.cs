@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Logging;
 
 namespace WildRenderingSharp.Gpu;
 
@@ -10,6 +11,6 @@ static class FramebufferCheck
     {
         var status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
         if (status != GLEnum.FramebufferComplete)
-            Console.WriteLine($"[RenderTargets] {name} framebuffer is INCOMPLETE ({status}) - every draw into it will be discarded.");
+            Log.Error($"[RenderTargets] {name} framebuffer is INCOMPLETE ({status}) - every draw into it will be discarded.");
     }
 }

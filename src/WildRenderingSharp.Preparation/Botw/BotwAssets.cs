@@ -1,6 +1,7 @@
 using BfresLibrary;
 using BntxSharp;
 using ShaderLibrary.CompileTool;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Botw;
@@ -19,7 +20,7 @@ public sealed class BotwAssets(IRomAccess rom) : IGameAssets
     {
         byte[]? data = ReadModelFile($"{modelName}.sbfres");
         if (data == null)
-            Console.WriteLine($"[ExportTestBench] no model '{modelName}' under Model/ or in the packs.");
+            Log.Warning($"[ExportTestBench] no model '{modelName}' under Model/ or in the packs.");
         return data;
     }
 

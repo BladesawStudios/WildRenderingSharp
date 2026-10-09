@@ -1,3 +1,4 @@
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Rom;
 
@@ -29,7 +30,7 @@ public sealed class CloudWeather
             return Empty;
         if (!rom.Exists(Pack))
         {
-            Console.WriteLine($"[CloudWeather] no {Pack} - clouds use the postfx baseline only.");
+            Log.Info($"[CloudWeather] no {Pack} - clouds use the postfx baseline only.");
             return Empty;
         }
 
@@ -52,12 +53,12 @@ public sealed class CloudWeather
                     weather.Looks[set, layer] = new CloudLookLayer(ReadMap(rom, entry));
             }
 
-            Console.WriteLine("[CloudWeather] loaded the weather cloud motion and looks from the Bootup pack.");
+            Log.Info("[CloudWeather] loaded the weather cloud motion and looks from the Bootup pack.");
             return weather;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CloudWeather] failed to read the weather cloud data, using the postfx baseline: {ex.Message}");
+            Log.Warning($"[CloudWeather] failed to read the weather cloud data, using the postfx baseline: {ex.Message}");
             return Empty;
         }
     }

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using BymlLibrary;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 using WildRenderingSharp.Storage;
 
@@ -32,13 +33,13 @@ public static class TotkBake
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ExportBake] skipped {Path.GetFileName(files[i])}: {ex.Message}");
+                Log.Info($"[ExportBake] skipped {Path.GetFileName(files[i])}: {ex.Message}");
             }
         });
 
         var sorted = entries.GroupBy(e => e.Hash).Select(g => g.First()).OrderBy(e => e.Hash).ToArray();
         WriteIndex(outDir, tiles, sorted);
-        Console.WriteLine($"[ExportBake] indexed {sorted.Length} placements over {tiles.Length} tiles");
+        Log.Info($"[ExportBake] indexed {sorted.Length} placements over {tiles.Length} tiles");
     }
 
     internal static Byml ReadTile(IRomAccess rom, string path)

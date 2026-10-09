@@ -1,6 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Targets;
@@ -33,7 +34,7 @@ internal sealed class LensFlarePass : IDisposable
         _source = new FlareSource(gl);
         if (!programs.Exists("agl_flare_filter_flare"))
         {
-            Console.WriteLine("[LensFlarePass] agl_flare_filter_flare not in the shader cache - disabled.");
+            Log.Warning("[LensFlarePass] agl_flare_filter_flare not in the shader cache - disabled.");
             return;
         }
 
@@ -48,7 +49,7 @@ internal sealed class LensFlarePass : IDisposable
         _brightProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, BrightFrag, "lens_flare_bright");
         _blurProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, BlurFrag, "lens_flare_blur");
         _quad = new FlareQuad(gl);
-        Console.WriteLine("[LensFlarePass] real agl_flare_filter_flare linked (4 ghosts + halo).");
+        Log.Info("[LensFlarePass] real agl_flare_filter_flare linked (4 ghosts + halo).");
     }
 
     public bool Available => _program != 0;
@@ -131,6 +132,6 @@ internal sealed class LensFlarePass : IDisposable
         if (_logged)
             return;
         _logged = true;
-        Console.WriteLine($"[LensFlarePass] first draw: threshold={p.Threshold:G4} spacing={p.GhostSpacing:G4} haloRadius={p.HaloRadius:G4} intensity={p.Intensity}");
+        Log.Info($"[LensFlarePass] first draw: threshold={p.Threshold:G4} spacing={p.GhostSpacing:G4} haloRadius={p.HaloRadius:G4} intensity={p.Intensity}");
     }
 }
