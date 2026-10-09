@@ -87,6 +87,7 @@ public static class TotkActorInfo
         {
             IDictionary<string, Byml> file;
             try { file = Byml.FromBinary(sarc[at].ToArray()).GetMap(); }
+            // A parent that cannot be parsed ends the chain at the last one that could.
             catch { break; }
             chain.Add(file);
             at = file.TryGetValue("$parent", out var parent) && parent.Type == BymlNodeType.String && parent.GetString().Length > 0

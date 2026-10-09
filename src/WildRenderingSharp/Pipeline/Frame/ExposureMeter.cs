@@ -1,4 +1,5 @@
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Targets;
 
 namespace WildRenderingSharp.Pipeline.Frame;
@@ -21,8 +22,9 @@ public static class ExposureMeter
         {
             px = targets.ReadPixelsFloatRgba(hdr);
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Warning($"[ExposureMeter] could not read the frame back: {ex.Message}");
             return null;
         }
         if (px.Length < 4)

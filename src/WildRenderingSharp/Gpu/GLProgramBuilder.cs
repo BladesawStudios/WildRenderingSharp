@@ -89,7 +89,8 @@ internal static class GLProgramBuilder
     {
         byte[] file;
         try { file = File.ReadAllBytes(path); }
-        catch { return null; }
+        // No cached binary, or one that cannot be read, is compiled from source instead.
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
         if (file.Length <= 4)
             return null;
 
@@ -127,7 +128,7 @@ internal static class GLProgramBuilder
 
             AtomicFile.WriteAllBytes(path, file.AsSpan(0, (int)written + 4));
         }
-        catch (IOException) { /* only a cache - the program itself is fine */ }
-        catch (UnauthorizedAccessException) { }
+        // Only a cache - the program itself is fine.
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
 }
