@@ -3,5 +3,3 @@ obj/
 .vs/
 .idea/
 *.user
-
-build/WildRenderingSharp.targets
