@@ -13,7 +13,7 @@ namespace WildRenderingSharp.Pipeline.Resources;
 internal sealed class GLResourceCache : IDisposable
 {
     readonly GL _gl;
-    readonly Dictionary<string, uint> _ubos = new(StringComparer.Ordinal);
+    readonly Dictionary<string, UniformBuffer> _ubos = new(StringComparer.Ordinal);
     readonly Dictionary<int, uint> _zeroed = [];
     readonly uint _attributelessVao;
 
@@ -50,8 +50,8 @@ internal sealed class GLResourceCache : IDisposable
     // Binds a block uploaded earlier; nothing happens when there is none under that key.
     public void BindUbo(string key, uint binding)
     {
-        if (_ubos.TryGetValue(key, out uint handle))
-            BindBase(binding, handle);
+        if (_ubos.TryGetValue(key, out var buffer))
+            BindBase(binding, buffer.Handle);
     }
 
     public void BindCamera(string key) => BindUbo(key, Bindings.Camera);
@@ -63,9 +63,9 @@ internal sealed class GLResourceCache : IDisposable
     // The bytes last uploaded under the key, read back from the GPU for a debug view.
     public unsafe byte[] ReadUbo(string key)
     {
-        if (!_ubos.TryGetValue(key, out uint handle))
+        if (!_ubos.TryGetValue(key, out var buffer))
             return [];
-        _gl.BindBuffer(BufferTargetARB.UniformBuffer, handle);
+        _gl.BindBuffer(BufferTargetARB.UniformBuffer, buffer.Handle);
         _gl.GetBufferParameter(BufferTargetARB.UniformBuffer, BufferPNameARB.Size, out int size);
         byte[] bytes = new byte[size];
         fixed (byte* p = bytes)
@@ -87,21 +87,43 @@ internal sealed class GLResourceCache : IDisposable
 
     public void Dispose()
     {
-        foreach (uint handle in _ubos.Values)
-            _gl.DeleteBuffer(handle);
+        foreach (var buffer in _ubos.Values)
+            _gl.DeleteBuffer(buffer.Handle);
         _ubos.Clear();
         _zeroed.Clear();
         _gl.DeleteVertexArray(_attributelessVao);
     }
 
+    // Uploads the bytes unless the buffer under the key already holds exactly them, which most blocks of a frame do.
     uint Write(string key, ReadOnlySpan<byte> bytes)
     {
-        if (!_ubos.TryGetValue(key, out uint handle))
-            _ubos[key] = handle = _gl.GenBuffer();
-        _gl.BindBuffer(BufferTargetARB.UniformBuffer, handle);
+        if (!_ubos.TryGetValue(key, out var buffer))
+            _ubos[key] = buffer = new UniformBuffer(_gl.GenBuffer());
+        if (buffer.Holds(bytes))
+            return buffer.Handle;
+
+        _gl.BindBuffer(BufferTargetARB.UniformBuffer, buffer.Handle);
         _gl.BufferData(BufferTargetARB.UniformBuffer, bytes, BufferUsageARB.DynamicDraw);
-        return handle;
+        buffer.Remember(bytes);
+        return buffer.Handle;
     }
 
     void BindBase(uint binding, uint buffer) => _gl.BindBufferBase(BufferTargetARB.UniformBuffer, binding, buffer);
+
+    // A GL uniform buffer and a copy of what it holds, so an upload of the same bytes can be skipped.
+    sealed class UniformBuffer(uint handle)
+    {
+        byte[] _contents = [];
+
+        public uint Handle { get; } = handle;
+
+        public bool Holds(ReadOnlySpan<byte> bytes) => bytes.SequenceEqual(_contents);
+
+        public void Remember(ReadOnlySpan<byte> bytes)
+        {
+            if (_contents.Length != bytes.Length)
+                _contents = new byte[bytes.Length];
+            bytes.CopyTo(_contents);
+        }
+    }
 }

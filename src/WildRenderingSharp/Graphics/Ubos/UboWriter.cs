@@ -68,6 +68,19 @@ internal sealed class UboWriter
             Set(field.Slot + i, rows[i]);
     }
 
+    // Repeats the unitBytes written at byteOffset until there are count of them, by copying what is already there with doubling steps.
+    public void Repeat(int byteOffset, int unitBytes, int count)
+    {
+        int filled = unitBytes;
+        int total = unitBytes * count;
+        while (filled < total)
+        {
+            int copy = Math.Min(filled, total - filled);
+            Buffer.BlockCopy(_bytes, byteOffset, _bytes, byteOffset + filled, copy);
+            filled += copy;
+        }
+    }
+
     public float Get(int slot, int component) => BinaryPrimitives.ReadSingleLittleEndian(_bytes.AsSpan(slot * 16 + component * 4));
 
     public Vector4 Get(int slot) => new(Get(slot, 0), Get(slot, 1), Get(slot, 2), Get(slot, 3));

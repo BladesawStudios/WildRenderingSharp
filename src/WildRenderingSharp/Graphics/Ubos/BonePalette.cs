@@ -23,7 +23,7 @@ internal static class BonePalette
         if (actor.Skeleton is not { } skeleton)
             return Identity(spec, actor.PlacementRows);
 
-        Matrix4x4[] boneWorld = actor.BoneWorld ?? SkeletonPose.BindPoseWorldMatrices(skeleton);
+        Matrix4x4[] boneWorld = actor.BoneWorld ?? SkeletonPose.SharedBindPoseWorld(skeleton);
         return Posed(spec, boneWorld, CollectionsMarshal.AsSpan(skeleton.MatrixToBoneList), skeleton.InverseModelMatricesAsMatrices(),
             GpuMatrix.FromRows(actor.PlacementRows));
     }
@@ -60,8 +60,8 @@ internal static class BonePalette
 
     static void FillBones(UboWriter block, ReadOnlySpan<Vector4> rows)
     {
-        for (int bone = 0; (bone + 1) * BytesPerBone <= block.Spec.ByteSize; bone++)
-            block.Set(BoneField(bone), rows);
+        block.Set(BoneField(0), rows);
+        block.Repeat(0, BytesPerBone, block.Spec.ByteSize / BytesPerBone);
     }
 
     static UboMatrix BoneField(int bone) => new(bone * BytesPerBone / 16, 3);

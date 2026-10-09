@@ -1,5 +1,6 @@
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using WildRenderingSharp.Animation.Clips;
 using WildRenderingSharp.Assets.Manifests;
@@ -14,6 +15,11 @@ internal static class SkeletonPose
 {
     /// <summary>A bone's resolved local transform for one frame - the inputs <see cref="World"/> composes.</summary>
     public readonly record struct BoneLocal(Vector3 Scale, Matrix4x4 Rotation, Vector3 Translation);
+
+    static readonly ConditionalWeakTable<SkeletonManifest, Matrix4x4[]> BindPoses = new();
+
+    // The bind pose of a skeleton, worked out once and shared: callers must not change it. BindPoseWorldMatrices gives a copy to pose.
+    public static Matrix4x4[] SharedBindPoseWorld(SkeletonManifest skel) => BindPoses.GetValue(skel, BindPoseWorldMatrices);
 
     public static Matrix4x4[] BindPoseWorldMatrices(SkeletonManifest skel)
     {
@@ -170,7 +176,7 @@ internal static class SkeletonPose
     {
         if (skeleton is not { } skel)
             return [];
-        Matrix4x4[] boneWorld = BindPoseWorldMatrices(skel);
+        Matrix4x4[] boneWorld = SharedBindPoseWorld(skel);
         ReadOnlySpan<int> matrixToBone = CollectionsMarshal.AsSpan(skel.MatrixToBoneList);
         Matrix4x4[] inverse = skel.InverseModelMatricesAsMatrices();
         var palette = new Matrix4x4[matrixToBone.Length];

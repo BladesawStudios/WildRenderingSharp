@@ -43,7 +43,12 @@ public sealed class SkeletonManifest
 
     public int RigidCount => MatrixToBoneList.Count - SmoothCount;
 
-    public Matrix4x4[] InverseModelMatricesAsMatrices()
+    // The inverse bind matrices as matrices, worked out once from the loaded manifest: callers must not change them.
+    public Matrix4x4[] InverseModelMatricesAsMatrices() => _inverseMatrices ??= BuildInverseMatrices();
+
+    Matrix4x4[]? _inverseMatrices;
+
+    Matrix4x4[] BuildInverseMatrices()
     {
         int smooth = SmoothCount;
         var result = new Matrix4x4[smooth];
