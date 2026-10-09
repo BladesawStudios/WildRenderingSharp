@@ -3,7 +3,7 @@ using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Preparation;
 
 // ensure-system --romfs <dir> [--cache <dir>]
-// prepare --romfs <dir> --actor <name> [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]
+// prepare --romfs <dir> --actor <name> [--game totk|botw] [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]
 // prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]
 // prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]
 //
@@ -24,7 +24,7 @@ static class Cli
         }
 
         string command = args[0];
-        string? romfs = null, actor = null, cacheRoot = null, list = null;
+        string? romfs = null, actor = null, cacheRoot = null, list = null, game = "totk";
         var mods = new List<string>();
         bool importAnims = true, force = false, verbose = false;
         int jobs = 0;
@@ -40,6 +40,7 @@ static class Cli
                     case "--romfs": romfs = Next(); break;
                     case "--actor": actor = Next(); break;
                     case "--cache": cacheRoot = Next(); break;
+                    case "--game": game = Next(); break;
                     case "--mod": mods.Add(Next()); break;
                     case "--no-anims": importAnims = false; break;
                     case "--force": force = true; break;
@@ -79,6 +80,13 @@ static class Cli
                     {
                         Console.Error.WriteLine("prepare needs --actor <name>.");
                         return 2;
+                    }
+                    if (game == "botw")
+                    {
+                        string botwModel = WildRenderingSharp.Preparation.Botw.BotwModelPreparer.PrepareIfNeeded(romfs, actor, cache, Console.WriteLine, force);
+                        Console.Out.Flush();
+                        Console.WriteLine(OutOfProcessPreparer.ResultPrefix + botwModel);
+                        return 0;
                     }
                     ModelPreparer.SetModRomfsLayers(mods);
                     ModelPreparer.EnsureSystemAssets(romfs, cache, Console.WriteLine);
@@ -193,7 +201,7 @@ static class Cli
         Console.WriteLine("WildRenderingSharp.Preparation - prepares actors from a romfs into a WildRenderingSharp cache.");
         Console.WriteLine();
         Console.WriteLine("  ensure-system --romfs <dir> [--cache <dir>]");
-        Console.WriteLine("  prepare --romfs <dir> --actor <name> [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]");
+        Console.WriteLine("  prepare --romfs <dir> --actor <name> [--game totk|botw] [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]");
         Console.WriteLine("  prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]");
         Console.WriteLine("  prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]");
         Console.WriteLine();
