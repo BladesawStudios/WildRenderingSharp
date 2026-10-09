@@ -19,7 +19,7 @@ public sealed class KnownMaterialFixesStage(FrameServices services, DeferredScen
 
         var targets = frame.Targets;
         forward.FlipInto(services.Resources, targets, targets.Scene, targets.Final, flip: true);
-        _fixes.Run(services.Resources, targets, frame.OpaqueGroups, services.Profile.World.FromGameWorld(frame.FlippedCam.ViewProj),
+        _fixes.Run(services.Resources, targets, frame.OpaqueGroups, frame.FlippedCam.ViewProj,
             lighting.EmissionScale, lighting.Exposure);
         forward.FlipInto(services.Resources, targets, targets.Final, targets.Scene, flip: true);
         GLDiagnostics.CheckPass(services.Gl, "known material fixes");

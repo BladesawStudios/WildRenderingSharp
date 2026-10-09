@@ -58,7 +58,7 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         BindUnit(4, underDepth.Handle);
 
         ClipOrigin.Game(Gl, true);
-        host.DrawGBuffer(new TerrainDraw(Gl, YUpWorld.PointBack(camera.Eye), -1, default));
+        host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default));
         ClipOrigin.Game(Gl, false);
 
         ResetState();
@@ -74,7 +74,7 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         Resources.BindEnvironment();
         Gl.Disable(EnableCap.CullFace);
         Gl.Disable(EnableCap.Blend);
-        var draw = new TerrainDraw(Gl, YUpWorld.PointBack(camera.Eye), -1, default);
+        var draw = new TerrainDraw(Gl, camera.Eye, -1, default);
         if (!stamp)
         {
             targets.BindGBuffer();
@@ -108,8 +108,7 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
     public void DrawShadow(ITerrainHost host, int cascade, Camera camera, ShadowFocus focus, ShadowPass.LightMatrices light, CameraData sceneCamera)
     {
         services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, CameraData.ForLight(light, sceneCamera)).Bind(Resources);
-        host.DrawShadow(new TerrainDraw(Gl, YUpWorld.PointBack(camera.Eye), cascade,
-            new Vector4(YUpWorld.PointBack(focus.Center), focus.Radius)));
+        host.DrawShadow(new TerrainDraw(Gl, camera.Eye, cascade, new Vector4(focus.Center, focus.Radius)));
         Gl.UseProgram(0);
         Gl.BindVertexArray(0);
     }

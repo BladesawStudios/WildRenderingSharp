@@ -31,7 +31,7 @@ void main() {
     if (d >= 0.999) { fragColor = vec4(uHemiSky, 1.0); return; }
     vec3 nView = decodeGBuffNormal(vUV);
     vec3 nWorld = normalize(mat3(uViewInv) * nView);
-    vec3 ambient = mix(uHemiGround, uHemiSky, nWorld.z * 0.5 + 0.5); // the renderer's world is Z-up
+    vec3 ambient = mix(uHemiGround, uHemiSky, nWorld.y * 0.5 + 0.5);
     vec3 direct = uSunColor * max(0.0, dot(nWorld, uSunWorld)) * uDirect;
     fragColor = vec4(ambient + direct, 1.0);
 }

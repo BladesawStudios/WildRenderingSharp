@@ -29,8 +29,8 @@ public sealed class GroundPass : IDisposable
         _gl.BlendFuncSeparate(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha, GLEnum.Zero, GLEnum.One);
 
         _gl.UseProgram(_program);
-        // Column-major, with the Z-up to Y-up row swap the sky programs use.
-        Vector4 r0 = viewInv3Rows[0], r1 = viewInv3Rows[2], r2 = viewInv3Rows[1];
+        // Column-major.
+        Vector4 r0 = viewInv3Rows[0], r1 = viewInv3Rows[1], r2 = viewInv3Rows[2];
         Span<float> m = stackalloc float[9]
         {
             r0.X, r1.X, r2.X,

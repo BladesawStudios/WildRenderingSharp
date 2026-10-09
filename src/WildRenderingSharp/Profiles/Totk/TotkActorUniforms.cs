@@ -9,9 +9,9 @@ namespace WildRenderingSharp.Profiles.Totk;
 
 static class TotkActorUniforms
 {
-    public static UniformBlock[] Build(IWorldBasis world, in SkinningData actor)
+    public static UniformBlock[] Build(in SkinningData actor)
     {
-        Vector4[] placement = world.PlacementRows(actor.PlacementRows);
+        Vector4[] placement = actor.PlacementRows;
         var bones = BonePalette(actor.Skeleton, placement, actor.BoneWorld);
         var shape = ShapeMatrixUbo.BuildFromModelMatrix(placement);
 

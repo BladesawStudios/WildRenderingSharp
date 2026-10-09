@@ -89,11 +89,11 @@ public sealed class SkyPostFxPass : IDisposable
         u.Set(1, 1, tanHalfFovY);
         u.Set(2, 3, -1f);
 
-        // Camera-to-world rotation dotted row-wise against v, in the form BackgroundPass uses; Z-up to Y-up swaps which row feeds .y and .z.
+        // Camera-to-world rotation dotted row-wise against v, in the form BackgroundPass uses.
         void Row(int slot, Vector4 r) { u.Set(slot, 0, r.X); u.Set(slot, 1, r.Y); u.Set(slot, 2, r.Z); }
-        Row(4, viewInv3Rows[0]);   // -> x
-        Row(5, viewInv3Rows[2]);   // Z-up z becomes Y-up y
-        Row(6, viewInv3Rows[1]);   // Z-up y becomes Y-up z
+        Row(4, viewInv3Rows[0]);
+        Row(5, viewInv3Rows[1]);
+        Row(6, viewInv3Rows[2]);
 
         u.Set(13, 0, intensity);
 
@@ -140,7 +140,7 @@ public sealed class SkyPostFxPass : IDisposable
 
     public const float CapturedAttenSky = 0.5f;
 
-    internal static byte[] BuildRenderInfo(SkyPostFx postfx, Vector3 sunWorldZUp, Vector3? fogColor = null,
+    internal static byte[] BuildRenderInfo(SkyPostFx postfx, Vector3 sunWorld, Vector3? fogColor = null,
         float paletteTint = 0f)
     {
         var buf = new byte[112];
@@ -149,7 +149,7 @@ public sealed class SkyPostFxPass : IDisposable
         var br = postfx.RayleighScatteringCoeff;
         u.Set(0, 0, br.X); u.Set(0, 1, br.Y); u.Set(0, 2, br.Z); u.Set(0, 3, postfx.MieScatteringCoeff);
 
-        Vector3 sun = SkyAxes.ToYUp(sunWorldZUp);
+        Vector3 sun = sunWorld;
         if (sun.LengthSquared() > 1e-12f) sun = Vector3.Normalize(sun);
         u.Set(2, 0, sun.X); u.Set(2, 1, sun.Y); u.Set(2, 2, sun.Z);
 
@@ -165,7 +165,7 @@ public sealed class SkyPostFxPass : IDisposable
 
     public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target,
         uint bakedInscatter, ReadOnlySpan<Vector4> viewInv3Rows, float aspect, float tanHalfFovY,
-        Vector3 sunWorldZUp, SkyPostFx postfx, float intensity, Vector3? fogColor = null,
+        Vector3 sunWorld, SkyPostFx postfx, float intensity, Vector3? fogColor = null,
         float paletteTint = 0f, AdhocFog fog = default)
     {
         if (!Available || bakedInscatter == 0)
@@ -179,13 +179,13 @@ public sealed class SkyPostFxPass : IDisposable
         {
             _logged = true;
             Console.WriteLine($"[SkyPostFxPass] first draw: lut={bakedInscatter} intensity={intensity:G6} " +
-                $"aspect={aspect:G6} tanHalfFovY={tanHalfFovY:G6} sun={sunWorldZUp} " +
+                $"aspect={aspect:G6} tanHalfFovY={tanHalfFovY:G6} sun={sunWorld} " +
                 $"adhocFog={(useFog ? $"density {fog.Density:G4}, atten {fog.AttenSky:G4}, colour {fog.Color}" : "off")}");
         }
         resources.Ubo("sky_support", SupportBufferUbo.Build(), SupportBufferUbo.BindingIndex);
         resources.Ubo("skyfx_context",
             BuildContext(viewInv3Rows, aspect * tanHalfFovY, tanHalfFovY, intensity, useFog ? fog : default), ContextBinding);
-        resources.Ubo("skyfx_renderinfo", BuildRenderInfo(postfx, sunWorldZUp, fogColor, paletteTint), RenderInfoBinding);
+        resources.Ubo("skyfx_renderinfo", BuildRenderInfo(postfx, sunWorld, fogColor, paletteTint), RenderInfoBinding);
 
         targets.BindColorTarget(target);
         _gl.Disable(EnableCap.DepthTest);

@@ -134,7 +134,7 @@ public sealed class InstanceBatch : IDisposable
         }
     }
 
-    public InstanceBatch(GL gl, LoadedModel model, IReadOnlyList<Vector4[]> placements, IWorldBasis world)
+    public InstanceBatch(GL gl, LoadedModel model, IReadOnlyList<Vector4[]> placements)
     {
         _gl = gl;
         Model = model;
@@ -152,9 +152,7 @@ public sealed class InstanceBatch : IDisposable
         var hi = new Vector3(float.MinValue);
         for (int i = 0; i < Count; i++)
         {
-            // The programs read the game's world (the profile's basis); the placements stay as given, for bounds, culling and shadows.
-            Vector4[] rows = world.PlacementRows(placements[i]);
-            Vector4[] given = placements[i];
+            Vector4[] rows = placements[i];
             int at = i * Stride;
             data[at] = rows[0];
             data[at + 1] = rows[1];
@@ -186,9 +184,9 @@ public sealed class InstanceBatch : IDisposable
                     (c & 2) == 0 ? model.BoundsMin.Y : model.BoundsMax.Y,
                     (c & 4) == 0 ? model.BoundsMin.Z : model.BoundsMax.Z);
                 var w = new Vector3(
-                    Vector4.Dot(given[0], new Vector4(corner, 1)),
-                    Vector4.Dot(given[1], new Vector4(corner, 1)),
-                    Vector4.Dot(given[2], new Vector4(corner, 1)));
+                    Vector4.Dot(rows[0], new Vector4(corner, 1)),
+                    Vector4.Dot(rows[1], new Vector4(corner, 1)),
+                    Vector4.Dot(rows[2], new Vector4(corner, 1)));
                 lo = Vector3.Min(lo, w);
                 hi = Vector3.Max(hi, w);
             }

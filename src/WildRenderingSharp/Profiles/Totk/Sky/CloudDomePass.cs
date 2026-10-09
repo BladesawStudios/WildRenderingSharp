@@ -265,8 +265,7 @@ public sealed class CloudDomePass : IDisposable
         var layer = drawn.Params;
         var cloud = drawn.Colours;
 
-        // The renderer's world is Z-up, so altitude is Z.
-        float skyHeightAboveCamera = MathF.Max(1f, layer.SkyHeight - cameraEye.Z);
+        float skyHeightAboveCamera = MathF.Max(1f, layer.SkyHeight - cameraEye.Y);
 
         // Drawn at the dome's true size, which the shader's distance fades are calibrated against.
         // Depth clamping stands in for the game's disabled far clip.
@@ -441,8 +440,8 @@ public sealed class CloudDomePass : IDisposable
         u.Set(33, 0, 0f); u.Set(33, 1, skyHeightAboveCamera); u.Set(33, 2, 0f);
         u.Set(34, 0, 0f); u.Set(34, 1, 0f); u.Set(34, 2, layer.SkyScale);
 
-        // Negated and Y-up: the slot holds the direction light travels, per the capture.
-        u.Set(42, 0, -sunWorld.X); u.Set(42, 1, -sunWorld.Z); u.Set(42, 2, -sunWorld.Y);
+        // Negated: the slot holds the direction light travels, per the capture.
+        u.Set(42, 0, -sunWorld.X); u.Set(42, 1, -sunWorld.Y); u.Set(42, 2, -sunWorld.Z);
 
         return buf;
     }
@@ -452,16 +451,10 @@ public sealed class CloudDomePass : IDisposable
     {
         byte[] buf = new byte[ViewBytes];
 
-        // Local Y-up unit dome to the renderer's Z-up world: scale by the sky extent, map height to Z, centre on the camera.
+        // The unit dome scaled to the sky extent, with its height scaled separately, centred on the camera.
         float radius = layer.SkyScale * domeScale;
         float height = skyHeightAboveCamera * domeScale;
-        // Each row is where a local axis lands: local X stays X, local Y (up) becomes Z, local Z becomes Y.
-        var swapYZ = new Matrix4x4(
-            1, 0, 0, 0,
-            0, 0, 1, 0,
-            0, 1, 0, 0,
-            0, 0, 0, 1);
-        var model = Matrix4x4.CreateScale(radius, height, radius) * swapYZ * Matrix4x4.CreateTranslation(cameraEye);
+        var model = Matrix4x4.CreateScale(radius, height, radius) * Matrix4x4.CreateTranslation(cameraEye);
 
         new UniformWriter(buf).SetRows(4, CameraData.Rows(model * view));
         new UniformWriter(buf).SetRows(8, CameraData.Rows(proj));

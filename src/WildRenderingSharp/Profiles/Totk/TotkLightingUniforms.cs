@@ -5,10 +5,10 @@ namespace WildRenderingSharp.Profiles.Totk;
 
 static class TotkLightingUniforms
 {
-    public static UniformBlock[] Build(IWorldBasis world, in SceneLightingData lighting)
+    public static UniformBlock[] Build(in SceneLightingData lighting)
     {
         var env = EnvUbo.BuildFromLighting(
-            lighting.SunDirView, world.Direction(lighting.SunDirWorld), lighting.SunColor,
+            lighting.SunDirView, lighting.SunDirWorld, lighting.SunColor,
             lighting.HemiSky, lighting.HemiGround, lighting.VolumeMaskColor, lighting.VolumeMaskIntensity,
             lighting.ShadowMapSize);
         var sceneMaterial = SceneMatUbo.BuildFromLighting(

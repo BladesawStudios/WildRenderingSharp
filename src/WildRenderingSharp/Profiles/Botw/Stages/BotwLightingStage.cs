@@ -40,7 +40,6 @@ public sealed class BotwLightingStage(FrameServices services, BotwPasses passes)
         var targets = frame.Targets;
         var camera = frame.Camera;
         var cam = frame.Cam;
-        var world = services.Profile.World;
 
         if (!_loaded)
         {
@@ -55,9 +54,9 @@ public sealed class BotwLightingStage(FrameServices services, BotwPasses passes)
 
         float texel = 1f / RenderTargets.CascadeSize;
         resources.Ubo(FrameUniformKeys.Environment,
-            BotwEnvUbo.From(frame.SunView, frame.SunColor, frame.HemiSky, frame.HemiGround, world.InverseRows(CameraData.Rows(cam.ViewInv, 3)), texel).ToByteArray(),
+            BotwEnvUbo.From(frame.SunView, frame.SunColor, frame.HemiSky, frame.HemiGround, CameraData.Rows(cam.ViewInv, 3), texel).ToByteArray(),
             BotwBindings.Environment);
-        resources.Ubo(ContextKey, BotwUniforms.Context(world, cam).WithCascade(viewToShadow, 1e9f, 1e9f).ToByteArray(), BotwBindings.Camera);
+        resources.Ubo(ContextKey, BotwUniforms.Context(cam).WithCascade(viewToShadow, 1e9f, 1e9f).ToByteArray(), BotwBindings.Camera);
         passes.EnsureLightAnalyzed(frame.HemiSky, frame.HemiGround);
 
         _targets.Clear(ShadowAttachment, 1, 1, 1, 1);

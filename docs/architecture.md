@@ -31,9 +31,11 @@ shaders read.
 supplies:
 
 - `ShaderBindings` - the binding points the shared passes use for the camera, environment and material blocks
-- `IWorldBasis` - how the renderer's Z-up world maps to the game's (`YUpWorldBasis` for the Wild games)
 - `IShaderSources` - how a game's decompiled GLSL is cleaned, corrected and instanced
 - `CreateFrameGraph` - the ordered stages of its frame
+
+The renderer's world is right-handed and Y-up, the Wild games' own. Cameras, actor placements and the sun are given in it as they are, and the
+uniform blocks are written without any conversion.
 
 ## A frame
 
@@ -55,7 +57,7 @@ Stages that use nothing game-specific (`FrameSetupStage`, `ScreenSpaceLightingSt
 2. Add one class per uniform block under `Profiles/<Game>/Ubos/`, implementing `IUboBlock`.
    Build them from the neutral inputs, not from renderer internals.
 3. Write the three small builders (camera, lighting, actor) and a `<Game>Profile : IGameProfile`
-   that exposes them, its `ShaderBindings`, its `IShaderSources` and its world basis.
+   that exposes them, its `ShaderBindings` and its `IShaderSources`.
 4. Write the stages the game's frame needs. Reuse the neutral ones; put game-specific passes under
    `Profiles/<Game>/` next to the shaders they drive.
 5. Assemble them in a `<Game>FrameGraph : IFrameGraph` and return it from `CreateFrameGraph`.

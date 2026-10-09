@@ -100,8 +100,8 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         if (sunPeak > 1e-6f) sunHue /= sunPeak;
         _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, CameraData.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY,
             new SkyBodyPass.Params(
-                SunDirZUp: frame.SunWorld,
-                MoonDirZUp: SunDirection.FromElevationAzimuth(settings.MoonElevation, settings.MoonAzimuth),
+                SunDir: frame.SunWorld,
+                MoonDir: SunDirection.FromElevationAzimuth(settings.MoonElevation, settings.MoonAzimuth),
                 SunColor: sunHue * settings.SunSpriteIntensity,
                 MoonColor: Vector3.One * settings.MoonSpriteIntensity,
                 SunAngularRadius: float.DegreesToRadians(settings.SunAngularRadiusDegrees),
@@ -121,7 +121,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var cam = frame.Cam;
 
         float seconds = _cloudDome.Advance(settings.AnimateClouds);
-        var layers = ResolveCloudLayers(environment, seconds, frame.Camera.Eye.Z);
+        var layers = ResolveCloudLayers(environment, seconds, frame.Camera.Eye.Y);
 
         _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, layers, seconds,
             cam, frame.Camera.Eye, frame.SunWorld,

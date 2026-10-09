@@ -28,7 +28,7 @@ public sealed class ShadowPass
         float radius = (hi - lo).Length() * 0.5f + 1e-4f;
         var eye = center + sunWorld * (radius * 2.5f);
         // Z is up, except when the sun is near-vertical and would look straight down it.
-        var up = MathF.Abs(Vector3.Normalize(sunWorld).Z) < 0.95f ? Vector3.UnitZ : Vector3.UnitY;
+        var up = MathF.Abs(Vector3.Normalize(sunWorld).Y) < 0.95f ? Vector3.UnitY : -Vector3.UnitZ;
 
         var view = Matrix4x4.CreateLookAt(eye, center, up);
         var proj = Matrix4x4.CreateOrthographic(radius * 2f, radius * 2f, 0.01f, radius * 5f) * CameraData.ZeroToOneDepthToGl;

@@ -18,7 +18,7 @@ public sealed class BackgroundPass : IDisposable
 
     public const float SkyColorAnchor = 0.03f;
 
-    // Z-up world: "up" is worldDir.z. Everything keys off worldDir alone, a pure function of the
+    // "Up" is worldDir.y. Everything keys off worldDir alone, a pure function of the
     // camera's rotation, so the sky sits at infinity and only turning the camera moves it.
     static readonly string SkyFragmentSource = GlslFiles.Load("Totk/Sky/Background/Sky.frag");
 
@@ -97,8 +97,8 @@ public sealed class BackgroundPass : IDisposable
                 SetCloudLayer(0, palette.Cloud0, cloudPostFx.Layer0);
                 SetCloudLayer(1, palette.Cloud1, cloudPostFx.Layer1);
 
-                // Fades in once the sun sets (Z-up); the palettes author no star toggle.
-                float starBrightness = MathF.Min(0.5f, MathF.Max(0f, -sunWorld.Z) * 1.5f);
+                // Fades in once the sun sets; the palettes author no star toggle.
+                float starBrightness = MathF.Min(0.5f, MathF.Max(0f, -sunWorld.Y) * 1.5f);
                 _gl.SetFloat(_skyProgram, "uStarBrightness", starBrightness);
 
                 resources.DrawFullscreenTriangle();

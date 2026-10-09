@@ -1,5 +1,5 @@
 #version 450 core
-in vec2 vWorldXY;
+in vec2 vWorldXZ;
 uniform vec3 uCameraPos;
 uniform vec4 uLineColor;
 uniform float uExtent;
@@ -22,14 +22,14 @@ float gridLines(vec2 p, float cell, out float vis)
 
 void main()
 {
-    float dist = distance(vWorldXY, uCameraPos.xy);
+    float dist = distance(vWorldXZ, uCameraPos.xz);
     float fade = clamp(1.0 - dist / uExtent, 0.0, 1.0);
     fade *= fade;
 
     // The cell size comes from the caller, scaled to the scene (see Run).
     float minorVis, majorVis;
-    float minor = gridLines(vWorldXY, uMinorCell, minorVis) * minorVis;
-    float major = gridLines(vWorldXY, uMinorCell * 10.0, majorVis) * majorVis;
+    float minor = gridLines(vWorldXZ, uMinorCell, minorVis) * minorVis;
+    float major = gridLines(vWorldXZ, uMinorCell * 10.0, majorVis) * majorVis;
     float line = max(minor * 0.35, major * 0.8);
 
     if (line * fade < 0.01) discard;

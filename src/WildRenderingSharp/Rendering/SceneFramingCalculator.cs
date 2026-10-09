@@ -17,7 +17,7 @@ public static class SceneFramingCalculator
     const float MinDistanceFraction = 0.4f / SwordRadius;
     const float MaxDistanceFraction = 12.0f / SwordRadius;
 
-    public static readonly Vector3 DefaultViewDirection = Vector3.Normalize(new Vector3(0.2571f, 1.1996f, 0f));
+    public static readonly Vector3 DefaultViewDirection = Vector3.Normalize(new Vector3(0.2571f, 0f, -1.1996f));
 
     public static SceneFraming ForModelRadius(float radius) => new(
         Near: radius * NearFraction,

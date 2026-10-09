@@ -66,21 +66,20 @@ if (options.TryGetValue("azimuth", out var azimuth))
     renderer.Lighting.SunAzimuth = float.Parse(azimuth);
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
-// Z-up, like the renderer's world.
-var camera = new Camera { Up = Vector3.UnitZ, FovDegrees = 38f };
+var camera = new Camera { FovDegrees = 38f };
 var (center, radius) = renderer.FrameFor(camera);
 camera.Target = center;
 camera.Eye = center + SceneFramingCalculator.DefaultViewDirection * radius * 3.5f;
 
 if (options.TryGetValue("lookup", out var lookup))
 {
-    var flat = Vector3.Normalize(new Vector3(center.X - camera.Eye.X, center.Y - camera.Eye.Y, 0));
+    var flat = Vector3.Normalize(new Vector3(center.X - camera.Eye.X, 0, center.Z - camera.Eye.Z));
     float pitch = float.DegreesToRadians(float.Parse(lookup));
-    camera.Target = camera.Eye + flat * MathF.Cos(pitch) * radius + Vector3.UnitZ * MathF.Sin(pitch) * radius;
+    camera.Target = camera.Eye + flat * MathF.Cos(pitch) * radius + Vector3.UnitY * MathF.Sin(pitch) * radius;
 }
 if (options.TryGetValue("altitude", out var altitude))
 {
-    var lift = Vector3.UnitZ * float.Parse(altitude);
+    var lift = Vector3.UnitY * float.Parse(altitude);
     camera.Eye += lift;
     camera.Target += lift;
 }

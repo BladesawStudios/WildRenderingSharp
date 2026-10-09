@@ -32,7 +32,7 @@ public static class EulerRotation
             Vector3.TransformNormal(Vector3.UnitZ, rotation));
     }
 
-    // Roll about Z, then pitch about X, then yaw about Z (Z is up).
+    // Roll about Z, then pitch about X, then yaw about Y (Y is up).
     static Matrix4x4 YawPitchRoll(float yawRadians, float pitchRadians, float rollRadians) =>
-        Matrix4x4.CreateRotationZ(rollRadians) * Matrix4x4.CreateRotationX(pitchRadians) * Matrix4x4.CreateRotationZ(yawRadians);
+        Matrix4x4.CreateRotationZ(rollRadians) * Matrix4x4.CreateRotationX(pitchRadians) * Matrix4x4.CreateRotationY(yawRadians);
 }

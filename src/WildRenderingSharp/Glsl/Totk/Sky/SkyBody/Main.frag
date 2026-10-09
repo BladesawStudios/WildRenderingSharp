@@ -2,7 +2,7 @@
 in vec2 vUV;
 uniform sampler2D tSun;      // BC4 disc mask, R only
 uniform sampler2D tMoon;     // BC5 sprite: R = albedo, G = coverage
-uniform mat3 uViewInv;       // camera-to-world rotation, rows already Y-up swapped
+uniform mat3 uViewInv;       // camera-to-world rotation
 uniform vec2 uTanHalf;
 uniform vec3 uSunDir;        // world, Y-up, normalised
 uniform vec3 uMoonDir;
