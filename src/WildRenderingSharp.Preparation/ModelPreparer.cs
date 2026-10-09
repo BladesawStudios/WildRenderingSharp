@@ -38,32 +38,38 @@ public static class ModelPreparer
         }
 
         EnsureBfresReady(romfsRoot);
-        Step(log, "system shaders", () => EnsureSystemShaders(romfsRoot, cache.Shaders));
-        Step(log, "deferred materials", () => EnsureSystemDeferredMaterials(romfsRoot, cache.DeferredMaterials, cache.Shaders));
-        Step(log, "system textures", () => EnsureSystemTextures(romfsRoot, cache.SystemTextures));
-        Step(log, "cloud textures", () => EnsureCloudTextures(romfsRoot, cache.SystemTextures));
-        Step(log, "sky bodies", () => EnsureSkyBodyTextures(romfsRoot, cache.SystemTextures));
-        Step(log, "lens flare", () => EnsureLensFlareShaders(romfsRoot, cache.Shaders));
-        Step(log, "cloud shader", () => EnsureCloudShader(romfsRoot, cache.Shaders));
-        Step(log, "sky shaders", () => EnsureSkyShaders(romfsRoot, cache.Shaders));
-        Step(log, "terrain water", () =>
+        var failures = new List<string>();
+        void Step(string name, Action step) => RunStep(failures, log, name, step);
+        Step("system shaders", () => EnsureSystemShaders(romfsRoot, cache.Shaders));
+        Step("deferred materials", () => EnsureSystemDeferredMaterials(romfsRoot, cache.DeferredMaterials, cache.Shaders));
+        Step("system textures", () => EnsureSystemTextures(romfsRoot, cache.SystemTextures));
+        Step("cloud textures", () => EnsureCloudTextures(romfsRoot, cache.SystemTextures));
+        Step("sky bodies", () => EnsureSkyBodyTextures(romfsRoot, cache.SystemTextures));
+        Step("lens flare", () => EnsureLensFlareShaders(romfsRoot, cache.Shaders));
+        Step("cloud shader", () => EnsureCloudShader(romfsRoot, cache.Shaders));
+        Step("sky shaders", () => EnsureSkyShaders(romfsRoot, cache.Shaders));
+        Step("terrain water", () =>
         {
             if (!ShaderLibrary.CompileTool.ExportTerrainWater.IsExported(cache.Shaders))
                 ShaderLibrary.CompileTool.ExportTerrainWater.Run(romfsRoot, cache.Shaders);
         });
-        Step(log, "terrain shaders", () =>
+        Step("terrain shaders", () =>
         {
             if (!ShaderLibrary.CompileTool.ExportTerrainShaders.IsExported(cache.Shaders))
                 ShaderLibrary.CompileTool.ExportTerrainShaders.Run(romfsRoot, cache.Shaders);
         });
-        Step(log, "cave shaders", () =>
+        Step("cave shaders", () =>
         {
             if (!ShaderLibrary.CompileTool.ExportCaveShaders.IsExported(cache.Shaders))
                 ShaderLibrary.CompileTool.ExportCaveShaders.Run(romfsRoot, cache.Shaders);
         });
+
+        // The renderer cannot start without the HDR compose shader; the other steps only cost features, so they are logged and the rest carries on.
+        if (failures.Count > 0 && !cache.HasSystemAssets)
+            throw new InvalidOperationException("The system assets could not be built: " + string.Join("; ", failures));
     }
 
-    static void Step(Action<string>? log, string name, Action step)
+    static void RunStep(List<string> failures, Action<string>? log, string name, Action step)
     {
         try
         {
@@ -71,6 +77,7 @@ public static class ModelPreparer
         }
         catch (Exception ex)
         {
+            failures.Add($"'{name}': {ex.Message}");
             log?.Invoke($"[prepare] system asset step '{name}' failed: {ex.Message}");
             Console.WriteLine($"[ModelPreparer] system asset step '{name}' failed: {ex}");
         }

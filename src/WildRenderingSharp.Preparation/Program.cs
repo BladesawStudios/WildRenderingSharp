@@ -129,7 +129,18 @@ static class Cli
         }
 
         ModelPreparer.SetModRomfsLayers(mods);
-        ModelPreparer.EnsureSystemAssets(romfs, cache, verbose ? Console.WriteLine : null);
+        try
+        {
+            ModelPreparer.EnsureSystemAssets(romfs, cache, verbose ? Console.WriteLine : null);
+        }
+        catch (Exception ex)
+        {
+            // Every name fails with the reason, instead of the batch dying and being retried.
+            string reason = string.Join(' ', ex.Message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
+            foreach (string name in names)
+                Say($"WRS_FAIL {name}\t{reason}");
+            return 0;
+        }
         if (!verbose)
             Console.SetOut(TextWriter.Null);
 
