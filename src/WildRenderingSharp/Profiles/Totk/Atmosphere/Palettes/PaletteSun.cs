@@ -1,6 +1,9 @@
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 
-/// <summary>Where the sun is when the game uses a palette. The game moves the sun with the time of day that picks the palette, so a palette is never lit from a different sun.</summary>
+/// <summary>
+/// Where the sun is when the game uses a palette. The game moves the sun with the time of day that picks the palette, so a palette is never
+/// lit from a different sun.
+/// </summary>
 internal static class PaletteSun
 {
     static readonly (string Suffix, float Degrees)[] Slots =

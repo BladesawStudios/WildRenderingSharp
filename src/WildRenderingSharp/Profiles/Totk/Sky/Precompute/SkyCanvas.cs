@@ -4,7 +4,10 @@ using static WildRenderingSharp.Profiles.Totk.Sky.Precompute.SkyPrecomputePass;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 
-/// <summary>The framebuffer and quad the sky precompute chain draws with: it targets a texture or a layer of one, binds inputs, and draws a program over the target.</summary>
+/// <summary>
+/// The framebuffer and quad the sky precompute chain draws with: it targets a texture or a layer of one, binds inputs, and draws a program
+/// over the target.
+/// </summary>
 sealed unsafe class SkyCanvas : IDisposable
 {
     readonly GL _gl;

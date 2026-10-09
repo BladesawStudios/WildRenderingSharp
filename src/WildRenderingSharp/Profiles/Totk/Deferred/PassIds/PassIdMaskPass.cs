@@ -11,7 +11,10 @@ using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 
-/// <summary>Draws a mask of which resolve program each pixel needs, because a model can span several (<c>chara_metal</c>, <c>chara_skin</c>, <c>chara_hair</c> and so on) chosen per material by <c>o_material_behave</c>.</summary>
+/// <summary>
+/// Draws a mask of which resolve program each pixel needs, because a model can span several (<c>chara_metal</c>, <c>chara_skin</c>,
+/// <c>chara_hair</c> and so on) chosen per material by <c>o_material_behave</c>.
+/// </summary>
 internal sealed class PassIdMaskPass : IDisposable
 {
     readonly GL _gl;

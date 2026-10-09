@@ -3,7 +3,10 @@ using System.IO.Enumeration;
 
 namespace WildRenderingSharp.Rom;
 
-/// <summary>Folders layered over one another (base game, update, DLC, mods; later folders win) read as one filesystem, with SARC archives opened by path and Yaz0 and zstd understood. Decompressed files and opened archives are kept under a byte budget, least recently used going first.</summary>
+/// <summary>
+/// Folders layered over one another (base game, update, DLC, mods; later folders win) read as one filesystem, with SARC archives opened by
+/// path and Yaz0 and zstd understood. Decompressed files and opened archives are kept under a byte budget, least recently used going first.
+/// </summary>
 public sealed class LayeredRom : IRomAccess
 {
     public const long DefaultCacheBudget = 768L << 20;

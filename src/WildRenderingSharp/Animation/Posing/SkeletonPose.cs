@@ -118,7 +118,8 @@ internal static class SkeletonPose
         Vector3 scale = anim.UseScale ? new(anim.BaseScale[0], anim.BaseScale[1], anim.BaseScale[2]) : bone.ScaleVec;
         Vector3 translate = anim.UseTranslate ? new(anim.BaseTranslate[0], anim.BaseTranslate[1], anim.BaseTranslate[2]) : bone.PositionVec;
 
-        // Rotation lives in whichever representation the anim declares, so a curve-less bone's bind rotation is converted to it before curves overwrite parts of it. The two agree for real files; converting keeps a mismatch from producing garbage.
+        // Rotation lives in whichever representation the anim declares, so a curve-less bone's bind rotation is converted to it before
+        // curves overwrite parts of it. The two agree for real files; converting keeps a mismatch from producing garbage.
         Vector4 rotate;
         if (anim.UseRotate)
             rotate = new Vector4(anim.BaseRotate[0], anim.BaseRotate[1], anim.BaseRotate[2], anim.BaseRotate[3]);

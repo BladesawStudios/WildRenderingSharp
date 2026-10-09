@@ -3,7 +3,10 @@ using static WildRenderingSharp.Profiles.Totk.Ubos.TotkSceneMaterialLayout;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
-/// <summary>The authored values of <c>Model/SystemModel.SceneMaterial</c>'s material for every field the lighting does not drive; fields not listed are authored zero.</summary>
+/// <summary>
+/// The authored values of <c>Model/SystemModel.SceneMaterial</c>'s material for every field the lighting does not drive; fields not listed
+/// are authored zero.
+/// </summary>
 static class TotkSceneMaterialDefaults
 {
     static readonly (int Offset, float[] Values)[] Authored =

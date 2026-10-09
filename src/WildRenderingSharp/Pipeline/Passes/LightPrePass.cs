@@ -7,7 +7,10 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline.Passes;
 
-/// <summary>Produces layer 0 of <c>cTex_DeferredLightPrePass</c>, the light-accumulation buffer the <c>chara_*</c> resolve shaders sample for their main light colour.</summary>
+/// <summary>
+/// Produces layer 0 of <c>cTex_DeferredLightPrePass</c>, the light-accumulation buffer the <c>chara_*</c> resolve shaders sample for their
+/// main light colour.
+/// </summary>
 internal sealed class LightPrePass : IDisposable
 {
     readonly GL _gl;

@@ -5,7 +5,10 @@ using WildRenderingSharp.Graphics.Ubos;
 
 namespace WildRenderingSharp.Pipeline.Resources;
 
-/// <summary>Persistent GL objects reused every frame: uniform buffers kept under a key, zeroed buffers by size, and the attribute-less VAO the fullscreen passes draw through.</summary>
+/// <summary>
+/// Persistent GL objects reused every frame: uniform buffers kept under a key, zeroed buffers by size, and the attribute-less VAO the
+/// fullscreen passes draw through.
+/// </summary>
 internal sealed class GLResourceCache : IDisposable
 {
     readonly GL _gl;

@@ -58,7 +58,8 @@ internal sealed class GBufferPass(GL gl)
         gl.DepthFunc(DepthFunction.Less);
         DrawSorted(resources, groups, drawer, s => !Prepassed(s) && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-z ");
 
-        // Shapes that write no depth (a see-through surface the game blends into its G-buffer) draw last, tested but not written, and never in the prepass, where writing them hid what is behind.
+        // Shapes that write no depth (a see-through surface the game blends into its G-buffer) draw last, tested but not written, and never
+        // in the prepass, where writing them hid what is behind.
         gl.DepthMask(false);
         DrawSorted(resources, groups, drawer, s => !s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-depth ");
         gl.DepthMask(true);

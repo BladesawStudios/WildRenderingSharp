@@ -5,7 +5,10 @@ using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
-/// <summary>The game's own programs for a crbin mesh (a cave, a sky island, an edit part), fed by the host through the cave UBOs and the terrain's material arrays.</summary>
+/// <summary>
+/// The game's own programs for a crbin mesh (a cave, a sky island, an edit part), fed by the host through the cave UBOs and the terrain's
+/// material arrays.
+/// </summary>
 public sealed class CaveShading : IDisposable
 {
     public const uint ChunkBinding = 3, InstanceBinding = 12, PaletteBinding = 13;

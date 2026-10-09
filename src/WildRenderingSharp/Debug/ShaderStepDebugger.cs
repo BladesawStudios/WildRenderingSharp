@@ -64,7 +64,8 @@ internal static class ShaderStepDebugger
 
         availableTargets = [.. targets];
 
-        // The override replaces every real fragment output, not only the first found, or the value shows only on whichever attachment is textually first (e.g. not the Albedo view).
+        // The override replaces every real fragment output, not only the first found, or the value shows only on whichever attachment is
+        // textually first (e.g. not the Albedo view).
         var outputNames = OutputDeclRegex.Matches(string.Join('\n', output))
             .Select(m => m.Groups[1].Value).Distinct().ToList();
 

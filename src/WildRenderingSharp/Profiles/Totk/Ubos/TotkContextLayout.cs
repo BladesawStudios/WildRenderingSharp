@@ -2,7 +2,10 @@ using WildRenderingSharp.Graphics.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
-/// <summary>TotK's <c>gsys_context</c>, decompiled as <c>fp_c4</c>. The camera slots are in <see cref="GsysContext"/>; the tags mark how each slot's meaning was established.</summary>
+/// <summary>
+/// TotK's <c>gsys_context</c>, decompiled as <c>fp_c4</c>. The camera slots are in <see cref="GsysContext"/>; the tags mark how each slot's
+/// meaning was established.
+/// </summary>
 static class TotkContextLayout
 {
     public static readonly UboSpec Spec = new("gsys_context", TotkBindings.Camera, 2368);

@@ -7,7 +7,10 @@ using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Pipeline.Passes;
 
-/// <summary>A bright pass, four downsampled and blurred levels, and a weighted compose that feeds the game's own <c>agl_hdr_compose</c> through its <c>cBloom</c> sampler.</summary>
+/// <summary>
+/// A bright pass, four downsampled and blurred levels, and a weighted compose that feeds the game's own <c>agl_hdr_compose</c> through its
+/// <c>cBloom</c> sampler.
+/// </summary>
 internal sealed class BloomPass : IDisposable
 {
     public static readonly Vector4[] LevelColors =

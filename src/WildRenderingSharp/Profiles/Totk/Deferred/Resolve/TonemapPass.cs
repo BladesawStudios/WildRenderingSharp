@@ -36,7 +36,8 @@ internal sealed class TonemapPass : IDisposable
         _exposureProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, ExposureFragmentSource, "exposure");
         _compressProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, CompressFragmentSource, "hdr_compress");
 
-        // hdr_compose's vertex shader is attribute-driven, unlike the fullscreen-triangle passes above: in_attr0 is a half-size position it doubles into clip space, in_attr1 the UV.
+        // hdr_compose's vertex shader is attribute-driven, unlike the fullscreen-triangle passes above: in_attr0 is a half-size position it
+        // doubles into clip space, in_attr1 the UV.
         float[] quad =
         [
             -0.5f, -0.5f, 0f, 1f, 0f, 0f, 0f, 0f,

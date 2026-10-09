@@ -4,7 +4,10 @@ using WildRenderingSharp.Graphics.Contracts;
 
 namespace WildRenderingSharp.Shaders;
 
-/// <summary>Loads and links a decompiled vertex and fragment pair into a GL program, cached by base name so shapes and passes that use the same program share it.</summary>
+/// <summary>
+/// Loads and links a decompiled vertex and fragment pair into a GL program, cached by base name so shapes and passes that use the same
+/// program share it.
+/// </summary>
 internal sealed class ShaderProgramCache : IDisposable
 {
     readonly GL _gl;

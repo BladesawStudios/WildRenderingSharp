@@ -4,7 +4,10 @@ using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Assets.Manifests;
 
-/// <summary>Deserialized <c>&lt;Model&gt;.skeleton.json</c>, everything needed to build the bone palette at bind pose or at a pose from a <see cref="SkeletalAnimManifest"/>.</summary>
+/// <summary>
+/// Deserialized <c>&lt;Model&gt;.skeleton.json</c>, everything needed to build the bone palette at bind pose or at a pose from a <see
+/// cref="SkeletalAnimManifest"/>.
+/// </summary>
 public sealed class SkeletonManifest
 {
     // How the bones' scales combine down the hierarchy; see SkeletonScalingMode.

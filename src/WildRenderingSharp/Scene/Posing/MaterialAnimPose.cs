@@ -5,7 +5,10 @@ using WildRenderingSharp.Assets.Materials;
 
 namespace WildRenderingSharp.Scene.Posing;
 
-/// <summary>Applies shader parameter animations by rewriting the affected materials' <c>gsys_material</c> blocks, as <c>nn::g3d2::MaterialAnimObj::ApplyTo</c> does.</summary>
+/// <summary>
+/// Applies shader parameter animations by rewriting the affected materials' <c>gsys_material</c> blocks, as
+/// <c>nn::g3d2::MaterialAnimObj::ApplyTo</c> does.
+/// </summary>
 internal static class MaterialAnimPose
 {
     public readonly record struct Playing(MaterialAnimManifest Anim, float Frame);

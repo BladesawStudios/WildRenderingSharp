@@ -4,7 +4,10 @@ using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>Prepares one TotK actor or model into the cache: geometry, textures and animations, then material blocks, then the manifest and programs, stamping the ROM files it read.</summary>
+/// <summary>
+/// Prepares one TotK actor or model into the cache: geometry, textures and animations, then material blocks, then the manifest and
+/// programs, stamping the ROM files it read.
+/// </summary>
 public static class TotkModelPreparer
 {
     public static string ResolveModelName(TotkRomfs romfs, string actorOrModelName) =>

@@ -2,7 +2,10 @@ using WildRenderingSharp.Graphics.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 
-/// <summary>TotK's <c>gsys_environment</c>, decompiled as <c>fp_c9</c>. The light slots are in <see cref="GsysEnvironment"/>; beyond the fog groups only fields with a confirmed read site are named.</summary>
+/// <summary>
+/// TotK's <c>gsys_environment</c>, decompiled as <c>fp_c9</c>. The light slots are in <see cref="GsysEnvironment"/>; beyond the fog groups
+/// only fields with a confirmed read site are named.
+/// </summary>
 static class TotkEnvironmentLayout
 {
     public static readonly UboSpec Spec = new("gsys_environment", TotkBindings.Environment, 1328);

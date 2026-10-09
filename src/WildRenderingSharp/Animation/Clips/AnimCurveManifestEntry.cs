@@ -2,7 +2,10 @@
 
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>One curve from a <see cref="BoneAnimManifestEntry"/>, as BfresLibrary decoded it, with <see cref="TargetOffset"/> saying which TRS component it drives.</summary>
+/// <summary>
+/// One curve from a <see cref="BoneAnimManifestEntry"/>, as BfresLibrary decoded it, with <see cref="TargetOffset"/> saying which TRS
+/// component it drives.
+/// </summary>
 public sealed class AnimCurveManifestEntry
 {
     // 0 = Cubic, 16 = Linear, 32 = BakedFloat (the only three SkeletonPose evaluates - the others are integer/bool curve types

@@ -15,7 +15,8 @@ namespace WildRenderingSharp.Profiles.Totk.Sky.PostFx;
 /// </summary>
 internal sealed class SkyPostFxPass : IDisposable
 {
-    // The decompiled per-stage indices collide once both stages share a program, and mean different blocks (Context is location 0 in the pixel stage but 1 in the vertex stage).
+    // The decompiled per-stage indices collide once both stages share a program, and mean different blocks (Context is location 0 in the
+    // pixel stage but 1 in the vertex stage).
     // Rebinding explicitly is the only way that coexists.
 
     readonly GL _gl;

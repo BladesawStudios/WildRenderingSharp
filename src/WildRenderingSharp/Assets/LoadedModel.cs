@@ -5,7 +5,10 @@ using WildRenderingSharp.Assets.Textures;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>A model loaded and ready to draw - the manifest plus every shape's GL objects and world-space bounds. Needs the GL context current; a model loaded on a worker thread needs <see cref="FinishOnRenderThread"/> on the renderer's thread before drawing.</summary>
+/// <summary>
+/// A model loaded and ready to draw - the manifest plus every shape's GL objects and world-space bounds. Needs the GL context current; a
+/// model loaded on a worker thread needs <see cref="FinishOnRenderThread"/> on the renderer's thread before drawing.
+/// </summary>
 public sealed class LoadedModel : IDisposable
 {
     readonly GL _gl;

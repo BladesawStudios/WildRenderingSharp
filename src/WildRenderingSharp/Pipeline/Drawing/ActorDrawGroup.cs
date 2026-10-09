@@ -9,7 +9,10 @@ using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
 
-/// <summary>One placed actor's shapes plus the skinning buffers its draws need bound. The game's shaders read bone transforms from fixed UBO bindings, so each actor rebinds its own buffers before its draw calls.</summary>
+/// <summary>
+/// One placed actor's shapes plus the skinning buffers its draws need bound. The game's shaders read bone transforms from fixed UBO
+/// bindings, so each actor rebinds its own buffers before its draw calls.
+/// </summary>
 internal readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
     InstanceBatch? Batch = null, bool ShadowRuns = false, int Cascade = -1, IReadOnlyList<UboSpec>? ZeroedBlocks = null)
 {

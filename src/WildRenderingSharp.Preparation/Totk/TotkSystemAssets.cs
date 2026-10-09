@@ -5,7 +5,10 @@ using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>Builds the assets every TotK model shares, once per cache, from the bare ROM. A failing step costs a feature, not the renderer, so only the HDR compose shader is required.</summary>
+/// <summary>
+/// Builds the assets every TotK model shares, once per cache, from the bare ROM. A failing step costs a feature, not the renderer, so only
+/// the HDR compose shader is required.
+/// </summary>
 public static class TotkSystemAssets
 {
     const string DeferredModel = "SystemModel.DeferredMain";

@@ -90,7 +90,8 @@ internal sealed class SkyBodyPass : IDisposable
         targets.BindColorTarget(target);
         _gl.Disable(EnableCap.DepthTest);
         _gl.Disable(EnableCap.CullFace);
-        // Straight alpha over the sky, not additive: an additive sun over a bright sky clips to white and loses the disc, and the moon must be able to be darker than the sky behind it.
+        // Straight alpha over the sky, not additive: an additive sun over a bright sky clips to white and loses the disc, and the moon must
+        // be able to be darker than the sky behind it.
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFuncSeparate(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha, GLEnum.Zero, GLEnum.One);
         _gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);

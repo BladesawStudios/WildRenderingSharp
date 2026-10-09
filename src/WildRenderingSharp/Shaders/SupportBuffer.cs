@@ -2,7 +2,10 @@ using WildRenderingSharp.Graphics.Ubos;
 
 namespace WildRenderingSharp.Shaders;
 
-/// <summary>The decompiler's own uniform block, which every decompiled shader declares whatever game it came from: the alpha test, the viewport, and a 73-entry render scale array.</summary>
+/// <summary>
+/// The decompiler's own uniform block, which every decompiled shader declares whatever game it came from: the alpha test, the viewport, and
+/// a 73-entry render scale array.
+/// </summary>
 internal static class SupportBuffer
 {
     const int AlphaTestOffset = 36;

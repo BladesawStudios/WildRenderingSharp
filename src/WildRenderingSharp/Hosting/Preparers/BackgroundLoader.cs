@@ -4,10 +4,16 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Hosting.Preparers;
 
-/// <summary>What a loader job hands back: <paramref name="Apply"/> runs on the render thread if the job's owner is still current (true when it added something), otherwise <paramref name="Discard"/> gives back what the job made.</summary>
+/// <summary>
+/// What a loader job hands back: <paramref name="Apply"/> runs on the render thread if the job's owner is still current (true when it added
+/// something), otherwise <paramref name="Discard"/> gives back what the job made.
+/// </summary>
 public sealed record LoaderResult(Func<bool> Apply, Action Discard);
 
-/// <summary>Runs a host's model loads on a thread with a GL context sharing the host's, and hands back a step for the render thread to finish. A result is applied only if its owner is still the one passed to ApplyFinished.</summary>
+/// <summary>
+/// Runs a host's model loads on a thread with a GL context sharing the host's, and hands back a step for the render thread to finish. A
+/// result is applied only if its owner is still the one passed to ApplyFinished.
+/// </summary>
 public sealed class BackgroundLoader : IDisposable
 {
     sealed record Job(object Owner, int Generation, Func<LoaderResult> Run);

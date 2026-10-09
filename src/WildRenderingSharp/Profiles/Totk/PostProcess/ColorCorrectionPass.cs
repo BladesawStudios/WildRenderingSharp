@@ -18,7 +18,8 @@ internal sealed class ColorCorrectionPass : IDisposable
     readonly uint _program;
     readonly uint _blitProgram;
 
-    // Its own scratch, not targets.Scene: grading in place needs a bounce buffer, but Scene holds a Y-flipped copy for depth-testing against the G-buffer, and copying back through a helper with its own
+    // Its own scratch, not targets.Scene: grading in place needs a bounce buffer, but Scene holds a Y-flipped copy for depth-testing
+    // against the G-buffer, and copying back through a helper with its own
     // flip semantics produced an inverted frame. Blitting both ways with the same vertex shader keeps the orientation self-consistent.
     uint _scratchTex, _scratchFbo;
     int _scratchW, _scratchH;

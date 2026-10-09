@@ -4,7 +4,10 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>The shared table naming the keys of TotK's V10 materials, read from the ROM; a scope makes one ROM's table the one BFRES parsing on this async flow uses.</summary>
+/// <summary>
+/// The shared table naming the keys of TotK's V10 materials, read from the ROM; a scope makes one ROM's table the one BFRES parsing on this
+/// async flow uses.
+/// </summary>
 public sealed class ExternalStringTable
 {
     const string TablePath = "Shader/ExternalBinaryString.bfres.mc";

@@ -1,7 +1,10 @@
 
 namespace WildRenderingSharp.Assets.Manifests;
 
-/// <summary>How a skeleton's bone scales propagate down the hierarchy - <c>(FSKL.flags &gt;&gt; 8) &amp; 3</c>, exactly the value <c>nn::g3d2::SkeletonObj::CalculateWorldMtx</c> (Ghidra 0x710008246c) switches its three <c>CalculateWorldImpl</c> specialisations on.</summary>
+/// <summary>
+/// How a skeleton's bone scales propagate down the hierarchy - <c>(FSKL.flags &gt;&gt; 8) &amp; 3</c>, exactly the value
+/// <c>nn::g3d2::SkeletonObj::CalculateWorldMtx</c> (Ghidra 0x710008246c) switches its three <c>CalculateWorldImpl</c> specialisations on.
+/// </summary>
 public enum SkeletonScalingMode
 {
     // CalculateWorldImpl<CalculateWorldNoScale> (0x7100080b40) - bone scale is never applied at all.

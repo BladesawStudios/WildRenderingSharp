@@ -7,7 +7,10 @@ using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Pipeline.Shadows;
 
-/// <summary>Renders the shadow map by running the G-buffer vertex shader with a light-space context. It needs no separate depth shader because the framebuffer has no colour attachment.</summary>
+/// <summary>
+/// Renders the shadow map by running the G-buffer vertex shader with a light-space context. It needs no separate depth shader because the
+/// framebuffer has no colour attachment.
+/// </summary>
 internal sealed class ShadowPass
 {
     readonly GL _gl;
