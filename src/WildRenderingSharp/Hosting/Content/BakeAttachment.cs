@@ -1,9 +1,11 @@
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Hosting.Views;
+using WildRenderingSharp.Assets;
+using WildRenderingSharp.Assets.Baking;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Storage;
 
-namespace WildRenderingSharp.Assets.Baking;
+namespace WildRenderingSharp.Hosting.Content;
 
 /// <summary>Finds the baked lighting for a batch's instances and attaches it, so each draws with its own atlas.</summary>
 public sealed class BakeAttachment(GL gl, CacheLayout cache) : IDisposable

@@ -1,5 +1,5 @@
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.PostProcess;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;

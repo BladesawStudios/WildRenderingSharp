@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ARB;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>Draws the game's own programs the way they were written to be drawn: with an upper-left window origin.</summary>
 internal static class ClipOrigin

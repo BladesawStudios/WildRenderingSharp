@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>
 /// How long each pass of a frame took on the GPU, from timestamp queries written between passes and read back a few frames later,

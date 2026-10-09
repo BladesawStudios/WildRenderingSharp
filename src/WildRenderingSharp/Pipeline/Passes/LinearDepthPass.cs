@@ -1,4 +1,6 @@
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Shaders;
 using Silk.NET.OpenGL;
 

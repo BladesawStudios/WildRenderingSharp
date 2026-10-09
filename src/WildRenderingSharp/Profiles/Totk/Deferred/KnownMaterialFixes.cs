@@ -1,9 +1,10 @@
-using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Gpu;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline.Drawing;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;

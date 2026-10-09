@@ -1,6 +1,6 @@
 using System.Numerics;
+using WildRenderingSharp.Animation.Posing;
 using WildRenderingSharp.Assets.Manifests;
-using WildRenderingSharp.Pipeline.Drawing;
 
 namespace WildRenderingSharp.Assets.Loading;
 
@@ -54,7 +54,7 @@ static class VertexCompactor
         if (skeleton is null)
             return true;
 
-        Matrix4x4[] palette = InstanceBatch.BindPalette(skeleton);
+        Matrix4x4[] palette = SkeletonPose.BindPalette(skeleton);
         int smooth = Math.Min(skeleton.InverseModelMatricesAsMatrices().Length, palette.Length);
         for (int i = 0; i < smooth; i++)
             if (!IsIdentity(palette[i]))

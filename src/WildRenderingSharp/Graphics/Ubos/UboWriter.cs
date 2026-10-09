@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 using System.Numerics;
-using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Gpu;
 
 namespace WildRenderingSharp.Graphics.Ubos;
 

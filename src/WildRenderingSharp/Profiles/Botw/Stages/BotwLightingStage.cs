@@ -1,13 +1,12 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Pipeline.Shadows;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Botw.Ubos;
-using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 

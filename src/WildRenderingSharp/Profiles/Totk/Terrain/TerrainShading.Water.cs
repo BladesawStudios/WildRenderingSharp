@@ -3,8 +3,7 @@ using WildRenderingSharp.Assets.Textures;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Shaders;
 

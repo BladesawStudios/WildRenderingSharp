@@ -2,7 +2,7 @@ using WildRenderingSharp.Animation.Clips;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Textures;
 
-namespace WildRenderingSharp.Animation.Posing;
+namespace WildRenderingSharp.Scene.Posing;
 
 /// <summary>
 /// Applies a <see cref="TexturePatternAnimManifest"/> to a loaded model for one frame, by writing each affected shape's <see

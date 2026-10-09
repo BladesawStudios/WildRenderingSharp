@@ -1,5 +1,5 @@
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Shaders;
+using WildRenderingSharp.Pipeline.Resources;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 

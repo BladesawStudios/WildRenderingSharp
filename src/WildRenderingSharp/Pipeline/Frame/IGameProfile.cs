@@ -1,8 +1,8 @@
+using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
-using WildRenderingSharp.Pipeline.Frame;
 
-namespace WildRenderingSharp.Graphics.Contracts;
+namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>
 /// Everything that differs between games' shader interfaces: how the renderer's neutral frame data becomes the uniform blocks their

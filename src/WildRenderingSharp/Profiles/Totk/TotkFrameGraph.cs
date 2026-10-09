@@ -3,7 +3,6 @@ using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
-using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 using WildRenderingSharp.Profiles.Totk.Sky.Precompute;

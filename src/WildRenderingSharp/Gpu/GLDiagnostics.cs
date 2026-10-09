@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>GL error reporting that says what it actually knows.</summary>
 public static class GLDiagnostics

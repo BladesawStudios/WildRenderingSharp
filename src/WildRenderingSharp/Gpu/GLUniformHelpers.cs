@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>Small GL helpers shared by the passes: uniform setting, interface-block and sampler assignment, and texture sampling state.</summary>
 public static class GLUniformHelpers

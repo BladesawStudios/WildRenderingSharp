@@ -1,12 +1,15 @@
 using System.Diagnostics;
 using System.Numerics;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.Clouds;
 

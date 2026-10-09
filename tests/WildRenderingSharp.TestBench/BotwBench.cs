@@ -3,6 +3,7 @@ using Silk.NET.Windowing;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Loading;
 using WildRenderingSharp.Assets.Textures;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Hosting.Views;

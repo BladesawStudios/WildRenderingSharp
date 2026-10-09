@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 

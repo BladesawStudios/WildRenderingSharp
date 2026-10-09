@@ -1,7 +1,6 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Hosting.Views;

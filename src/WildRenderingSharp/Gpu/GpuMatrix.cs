@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace WildRenderingSharp.Graphics.Data;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>Converts between System.Numerics matrices and the transposed row arrays the games' uniform blocks hold.</summary>
 public static class GpuMatrix

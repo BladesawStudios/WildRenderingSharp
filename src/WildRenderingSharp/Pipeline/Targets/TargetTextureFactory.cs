@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Pipeline.Targets;
 
 /// <summary>Creates the cleared textures the render targets are made of, and remembers the viewport-sized ones so a resize can delete them together.</summary>
 sealed unsafe class TargetTextureFactory(GL gl)

@@ -1,4 +1,4 @@
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Targets;
 
 namespace WildRenderingSharp.Pipeline.Frame;
 

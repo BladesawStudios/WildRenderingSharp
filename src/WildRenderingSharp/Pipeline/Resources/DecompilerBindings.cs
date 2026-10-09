@@ -1,7 +1,7 @@
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Shaders;
 
-namespace WildRenderingSharp.Shaders;
+namespace WildRenderingSharp.Pipeline.Resources;
 
 /// <summary>
 /// What every decompiled shader expects bound whatever the scene: the support buffer, and an empty storage buffer at binding 0 for the

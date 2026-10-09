@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using WildRenderingSharp.Animation.Posing;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Data;
 
 namespace WildRenderingSharp.Graphics.Ubos;

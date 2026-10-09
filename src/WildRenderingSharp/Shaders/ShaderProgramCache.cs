@@ -1,7 +1,8 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Contracts;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Shaders;
 
 /// <summary>
 /// Loads and links a decompiled <c>&lt;base&gt;.vert</c>/<c>&lt;base&gt;.frag</c> pair from <c>Shaders/Decompiled</c> into a GL

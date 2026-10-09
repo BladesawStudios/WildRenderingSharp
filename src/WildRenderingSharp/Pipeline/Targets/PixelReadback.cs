@@ -1,7 +1,8 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Pipeline.Targets;
 
 /// <summary>Reads a colour texture back to the CPU through a framebuffer of its own.</summary>
 sealed unsafe class PixelReadback : IDisposable

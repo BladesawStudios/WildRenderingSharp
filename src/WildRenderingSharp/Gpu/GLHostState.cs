@@ -1,7 +1,7 @@
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ARB;
 
-namespace WildRenderingSharp.Hosting.Views;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>
 /// Puts the GL context into the default state the renderer was written against, and puts the host's own state back afterwards:

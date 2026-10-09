@@ -1,6 +1,6 @@
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Targets;
 
 namespace WildRenderingSharp.Pipeline.Frame;
 

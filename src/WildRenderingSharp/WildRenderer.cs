@@ -2,14 +2,14 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Baking;
-using WildRenderingSharp.Assets.Loading;
 using WildRenderingSharp.Assets.Textures;
-using WildRenderingSharp.Hosting;
-using WildRenderingSharp.Hosting.Preparers;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Hosting.Content;
 using WildRenderingSharp.Hosting.Views;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Shadows;
+using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 using WildRenderingSharp.Rendering.Cameras;
@@ -64,7 +64,7 @@ public sealed class WildRenderer : IDisposable
 
         using (GLHostState.Enter(gl))
         {
-            Pipeline = new DeferredPipeline(gl, cache.Root, cache.Shaders, initialWidth, initialHeight,
+            Pipeline = new DeferredPipeline(gl, cache.Root, cache.Shaders, initialWidth, initialHeight, new TotkProfile(),
                 cache.DeferredMaterials, cache.SystemTextures);
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);

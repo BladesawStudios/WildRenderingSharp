@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>Small GL-buffer helpers shared by the model loader and the deferred pipeline.</summary>
 public static class GLBuffer

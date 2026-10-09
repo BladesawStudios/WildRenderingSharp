@@ -1,8 +1,9 @@
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;

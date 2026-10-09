@@ -1,7 +1,7 @@
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Profiles.Totk.Ubos;
-using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 

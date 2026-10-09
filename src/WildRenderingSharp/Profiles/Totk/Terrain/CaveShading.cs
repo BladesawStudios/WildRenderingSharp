@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Materials;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Terrain;

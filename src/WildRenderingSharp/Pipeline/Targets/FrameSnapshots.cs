@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Pipeline.Targets;
 
 /// <summary>Copies of frame textures kept for looking at the frame between passes.</summary>
 sealed class FrameSnapshots(GL gl, TargetTextureFactory textures)

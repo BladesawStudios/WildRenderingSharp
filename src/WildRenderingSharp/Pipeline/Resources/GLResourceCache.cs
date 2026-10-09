@@ -3,7 +3,7 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Graphics.Ubos;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Pipeline.Resources;
 
 /// <summary>
 /// Persistent GL objects that would otherwise be reallocated every frame: uniform buffers kept under a key and rewritten in place,

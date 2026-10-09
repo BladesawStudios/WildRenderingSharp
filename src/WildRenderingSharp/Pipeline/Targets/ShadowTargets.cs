@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Pipeline.Targets;
 
 /// <summary>The fixed-size shadow map and cascade array and the depth-only framebuffers that draw into them, which outlive a viewport resize.</summary>
 sealed class ShadowTargets : IDisposable

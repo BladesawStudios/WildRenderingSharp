@@ -1,10 +1,10 @@
 using System.Numerics;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Drawing;
-using WildRenderingSharp.Pipeline.Gpu;
-using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Pipeline.Frame;

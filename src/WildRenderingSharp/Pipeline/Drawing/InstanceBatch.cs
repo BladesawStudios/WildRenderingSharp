@@ -1,10 +1,8 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Animation.Posing;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Baking;
-using WildRenderingSharp.Assets.Manifests;
 using WildRenderingSharp.Assets.Textures;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
@@ -28,7 +26,7 @@ public sealed class InstanceBatch : IDisposable
         Placements = placements;
         Shadow = new InstanceShadowRuns(placements, model.BoundsRadius);
 
-        Matrix4x4[] bindPalette = BindPalette(model.Skeleton);
+        Matrix4x4[] bindPalette = SkeletonPose.BindPalette(model.Skeleton);
         PaletteRepeats = bindPalette.Length == 0;
         PaletteVec4s = (PaletteRepeats ? 1 : bindPalette.Length) * 3;
         Stride = PaletteOffset + PaletteVec4s;
@@ -96,27 +94,6 @@ public sealed class InstanceBatch : IDisposable
         }
         BakeAtlasOfInstance = bake.Atlases.Count > 0 ? bake.AtlasOfInstance : null;
         BakeAtlases = bake.Atlases;
-    }
-
-    // The model's bind-pose palette without a placement: inverse-bind times bone for smooth slots, the bone alone for rigid
-    // ones. Empty for a model with no skeleton.
-    internal static Matrix4x4[] BindPalette(SkeletonManifest? skeleton)
-    {
-        if (skeleton is not { } skel)
-            return [];
-        Matrix4x4[] boneWorld = SkeletonPose.BindPoseWorldMatrices(skel);
-        ReadOnlySpan<int> matrixToBone = CollectionsMarshal.AsSpan(skel.MatrixToBoneList);
-        Matrix4x4[] inverse = skel.InverseModelMatricesAsMatrices();
-        var palette = new Matrix4x4[matrixToBone.Length];
-        for (int i = 0; i < palette.Length; i++)
-        {
-            int bone = matrixToBone[i];
-            bool known = bone >= 0 && bone < boneWorld.Length;
-            palette[i] = i < inverse.Length
-                ? (known ? inverse[i] * boneWorld[bone] : Matrix4x4.Identity)
-                : (known ? boneWorld[bone] : Matrix4x4.Identity);
-        }
-        return palette;
     }
 
     public void Dispose()

@@ -1,7 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Shaders;
 

@@ -1,12 +1,14 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Assets;
+using WildRenderingSharp.Assets.Loading;
 using WildRenderingSharp.Assets.Textures;
-using WildRenderingSharp.Hosting.Views;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Drawing;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Shaders;
 using WildRenderingSharp.Storage;
 
-namespace WildRenderingSharp.Assets.Loading;
+namespace WildRenderingSharp.Hosting.Content;
 
 /// <summary>Loads prepared models from a cache into GL objects, on the render thread or on a worker with the vertex arrays left for the render thread.</summary>
 public sealed class ModelFactory(GL gl, ShaderProgramCache programs, CacheLayout cache, ExternalTextures externalTextures,

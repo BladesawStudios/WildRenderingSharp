@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
 using System.Numerics;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.Sky;
 using WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 

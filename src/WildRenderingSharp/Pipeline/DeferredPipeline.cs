@@ -1,11 +1,13 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Shadows;
-using WildRenderingSharp.Profiles.Totk;
+using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -42,10 +44,10 @@ public sealed class DeferredPipeline : IDisposable
     public ExposureMeter.Result? LastExposureMeasurement => _exposure.Last;
 
     public DeferredPipeline(GL gl, string dataDirectory, string decompiledDirectory, int width, int height,
-        string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null, IGameProfile? profile = null)
+        IGameProfile profile, string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null)
     {
         _gl = gl;
-        Profile = profile ?? new TotkProfile();
+        Profile = profile;
         InstancingContract.Detect(gl);
 
         string cacheRoot = Path.GetDirectoryName(decompiledDirectory) ?? decompiledDirectory;

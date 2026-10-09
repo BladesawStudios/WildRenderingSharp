@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>Single-texel textures that stand in for inputs a shader reads but the frame has nothing for.</summary>
 public static class ConstantTextures

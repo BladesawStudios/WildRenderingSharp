@@ -1,4 +1,5 @@
 using System.Numerics;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Profiles.Botw;

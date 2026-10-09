@@ -3,7 +3,7 @@ using System.Text;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Storage;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Gpu;
 
 /// <summary>
 /// Compiles and links a vertex+fragment GLSL pair into a GL program - shared by <see cref="ShaderProgramCache"/> (decompiled game

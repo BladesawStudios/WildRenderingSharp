@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Materials;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Contracts;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Shaders;
 

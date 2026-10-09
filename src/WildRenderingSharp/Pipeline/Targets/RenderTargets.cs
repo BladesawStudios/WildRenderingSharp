@@ -1,7 +1,8 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 
-namespace WildRenderingSharp.Pipeline.Gpu;
+namespace WildRenderingSharp.Pipeline.Targets;
 
 /// <summary>Every size-dependent render target the deferred pipeline uses, plus the fixed-size shadow map.</summary>
 public sealed class RenderTargets : IDisposable

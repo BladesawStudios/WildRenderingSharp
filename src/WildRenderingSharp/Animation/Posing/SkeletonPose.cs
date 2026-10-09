@@ -1,4 +1,6 @@
+
 using System.Numerics;
+using System.Runtime.InteropServices;
 using WildRenderingSharp.Animation.Clips;
 using WildRenderingSharp.Assets.Manifests;
 
@@ -161,4 +163,25 @@ public static class SkeletonPose
     public static float EvaluateCurve(AnimCurveManifestEntry curve, float frame) =>
         AnimCurveEval.EvaluateFloat(curve.CurveType, curve.StartFrame, curve.EndFrame,
             curve.Scale, curve.Offset, curve.Frames, curve.Keys, frame);
+
+    // The model's bind-pose palette without a placement: inverse-bind times bone for smooth slots, the bone alone for rigid
+    // ones. Empty for a model with no skeleton.
+    public static Matrix4x4[] BindPalette(SkeletonManifest? skeleton)
+    {
+        if (skeleton is not { } skel)
+            return [];
+        Matrix4x4[] boneWorld = BindPoseWorldMatrices(skel);
+        ReadOnlySpan<int> matrixToBone = CollectionsMarshal.AsSpan(skel.MatrixToBoneList);
+        Matrix4x4[] inverse = skel.InverseModelMatricesAsMatrices();
+        var palette = new Matrix4x4[matrixToBone.Length];
+        for (int i = 0; i < palette.Length; i++)
+        {
+            int bone = matrixToBone[i];
+            bool known = bone >= 0 && bone < boneWorld.Length;
+            palette[i] = i < inverse.Length
+                ? (known ? inverse[i] * boneWorld[bone] : Matrix4x4.Identity)
+                : (known ? boneWorld[bone] : Matrix4x4.Identity);
+        }
+        return palette;
+    }
 }

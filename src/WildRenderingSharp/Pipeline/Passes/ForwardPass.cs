@@ -1,8 +1,10 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Drawing;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Targets;
 
 namespace WildRenderingSharp.Pipeline.Passes;
 

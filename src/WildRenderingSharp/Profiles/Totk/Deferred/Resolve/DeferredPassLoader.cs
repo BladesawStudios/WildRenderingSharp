@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Materials;
-using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 

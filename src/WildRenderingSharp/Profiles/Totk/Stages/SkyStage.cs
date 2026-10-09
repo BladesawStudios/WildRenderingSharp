@@ -1,16 +1,14 @@
 ﻿using WildRenderingSharp.Graphics;
 ﻿using WildRenderingSharp.Assets;
 using System.Numerics;
-using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 using WildRenderingSharp.Profiles.Totk.Sky;
 using WildRenderingSharp.Profiles.Totk.Sky.Clouds;
 using WildRenderingSharp.Profiles.Totk.Sky.PostFx;
 using WildRenderingSharp.Profiles.Totk.Sky.Precompute;
-using WildRenderingSharp.Rendering.Cameras;
 using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;

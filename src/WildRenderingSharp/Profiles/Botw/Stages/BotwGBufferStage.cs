@@ -1,7 +1,6 @@
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Pipeline.Passes;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;

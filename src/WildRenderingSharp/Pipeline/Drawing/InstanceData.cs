@@ -1,5 +1,5 @@
 using System.Numerics;
-using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Gpu;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
 

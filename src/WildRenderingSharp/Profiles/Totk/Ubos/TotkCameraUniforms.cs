@@ -1,6 +1,5 @@
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
-using WildRenderingSharp.Profiles.Totk.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 

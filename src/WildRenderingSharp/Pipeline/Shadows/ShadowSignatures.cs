@@ -1,6 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Drawing;
 
 namespace WildRenderingSharp.Pipeline.Shadows;

@@ -1,4 +1,3 @@
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.Clouds;
