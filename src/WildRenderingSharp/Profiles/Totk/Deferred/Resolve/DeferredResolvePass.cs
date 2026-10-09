@@ -14,7 +14,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 /// Runs each distinct deferred resolve program the loaded models need: an unmodified game shader per pass over a fullscreen quad it
 /// synthesises from <c>gl_VertexID</c>, composited into the running result only where the pass-ID mask names it.
 /// </summary>
-public sealed class DeferredResolvePass : IDisposable
+internal sealed class DeferredResolvePass : IDisposable
 {
     const int CubeEnvMapUnit = 9;
 

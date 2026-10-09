@@ -10,7 +10,7 @@ namespace WildRenderingSharp.Graphics.Ubos;
 /// The engine's skeleton block (<c>g3d_SkeletonUniformBlock</c>, symbol <c>_Mtx</c>), the same in both games: one mat3x4 per bone, in the
 /// row-vector convention, so a vertex is <c>v * M</c>.
 /// </summary>
-public static class BonePalette
+internal static class BonePalette
 {
     public const int BytesPerBone = 48;
     public const int ByteSize = 65536;

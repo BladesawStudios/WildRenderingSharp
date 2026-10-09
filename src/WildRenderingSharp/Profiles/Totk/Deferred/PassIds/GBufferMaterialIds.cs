@@ -7,7 +7,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 /// The material IDs a G-buffer program writes into attachment 0's red byte, read from its decompiled source. The game draws each resolve pass where
 /// that byte equals its priority, so the shader and not the material's name decides which pass lights a pixel.
 /// </summary>
-public static partial class GBufferMaterialIds
+internal static partial class GBufferMaterialIds
 {
     public static IReadOnlyList<int> Parse(string fragmentSource)
     {

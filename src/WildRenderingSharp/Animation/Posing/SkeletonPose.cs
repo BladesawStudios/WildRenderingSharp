@@ -10,7 +10,7 @@ namespace WildRenderingSharp.Animation.Posing;
 /// Walks a <see cref="SkeletonManifest"/>'s hierarchy into per-bone world matrices, at bind pose or (given a <see
 /// cref="SkeletalAnimManifest"/> and a frame) at an animated pose.
 /// </summary>
-public static class SkeletonPose
+internal static class SkeletonPose
 {
     /// <summary>A bone's resolved local transform for one frame - the inputs <see cref="World"/> composes.</summary>
     public readonly record struct BoneLocal(Vector3 Scale, Matrix4x4 Rotation, Vector3 Translation);

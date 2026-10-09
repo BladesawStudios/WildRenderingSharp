@@ -3,7 +3,7 @@ using WildRenderingSharp.Pipeline.Targets;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>A one-shot request to measure the exposure a scene needs, answered on the next frame.</summary>
-public sealed class ExposureProbe
+internal sealed class ExposureProbe
 {
     bool _requested;
 

@@ -7,7 +7,7 @@ using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 
 /// <summary>Fills the pass-ID mask: first from each shape's named pass, then from the material IDs the G-buffer programs wrote.</summary>
-public sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene scene) : IDisposable
+internal sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene scene) : IDisposable
 {
     readonly PassIdMaskPass _byShape = new(gl, drawer);
     readonly MaterialIdPass _byMaterialId = new(gl);

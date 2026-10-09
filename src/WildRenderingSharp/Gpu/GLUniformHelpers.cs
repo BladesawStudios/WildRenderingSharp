@@ -5,7 +5,7 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Gpu;
 
 /// <summary>Small GL helpers shared by the passes: uniform setting, interface-block and sampler assignment, and texture sampling state.</summary>
-public static class GLUniformHelpers
+internal static class GLUniformHelpers
 {
     public static bool BindUniformBlock(this GL gl, uint program, string name, uint binding)
     {

@@ -7,7 +7,7 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Pipeline.Passes;
 
 /// <summary>A simplified single-pass FXAA-style edge-aware blur, the anti-aliasing used instead of supersampling by default.</summary>
-public sealed class FxaaPass : IDisposable
+internal sealed class FxaaPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;

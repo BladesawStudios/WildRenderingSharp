@@ -6,7 +6,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Hosting.Views;
 
 /// <summary>Puts a <see cref="SceneView"/>'s output into a host's framebuffer: copied, blended over its background, or written with depth.</summary>
-public sealed class FrameCompositor(GL gl) : IDisposable
+internal sealed class FrameCompositor(GL gl) : IDisposable
 {
     /// <summary>How a host's depth buffer is laid out. <paramref name="Pass"/> is the ordinary in-front test, restored afterwards.</summary>
     public readonly record struct DepthLayout(bool Reversed, float ClearDepth, DepthFunction PassOrEqual, DepthFunction Pass);

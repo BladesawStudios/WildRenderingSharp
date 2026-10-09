@@ -17,7 +17,7 @@ namespace WildRenderingSharp.Profiles.Totk.Sky.Clouds;
 /// Draws the game's own <c>agl_cloud</c> program on the procedural cloud dome (<see cref="CloudDomeMesh"/>, ported from
 /// <c>Cloud::initVertex_</c>).
 /// </summary>
-public sealed unsafe class CloudDomePass : IDisposable
+internal sealed unsafe class CloudDomePass : IDisposable
 {
     // Drawn at the dome's true size, which the shader's distance fades are calibrated against.
     const float DomeScale = 1f;

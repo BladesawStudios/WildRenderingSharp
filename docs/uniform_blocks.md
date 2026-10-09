@@ -5,10 +5,10 @@ lives here. A block is described by a `UboSpec` (shader name, binding, size), fi
 
 | Block | Layout | Built by |
 | --- | --- | --- |
-| `gsys_context` (camera) | `Graphics/GsysContext`, `TotkContextLayout`, `BotwBlocks` | `TotkCameraUniforms`, `BotwUniforms` |
-| `gsys_environment` | `Graphics/GsysEnvironment`, `TotkEnvironmentLayout`, `BotwBlocks` | `TotkLightingUniforms`, `BotwUniforms` |
-| `gsys_scene_material` | `Graphics/GsysSceneMaterial`, `TotkSceneMaterialLayout`, `BotwBlocks` | `TotkLightingUniforms`, `BotwUniforms` |
-| `_Mtx` (bone palette) | `Graphics/BonePalette` | `BonePalette` |
+| `gsys_context` (camera) | `Graphics/Ubos/GsysContext`, `TotkContextLayout`, `BotwBlocks` | `TotkCameraUniforms`, `BotwUniforms` |
+| `gsys_environment` | `Graphics/Ubos/GsysEnvironment`, `TotkEnvironmentLayout`, `BotwBlocks` | `TotkLightingUniforms`, `BotwUniforms` |
+| `gsys_scene_material` | `Graphics/Ubos/GsysSceneMaterial`, `TotkSceneMaterialLayout`, `BotwBlocks` | `TotkLightingUniforms`, `BotwUniforms` |
+| `_Mtx` (bone palette) | `Graphics/Ubos/BonePalette` | `BonePalette` |
 | cloud, sky, lens flare | `CloudBlocks`, `SkyPostFxBlocks`, `SkyPrecomputeBlocks`, `LensFlareBlocks` | the same classes |
 
 ## gsys_context

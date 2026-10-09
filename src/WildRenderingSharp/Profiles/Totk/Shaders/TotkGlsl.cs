@@ -4,7 +4,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>The shared decompiled-GLSL cleanup, plus a unit of its own for each vertex texture TotK's engine renders itself.</summary>
-public static partial class TotkGlsl
+internal static partial class TotkGlsl
 {
     public const int WindSwellUnit = 32, LieMapUnit = 33, ThicknessUnit = 34;
 

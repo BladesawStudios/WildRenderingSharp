@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Assets.Manifests;
 /// "custom"</c> means the blend/depth fields are authoritative rather than a named preset, which is how a translucent material
 /// (e.g.
 /// </summary>
-public sealed class RenderState
+internal sealed class RenderState
 {
     [JsonPropertyName("mode")] public string Mode { get; set; } = "";
     [JsonPropertyName("blend")] public bool Blend { get; set; }

@@ -10,7 +10,7 @@ public sealed class LoadedModel : IDisposable
 {
     readonly GL _gl;
 
-    public required ModelManifest Manifest { get; init; }
+    internal ModelManifest Manifest { get; init; } = null!;
     public required IReadOnlyList<LoadedShape> Shapes { get; init; }
     public required Vector3 BoundsMin { get; init; }
     public required Vector3 BoundsMax { get; init; }
@@ -25,7 +25,7 @@ public sealed class LoadedModel : IDisposable
 
     public IReadOnlyList<string> AvailableMaterialAnims { get; init; } = [];
 
-    public TextureCache Textures { get; }
+    internal TextureCache Textures { get; }
 
     internal List<Action>? PendingVertexArrays { get; set; }
 

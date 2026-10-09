@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Pipeline.Frame;
 /// Everything that differs between games' shader interfaces: how the renderer's neutral frame data becomes the uniform blocks their
 /// shaders read, where each is bound, and the stages of the frame.
 /// </summary>
-public interface IGameProfile
+internal interface IGameProfile
 {
     string Name { get; }
 

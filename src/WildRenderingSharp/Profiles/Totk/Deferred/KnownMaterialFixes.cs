@@ -13,7 +13,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 /// Manual, individually verified corrections for game rendering behaviour the shader-driven pipeline cannot derive; see <see
 /// cref="Rendering.LightingContext.EnableKnownMaterialFixes"/>.
 /// </summary>
-public sealed class KnownMaterialFixes : IDisposable
+internal sealed class KnownMaterialFixes : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;

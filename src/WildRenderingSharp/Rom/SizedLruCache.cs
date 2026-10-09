@@ -1,7 +1,7 @@
 namespace WildRenderingSharp.Rom;
 
 /// <summary>A cache that evicts its least recently used entries once their sizes pass a budget, always keeping the newest.</summary>
-public sealed class SizedLruCache<T>(long budget, Func<T, long> sizeOf) where T : class
+internal sealed class SizedLruCache<T>(long budget, Func<T, long> sizeOf) where T : class
 {
     readonly object _gate = new();
     readonly Dictionary<string, LinkedListNode<Entry>> _byKey = new(StringComparer.OrdinalIgnoreCase);

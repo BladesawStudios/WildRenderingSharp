@@ -11,7 +11,7 @@ namespace WildRenderingSharp.Pipeline.Passes;
 /// hardware depth, then a half-resolution copy via a 4-tap <c>textureGather</c> min (matching
 /// <c>prog_nld</c>/<c>prog_nld_half</c>).
 /// </summary>
-public sealed class LinearDepthPass : IDisposable
+internal sealed class LinearDepthPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _fullProgram, _halfProgram;

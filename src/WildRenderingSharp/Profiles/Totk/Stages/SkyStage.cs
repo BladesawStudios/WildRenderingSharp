@@ -17,7 +17,7 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 /// Paints the background into the HDR image before the resolve, which only writes pixels its pass-ID mask claims: the plain
 /// background, then the game's sky shader over it, the sun and moon sprites, and the cloud dome.
 /// </summary>
-public sealed class SkyStage(StageServices services, SkyBake bake) : IFrameStage, IDisposable
+internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameStage, IDisposable
 {
     readonly BackgroundPass _background = new(services.Gl);
     readonly SkyPostFxPass _skyPostFx = new(services.Gl, services.Programs);

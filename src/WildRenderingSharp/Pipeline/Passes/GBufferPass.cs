@@ -8,7 +8,7 @@ using WildRenderingSharp.Pipeline.Targets;
 namespace WildRenderingSharp.Pipeline.Passes;
 
 /// <summary>Depth prepass (z-only, where a material has one) followed by the real G-buffer draw.</summary>
-public sealed class GBufferPass(GL gl)
+internal sealed class GBufferPass(GL gl)
 {
     readonly List<(ulong Key, int Group, LoadedShape Shape)> _items = [];
 

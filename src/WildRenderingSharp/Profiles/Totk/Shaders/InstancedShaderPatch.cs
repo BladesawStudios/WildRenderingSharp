@@ -6,7 +6,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>Makes a decompiled game vertex shader draw many placements in one instanced call, without changing anything it computes.</summary>
-public static class InstancedShaderPatch
+internal static class InstancedShaderPatch
 {
     static readonly Regex MainSignature = new(@"\bvoid\s+main\s*\(\s*\)", RegexOptions.Compiled);
 

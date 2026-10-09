@@ -14,7 +14,7 @@ namespace WildRenderingSharp.Profiles.Botw.Stages;
 /// The game's lighting before the shading passes: the sun's shadow cascade, then its own pre-shading passes for characters, which turn
 /// the G-buffer into the shadow, light and fog buffers the shading passes composite.
 /// </summary>
-public sealed class BotwLightingStage(StageServices services, BotwPasses passes) : IFrameStage, IDisposable
+internal sealed class BotwLightingStage(StageServices services, BotwPasses passes) : IFrameStage, IDisposable
 {
     const string ContextKey = "ctx_botw_preshading";
     const int ShadowAttachment = 5, FogAttachment = 1, DiffuseAttachment = 3;

@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Assets.Manifests;
 /// One entry of <c>vertex_layout</c>: an attribute's fixed byte offset/component count in <c>ExportTestBench</c>'s 192-byte
 /// interleaved vertex.
 /// </summary>
-public sealed class VertexLayoutEntry
+internal sealed class VertexLayoutEntry
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("location")] public int Location { get; set; }

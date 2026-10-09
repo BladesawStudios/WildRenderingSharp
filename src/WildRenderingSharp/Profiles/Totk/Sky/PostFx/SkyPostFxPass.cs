@@ -12,7 +12,7 @@ namespace WildRenderingSharp.Profiles.Totk.Sky.PostFx;
 /// Draws the sky with the game's <c>agl_sky_postfx_sky</c> program, sampling the baked inscatter table <see
 /// cref="SkyPrecomputePass"/> produces.
 /// </summary>
-public sealed class SkyPostFxPass : IDisposable
+internal sealed class SkyPostFxPass : IDisposable
 {
     // The decompiled per-stage indices collide once both stages share a program, and they disagree on
     // meaning: Context is location 0 in the pixel stage but 1 in the vertex stage, so vp_c4 and fp_c3 are

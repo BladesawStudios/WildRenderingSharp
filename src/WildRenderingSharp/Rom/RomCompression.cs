@@ -4,7 +4,7 @@ using Yaz0Sharp;
 namespace WildRenderingSharp.Rom;
 
 /// <summary>Yaz0, and the zstd dictionaries Tears of the Kingdom packs its files with.</summary>
-public sealed class RomCompression
+internal sealed class RomCompression
 {
     readonly Zstd _zstd = new();
 

@@ -15,7 +15,7 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// Fills <c>targets.Final</c> with the requested <see cref="BackgroundMode"/> before the deferred resolve, which only writes pixels
 /// its pass-ID mask claims, so whatever is left here survives wherever no actor covers.
 /// </summary>
-public sealed class BackgroundPass : IDisposable
+internal sealed class BackgroundPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _skyProgram;

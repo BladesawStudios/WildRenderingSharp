@@ -7,7 +7,7 @@ namespace WildRenderingSharp.Assets.Materials;
 /// Deserialized <c>matubo/&lt;Material&gt;.params.json</c> - where each named shader parameter lives inside that material's
 /// <c>gsys_material</c> block, written by <c>ShaderLibrary.CompileTool.BuildMaterialUbo.WriteParamLayout</c>.
 /// </summary>
-public sealed class MaterialParamLayout
+internal sealed class MaterialParamLayout
 {
     [JsonPropertyName("material")] public string Material { get; set; } = "";
     [JsonPropertyName("block_size")] public int BlockSize { get; set; }

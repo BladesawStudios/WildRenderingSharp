@@ -11,7 +11,7 @@ using WildRenderingSharp.Storage;
 namespace WildRenderingSharp.Hosting.Content;
 
 /// <summary>Loads prepared models from a cache into GL objects, on the render thread or on a worker with the vertex arrays left for the render thread.</summary>
-public sealed class ModelFactory(GL gl, ShaderProgramCache programs, CacheLayout cache, ExternalTextures externalTextures,
+internal sealed class ModelFactory(GL gl, ShaderProgramCache programs, CacheLayout cache, ExternalTextures externalTextures,
     SharedTextures sharedTextures, TotkSettings totk)
 {
     public bool CompactVertices { get; set; }

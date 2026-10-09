@@ -5,7 +5,7 @@ namespace WildRenderingSharp.Animation.Posing;
 /// curves, texture pattern index curves and shader parameter curves all come out of the same <c>ResAnimCurve</c> and are evaluated
 /// by the same two entry points in the game.
 /// </summary>
-public static class AnimCurveEval
+internal static class AnimCurveEval
 {
     public const int Cubic = 0x00;
     public const int Linear = 0x10;

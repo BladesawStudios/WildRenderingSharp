@@ -1,7 +1,7 @@
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>What a deferred frame graph offers a host that wants to look inside it.</summary>
-public interface IDeferredDebug
+internal interface IDeferredDebug
 {
     IReadOnlyList<string> PassNames { get; }
 

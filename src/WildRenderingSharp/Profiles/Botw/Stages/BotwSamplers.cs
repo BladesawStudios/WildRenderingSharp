@@ -2,13 +2,13 @@
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>The G-buffer attachments, under the names of the samplers they feed.</summary>
-public static class BotwGBuffer
+internal static class BotwGBuffer
 {
     public const int MaterialId = 0, Albedo = 1, Normal = 3, Emission = 5;
 }
 
 /// <summary>The texture units each of the game's passes samples from; the numbering differs between passes.</summary>
-public static class BotwSamplers
+internal static class BotwSamplers
 {
     public const int IdTexture = 20, LightAnalyzed = 21;
 

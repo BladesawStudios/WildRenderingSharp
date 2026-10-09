@@ -4,7 +4,7 @@ using WildRenderingSharp.Gpu;
 namespace WildRenderingSharp.Pipeline.Passes;
 
 /// <summary>The textures the forward programs sample that the frame has no real source for: neutral values, plus the game's noise volume when it was extracted.</summary>
-public sealed class ForwardNeutralInputs : IDisposable
+internal sealed class ForwardNeutralInputs : IDisposable
 {
     static readonly int[] WhiteUnits = [7, 11, 13, 14, 15, 31];
 

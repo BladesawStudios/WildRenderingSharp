@@ -12,7 +12,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 /// Exposure, highlight compression, the game's <c>agl_hdr_compose</c> (loaded through <see cref="ShaderProgramCache"/> like any
 /// decompiled game shader), then the bloom add.
 /// </summary>
-public sealed class TonemapPass : IDisposable
+internal sealed class TonemapPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _exposureProgram, _compressProgram;

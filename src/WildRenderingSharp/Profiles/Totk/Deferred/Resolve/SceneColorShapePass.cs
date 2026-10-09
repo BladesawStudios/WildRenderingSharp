@@ -12,7 +12,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 /// G-buffer shapes whose program reads the lit scene behind them - water above all - drawn the way the game draws them: after the
 /// opaque scene is lit, over a copy of it.
 /// </summary>
-public sealed class SceneColorShapePass : IDisposable
+internal sealed class SceneColorShapePass : IDisposable
 {
     readonly GL _gl;
     readonly uint _copyProgram;

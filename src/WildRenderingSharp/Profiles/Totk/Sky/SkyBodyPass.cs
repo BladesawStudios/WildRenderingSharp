@@ -9,7 +9,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>The sun and the moon, drawn from the game's own sprites.</summary>
-public sealed class SkyBodyPass : IDisposable
+internal sealed class SkyBodyPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;

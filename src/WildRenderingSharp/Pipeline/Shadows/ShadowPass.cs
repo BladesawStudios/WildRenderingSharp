@@ -12,7 +12,7 @@ namespace WildRenderingSharp.Pipeline.Shadows;
 /// needed, since the vertex stage transforms by <c>cViewProj</c> regardless of which pass is running and this FBO has no colour
 /// attachment.
 /// </summary>
-public sealed class ShadowPass
+internal sealed class ShadowPass
 {
     readonly GL _gl;
 

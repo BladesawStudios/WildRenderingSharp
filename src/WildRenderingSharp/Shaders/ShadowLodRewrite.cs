@@ -7,7 +7,7 @@ namespace WildRenderingSharp.Shaders;
 /// Rewrites <c>textureLod</c> on array and cube shadow samplers, which needs an extension the cleanup strips and which some drivers
 /// refuse without it. <c>textureGrad</c> with zero derivatives takes the same coordinate and samples the same level.
 /// </summary>
-public static partial class ShadowLodRewrite
+internal static partial class ShadowLodRewrite
 {
     [GeneratedRegex(@"\buniform\s+(sampler2DArrayShadow|samplerCubeShadow|samplerCubeArrayShadow)\s+(\w+)\s*;")]
     private static partial Regex ShadowSamplerDeclaration();

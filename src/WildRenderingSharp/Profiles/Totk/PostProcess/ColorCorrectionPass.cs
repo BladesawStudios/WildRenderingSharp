@@ -12,7 +12,7 @@ namespace WildRenderingSharp.Profiles.Totk.PostProcess;
 /// The game's final grade, <c>agl::pfx::ColorCorrection</c> driven by <c>postfx/master_field.baglccr</c>, applied after
 /// <c>agl_hdr_compose</c>.
 /// </summary>
-public sealed class ColorCorrectionPass : IDisposable
+internal sealed class ColorCorrectionPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;

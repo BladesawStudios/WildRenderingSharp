@@ -8,10 +8,10 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>One of the game's deferred passes, compiled with the mask that stands in for its depth-tested material ID.</summary>
-public sealed record BotwPass(string Name, uint Program, MaterialBlock Material, float Id);
+internal sealed record BotwPass(string Name, uint Program, MaterialBlock Material, float Id);
 
 /// <summary>Loads the game's deferred passes and the small textures they read, and draws them as fullscreen triangles.</summary>
-public sealed class BotwPasses(StageServices services) : IDisposable
+internal sealed class BotwPasses(StageServices services) : IDisposable
 {
     // The pass's vertex shader reads its compare ID from material slot 26, .z, and turns it into the depth the pass draws at.
     const int MaterialIdOffset = 26 * 16 + 8;

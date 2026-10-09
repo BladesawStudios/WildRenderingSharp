@@ -16,7 +16,7 @@ public sealed class LayeredRom : IRomAccess
     readonly SizedLruCache<DecompressedFile> _decompressed;
     readonly AsyncLocal<RomRecording?> _recording = new();
 
-    public LayeredRom(IEnumerable<string> roots, RomCompression? compression = null, long cacheBudget = DefaultCacheBudget)
+    internal LayeredRom(IEnumerable<string> roots, RomCompression? compression = null, long cacheBudget = DefaultCacheBudget)
     {
         _roots = roots.Where(Directory.Exists).Reverse().ToArray();
         if (_roots.Length == 0)

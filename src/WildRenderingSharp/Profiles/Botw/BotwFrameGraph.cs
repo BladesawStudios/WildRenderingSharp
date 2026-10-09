@@ -6,7 +6,7 @@ using WildRenderingSharp.Profiles.Botw.Stages;
 namespace WildRenderingSharp.Profiles.Botw;
 
 /// <summary>BotW's frame: a G-buffer, a lighting resolve and a tonemap.</summary>
-public sealed class BotwFrameGraph : IFrameGraph
+internal sealed class BotwFrameGraph : IFrameGraph
 {
     readonly List<IFrameStage> _stages;
     readonly List<IDisposable> _owned = [];

@@ -12,7 +12,7 @@ using WildRenderingSharp.Profiles.Totk.Terrain;
 namespace WildRenderingSharp.Profiles.Totk;
 
 /// <summary>TotK's frame: a deferred G-buffer and lighting chain, the game's sky, and a forward pass for blended materials.</summary>
-public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
+internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
 {
     readonly DeferredScene _scene;
     readonly SkyBake _skyBake;

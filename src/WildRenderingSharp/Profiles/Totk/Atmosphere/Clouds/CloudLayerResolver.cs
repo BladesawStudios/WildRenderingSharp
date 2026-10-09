@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 /// Lays the weather's cloud data over a layer's <c>CloudParamN</c> the way <c>WorldEnvMgr::applyEnvironment</c> does, producing the layer the dome is
 /// drawn with at one moment and altitude.
 /// </summary>
-public static class CloudLayerResolver
+internal static class CloudLayerResolver
 {
     /// <summary>
     /// Texture units per second per unit of <c>ScrollSpd</c>, and per unit of <c>NoiseAdd*</c>, along a unit wind. The game scales both by wind state it

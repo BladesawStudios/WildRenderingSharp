@@ -7,5 +7,5 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 /// cref="DeferredPassLoader.Load"/>.
 /// </summary>
 /// <param name="Tiled">Whether the program draws the screen as instanced tiles, as <c>field_hybrid</c>'s does.</param>
-public sealed record ResolvedDeferredPass(
+internal sealed record ResolvedDeferredPass(
     string Name, uint Program, MaterialBlock Material, int PassIndex, bool FieldLights = false, bool Tiled = false, string Source = "");

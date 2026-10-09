@@ -2,7 +2,7 @@ using WildRenderingSharp.Graphics.Contracts;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
-public sealed class TotkShaderSources : IShaderSources
+internal sealed class TotkShaderSources : IShaderSources
 {
     public string Clean(string source) => TotkGlsl.Clean(source);
 

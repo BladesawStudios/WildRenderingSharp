@@ -9,7 +9,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>Fills the view below the horizon with one colour, fading in over the haze just under it; the sky's table has nothing meaningful down there.</summary>
-public sealed class GroundPass : IDisposable
+internal sealed class GroundPass : IDisposable
 {
     static readonly string FragmentSource = GlslFiles.Load("Totk/Sky/Ground/Main.frag");
 

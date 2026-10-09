@@ -4,7 +4,7 @@ using WildRenderingSharp.Gpu;
 namespace WildRenderingSharp.Assets.Materials;
 
 /// <summary>A material's <c>gsys_material</c> uniform block: its authored bytes and the padded GL buffer they are shown through.</summary>
-public sealed class MaterialBlock : IDisposable
+internal sealed class MaterialBlock : IDisposable
 {
     // Large enough for any shading model's declared block size.
     public const int BufferSize = 65536;

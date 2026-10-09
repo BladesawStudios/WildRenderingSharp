@@ -13,7 +13,7 @@ public sealed class LoadedShape
     public IReadOnlyDictionary<string, string> Tags { get; init; } = new Dictionary<string, string>();
     public required bool AlphaTest { get; init; }
     public required bool Blend { get; init; }
-    public required RenderState RenderState { get; init; }
+    internal RenderState RenderState { get; init; } = null!;
 
     public required int VertexSkinCount { get; init; }
 
@@ -28,15 +28,15 @@ public sealed class LoadedShape
 
     public required uint GBufferProgram { get; init; }
     public uint GBufferVao { get; internal set; }
-    public required IReadOnlyList<ShapeSampler> GBufferSamplers { get; init; }
+    internal IReadOnlyList<ShapeSampler> GBufferSamplers { get; init; } = [];
 
     public uint ZOnlyProgram { get; init; }
     public uint ZOnlyVao { get; internal set; }
-    public IReadOnlyList<ShapeSampler> ZOnlySamplers { get; init; } = [];
+    internal IReadOnlyList<ShapeSampler> ZOnlySamplers { get; init; } = [];
 
     public uint ForwardProgram { get; init; }
     public uint ForwardVao { get; internal set; }
-    public IReadOnlyList<ShapeSampler> ForwardSamplers { get; init; } = [];
+    internal IReadOnlyList<ShapeSampler> ForwardSamplers { get; init; } = [];
 
     public string ForwardShaderName { get; init; } = "";
 
@@ -59,9 +59,9 @@ public sealed class LoadedShape
 
     public IReadOnlyDictionary<string, LoadedTexture>? SamplerOverrides { get; set; }
 
-    public required MaterialBlock MaterialBlock { get; init; }
+    internal MaterialBlock MaterialBlock { get; init; } = null!;
 
-    public MaterialParamLayout? MaterialParams { get; init; }
+    internal MaterialParamLayout? MaterialParams { get; init; }
 
     /// <summary>Whether the instance's baked lighting has a region for this material; one that does not keeps its own bake0.</summary>
     public bool HasBakeRegion { get; set; } = true;

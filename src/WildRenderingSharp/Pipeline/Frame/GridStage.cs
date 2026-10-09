@@ -4,7 +4,7 @@ using WildRenderingSharp.Pipeline.Passes;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>Draws the ground reference grid into the scene colour, depth-tested against the G-buffer.</summary>
-public sealed class GridStage(StageServices services, FlipBlit flip) : IFrameStage, IDisposable
+internal sealed class GridStage(StageServices services, FlipBlit flip) : IFrameStage, IDisposable
 {
     readonly GridPass _grid = new(services.Gl);
 

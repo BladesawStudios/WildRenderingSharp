@@ -1,7 +1,7 @@
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 
 /// <summary>Each <c>SystemModel.DeferredMain</c> pass's priority (<c>Mat</c> slot 25, <c>.x</c>), the material ID it lights.</summary>
-public static class DeferredPassPriorities
+internal static class DeferredPassPriorities
 {
     const int PriorityOffset = 25 * 16;
 

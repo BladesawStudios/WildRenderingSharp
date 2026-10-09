@@ -11,7 +11,7 @@ namespace WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 /// Runs the <c>agl::pfx::Sky</c> precompute chain (Bruneton's multiple-scattering solve), whose end product is the
 /// <c>cTexBakedInscatter</c> table that <c>agl_sky_postfx_sky</c> only samples.
 /// </summary>
-public sealed class SkyPrecomputePass : IDisposable
+internal sealed class SkyPrecomputePass : IDisposable
 {
     // SizeInfo, read from the game's constant buffer during a bake draw: the 2D tables, then the four inscatter axes and the radii.
     public const int TransmittanceW = 256;

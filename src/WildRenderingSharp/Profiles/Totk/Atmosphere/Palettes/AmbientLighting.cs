@@ -3,7 +3,7 @@ using System.Numerics;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 
 /// <summary>Resolves a palette's hemisphere ambient (sky and ground) colours.</summary>
-public static class AmbientLighting
+internal static class AmbientLighting
 {
     const float AmbientSkyScale = 1.80f;
     const float AmbientGroundScale = 1.20f;

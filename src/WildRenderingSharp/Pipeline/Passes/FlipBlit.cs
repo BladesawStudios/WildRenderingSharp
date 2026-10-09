@@ -7,7 +7,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Pipeline.Passes;
 
 /// <summary>Copies one colour target into another, optionally flipped vertically, as the frame moves between the G-buffer's orientation and the output's.</summary>
-public sealed class FlipBlit : IDisposable
+internal sealed class FlipBlit : IDisposable
 {
     static readonly string FlipFragmentSource = GlslFiles.Load("Pipeline/Forward/Flip.frag");
 

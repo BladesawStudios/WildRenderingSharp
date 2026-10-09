@@ -4,13 +4,13 @@ using WildRenderingSharp.Rendering.Cameras;
 namespace WildRenderingSharp.Graphics.Data;
 
 /// <summary>The perspective parameters a shader reads alongside the matrices.</summary>
-public readonly record struct Lens(float Aspect, float TanHalfFovY, float Near, float Far)
+internal readonly record struct Lens(float Aspect, float TanHalfFovY, float Near, float Far)
 {
     public Vector2 TanHalf => new(Aspect * TanHalfFovY, TanHalfFovY);
 }
 
 /// <summary>A camera's matrices and lens as the games' camera uniform blocks hold them.</summary>
-public readonly record struct CameraData(
+internal readonly record struct CameraData(
     Matrix4x4 View, Matrix4x4 ViewProj, Matrix4x4 Proj, Matrix4x4 ViewInv, Lens Lens, Vector2 TexelSize)
 {
     public float Aspect => Lens.Aspect;

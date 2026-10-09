@@ -8,7 +8,7 @@ using WildRenderingSharp.Profiles.Totk.Terrain;
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Draws the opaque shapes, then the host's terrain, into the G-buffer.</summary>
-public sealed class GBufferStage(StageServices services, DeferredScene scene, TerrainRenderer terrain) : IFrameStage
+internal sealed class GBufferStage(StageServices services, DeferredScene scene, TerrainRenderer terrain) : IFrameStage
 {
     readonly GBufferPass _gbuffer = new(services.Gl);
 

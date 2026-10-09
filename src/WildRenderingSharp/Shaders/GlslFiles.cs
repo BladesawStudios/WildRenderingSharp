@@ -3,7 +3,7 @@ using System.Reflection;
 namespace WildRenderingSharp.Shaders;
 
 /// <summary>The renderer's own GLSL, shipped as embedded files under <c>Glsl/</c>. Game shaders never live here; they come from the prepared cache.</summary>
-public static class GlslFiles
+internal static class GlslFiles
 {
     static readonly Assembly Assembly = typeof(GlslFiles).Assembly;
 

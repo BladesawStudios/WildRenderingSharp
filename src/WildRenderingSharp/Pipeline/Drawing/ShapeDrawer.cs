@@ -7,7 +7,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Pipeline.Drawing;
 
 /// <summary>Issues the indexed draw of a shape variant, alone or for every instance of a batch, skipping the binds a pass has declared redundant.</summary>
-public sealed unsafe class ShapeDrawer : IDisposable
+internal sealed unsafe class ShapeDrawer : IDisposable
 {
     public const uint BakeTableBinding = 0;
 

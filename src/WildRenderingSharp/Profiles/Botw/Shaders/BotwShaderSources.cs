@@ -4,7 +4,7 @@ using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Shaders;
 
-public sealed partial class BotwShaderSources : IShaderSources
+internal sealed partial class BotwShaderSources : IShaderSources
 {
     static readonly Dictionary<string, uint> BlockBindings = new(StringComparer.Ordinal)
     {

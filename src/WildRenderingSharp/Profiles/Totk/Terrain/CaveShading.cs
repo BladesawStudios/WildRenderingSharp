@@ -40,7 +40,7 @@ public sealed class CaveShading : IDisposable
         return GLProgramBuilder.Build(_gl, vert, frag, $"cave_prog{program}");
     }
 
-    public MaterialBlock Material => _material ??= MaterialBlock.FromFile(_gl, Path.Combine(_shadersDir, "cave_gsys_material.bin"));
+    internal MaterialBlock Material => _material ??= MaterialBlock.FromFile(_gl, Path.Combine(_shadersDir, "cave_gsys_material.bin"));
 
     public void Dispose() => _material?.Dispose();
 }

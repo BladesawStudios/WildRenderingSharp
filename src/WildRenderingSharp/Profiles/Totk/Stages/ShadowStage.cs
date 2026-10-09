@@ -13,7 +13,7 @@ using WildRenderingSharp.Profiles.Totk.Terrain;
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Draws the sun's shadow map, or its cascades.</summary>
-public sealed class ShadowStage(StageServices services, TerrainRenderer terrain) : IFrameStage
+internal sealed class ShadowStage(StageServices services, TerrainRenderer terrain) : IFrameStage
 {
     readonly ShadowPass _shadow = new(services.Gl);
 

@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Gpu;
 /// Compiles and links a vertex+fragment GLSL pair into a GL program - shared by <see cref="ShaderProgramCache"/> (decompiled game
 /// shaders) and every pass class's own small fullscreen-effect shaders.
 /// </summary>
-public static class GLProgramBuilder
+internal static class GLProgramBuilder
 {
     public static string? BinaryCacheDirectory { get; set; }
 

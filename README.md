@@ -9,7 +9,9 @@ The renderer is built around game profiles. TotK is the full one; *Breath of the
 
 ```csharp
 using WildRenderingSharp;
-using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Hosting.Preparers;
+using WildRenderingSharp.Rom.Games;
+using WildRenderingSharp.Storage;
 
 // Off the GL thread: shared assets (cheap after the first run), then the actor.
 IModelPreparer preparer = new OutOfProcessPreparer();      // or new InProcessPreparer()

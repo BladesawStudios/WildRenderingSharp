@@ -7,7 +7,7 @@ namespace WildRenderingSharp.Rendering.Cameras;
 /// 940 - so every world-unit constant tuned against the sword (near/far planes, AO radius and shadow bias)
 /// is re-derived per model as a FRACTION of its own radius.
 /// </summary>
-public static class SceneFramingCalculator
+internal static class SceneFramingCalculator
 {
     const float SwordRadius = 0.7386f;
     const float AoRadiusFraction = 0.035f / SwordRadius;

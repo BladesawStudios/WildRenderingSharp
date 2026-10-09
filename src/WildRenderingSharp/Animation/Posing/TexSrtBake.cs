@@ -4,7 +4,7 @@ namespace WildRenderingSharp.Animation.Posing;
 /// Bakes an authored TexSrt (mode, scaleX, scaleY, rotation, translateX, translateY) into the 2x2 rotate-scale matrix plus
 /// translation the compiled shader's <c>gsys_material</c> block stores.
 /// </summary>
-public static class TexSrtBake
+internal static class TexSrtBake
 {
     public static void Bake(int mode, float sx, float sy, float rot, float tx, float ty, Span<float> outM0, Span<float> outM1)
     {

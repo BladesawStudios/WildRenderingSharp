@@ -6,7 +6,7 @@ using WildRenderingSharp.Assets.Materials;
 namespace WildRenderingSharp.Scene.Posing;
 
 /// <summary>Applies shader parameter animations by rewriting the affected materials' <c>gsys_material</c> blocks, as <c>nn::g3d2::MaterialAnimObj::ApplyTo</c> does.</summary>
-public static class MaterialAnimPose
+internal static class MaterialAnimPose
 {
     public readonly record struct Playing(MaterialAnimManifest Anim, float Frame);
 

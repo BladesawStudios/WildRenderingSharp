@@ -3,7 +3,7 @@ using WildRenderingSharp.Graphics.Data;
 namespace WildRenderingSharp.Graphics.Ubos;
 
 /// <summary>The camera slots of <c>gsys_context</c>, which both games lay out the same way, and the write that fills them from a camera.</summary>
-public static class GsysContext
+internal static class GsysContext
 {
     public static readonly UboMatrix View = new(0, 3);
     public static readonly UboMatrix ViewProjection = new(3, 4);

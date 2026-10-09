@@ -6,7 +6,7 @@ using WildRenderingSharp.Profiles.Totk.Sky.LensFlare;
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Adds the game's lens flare to the HDR image, before exposure so it lives in the same linear space as the scene.</summary>
-public sealed class LensFlareStage(StageServices services) : IFrameStage, IDisposable
+internal sealed class LensFlareStage(StageServices services) : IFrameStage, IDisposable
 {
     readonly LensFlarePass _lensFlare = new(services.Gl, services.Programs);
 

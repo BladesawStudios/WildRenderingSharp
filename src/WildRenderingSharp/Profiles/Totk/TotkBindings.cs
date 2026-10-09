@@ -2,7 +2,7 @@
 namespace WildRenderingSharp.Profiles.Totk;
 
 /// <summary>Where TotK's shaders read each uniform block, as recovered from the compiled programs.</summary>
-public static class TotkBindings
+internal static class TotkBindings
 {
     public const uint Camera = 1;
     public const uint Bones = 2;

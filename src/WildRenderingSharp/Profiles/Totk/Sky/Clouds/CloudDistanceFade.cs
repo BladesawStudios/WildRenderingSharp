@@ -5,7 +5,7 @@ namespace WildRenderingSharp.Profiles.Totk.Sky.Clouds;
 /// <summary>
 /// WildRenderingSharp's OWN distance fade for the cloud dome, injected into the real <c>agl_cloud</c> shader as a small GLSL patch.
 /// </summary>
-public static class CloudDistanceFade
+internal static class CloudDistanceFade
 {
     public const uint Binding = 27;
 

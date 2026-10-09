@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace WildRenderingSharp.Shaders;
 
 /// <summary>Makes the decompiler's GLSL link on desktop GL. The fixes are the same for every game it is run on.</summary>
-public static partial class DecompiledGlsl
+internal static partial class DecompiledGlsl
 {
     static readonly string[] DroppedLinePrefixes =
     [

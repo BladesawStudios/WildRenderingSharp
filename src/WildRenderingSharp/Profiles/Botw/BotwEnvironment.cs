@@ -5,7 +5,7 @@ using WildRenderingSharp.Rendering.Lighting;
 namespace WildRenderingSharp.Profiles.Botw;
 
 /// <summary>BotW's per-frame environment. Fixed daylight until the game's own sky and weather data are read.</summary>
-public sealed class BotwEnvironment : IFrameEnvironment
+internal sealed class BotwEnvironment : IFrameEnvironment
 {
     public Vector3 SunColor { get; set; } = new(1.6f, 1.5f, 1.35f);
     public Vector3 HemiSky { get; set; } = new(0.55f, 0.65f, 0.85f);

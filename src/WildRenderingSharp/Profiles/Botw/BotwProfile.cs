@@ -7,7 +7,7 @@ using WildRenderingSharp.Profiles.Botw.Ubos;
 
 namespace WildRenderingSharp.Profiles.Botw;
 
-public sealed class BotwProfile : IGameProfile
+internal sealed class BotwProfile : IGameProfile
 {
     public string Name => "Breath of the Wild";
 

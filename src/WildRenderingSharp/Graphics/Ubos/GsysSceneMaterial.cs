@@ -4,7 +4,7 @@ namespace WildRenderingSharp.Graphics.Ubos;
 /// The byte offsets at the start of <c>gsys_scene_material</c> that both games' blocks share, named after the shader archive's symbols,
 /// and the write that gives them the values the lighting drives.
 /// </summary>
-public static class GsysSceneMaterial
+internal static class GsysSceneMaterial
 {
     public const int DynamicToonLightAdjustForDemo = 0;
     public const int DynamicCloudRatio = 16;

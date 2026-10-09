@@ -13,7 +13,7 @@ namespace WildRenderingSharp.Pipeline.Passes;
 /// Draws one shape's silhouette as a flat, alpha-blended overlay on the finished frame - the Material Inspector's "which object is
 /// this row" hover highlight.
 /// </summary>
-public sealed class HighlightOverlayPass : IDisposable
+internal sealed class HighlightOverlayPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;

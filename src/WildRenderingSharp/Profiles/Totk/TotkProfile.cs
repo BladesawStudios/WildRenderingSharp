@@ -7,7 +7,7 @@ using WildRenderingSharp.Profiles.Totk.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk;
 
-public sealed class TotkProfile : IGameProfile
+internal sealed class TotkProfile : IGameProfile
 {
     public string Name => "Tears of the Kingdom";
 

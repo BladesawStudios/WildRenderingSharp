@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Pipeline.Drawing;
 /// What an instanced program and the code that draws it agree on: the storage buffer the per-placement data is read from and the
 /// uniforms that locate one placement in it.
 /// </summary>
-public static class InstancingContract
+internal static class InstancingContract
 {
     public const uint InstanceBinding = 7;
 

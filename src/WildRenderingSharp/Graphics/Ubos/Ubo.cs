@@ -1,7 +1,7 @@
 namespace WildRenderingSharp.Graphics.Ubos;
 
 /// <summary>The bytes of one uniform block, and the key of the GL buffer they are kept in between frames.</summary>
-public sealed class Ubo
+internal sealed class Ubo
 {
     public Ubo(string key, UboSpec spec, ReadOnlyMemory<byte> bytes)
     {

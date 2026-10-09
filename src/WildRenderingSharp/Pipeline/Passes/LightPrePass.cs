@@ -13,7 +13,7 @@ namespace WildRenderingSharp.Pipeline.Passes;
 /// that drives further shading - confirmed by reading chara_metal/chara_skin/chara_nonmetal/chara_grossy directly, all four
 /// identical: <c>texture(cTex_DeferredLightPrePass, vec3(u, v, 0)).xyz</c>).
 /// </summary>
-public sealed class LightPrePass : IDisposable
+internal sealed class LightPrePass : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;

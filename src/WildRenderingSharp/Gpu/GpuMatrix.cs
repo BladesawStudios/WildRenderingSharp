@@ -3,7 +3,7 @@ using System.Numerics;
 namespace WildRenderingSharp.Gpu;
 
 /// <summary>Converts between System.Numerics matrices and the transposed row arrays the games' uniform blocks hold.</summary>
-public static class GpuMatrix
+internal static class GpuMatrix
 {
     public static Vector4[] Rows(Matrix4x4 m, int count = 4)
     {

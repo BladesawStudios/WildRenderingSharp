@@ -3,7 +3,7 @@ using System.Numerics;
 namespace WildRenderingSharp.Rendering.Cameras;
 
 /// <summary>Matrices that convert between System.Numerics clip space and the games'.</summary>
-public static class ClipSpace
+internal static class ClipSpace
 {
     public static readonly Matrix4x4 ZeroToOneDepthToGl = Matrix4x4.CreateScale(1, 1, 2) * Matrix4x4.CreateTranslation(0, 0, -1);
 

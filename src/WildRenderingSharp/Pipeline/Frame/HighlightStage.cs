@@ -5,7 +5,7 @@ using WildRenderingSharp.Pipeline.Passes;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>Overlays the requested shape on the finished image, ignoring depth so it shows through whatever hides it.</summary>
-public sealed class HighlightStage(StageServices services) : IFrameStage, IDisposable
+internal sealed class HighlightStage(StageServices services) : IFrameStage, IDisposable
 {
     static readonly Vector4 HighlightColor = new(1f, 0.85f, 0.2f, 0.2f);
 

@@ -6,7 +6,7 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Assets.Textures;
 
 /// <summary>Maps a TotK texture's format string (as exported by <c>ExportTestBench</c>/<c>TxtgTexture</c>, e.g.</summary>
-public static partial class CompressedTextureFormat
+internal static partial class CompressedTextureFormat
 {
     /// <summary>
     /// <see cref="AstcFootprint"/> is set only for ASTC formats - <see cref="TextureCache"/> uses that to decode on the CPU instead

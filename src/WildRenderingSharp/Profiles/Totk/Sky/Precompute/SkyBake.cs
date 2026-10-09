@@ -6,7 +6,7 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 namespace WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 
 /// <summary>Runs the atmosphere precompute once per palette.</summary>
-public sealed class SkyBake(StageServices services) : IDisposable
+internal sealed class SkyBake(StageServices services) : IDisposable
 {
     readonly SkyPrecomputePass _precompute = new(services.Gl, services.Programs);
     readonly Vector3 _sun = Vector3.UnitY;

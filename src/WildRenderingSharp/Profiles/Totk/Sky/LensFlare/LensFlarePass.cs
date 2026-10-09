@@ -9,7 +9,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Sky.LensFlare;
 
 /// <summary>The game's lens flare: <c>agl::pfx::Glare</c>'s <c>flare_filter_flare</c> program, decompiled out of <c>agl_technique_pfx.sharcb</c>.</summary>
-public sealed class LensFlarePass : IDisposable
+internal sealed class LensFlarePass : IDisposable
 {
     const int BlurIterations = 3;
 

@@ -3,7 +3,7 @@ using Silk.NET.OpenGL;
 namespace WildRenderingSharp.Gpu;
 
 /// <summary>GL error reporting that says what it actually knows.</summary>
-public static class GLDiagnostics
+internal static class GLDiagnostics
 {
     public static bool VerbosePerPass { get; set; }
         = (Environment.GetEnvironmentVariable("WRS_GL_TRACE") ?? Environment.GetEnvironmentVariable("MARROW_GL_TRACE")) == "1";

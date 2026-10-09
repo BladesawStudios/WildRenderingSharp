@@ -15,7 +15,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 /// <c>chara_metal</c> throughout; a character can span <c>chara_nonmetal</c>, <c>chara_hair</c>, <c>chara_skin</c> and
 /// <c>chara_grossy</c>).
 /// </summary>
-public sealed class PassIdMaskPass : IDisposable
+internal sealed class PassIdMaskPass : IDisposable
 {
     readonly GL _gl;
     readonly ShapeDrawer _drawer;

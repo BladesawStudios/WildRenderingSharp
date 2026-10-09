@@ -7,7 +7,7 @@ namespace WildRenderingSharp.Rendering.Cameras;
 /// Euler-angle rotation matrix builders, returning 3x4 matrices to match the
 /// shaders' format (see <see cref="CameraData"/>).
 /// </summary>
-public static class EulerRotation
+internal static class EulerRotation
 {
     /// <summary>Scales, rolls, pitches and yaws about <paramref name="pivot"/>, then moves by <paramref name="translation"/>.</summary>
     public static Vector4[] MakeYawPitchRollScaleAboutPivot(float yawRadians, float pitchRadians, float rollRadians, Vector3 scale, Vector3 pivot, Vector3 translation) =>

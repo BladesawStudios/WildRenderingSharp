@@ -10,7 +10,7 @@ using WildRenderingSharp.Rendering.Lighting;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>Derives the camera, sun and draw groups for the frame and uploads the uniforms every pass shares.</summary>
-public sealed class FrameSetupStage(StageServices services) : IFrameStage
+internal sealed class FrameSetupStage(StageServices services) : IFrameStage
 {
     public void Run(FrameContext frame)
     {

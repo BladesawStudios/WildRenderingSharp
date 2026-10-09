@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Profiles.Totk.Sky.Clouds;
 /// Generates the real <c>agl::fx::Cloud</c> dome mesh procedurally - traced from the real <c>agl::fx::Cloud::initVertex_</c>
 /// decompile (Ghidra), not an invented approximation.
 /// </summary>
-public static class CloudDomeMesh
+internal static class CloudDomeMesh
 {
     public const int SegmentsPerRing = 24;
 

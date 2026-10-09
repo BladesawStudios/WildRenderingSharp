@@ -1,7 +1,7 @@
 namespace WildRenderingSharp.Graphics.Ubos;
 
 /// <summary>Keys the frame's uniform buffers are kept under, so a pass can rebind one by name.</summary>
-public static class FrameUniformKeys
+internal static class FrameUniformKeys
 {
     public const string SceneCamera = "ctx_true";
     public const string GBufferCamera = "ctx_gbuffer";

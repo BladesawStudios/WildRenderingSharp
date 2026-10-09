@@ -9,7 +9,7 @@ using WildRenderingSharp.Pipeline.Targets;
 namespace WildRenderingSharp.Pipeline.Passes;
 
 /// <summary>Draws blended materials forward after the deferred resolve, as the engine does with <c>gsys_assign_material</c> once the scene behind them is resolved.</summary>
-public sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neutral)
+internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neutral)
 {
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
     {

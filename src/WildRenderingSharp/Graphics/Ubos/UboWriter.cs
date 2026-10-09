@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Graphics.Ubos;
 /// Builds one uniform block. Fields are addressed the way the decompiled shaders do, as <c>data[slot].component</c> with 16 bytes
 /// to a slot, or by the byte offset the shader archive's reflection reports.
 /// </summary>
-public sealed class UboWriter
+internal sealed class UboWriter
 {
     readonly byte[] _bytes;
 

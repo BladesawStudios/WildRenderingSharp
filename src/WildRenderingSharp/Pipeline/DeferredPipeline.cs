@@ -20,17 +20,17 @@ public sealed class DeferredPipeline : IDisposable
 
     IReadOnlyList<LoadedModel> _models = [];
 
-    public IGameProfile Profile { get; }
-    public GLResourceCache Resources { get; }
+    internal IGameProfile Profile { get; }
+    internal GLResourceCache Resources { get; }
     public RenderTargets Targets { get; }
-    public ShaderProgramCache Programs { get; }
+    internal ShaderProgramCache Programs { get; }
 
-    public ShapeDrawer Drawer { get; }
+    internal ShapeDrawer Drawer { get; }
 
-    public IFrameGraph Graph { get; }
+    internal IFrameGraph Graph { get; }
 
     /// <summary>The graph's debug hooks, or null when it has none.</summary>
-    public IDeferredDebug? Debug => Graph as IDeferredDebug;
+    internal IDeferredDebug? Debug => Graph as IDeferredDebug;
 
     /// <summary>Keeps a copy of the HDR frame after the deferred resolve, the forward pass and the lens flare, for the scene view's debug modes.</summary>
     public bool SnapshotStages { get; set; }
@@ -43,7 +43,7 @@ public sealed class DeferredPipeline : IDisposable
 
     public ExposureMeter.Result? LastExposureMeasurement => _exposure.Last;
 
-    public DeferredPipeline(GL gl, string dataDirectory, string decompiledDirectory, int width, int height,
+    internal DeferredPipeline(GL gl, string dataDirectory, string decompiledDirectory, int width, int height,
         IGameProfile profile, string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null)
     {
         _gl = gl;

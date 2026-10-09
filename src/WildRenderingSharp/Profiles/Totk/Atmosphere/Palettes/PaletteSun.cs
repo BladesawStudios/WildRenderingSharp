@@ -5,7 +5,7 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 /// with the clock, so a palette lit by a sun elsewhere never occurs in the game: a night palette under a high sun is blown out, and a noon one
 /// under a low sun is orange.
 /// </summary>
-public static class PaletteSun
+internal static class PaletteSun
 {
     static readonly (string Suffix, float Degrees)[] Slots =
     [

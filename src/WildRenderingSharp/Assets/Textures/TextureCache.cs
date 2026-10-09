@@ -4,7 +4,7 @@ using WildRenderingSharp.Assets.Manifests;
 namespace WildRenderingSharp.Assets.Textures;
 
 /// <summary>Loads and caches textures by name so shapes sharing a texture share one GL object.</summary>
-public sealed class TextureCache : IDisposable
+internal sealed class TextureCache : IDisposable
 {
     readonly GL _gl;
     readonly string _dataDirectory;

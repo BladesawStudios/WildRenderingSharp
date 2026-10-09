@@ -7,7 +7,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 
 /// <summary>The deferred passes the loaded models (and a terrain host) need, resolved to compiled programs and material buffers.</summary>
-public sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirectories directories) : IDisposable
+internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirectories directories) : IDisposable
 {
     /// <summary>The pass that lights a host's terrain, and every pixel the pass-ID mask leaves unstamped.</summary>
     public const string DefaultPass = "field_hybrid";

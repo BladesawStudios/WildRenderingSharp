@@ -411,7 +411,7 @@ animated curve's raw float into the already-baked buffer only looks right at the
 
 Applies a `TexturePatternAnimManifest` to a loaded model for one frame, by writing
 each affected shape's `SamplerOverrides`. Nothing else in the pipeline
-needs to know a pattern anim exists: `ShapeDrawing` substitutes
+needs to know a pattern anim exists: `ShapeDrawer` substitutes
 by sampler key while binding, so the G-buffer, z-only and forward variants all pick it up even
 though the same sampler sits on a different unit in each one's compiled program.
 

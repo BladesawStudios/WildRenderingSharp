@@ -11,7 +11,7 @@ namespace WildRenderingSharp.Pipeline.Passes;
 /// Produces the two screen-space buffers the deferred resolve shaders expect from the game's <c>preshading_*</c> passes: <c>cTex_PreShadow</c>
 /// (sun visibility, Poisson-disc PCF against the shadow map) and <c>cTex_PreMisc</c> (an alchemy-style AO plus the diffuse N.L the <c>chara_*</c> passes read).
 /// </summary>
-public sealed class ScreenSpaceShadowAndAoPass : IDisposable
+internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
 {
     public const float AoRadiusWorld = 0.035f;
     public const float AoStrength = 0.85f;

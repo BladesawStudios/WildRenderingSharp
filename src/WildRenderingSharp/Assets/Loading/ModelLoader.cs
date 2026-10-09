@@ -7,7 +7,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Assets.Loading;
 
 /// <summary>Turns a <see cref="ModelManifest"/> into a ready-to-draw <see cref="LoadedModel"/>: GL buffers, VAOs, textures and material blocks for every shape.</summary>
-public sealed class ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
+internal sealed class ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
 {
     public SharedTextures? SharedTextures { get; init; }
 

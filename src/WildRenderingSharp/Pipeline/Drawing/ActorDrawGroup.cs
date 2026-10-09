@@ -16,7 +16,7 @@ namespace WildRenderingSharp.Pipeline.Drawing;
 /// immediately before that actor's own draw calls - exactly what a real engine does between per-object draw calls - rather than
 /// trying to combine every actor into one buffer.
 /// </summary>
-public readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
+internal readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
     InstanceBatch? Batch = null, bool ShadowRuns = false, int Cascade = -1, IReadOnlyList<UboSpec>? ZeroedBlocks = null)
 {
     // A group that draws every instance of a batch, whose transforms come from the batch's buffer rather than the actor's blocks.

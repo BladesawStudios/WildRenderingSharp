@@ -12,7 +12,7 @@ using WildRenderingSharp.Rendering.Lighting;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>One frame's inputs and the results stages hand to later stages.</summary>
-public sealed class FrameContext(FrameRequest request, RenderTargets targets, ShadowCache shadowCache, GpuTexture? shadowMapOverride)
+internal sealed class FrameContext(FrameRequest request, RenderTargets targets, ShadowCache shadowCache, GpuTexture? shadowMapOverride)
 {
     public FrameRequest Request { get; } = request;
     public RenderTargets Targets { get; } = targets;

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace WildRenderingSharp.Assets.Manifests;
 
 /// <summary>Deserialized <c>&lt;Model&gt;.manifest.json</c>, written by <c>ShaderLibrary.CompileTool.ExportManifest</c>.</summary>
-public sealed class ModelManifest
+internal sealed class ModelManifest
 {
     [JsonPropertyName("model")] public string Model { get; set; } = "";
     [JsonPropertyName("vertex_stride")] public int VertexStride { get; set; } = 192;

@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Shaders;
 /// program, caching by base name - many shapes/materials across a model (and across the deferred resolve passes) share the same
 /// compiled program, so this is what makes that sharing actually happen instead of relinking per shape.
 /// </summary>
-public sealed class ShaderProgramCache : IDisposable
+internal sealed class ShaderProgramCache : IDisposable
 {
     readonly GL _gl;
     readonly string _decompiledDir;

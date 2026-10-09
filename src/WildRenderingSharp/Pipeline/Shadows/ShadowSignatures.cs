@@ -6,7 +6,7 @@ using WildRenderingSharp.Pipeline.Drawing;
 namespace WildRenderingSharp.Pipeline.Shadows;
 
 /// <summary>Comparisons and bounds that decide whether a shadow map drawn earlier is still valid.</summary>
-public static class ShadowSignatures
+internal static class ShadowSignatures
 {
     public static bool ActorRowsEqual(Vector4[][] a, Vector4[][] b)
     {

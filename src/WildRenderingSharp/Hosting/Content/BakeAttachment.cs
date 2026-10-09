@@ -8,7 +8,7 @@ using WildRenderingSharp.Storage;
 namespace WildRenderingSharp.Hosting.Content;
 
 /// <summary>Finds the baked lighting for a batch's instances and attaches it, so each draws with its own atlas.</summary>
-public sealed class BakeAttachment(GL gl, CacheLayout cache) : IDisposable
+internal sealed class BakeAttachment(GL gl, CacheLayout cache) : IDisposable
 {
     BakeLibrary? _library;
 

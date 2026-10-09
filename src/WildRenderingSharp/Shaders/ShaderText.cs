@@ -1,6 +1,6 @@
 namespace WildRenderingSharp.Shaders;
 
-public static class ShaderText
+internal static class ShaderText
 {
     /// <summary>Replaces every <paramref name="anchor"/>, and throws when the source lacks it, so a patch cannot silently miss.</summary>
     public static string ReplaceRequired(this string source, string anchor, string replacement) =>

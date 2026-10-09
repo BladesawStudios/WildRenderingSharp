@@ -14,7 +14,7 @@ namespace WildRenderingSharp.Profiles.Botw.Stages;
 /// triangle for the material ID it lights; the game picks its pixels with the depth test, which is replaced here by a mask on the G-buffer's
 /// ID channel.
 /// </summary>
-public sealed class BotwResolveStage(StageServices services, BotwPasses passes, BotwLightingStage lighting) : IFrameStage, IDisposable
+internal sealed class BotwResolveStage(StageServices services, BotwPasses passes, BotwLightingStage lighting) : IFrameStage, IDisposable
 {
     static readonly string[] CharacterPasses =
         ["chara_nonmetal", "chara_nonmetal_direct", "chara_metal", "chara_grossy", "chara_hair", "chara_skin", "chara_eye"];

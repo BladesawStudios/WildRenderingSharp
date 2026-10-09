@@ -8,7 +8,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 
 /// <summary>Stamps the pass-ID mask from the material IDs the G-buffer programs wrote, over what <see cref="PassIdMaskPass"/> stamped from each shape's name.</summary>
-public sealed class MaterialIdPass : IDisposable
+internal sealed class MaterialIdPass : IDisposable
 {
     public const int MaxPasses = 16;
 

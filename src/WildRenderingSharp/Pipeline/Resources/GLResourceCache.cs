@@ -10,7 +10,7 @@ namespace WildRenderingSharp.Pipeline.Resources;
 /// zeroed buffers by size, and the attribute-less VAO every fullscreen pass draws through (the deferred vertex shaders synthesise
 /// position and UV from <c>gl_VertexID</c>).
 /// </summary>
-public sealed class GLResourceCache : IDisposable
+internal sealed class GLResourceCache : IDisposable
 {
     readonly GL _gl;
     readonly Dictionary<string, uint> _ubos = new(StringComparer.Ordinal);

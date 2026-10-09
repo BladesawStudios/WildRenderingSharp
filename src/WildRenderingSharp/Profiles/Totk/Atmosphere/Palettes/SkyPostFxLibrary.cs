@@ -6,7 +6,7 @@ using WildRenderingSharp.Rom;
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 
 /// <summary>Loads the sky, cloud and colour-correction post-fx from <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>.</summary>
-public static class SkyPostFxLibrary
+internal static class SkyPostFxLibrary
 {
     const string Archive = "Env/GameScene.Nin_NX_NVN.genvb.zs";
 

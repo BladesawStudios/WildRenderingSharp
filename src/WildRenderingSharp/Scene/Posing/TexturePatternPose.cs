@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Scene.Posing;
 /// Applies a <see cref="TexturePatternAnimManifest"/> to a loaded model for one frame, by writing each affected shape's <see
 /// cref="LoadedShape.SamplerOverrides"/>.
 /// </summary>
-public static class TexturePatternPose
+internal static class TexturePatternPose
 {
     /// <summary>One anim and the frame to sample it at.</summary>
     public readonly record struct Playing(TexturePatternAnimManifest Anim, float Frame);

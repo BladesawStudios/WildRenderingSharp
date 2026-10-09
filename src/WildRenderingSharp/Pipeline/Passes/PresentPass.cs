@@ -10,7 +10,7 @@ namespace WildRenderingSharp.Pipeline.Passes;
 /// The final blit: box-downsamples the supersampled render in linear light (filtering after the sRGB encode would darken edges),
 /// applies <c>agl</c>'s colour-correction curve (hue, saturation, brightness, gamma) and sRGB-encodes.
 /// </summary>
-public sealed class PresentPass : IDisposable
+internal sealed class PresentPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;

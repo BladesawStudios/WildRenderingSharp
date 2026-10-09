@@ -7,7 +7,7 @@ using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Repairs the few materials the translated shaders draw wrongly.</summary>
-public sealed class KnownMaterialFixesStage(StageServices services, DeferredScene scene, FlipBlit flip) : IFrameStage, IDisposable
+internal sealed class KnownMaterialFixesStage(StageServices services, DeferredScene scene, FlipBlit flip) : IFrameStage, IDisposable
 {
     readonly KnownMaterialFixes _fixes = new(services.Gl);
 

@@ -5,7 +5,7 @@ using WildRenderingSharp.Pipeline.Passes;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>Draws blended materials over the resolved scene.</summary>
-public sealed class ForwardStage(StageServices services, ForwardPass forward) : IFrameStage
+internal sealed class ForwardStage(StageServices services, ForwardPass forward) : IFrameStage
 {
     public void Run(FrameContext frame)
     {

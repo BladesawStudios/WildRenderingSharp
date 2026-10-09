@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Debug;
 /// Instruments a decompiled fragment shader so one chosen intermediate (<c>temp_N</c>, in the decompiler's numbering) is shown as
 /// the final pixel colour instead of the shader's output.
 /// </summary>
-public static class ShaderStepDebugger
+internal static class ShaderStepDebugger
 {
     const string UnreachedSentinel = "vec4(1.0, 0.5, 0.0, 1.0)";
 

@@ -7,7 +7,7 @@ namespace WildRenderingSharp.Pipeline.Resources;
 /// What every decompiled shader expects bound whatever the scene: the support buffer, and an empty storage buffer at binding 0 for the
 /// shaders that declare one and never use it.
 /// </summary>
-public sealed class DecompilerBindings : IDisposable
+internal sealed class DecompilerBindings : IDisposable
 {
     const int StorageBytes = 65536;
 

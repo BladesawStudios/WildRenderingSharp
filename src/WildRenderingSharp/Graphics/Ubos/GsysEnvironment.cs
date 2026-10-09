@@ -3,7 +3,7 @@ using System.Numerics;
 namespace WildRenderingSharp.Graphics.Ubos;
 
 /// <summary>The light slots at the start of <c>gsys_environment</c>, which both games lay out the same way, and the write that fills them.</summary>
-public static class GsysEnvironment
+internal static class GsysEnvironment
 {
     public const int Ambient = 0;
     public const int HemiSky = 1;
