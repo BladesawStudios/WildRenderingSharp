@@ -26,7 +26,7 @@ public sealed class LightPrePass : IDisposable
     }
 
     public readonly record struct Params(
-        Vector4[] ViewInv3Rows, Vector2 TanHalf, float Near, float Far,
+        Matrix4x4 ViewInv, Vector2 TanHalf, float Near, float Far,
         Vector3 SunWorld, Vector3 SunColor, Vector3 HemiSky, Vector3 HemiGround, bool Synthetic = true);
 
     public void Run(GLResourceCache resources, RenderTargets targets, Params p)
@@ -60,7 +60,7 @@ public sealed class LightPrePass : IDisposable
     {
         _gl.Disable(EnableCap.DepthTest);
         _gl.UseProgram(_program);
-        SetMat4(_program, "uViewInv", Rendering.Mat4Math.ToMat4(p.ViewInv3Rows));
+        _gl.SetMat4(_program, "uViewInv", p.ViewInv);
         _gl.Uniform2(_gl.GetUniformLocation(_program, "uTanHalf"), p.TanHalf.X, p.TanHalf.Y);
         _gl.Uniform1(_gl.GetUniformLocation(_program, "uNear"), p.Near);
         _gl.Uniform1(_gl.GetUniformLocation(_program, "uFar"), p.Far);
@@ -81,19 +81,6 @@ public sealed class LightPrePass : IDisposable
         _gl.ActiveTexture(TextureUnit.Texture0 + unit);
         _gl.BindTexture(TextureTarget.Texture2D, textureHandle);
         _gl.Uniform1(_gl.GetUniformLocation(program, uniform), unit);
-    }
-
-    void SetMat4(uint program, string name, Vector4[] rows)
-    {
-        Span<float> flat = stackalloc float[16];
-        for (int i = 0; i < 4; i++)
-        {
-            flat[i * 4 + 0] = rows[i].X;
-            flat[i * 4 + 1] = rows[i].Y;
-            flat[i * 4 + 2] = rows[i].Z;
-            flat[i * 4 + 3] = rows[i].W;
-        }
-        _gl.UniformMatrix4(_gl.GetUniformLocation(program, name), 1, true, flat);
     }
 
     public void Dispose() => _gl.DeleteProgram(_program);

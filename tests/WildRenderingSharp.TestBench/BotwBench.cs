@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Preparation.Botw;
@@ -44,7 +45,8 @@ static class BotwBench
         if (options.TryGetValue("exposure", out var exposure))
             lighting.Exposure = float.Parse(exposure);
 
-        var camera = new Camera();
+        // Z-up, like the renderer's world.
+        var camera = new Camera { Up = System.Numerics.Vector3.UnitZ, FovDegrees = 38f };
         var (center, radius) = RenderActor.CombinedBounds([actor]);
         var framing = SceneFramingCalculator.ForModelRadius(radius);
         camera.NearPlane = framing.Near;

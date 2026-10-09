@@ -2,6 +2,7 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using WildRenderingSharp;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Preparation;
 using WildRenderingSharp.Rendering;
@@ -65,7 +66,8 @@ if (options.TryGetValue("azimuth", out var azimuth))
     renderer.Lighting.SunAzimuth = float.Parse(azimuth);
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
-var camera = new Camera();
+// Z-up, like the renderer's world.
+var camera = new Camera { Up = Vector3.UnitZ, FovDegrees = 38f };
 var (center, radius) = renderer.FrameFor(camera);
 camera.Target = center;
 camera.Eye = center + SceneFramingCalculator.DefaultViewDirection * radius * 3.5f;

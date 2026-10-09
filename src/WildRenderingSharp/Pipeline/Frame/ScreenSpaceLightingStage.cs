@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Pipeline.Frame;
 
@@ -19,7 +20,7 @@ public sealed class ScreenSpaceLightingStage(FrameServices services, LinearDepth
 
         float lightRadius = (frame.ShadowBoundsHi - frame.ShadowBoundsLo).Length() * 0.5f + 1e-4f;
         frame.ShadowAoParams = new ScreenSpaceShadowAndAoPass.Params(
-            ViewInv3Rows: cam.ViewInv, LightViewProj: frame.LightMatrices.ViewProj,
+            ViewInv: cam.ViewInv, LightViewProj: frame.LightMatrices.ViewProj,
             TanHalf: cam.TanHalf,
             SunWorld: frame.SunWorld, SunView: frame.SunView,
             Near: camera.NearPlane, Far: camera.FarPlane,
@@ -32,7 +33,7 @@ public sealed class ScreenSpaceLightingStage(FrameServices services, LinearDepth
         GLDiagnostics.CheckPass(services.Gl, "screen-space shadow/AO pass");
 
         frame.LightPrePassParams = new LightPrePass.Params(
-            ViewInv3Rows: cam.ViewInv, TanHalf: cam.TanHalf,
+            ViewInv: cam.ViewInv, TanHalf: cam.TanHalf,
             Near: camera.NearPlane, Far: camera.FarPlane,
             SunWorld: frame.SunWorld, SunColor: frame.SunColor, HemiSky: frame.HemiSky, HemiGround: frame.HemiGround,
             Synthetic: frame.Lighting.SyntheticLightPrePass);

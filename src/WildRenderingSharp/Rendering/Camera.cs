@@ -1,46 +1,54 @@
+// Created Oct 8 2026, adapted from Terrain Workbench
+// (which in turn copied it from a C++ class in RenderTron 9000)
+// @author Torphedo
+
 using System.Numerics;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Rendering;
 
-/// <summary>A GL-convention (right-handed, column-vector) look-at camera.</summary>
-public class Camera
-{
-    public float FovDegrees { get; set; } = 38.0f;
-    public float NearPlane { get; set; } = 0.05f;
-    public float FarPlane { get; set; } = 4000.0f;
+public class Camera {
+    public Vector3 Up = new(0, 1, 0);
 
-    public Vector3 Eye { get; set; } = new(0, 0, 3);
-    public Vector3 Target { get; set; } = Vector3.Zero;
+    public Vector3 Eye = new(0, 200, 0);
+    public Vector3 Target = new(0, 200, 0);
 
-    public Vector3 Up { get; set; } = new(0, 0, 1);
+    // Projection settings
+    public float FovRadians = Single.DegreesToRadians(70.0f);
 
-    public readonly record struct ViewProjection(Vector4[] View, Vector4[] Proj, float Aspect, float TanHalfFovY);
-
-    public ViewProjection BuildViewProjection(int width, int height)
-    {
-        var f = Vector3.Normalize(Target - Eye);
-        var s = Vector3.Normalize(Vector3.Cross(f, Up));
-        var u = Vector3.Cross(s, f);
-
-        Vector4[] view =
-        [
-            new(s.X, s.Y, s.Z, -Vector3.Dot(s, Eye)),
-            new(u.X, u.Y, u.Z, -Vector3.Dot(u, Eye)),
-            new(-f.X, -f.Y, -f.Z, Vector3.Dot(f, Eye)),
-        ];
-
-        float aspect = width / (float)height;
-        float tanHalfFovY = MathF.Tan(float.DegreesToRadians(FovDegrees) * 0.5f);
-        float near = NearPlane, far = FarPlane;
-
-        Vector4[] proj =
-        [
-            new(1f / (aspect * tanHalfFovY), 0, 0, 0),
-            new(0, 1f / tanHalfFovY, 0, 0),
-            new(0, 0, -(far + near) / (far - near), -(2f * far * near) / (far - near)),
-            new(0, 0, -1, 0),
-        ];
-
-        return new ViewProjection(view, proj, aspect, tanHalfFovY);
+    public float FovDegrees {
+        get => Single.RadiansToDegrees(FovRadians);
+        set =>  FovRadians = Single.DegreesToRadians(value);
     }
-}
+    public float Aspect = 16f / 9f;
+    public float NearPlane = 0.1f;
+    public float FarPlane = 10000.0f;
+
+    /// @brief Gets the unit direction vector the camera is looking
+    public Vector3 facing()
+    {
+        Vector3 vec = Vector3.Normalize(Target - Eye);
+        return vec;
+    }
+
+    /// @brief Unit vector pointing to the right from the user's perspective
+    public Vector3 right() {
+        return Vector3.Normalize(Vector3.Cross(Up, facing()));
+    }
+
+    // Get just the camera transform
+    public Matrix4x4 view_matrix() {
+        return Matrix4x4.CreateLookAt(Eye, Target, Up);
+    }
+
+    // Get just the projection transform
+    public Matrix4x4 proj_matrix() {
+        var projection = Matrix4x4.CreatePerspectiveFieldOfView(FovRadians, Aspect, NearPlane, FarPlane) * CameraData.ZeroToOneDepthToGl;
+        return projection;
+    }
+
+    // Get combined projection & view matrix for the current camera position
+    public Matrix4x4 proj_view() {
+        return proj_matrix() * view_matrix();
+    }
+};

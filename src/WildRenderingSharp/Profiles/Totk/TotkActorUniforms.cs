@@ -35,12 +35,6 @@ static class TotkActorUniforms
 
         Matrix4x4[] boneWorld = boneWorldOverride ?? SkeletonPose.BindPoseWorldMatrices(skeleton);
         return BonePaletteUbo.Build(boneWorld, CollectionsMarshal.AsSpan(skeleton.MatrixToBoneList),
-            skeleton.InverseModelMatricesAsMatrices(), PlacementAsMatrix(placement));
+            skeleton.InverseModelMatricesAsMatrices(), CameraData.FromRows(placement));
     }
-
-    static Matrix4x4 PlacementAsMatrix(Vector4[] rows) => new(
-        rows[0].X, rows[1].X, rows[2].X, 0,
-        rows[0].Y, rows[1].Y, rows[2].Y, 0,
-        rows[0].Z, rows[1].Z, rows[2].Z, 0,
-        rows[0].W, rows[1].W, rows[2].W, 1);
 }

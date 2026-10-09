@@ -44,13 +44,13 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
     }
 
     public readonly record struct Params(
-        Vector4[] ViewInv3Rows, Vector4[] LightViewProj, Vector2 TanHalf, Vector3 SunWorld, Vector3 SunView,
+        Matrix4x4 ViewInv, Matrix4x4 LightViewProj, Vector2 TanHalf, Vector3 SunWorld, Vector3 SunView,
         float Near, float Far, float ShadowBias, float ShadowTexel, float ShadowTexelWorld, float ShadowDepthRange,
         float AoRadius, float AoStrength, uint ShadowTexture,
         CascadeParams? Cascades = null);
 
     /// <summary>The cascades a frame's shadows come from - see <see cref="FrameRequest.ShadowCascades"/>.</summary>
-    public sealed record CascadeParams(uint Texture, Vector4[][] ViewProj, float[] TexelWorld, float[] Bias);
+    public sealed record CascadeParams(uint Texture, Matrix4x4[] ViewProj, float[] TexelWorld, float[] Bias);
 
     public void Run(GLResourceCache resources, RenderTargets targets, Params p)
     {
@@ -58,8 +58,8 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
 
         // PreShadow: raw PCF first.
         _gl.UseProgram(_preshadowProgram);
-        SetMat4(_preshadowProgram, "uViewInv", Rendering.Mat4Math.ToMat4(p.ViewInv3Rows));
-        SetMat4(_preshadowProgram, "uLightViewProj", p.LightViewProj);
+        _gl.SetMat4(_preshadowProgram, "uViewInv", p.ViewInv);
+        _gl.SetMat4(_preshadowProgram, "uLightViewProj", p.LightViewProj);
         _gl.Uniform2(_gl.GetUniformLocation(_preshadowProgram, "uTanHalf"), p.TanHalf.X, p.TanHalf.Y);
         _gl.Uniform3(_gl.GetUniformLocation(_preshadowProgram, "uSunWorld"), p.SunWorld.X, p.SunWorld.Y, p.SunWorld.Z);
         _gl.Uniform1(_gl.GetUniformLocation(_preshadowProgram, "uNear"), p.Near);
@@ -84,7 +84,7 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
             _gl.Uniform1(_gl.GetUniformLocation(_preshadowProgram, "uCascadeTexel"), 1f / RenderTargets.CascadeSize);
             for (int c = 0; c < count; c++)
             {
-                SetMat4(_preshadowProgram, $"uCascadeViewProj[{c}]", cascades.ViewProj[c]);
+                _gl.SetMat4(_preshadowProgram, $"uCascadeViewProj[{c}]", cascades.ViewProj[c]);
                 // A wider filter on the finer cascades keeps their penumbra soft; the coarse ones
                 // are soft by their texel size alone.
                 float radius = c == 0 ? 3f : c == 1 ? 2f : 1.5f;
@@ -185,19 +185,6 @@ public sealed class ScreenSpaceShadowAndAoPass : IDisposable
         _gl.ActiveTexture(TextureUnit.Texture0 + unit);
         _gl.BindTexture(TextureTarget.Texture2D, textureHandle);
         _gl.Uniform1(_gl.GetUniformLocation(program, uniform), unit);
-    }
-
-    void SetMat4(uint program, string name, Vector4[] rows)
-    {
-        Span<float> flat = stackalloc float[16];
-        for (int i = 0; i < 4; i++)
-        {
-            flat[i * 4 + 0] = rows[i].X;
-            flat[i * 4 + 1] = rows[i].Y;
-            flat[i * 4 + 2] = rows[i].Z;
-            flat[i * 4 + 3] = rows[i].W;
-        }
-        _gl.UniformMatrix4(_gl.GetUniformLocation(program, name), 1, true, flat);
     }
 
     public void Dispose()

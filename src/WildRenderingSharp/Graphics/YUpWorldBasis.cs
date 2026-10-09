@@ -1,4 +1,5 @@
 using System.Numerics;
+using WildRenderingSharp.Hosting;
 
 namespace WildRenderingSharp.Graphics;
 
@@ -17,6 +18,8 @@ public sealed class YUpWorldBasis : IWorldBasis
             result[i] = new Vector4(rows[i].X, rows[i].Z, -rows[i].Y, rows[i].W);
         return result;
     }
+
+    public Matrix4x4 FromGameWorld(Matrix4x4 rendererTransform) => YUpWorld.ToZUp * rendererTransform;
 
     public Vector4[] PlacementRows(ReadOnlySpan<Vector4> rows) => [rows[0], rows[2], -rows[1]];
 

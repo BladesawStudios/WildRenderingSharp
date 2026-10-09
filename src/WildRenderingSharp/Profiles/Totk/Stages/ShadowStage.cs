@@ -95,7 +95,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
 
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.ShadowVisible.Count > 0))
-            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, Mat4Math.Identity3,
+            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, CameraData.Rows(Matrix4x4.Identity, 3),
                 CastingShapes(batch), batch, ShadowRuns: true));
         return groups;
     }
@@ -106,7 +106,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         var cache = frame.ShadowCache;
         var targets = frame.Targets;
         int count = Math.Min(cascades.Count, RenderTargets.MaxCascades);
-        var viewProj = new Vector4[count][];
+        var viewProj = new Matrix4x4[count];
         var texelWorld = new float[count];
         var bias = new float[count];
         long actorSignature = ShadowSignatures.ActorSignature(request.Actors);
@@ -119,8 +119,8 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
             var hi = focus.Center + new Vector3(focus.Radius);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
             var light = ShadowPass.BuildLightMatrices(lo, hi, frame.SunWorld);
-            var right = new Vector3(light.View3Rows[0].X, light.View3Rows[0].Y, light.View3Rows[0].Z);
-            var up = new Vector3(light.View3Rows[1].X, light.View3Rows[1].Y, light.View3Rows[1].Z);
+            var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
+            var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
             foreach (var batch in frame.Instances)
                 batch.UpdateCascadeRuns(c, focus, right, up, lightRadius);
 
@@ -170,7 +170,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
 
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.CascadeRuns(cascade).Count > 0))
-            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, Mat4Math.Identity3,
+            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, CameraData.Rows(Matrix4x4.Identity, 3),
                 CastingShapes(batch), batch, ShadowRuns: true, Cascade: cascade));
         _shadow.Run(Resources, frame.Targets, groups, services.Programs, cascade);
 

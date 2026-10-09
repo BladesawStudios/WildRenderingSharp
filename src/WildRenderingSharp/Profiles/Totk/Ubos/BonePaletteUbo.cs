@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Profiles.Totk.Ubos;
 /// <summary>
 /// TotK's skinning matrix palette (the engine's <c>g3d_SkeletonUniformBlock</c>, the shader symbol <c>_Mtx</c>), binding 2. 48
 /// bytes per matrix: a mat3x4 of three vec4 rows, row-vector convention (a vertex is <c>v * M</c>; composition is "apply the first
-/// operand, then the second"; see <c>Mat4Math.Multiply</c> and <c>SkeletonPose</c>).
+/// operand, then the second"; see <c>SkeletonPose</c>).
 /// </summary>
 public sealed class BonePaletteUbo : IUboBlock
 {
@@ -60,14 +60,14 @@ public sealed class BonePaletteUbo : IUboBlock
     }
 
     // m is a Matrix4x4 composed the native .NET way: row-vector convention, translation in row 4 (M41-M43). The GPU "rows"
-    // convention used everywhere else here (Mat4Math, EulerRotation, Std140Block.WriteRows) packs translation into the W of
+    // convention used everywhere else here (CameraData.Rows, EulerRotation, Std140Block.WriteRows) packs translation into the W of
     // each of the first three rows, which is the transpose of m, so each GPU row here is a column of m. Getting this backwards
     // drops translation from every bone matrix while leaving rotation and scale intact, which looks like a corrupt pose rather
     // than nothing moving.
     static void WriteMatrix(byte[] data, int slot, in Matrix4x4 m)
     {
         var block = new Std140Block(BytesPerBone);
-        block.WriteRows(0, [new(m.M11, m.M21, m.M31, m.M41), new(m.M12, m.M22, m.M32, m.M42), new(m.M13, m.M23, m.M33, m.M43)]);
+        block.WriteRows(0, CameraData.Rows(m, 3));
         block.ToByteArray().CopyTo(data, slot * BytesPerBone);
     }
 

@@ -1,6 +1,6 @@
 using WildRenderingSharp.Assets;
 using System.Numerics;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Pipeline.Frame;
 
@@ -21,7 +21,7 @@ public sealed class HighlightStage(FrameServices services) : IFrameStage, IDispo
 
         var group = frame.Groups[target.ActorIndex];
         var shape = request.Actors[target.ActorIndex].Model.Shapes[target.ShapeIndex];
-        var mvp = Mat4Math.Multiply(frame.MaskViewProj, Mat4Math.ToMat4(group.ModelMatrixRows));
+        var mvp = CameraData.FromRows(group.ModelMatrixRows) * frame.MaskViewProj;
         _highlight.Draw(services.Resources, frame.Targets, group, shape, mvp, frame.MaskViewProj, HighlightColor);
         GLDiagnostics.CheckPass(services.Gl, "highlight overlay");
     }

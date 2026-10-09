@@ -40,6 +40,7 @@ public sealed class FrameContext(FrameRequest request, RenderTargets targets, Sh
 
     public bool TerrainDrawn { get; set; }
 
+    // Projection/view matrices for lights
     public ShadowPass.LightMatrices LightMatrices { get; set; }
     public Vector3 ShadowBoundsLo { get; set; }
     public Vector3 ShadowBoundsHi { get; set; }
@@ -48,7 +49,8 @@ public sealed class FrameContext(FrameRequest request, RenderTargets targets, Sh
     public ScreenSpaceShadowAndAoPass.Params ShadowAoParams { get; set; }
     public LightPrePass.Params LightPrePassParams { get; set; }
 
-    public Vector4[] MaskViewProj { get; set; } = [];
+    /// <summary>The scene view-projection taking points in the game's world basis, which the mask and overlay shaders' actors are placed in.</summary>
+    public Matrix4x4 MaskViewProj { get; set; }
 
     public (long Triangles, long Instances) GBufferCounts { get; set; }
     public (long Triangles, long Instances) ShadowCounts { get; set; }

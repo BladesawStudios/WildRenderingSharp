@@ -168,7 +168,7 @@ public sealed class InstanceBatch : IDisposable
             }
             else
             {
-                Matrix4x4 placement = MatrixFromRows(rows);
+                Matrix4x4 placement = CameraData.FromRows(rows);
                 for (int s = 0; s < local.Length; s++)
                 {
                     Matrix4x4 m = local[s] * placement;
@@ -294,11 +294,6 @@ public sealed class InstanceBatch : IDisposable
         return palette;
     }
 
-    static Matrix4x4 MatrixFromRows(Vector4[] r) => new(
-        r[0].X, r[1].X, r[2].X, 0,
-        r[0].Y, r[1].Y, r[2].Y, 0,
-        r[0].Z, r[1].Z, r[2].Z, 0,
-        r[0].W, r[1].W, r[2].W, 1);
 
     public void Dispose()
     {

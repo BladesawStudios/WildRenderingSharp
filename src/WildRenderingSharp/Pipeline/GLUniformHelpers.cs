@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline;
@@ -37,18 +38,9 @@ public static class GLUniformHelpers
         gl.Uniform1(gl.GetUniformLocation(program, uniform), unit);
     }
 
-    public static void SetMat4(this GL gl, uint program, string name, ReadOnlySpan<Vector4> rows)
-    {
-        Span<float> flat = stackalloc float[16];
-        for (int i = 0; i < 4; i++)
-        {
-            flat[i * 4 + 0] = rows[i].X;
-            flat[i * 4 + 1] = rows[i].Y;
-            flat[i * 4 + 2] = rows[i].Z;
-            flat[i * 4 + 3] = rows[i].W;
-        }
-        gl.UniformMatrix4(gl.GetUniformLocation(program, name), 1, true, flat);
-    }
+    // System.Numerics stores the transpose of a GL matrix, which is exactly GL's column-major layout, so it goes up untransposed.
+    public static void SetMat4(this GL gl, uint program, string name, Matrix4x4 m) =>
+        gl.UniformMatrix4(gl.GetUniformLocation(program, name), 1, false, MemoryMarshal.CreateReadOnlySpan(ref m.M11, 16));
 
     public static void SetVec2(this GL gl, uint program, string name, Vector2 v) => gl.Uniform2(gl.GetUniformLocation(program, name), v.X, v.Y);
     public static void SetVec3(this GL gl, uint program, string name, Vector3 v) => gl.Uniform3(gl.GetUniformLocation(program, name), v.X, v.Y, v.Z);

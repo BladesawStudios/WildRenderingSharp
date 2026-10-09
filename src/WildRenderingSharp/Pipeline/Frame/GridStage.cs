@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Pipeline.Frame;
 

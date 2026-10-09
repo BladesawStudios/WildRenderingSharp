@@ -1,3 +1,4 @@
+﻿using WildRenderingSharp.Graphics;
 ﻿using WildRenderingSharp.Assets;
 using System.Numerics;
 using WildRenderingSharp.Pipeline.Frame;
@@ -68,7 +69,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             : default;
 
         _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter,
-            cam.ViewInv, cam.Aspect, cam.TanHalfFovY, frame.SunWorld, environment.SkyPostFx, intensity, hazeColor,
+            CameraData.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY, frame.SunWorld, environment.SkyPostFx, intensity, hazeColor,
             settings.SkyHorizonHaze, fog);
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
     }
@@ -76,7 +77,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
     void DrawGround(FrameContext frame)
     {
         var cam = frame.Cam;
-        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, cam.ViewInv, cam.Aspect, cam.TanHalfFovY,
+        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, CameraData.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY,
             frame.HemiGround * frame.Lighting.SceneGain * frame.TotkEnvironment().Palette.BgDifIntensity / 5.0f);
         GLDiagnostics.CheckPass(services.Gl, "sky ground");
     }
@@ -97,7 +98,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             / Vector3.Max(SunTransmittance.Colour(environment.SkyPostFx, rayleighAmplifier, mieAmplifier, MathF.PI / 2f), new Vector3(1e-4f));
         float sunPeak = MathF.Max(sunHue.X, MathF.Max(sunHue.Y, sunHue.Z));
         if (sunPeak > 1e-6f) sunHue /= sunPeak;
-        _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, cam.ViewInv, cam.Aspect, cam.TanHalfFovY,
+        _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, CameraData.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY,
             new SkyBodyPass.Params(
                 SunDirZUp: frame.SunWorld,
                 MoonDirZUp: SunDirection.FromElevationAzimuth(settings.MoonElevation, settings.MoonAzimuth),
@@ -123,7 +124,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var layers = ResolveCloudLayers(environment, seconds, frame.Camera.Eye.Z);
 
         _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, layers, seconds,
-            cam.View, cam.Proj, frame.Camera.Eye, frame.SunWorld,
+            cam, frame.Camera.Eye, frame.SunWorld,
             settings.CloudBrightness, lighting.Exposure, settings.CloudFade, palette.FogColor,
             settings.CloudResolutionScale, bake.BakedInscatter);
         GLDiagnostics.CheckPass(services.Gl, "cloud dome");
