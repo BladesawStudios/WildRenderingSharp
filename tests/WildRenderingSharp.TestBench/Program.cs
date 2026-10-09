@@ -14,7 +14,7 @@ using WildRenderingSharp.TestBench;
 //                                [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1]
 //   with --game totk: see TotkBenchOptions.Usage
 //
-// Exit codes: 0 rendered, 1 failure, 2 bad command line, 3 game has no profile yet, 4 the image is blank.
+// Exit codes: 0 rendered, 1 failure, 2 bad command line, 4 the image is blank.
 
 var options = args.Chunk(2).Where(p => p.Length == 2 && p[0].StartsWith("--")).ToDictionary(p => p[0][2..], p => p[1]);
 string Option(string key, string fallback) => options.TryGetValue(key, out var v) ? v : fallback;
@@ -38,16 +38,13 @@ if (!Directory.Exists(romfs))
     return 2;
 }
 
+if (game == "botw")
+    return BotwBench.Run(romfs, actorName, cache, size, outPath, options);
+
 IModelPreparer preparer = new InProcessPreparer();
 await preparer.EnsureSystemAssetsAsync(romfs, cache, Console.WriteLine);
 string model = await preparer.PrepareAsync(new PrepareRequest(romfs, actorName, cache), Console.WriteLine);
 Console.WriteLine($"prepared: {model}");
-
-if (game != "totk")
-{
-    Console.Error.WriteLine($"The '{game}' preparation ran, but the renderer has no {game} profile yet, so there is nothing to draw it with.");
-    return 3;
-}
 
 var window = Window.Create(WindowOptions.Default with
 {

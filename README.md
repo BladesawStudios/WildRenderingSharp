@@ -2,7 +2,7 @@
 
 A C# OpenGL rendering library for the Wild Era Zelda games.
 
-*Breath of the Wild* is planned. The renderer is built around game profiles, and TotK is the only one so far; everything below is TotK.
+The renderer is built around game profiles. TotK is the full one; *Breath of the Wild* draws its G-buffer with the game's own programs and a placeholder resolve (see [docs/architecture.md](docs/architecture.md)). Everything below is TotK.
 
 
 ## Using it from a tool
@@ -75,7 +75,7 @@ preparation needs no Windows binaries; it has not been run on Linux yet. Everyth
 
 ```bash
 WildRenderingSharp.Preparation ensure-system --romfs <romfs> [--cache <dir>]
-WildRenderingSharp.Preparation prepare --romfs <romfs> --actor <name> [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]
+WildRenderingSharp.Preparation prepare --romfs <romfs> --actor <name> [--cache <dir>] [--game totk|botw] [--mod <romfs dir>]... [--no-anims] [--force]
 ```
 
 A headless GL bench renders one actor to a PNG for checking changes without a host:
