@@ -18,7 +18,7 @@ internal sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene sce
 
     public void Run(GLResourceCache resources, FrameContext frame)
     {
-        _byShape.Run(resources, frame.Targets, frame.Groups, scene.PassNames, frame.MaskViewProj,
+        _byShape.Run(resources, frame.Targets, frame.Setup.Groups, scene.PassNames, frame.Setup.Cam.ViewProj,
             frame.Camera.NearPlane, frame.Camera.FarPlane, ClaimPass(frame));
         _byMaterialId.Run(resources, frame.Targets, scene.MaterialIdPasses());
     }

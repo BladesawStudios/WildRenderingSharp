@@ -48,7 +48,7 @@ internal sealed class BotwLightingStage(StageServices services, BotwPasses passe
 
         _linearDepth.Run(services.Resources, targets, frame.Camera.NearPlane, frame.Camera.FarPlane);
         UploadConstants(frame, DrawCascade(frame));
-        passes.EnsureLightAnalyzed(frame.HemiSky, frame.HemiGround);
+        passes.EnsureLightAnalyzed(frame.Setup.HemiSky, frame.Setup.HemiGround);
 
         _targets.Clear(ShadowAttachment, 1, 1, 1, 1);
         _targets.Clear(DiffuseAttachment, 0, 0, 0, 0);
@@ -73,8 +73,8 @@ internal sealed class BotwLightingStage(StageServices services, BotwPasses passe
     void UploadConstants(FrameContext frame, Matrix4x4 viewToShadow)
     {
         float texel = 1f / RenderTargets.CascadeSize;
-        services.Resources.Bind(BotwUniforms.Environment(frame.SunView, frame.SunColor, frame.HemiSky, frame.HemiGround, frame.Cam.ViewInv, texel));
-        services.Resources.Bind(BotwUniforms.CascadeCamera(ContextKey, frame.Cam, viewToShadow, 1e9f, 1e9f));
+        services.Resources.Bind(BotwUniforms.Environment(frame.Setup.SunView, frame.Setup.SunColor, frame.Setup.HemiSky, frame.Setup.HemiGround, frame.Setup.Cam.ViewInv, texel));
+        services.Resources.Bind(BotwUniforms.CascadeCamera(ContextKey, frame.Setup.Cam, viewToShadow, 1e9f, 1e9f));
     }
 
     void DrawShadowPass(RenderTargets targets)
@@ -98,7 +98,7 @@ internal sealed class BotwLightingStage(StageServices services, BotwPasses passe
             return;
         var targets = frame.Targets;
         _targets.Bind(0, 1, 2, 3, 4);
-        EnsureCube(frame.HemiSky, frame.HemiGround);
+        EnsureCube(frame.Setup.HemiSky, frame.Setup.HemiGround);
         passes.BindAt(BotwSamplers.LightChara.Albedo, targets.GBuffer[BotwGBuffer.Albedo].Handle);
         passes.BindAt(BotwSamplers.LightChara.Normal, targets.GBuffer[BotwGBuffer.Normal].Handle);
         passes.BindAt(BotwSamplers.LightChara.Emission, targets.GBuffer[BotwGBuffer.Emission].Handle);
@@ -126,19 +126,17 @@ internal sealed class BotwLightingStage(StageServices services, BotwPasses passe
         var resources = services.Resources;
         var request = frame.Request;
         var (lo, hi) = ShadowSignatures.CombinedBounds(request.Actors, frame.Instances);
-        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.SunWorld);
-        frame.LightMatrices = light;
-        frame.ShadowBoundsLo = lo;
-        frame.ShadowBoundsHi = hi;
+        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
+        frame.Shadow = new ShadowResult(light, lo, hi);
 
-        resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)));
-        _shadow.Run(resources, frame.Targets, frame.CastingGroups, services.Drawer, cascade: 0);
+        resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
+        _shadow.Run(resources, frame.Targets, frame.Setup.CastingGroups, services.Drawer, cascade: 0);
         GLDiagnostics.CheckPass(services.Gl, "shadow cascade");
         resources.BindCamera(FrameUniformKeys.SceneCamera);
 
         // Clip space [-1, 1] to texture space [0, 1].
         var toTexture = Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(0.5f, 0.5f, 0.5f);
-        return frame.Cam.ViewInv * light.ViewProj * toTexture;
+        return frame.Setup.Cam.ViewInv * light.ViewProj * toTexture;
     }
 
     // Sky above the horizon and ground below it, which the character pass reflects at a coarse level.

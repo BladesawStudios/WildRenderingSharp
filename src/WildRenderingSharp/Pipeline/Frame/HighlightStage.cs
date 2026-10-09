@@ -19,10 +19,10 @@ internal sealed class HighlightStage(StageServices services) : IFrameStage, IDis
             || target.ShapeIndex < 0 || target.ShapeIndex >= request.Actors[target.ActorIndex].Model.Shapes.Count)
             return;
 
-        var group = frame.Groups[target.ActorIndex];
+        var group = frame.Setup.Groups[target.ActorIndex];
         var shape = request.Actors[target.ActorIndex].Model.Shapes[target.ShapeIndex];
-        var mvp = GpuMatrix.FromRows(group.ModelMatrixRows) * frame.MaskViewProj;
-        _highlight.Draw(services.Resources, frame.Targets, group, shape, mvp, frame.MaskViewProj, HighlightColor);
+        var mvp = GpuMatrix.FromRows(group.ModelMatrixRows) * frame.Setup.Cam.ViewProj;
+        _highlight.Draw(services.Resources, frame.Targets, group, shape, mvp, frame.Setup.Cam.ViewProj, HighlightColor);
         GLDiagnostics.CheckPass(services.Gl, "highlight overlay");
     }
 

@@ -28,30 +28,27 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             foreach (var batch in frame.Instances)
                 batch.Shadow.Update(shadowFocus);
 
-        frame.Cascades = request.ShadowCascades is { Count: > 0 } cascades && frame.ShadowMapOverride is null
+        var cascadeParams = request.ShadowCascades is { Count: > 0 } cascades && frame.ShadowMapOverride is null
             ? RenderCascades(frame, cascades)
             : null;
 
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
-        bool reuse = frame.Cascades is not null
-            || frame.ShadowMapOverride is null && cache.ModelRowsPerActor is not null && cache.SunWorld == frame.SunWorld
+        bool reuse = cascadeParams is not null
+            || frame.ShadowMapOverride is null && cache.ModelRowsPerActor is not null && cache.SunWorld == frame.Setup.SunWorld
                 && ShadowSignatures.ActorRowsEqual(cache.ModelRowsPerActor, modelRowsPerActor)
                 && ShadowSignatures.PosesEqual(cache.BonesPerActor, request.Actors)
                 && cache.Focus == request.ShadowFocus
                 && cache.InstanceSignature == ShadowSignatures.InstanceSignature(frame.Instances, request.ShadowFocus is not null);
 
-        if (frame.Cascades is not null)
+        if (cascadeParams is not null)
         {
             float radius = cache.CascadeRadius[0];
-            frame.ShadowBoundsLo = request.ShadowCascades![0].Center - new Vector3(radius);
-            frame.ShadowBoundsHi = request.ShadowCascades[0].Center + new Vector3(radius);
-            frame.LightMatrices = cache.CascadeLight[0];
+            var center = request.ShadowCascades![0].Center;
+            frame.Shadow = new ShadowResult(cache.CascadeLight[0], center - new Vector3(radius), center + new Vector3(radius), cascadeParams);
         }
         else if (reuse)
         {
-            frame.ShadowBoundsLo = cache.RotatedLo;
-            frame.ShadowBoundsHi = cache.RotatedHi;
-            frame.LightMatrices = cache.LightMatrices;
+            frame.Shadow = new ShadowResult(cache.LightMatrices, cache.RotatedLo, cache.RotatedHi);
         }
         else
         {
@@ -67,20 +64,18 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         (Vector3 lo, Vector3 hi) = request.ShadowFocus is { } focus
             ? (focus.Center - new Vector3(focus.Radius), focus.Center + new Vector3(focus.Radius))
             : ShadowSignatures.CombinedBounds(request.Actors, frame.Instances);
-        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.SunWorld);
-        frame.ShadowBoundsLo = lo;
-        frame.ShadowBoundsHi = hi;
-        frame.LightMatrices = light;
+        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
+        frame.Shadow = new ShadowResult(light, lo, hi);
 
         if (frame.ShadowMapOverride is not null)
             return;
 
-        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)));
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
         _shadow.Run(Resources, frame.Targets, ShadowGroups(frame, request.ShadowFocus), services.Drawer);
         GLDiagnostics.CheckPass(services.Gl, "shadow pass");
         Resources.BindCamera(FrameUniformKeys.SceneCamera);
 
-        cache.SunWorld = frame.SunWorld;
+        cache.SunWorld = frame.Setup.SunWorld;
         cache.ModelRowsPerActor = modelRowsPerActor;
         cache.BonesPerActor = request.Actors.Select(a => (Matrix4x4[]?)a.BoneWorldMatrices?.Clone()).ToArray();
         cache.Focus = request.ShadowFocus;
@@ -95,9 +90,9 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     List<ActorDrawGroup> ShadowGroups(FrameContext frame, ShadowFocus? focus)
     {
         if (focus is null)
-            return [.. frame.CastingGroups.Select(WithoutSceneColorShapes)];
+            return [.. frame.Setup.CastingGroups.Select(WithoutSceneColorShapes)];
 
-        var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
+        var groups = frame.Setup.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.Shadow.Visible.Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true));
         return groups;
@@ -121,7 +116,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             var lo = focus.Center - new Vector3(focus.Radius);
             var hi = focus.Center + new Vector3(focus.Radius);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
-            var light = ShadowPass.BuildLightMatrices(lo, hi, frame.SunWorld);
+            var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
             var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
             var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
             foreach (var batch in frame.Instances)
@@ -144,7 +139,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         if (drew)
         {
             GLDiagnostics.CheckPass(services.Gl, "shadow cascades");
-            frame.ShadowCounts = services.Drawer.TakeCounts();
+            frame.Stats.Shadow = services.Drawer.TakeCounts();
             Resources.BindCamera(FrameUniformKeys.SceneCamera);
         }
         return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias);
@@ -153,7 +148,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     static long CascadeSignature(FrameContext frame, int cascade, ShadowFocus focus, long actorSignature)
     {
         var hash = new HashCode();
-        hash.Add(frame.SunWorld);
+        hash.Add(frame.Setup.SunWorld);
         hash.Add(focus);
         hash.Add(actorSignature);
         hash.Add(frame.TotkEnvironment().Terrain?.ShadowVersion ?? 0);
@@ -169,15 +164,15 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
 
     void DrawCascade(FrameContext frame, int cascade, ShadowFocus focus, ShadowPass.LightMatrices light)
     {
-        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)));
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
 
-        var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
+        var groups = frame.Setup.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.Shadow.Cascade(cascade).Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
         _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
-            terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Cam);
+            terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
     }
 
     static ActorDrawGroup WithoutSceneColorShapes(ActorDrawGroup group) =>

@@ -13,10 +13,10 @@ internal sealed class BotwGBufferStage(StageServices services) : IFrameStage
     public void Run(FrameContext frame)
     {
         ClipOrigin.Game(services.Gl, true);
-        _gbuffer.Run(services.Resources, frame.Targets, frame.OpaqueGroups, services.Drawer);
+        _gbuffer.Run(services.Resources, frame.Targets, frame.Setup.OpaqueGroups, services.Drawer);
         ClipOrigin.Game(services.Gl, false);
         GLDiagnostics.CheckPass(services.Gl, "G-buffer pass");
-        frame.GBufferCounts = services.Drawer.TakeCounts();
+        frame.Stats.GBuffer = services.Drawer.TakeCounts();
         services.Resources.BindCamera(FrameUniformKeys.SceneCamera);
     }
 }

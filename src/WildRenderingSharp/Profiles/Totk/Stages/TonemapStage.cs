@@ -20,15 +20,15 @@ internal sealed class TonemapStage(StageServices services) : IFrameStage, IDispo
         var palette = frame.TotkEnvironment().Palette;
         var targets = frame.Targets;
 
-        frame.HdrCompressed = _tonemap.RunExposureAndCompress(services.Resources, targets, lighting.Exposure);
+        var compressed = _tonemap.RunExposureAndCompress(services.Resources, targets, lighting.Exposure);
         GLDiagnostics.CheckPass(services.Gl, "exposure/compress");
 
         // The palette owns bloom's shape and authored strength; the viewer's intensity scales it.
         float bloomIntensity = palette.BloomEnable ? palette.BloomIntensity * lighting.BloomIntensity : 0f;
-        _bloom.Run(services.Resources, targets, frame.HdrCompressed, palette.BloomThreshold, palette.BloomClampedLuminance, bloomIntensity);
+        _bloom.Run(services.Resources, targets, compressed, palette.BloomThreshold, palette.BloomClampedLuminance, bloomIntensity);
         GLDiagnostics.CheckPass(services.Gl, "bloom");
 
-        _tonemap.RunHdrComposite(services.Resources, targets, _hdrComposeProgram, frame.HdrCompressed, targets.Bloom,
+        _tonemap.RunHdrComposite(services.Resources, targets, _hdrComposeProgram, compressed, targets.Bloom,
             HdrComposeParams());
     }
 

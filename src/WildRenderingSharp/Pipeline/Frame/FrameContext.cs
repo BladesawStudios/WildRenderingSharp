@@ -1,9 +1,6 @@
-using System.Numerics;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Contracts;
-using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Pipeline.Drawing;
-using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Rendering.Cameras;
@@ -11,58 +8,46 @@ using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Pipeline.Frame;
 
-/// <summary>One frame's inputs and the results stages hand to later stages.</summary>
+/// <summary>
+/// One frame's request and targets, and the two results every game's stages share: <see cref="Setup"/> from the setup stage and
+/// <see cref="Shadow"/> from the shadow stage. What a game's own stages hand each other belongs to that game's stages.
+/// </summary>
 internal sealed class FrameContext(FrameRequest request, RenderTargets targets, ShadowCache shadowCache, GpuTexture? shadowMapOverride)
 {
+    FrameSetup? _setup;
+    ShadowResult? _shadow;
+
     public FrameRequest Request { get; } = request;
+
     public RenderTargets Targets { get; } = targets;
+
     public ShadowCache ShadowCache { get; } = shadowCache;
 
     public GpuTexture? ShadowMapOverride { get; } = shadowMapOverride;
 
     public bool SnapshotStages { get; init; }
 
+    public FrameStats Stats { get; } = new();
+
     public Camera Camera => Request.Camera;
+
     public LightingContext Lighting => Request.Lighting;
+
     public IFrameEnvironment Environment => Request.Environment;
+
     public IReadOnlyList<InstanceBatch> Instances { get; } = request.Instances ?? [];
 
-    public CameraData Cam { get; set; }
+    public FrameSetup Setup
+    {
+        get => _setup ?? throw new InvalidOperationException("The frame setup stage has not run.");
+        set => _setup = value;
+    }
 
-    public CameraData FlippedCam { get; set; }
-
-    public bool GameOrigin { get; set; }
-
-    public Vector3 SunWorld { get; set; }
-    public Vector3 SunView { get; set; }
-    public Vector3 SunColor { get; set; }
-    public Vector3 HemiSky { get; set; }
-    public Vector3 HemiGround { get; set; }
-
-    public List<ActorDrawGroup> CastingGroups { get; set; } = [];
-
-    public List<ActorDrawGroup> Groups { get; set; } = [];
-
-    public List<ActorDrawGroup> OpaqueGroups { get; set; } = [];
-
-    public bool TerrainDrawn { get; set; }
-
-    // Projection/view matrices for lights
-    public ShadowPass.LightMatrices LightMatrices { get; set; }
-    public Vector3 ShadowBoundsLo { get; set; }
-    public Vector3 ShadowBoundsHi { get; set; }
-    public ScreenSpaceShadowAndAoPass.CascadeParams? Cascades { get; set; }
-
-    public ScreenSpaceShadowAndAoPass.Params ShadowAoParams { get; set; }
-    public LightPrePass.Params LightPrePassParams { get; set; }
-
-    /// <summary>The scene view-projection, for the mask and overlay shaders.</summary>
-    public Matrix4x4 MaskViewProj { get; set; }
-
-    public (long Triangles, long Instances) GBufferCounts { get; set; }
-    public (long Triangles, long Instances) ShadowCounts { get; set; }
-
-    public GpuTexture HdrCompressed { get; set; }
+    public ShadowResult Shadow
+    {
+        get => _shadow ?? throw new InvalidOperationException("No shadow stage has run.");
+        set => _shadow = value;
+    }
 
     public FrameResult Result => new(Targets.Ldr, Targets.Final, Targets.GBuffer[1], Targets.GBuffer[3], Targets.PreShadow, Targets.PreMisc, Targets.PassId);
 }

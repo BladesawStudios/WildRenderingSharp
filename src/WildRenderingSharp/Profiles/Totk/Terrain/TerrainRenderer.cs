@@ -30,6 +30,11 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
 
     public bool Available => shading.Available;
 
+    // Whether this frame's G-buffer holds the host's terrain, which the resolve stage lights apart from the rest.
+    public bool GBufferDrawn { get; private set; }
+
+    public void BeginFrame() => GBufferDrawn = false;
+
     public void DrawGBuffer(ITerrainHost host, RenderTargets targets, Camera camera, CameraData terrainCamera)
     {
         linearDepth.Run(Resources, targets, camera.NearPlane, camera.FarPlane);
@@ -68,6 +73,7 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
 
         ResetState();
         GLDiagnostics.CheckPass(Gl, "terrain");
+        GBufferDrawn = true;
     }
 
     public void DrawWater(ITerrainHost host, RenderTargets targets, Camera camera, bool stamp)

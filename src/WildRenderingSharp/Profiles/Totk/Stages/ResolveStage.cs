@@ -31,13 +31,13 @@ internal sealed class ResolveStage(
         var targets = frame.Targets;
         StartPendingTrace(targets);
 
-        bool hasSceneColorShapes = SceneColorShapePass.Any(frame.Groups);
+        bool hasSceneColorShapes = SceneColorShapePass.Any(frame.Setup.Groups);
         var sceneColorPasses = hasSceneColorShapes
-            ? frame.Groups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass()).ToHashSet(StringComparer.Ordinal)
+            ? frame.Setup.Groups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass()).ToHashSet(StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);
 
         // The host's water reads the lit scene too, and is lit by its own pass.
-        var waterHost = frame.TerrainDrawn && frame.TotkEnvironment().Terrain is { HasWater: true } && terrain.Shading.WaterAvailable
+        var waterHost = terrain.GBufferDrawn && frame.TotkEnvironment().Terrain is { HasWater: true } && terrain.Shading.WaterAvailable
             ? frame.TotkEnvironment().Terrain : null;
         if (waterHost is not null)
         {
@@ -46,7 +46,7 @@ internal sealed class ResolveStage(
         }
 
         bool twoHalves = hasSceneColorShapes || waterHost is not null;
-        _resolve.SetEnvironment(frame.HemiSky, frame.HemiGround);
+        _resolve.SetEnvironment(frame.Setup.HemiSky, frame.Setup.HemiGround);
 
         // The pass that lights the terrain, which no actor stamps, in whichever half it runs in.
         int defaultPass = stamper.ClaimPass(frame);
@@ -81,7 +81,7 @@ internal sealed class ResolveStage(
         {
             resources.BindCamera(FrameUniformKeys.GBufferCamera);
             ClipOrigin.Game(gl, true);
-            _sceneColorShapes.Run(resources, targets, frame.Groups, services.Drawer);
+            _sceneColorShapes.Run(resources, targets, frame.Setup.Groups, services.Drawer);
             ClipOrigin.Game(gl, false);
         }
         if (waterHost is not null)

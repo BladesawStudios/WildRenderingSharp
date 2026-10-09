@@ -103,8 +103,8 @@ public sealed class DeferredPipeline : IDisposable
         Graph.Run(frame);
         GLDiagnostics.Check(_gl, "RenderFrame");
 
-        GBufferCounts = frame.GBufferCounts;
-        ShadowCounts = frame.ShadowCounts;
+        GBufferCounts = frame.Stats.GBuffer;
+        ShadowCounts = frame.Stats.Shadow;
         Timer.Mark("post");
         return frame.Result;
     }

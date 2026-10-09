@@ -18,7 +18,7 @@ internal sealed class GridStage(StageServices services, FlipBlit flip) : IFrameS
             .Concat(frame.Instances.Select(b => b.Model.BoundsRadius)).DefaultIfEmpty(1f).Max());
 
         flip.Copy(services.Resources, targets, targets.Scene, targets.Final, flip: true);
-        _grid.Run(targets, frame.FlippedCam.ViewProj, frame.Camera.Eye, MathF.Max(20f, sceneRadius * 20f));
+        _grid.Run(targets, frame.Setup.FlippedCam.ViewProj, frame.Camera.Eye, MathF.Max(20f, sceneRadius * 20f));
         flip.Copy(services.Resources, targets, targets.Final, targets.Scene, flip: true);
         GLDiagnostics.CheckPass(services.Gl, "grid");
     }

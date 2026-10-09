@@ -17,17 +17,16 @@ internal sealed class GBufferStage(StageServices services, DeferredScene scene, 
         var gl = services.Gl;
 
         ClipOrigin.Game(gl, true);
-        _gbuffer.Run(services.Resources, frame.Targets, frame.OpaqueGroups, services.Drawer);
+        _gbuffer.Run(services.Resources, frame.Targets, frame.Setup.OpaqueGroups, services.Drawer);
         ClipOrigin.Game(gl, false);
         GLDiagnostics.CheckPass(gl, "G-buffer pass");
-        frame.GBufferCounts = services.Drawer.TakeCounts();
+        frame.Stats.GBuffer = services.Drawer.TakeCounts();
 
-        frame.TerrainDrawn = false;
+        terrain.BeginFrame();
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
         {
-            frame.TerrainDrawn = true;
             scene.EnsurePass(DeferredScene.DefaultPass);
-            terrain.DrawGBuffer(host, frame.Targets, frame.Camera, frame.GameOrigin ? frame.Cam : frame.FlippedCam);
+            terrain.DrawGBuffer(host, frame.Targets, frame.Camera, frame.Setup.GameOrigin ? frame.Setup.Cam : frame.Setup.FlippedCam);
         }
 
         // Every later pass reads the unflipped projection.

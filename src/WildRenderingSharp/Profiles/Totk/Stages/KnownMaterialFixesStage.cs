@@ -19,7 +19,7 @@ internal sealed class KnownMaterialFixesStage(StageServices services, DeferredSc
 
         var targets = frame.Targets;
         flip.Copy(services.Resources, targets, targets.Scene, targets.Final, flip: true);
-        _fixes.Run(services.Resources, targets, frame.OpaqueGroups, frame.FlippedCam.ViewProj,
+        _fixes.Run(services.Resources, targets, frame.Setup.OpaqueGroups, frame.Setup.FlippedCam.ViewProj,
             lighting.EmissionScale, lighting.Exposure);
         flip.Copy(services.Resources, targets, targets.Final, targets.Scene, flip: true);
         GLDiagnostics.CheckPass(services.Gl, "known material fixes");

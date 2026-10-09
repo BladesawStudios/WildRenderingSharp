@@ -21,7 +21,7 @@ internal sealed class TotkFrameConstantsStage(StageServices services) : IFrameSt
         _vertexTextures.Bind();
 
         // Uploaded without a binding: the resolve pass binds it itself, in place of the scene camera, for the passes that tile the screen.
-        services.Resources.Upload(TotkCameraUniforms.BuildField(frame.Cam));
+        services.Resources.Upload(TotkCameraUniforms.BuildField(frame.Setup.Cam));
     }
 
     public void Dispose()
