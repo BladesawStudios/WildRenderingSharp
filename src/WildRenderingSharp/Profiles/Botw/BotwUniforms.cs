@@ -15,11 +15,9 @@ static class BotwUniforms
     public static IReadOnlyList<UniformBlock> Actor(in SkinningData actor) =>
         [UniformBlock.From(FrameUniformKeys.Bones, BonePaletteUbo.For(actor, BotwBindings.Bones))];
 
+    // The environment block is not here: it needs the shadow cascade's texel and the camera, which the lighting stage has.
     public static IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting) =>
-    [
-        UniformBlock.From(FrameUniformKeys.Environment, BotwEnvUbo.From(lighting.SunDirView, lighting.SunColor, lighting.HemiSky, lighting.HemiGround)),
-        UniformBlock.From(FrameUniformKeys.SceneMaterial, BotwSceneMatUbo.From(lighting.MidScale, lighting.HighlightScale)),
-    ];
+        [UniformBlock.From(FrameUniformKeys.SceneMaterial, BotwSceneMatUbo.From(lighting.MidScale, lighting.HighlightScale))];
 
     public static IReadOnlyList<UniformBlock> Placeholders { get; } = [UniformBlock.Zeroed(BotwBindings.Bones)];
 }

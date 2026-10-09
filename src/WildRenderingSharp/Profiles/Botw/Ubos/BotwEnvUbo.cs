@@ -37,7 +37,7 @@ public sealed class BotwEnvUbo : IUboBlock
     /// <param name="viewToWorld">The camera's view-to-world transform in the game's world, three rows.</param>
     /// <param name="cascadeTexel">One texel of the shadow cascades, in uv.</param>
     public static BotwEnvUbo From(Vector3 sunDirView, Vector3 sunColor, Vector3 hemiSky, Vector3 hemiGround,
-        ReadOnlySpan<Vector4> viewToWorld = default, float cascadeTexel = 0f)
+        ReadOnlySpan<Vector4> viewToWorld, float cascadeTexel)
     {
         var env = new BotwEnvUbo();
         var b = env._block;
@@ -52,8 +52,7 @@ public sealed class BotwEnvUbo : IUboBlock
         b.SetSlot(Slots.LightColor1, 0f, 0f, 0f, 1f);
         b.SetSlot(Slots.LightSpecColor1, 0f, 0f, 0f, 1f);
 
-        if (viewToWorld.Length == 3)
-            b.WriteRows(Slots.ViewToWorld, viewToWorld);
+        b.WriteRows(Slots.ViewToWorld, viewToWorld);
         // The shadows fade out beyond the distance in .z and .w, which is set past anything drawn.
         b.SetSlot(Slots.CascadeTexel, cascadeTexel, cascadeTexel, 100000f, 100000f);
 

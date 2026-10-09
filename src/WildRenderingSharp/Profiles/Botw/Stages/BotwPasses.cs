@@ -3,6 +3,7 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
@@ -12,8 +13,6 @@ public sealed record BotwPass(string Name, uint Program, uint Material, float Id
 /// <summary>Loads the game's deferred passes and the small textures they read, and draws them as fullscreen triangles.</summary>
 public sealed class BotwPasses(StageServices services) : IDisposable
 {
-    public const int IdUnit = 20, LightAnalyzedUnit = 21;
-
     // The pass's vertex shader reads its compare ID from material slot 26, .z, and turns it into the depth the pass draws at.
     const int MaterialIdOffset = 26 * 16 + 8;
 
@@ -48,7 +47,7 @@ public sealed class BotwPasses(StageServices services) : IDisposable
         var gl = services.Gl;
         services.Resources.BindMaterial(pass.Material);
         gl.UseProgram(pass.Program);
-        gl.SetInt(pass.Program, "uIdTex", IdUnit);
+        gl.SetInt(pass.Program, "uIdTex", BotwSamplers.IdTexture);
         services.Resources.DrawFullscreenTriangle();
     }
 
@@ -58,11 +57,13 @@ public sealed class BotwPasses(StageServices services) : IDisposable
         services.Gl.BindTexture(target, handle);
     }
 
+    // Only the vertex shaders that read the ambient strip declare it.
     static string MoveLightAnalyzedSampler(string vertex) =>
-        vertex.Replace("layout (binding = 0) uniform sampler2D cGSys23_LightAnalyzedData;", $"layout (binding = {LightAnalyzedUnit}) uniform sampler2D cGSys23_LightAnalyzedData;");
+        vertex.Replace("layout (binding = 0) uniform sampler2D cGSys23_LightAnalyzedData;",
+            $"layout (binding = {BotwSamplers.LightAnalyzed}) uniform sampler2D cGSys23_LightAnalyzedData;");
 
     static string MaskByMaterialId(string fragment, float low, float high) =>
-        fragment.Replace("void main()\n{",
+        fragment.ReplaceRequired("void main()\n{",
             "uniform sampler2D uIdTex;\nvoid main()\n{\n" +
             "    float materialId = texture(uIdTex, gl_FragCoord.xy / vec2(textureSize(uIdTex, 0))).x * 255.0;\n" +
             FormattableString.Invariant($"    if (materialId < {low - 0.5f:F1} || materialId > {high + 0.5f:F1}) discard;\n"));
