@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline;
@@ -93,6 +94,7 @@ public static class ShadowSignatures
 
     static (Vector3 Lo, Vector3 Hi) RotateBounds(Vector3 lo, Vector3 hi, ReadOnlySpan<Vector4> modelRows)
     {
+        var model = CameraData.FromRows(modelRows);
         var rotatedLo = new Vector3(float.MaxValue);
         var rotatedHi = new Vector3(float.MinValue);
         for (int i = 0; i < 8; i++)
@@ -101,7 +103,7 @@ public static class ShadowSignatures
                 (i & 1) == 0 ? lo.X : hi.X,
                 (i & 2) == 0 ? lo.Y : hi.Y,
                 (i & 4) == 0 ? lo.Z : hi.Z);
-            var transformed = Mat4Math.TransformPoint(modelRows, corner);
+            var transformed = Vector3.Transform(corner, model);
             rotatedLo = Vector3.Min(rotatedLo, transformed);
             rotatedHi = Vector3.Max(rotatedHi, transformed);
         }

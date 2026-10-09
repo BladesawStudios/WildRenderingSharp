@@ -67,7 +67,7 @@ public sealed class PassIdMaskPass : IDisposable
               .ToList();
 
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
-        ReadOnlySpan<Vector4> viewProjRows, float near, float far, int claimPass = -1)
+        Matrix4x4 viewProj, float near, float far, int claimPass = -1)
     {
         targets.BindPassIdTarget();
         _gl.ClearColor(0, 0, 0, 1);
@@ -79,7 +79,7 @@ public sealed class PassIdMaskPass : IDisposable
         _far = far;
 
         _gl.UseProgram(_program);
-        _gl.SetMat4(_program, "uViewProj", viewProjRows);
+        _gl.SetMat4(_program, "uViewProj", viewProj);
         _gl.BindTextureUniform(_program, "tex_gbuf_depth", 0, targets.GBufferDepth.Handle);
         _gl.SetVec2(_program, "uInvViewport", new Vector2(1f / targets.Width, 1f / targets.Height));
         _gl.SetVec2(_program, "uNearFar", new Vector2(near, far));
@@ -89,7 +89,7 @@ public sealed class PassIdMaskPass : IDisposable
         foreach (var group in groups.Where(g => g.Batch is null))
         {
             group.BindUbos(resources);
-            var mvp = Mat4Math.Multiply(viewProjRows, Mat4Math.ToMat4(group.ModelMatrixRows));
+            var mvp = CameraData.FromRows(group.ModelMatrixRows) * viewProj;
             _gl.SetMat4(_program, "uMVP", mvp);
 
             foreach (var sh in group.Shapes)
@@ -105,19 +105,19 @@ public sealed class PassIdMaskPass : IDisposable
                 _gl.DrawElements(PrimitiveType.Triangles, (uint)sh.IndexCount, DrawElementsType.UnsignedInt, null);
             }
         }
-        RunInstanced(resources, targets, groups, passes, viewProjRows, claimPass);
+        RunInstanced(resources, targets, groups, passes, viewProj, claimPass);
         _gl.Disable(EnableCap.DepthTest);
     }
 
     unsafe void RunInstanced(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
-        ReadOnlySpan<Vector4> viewProjRows, int claimPass)
+        Matrix4x4 viewProj, int claimPass)
     {
         if (!groups.Any(g => g.Batch is { Visible.Count: > 0 }))
             return;
 
         uint program = _instancedProgram;
         _gl.UseProgram(program);
-        _gl.SetMat4(program, "uViewProj", viewProjRows);
+        _gl.SetMat4(program, "uViewProj", viewProj);
         _gl.BindTextureUniform(program, "tex_gbuf_depth", 0, targets.GBufferDepth.Handle);
         _gl.SetVec2(program, "uInvViewport", new Vector2(1f / targets.Width, 1f / targets.Height));
         _gl.SetVec2(program, "uNearFar", new Vector2(_near, _far));

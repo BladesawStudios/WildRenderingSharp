@@ -23,7 +23,7 @@ static class BotwUniforms
         BonePaletteUbo bones = skeleton is null
             ? BonePaletteUbo.FillIdentity(placement)
             : BonePaletteUbo.Build(actor.BoneWorld ?? SkeletonPose.BindPoseWorldMatrices(skeleton),
-                CollectionsMarshal.AsSpan(skeleton.MatrixToBoneList), skeleton.InverseModelMatricesAsMatrices(), PlacementMatrix(placement));
+                CollectionsMarshal.AsSpan(skeleton.MatrixToBoneList), skeleton.InverseModelMatricesAsMatrices(), CameraData.FromRows(placement));
         return [UniformBlock.From(FrameUniformKeys.Bones, bones)];
     }
 
@@ -34,10 +34,4 @@ static class BotwUniforms
     ];
 
     public static IReadOnlyList<UniformBlock> Placeholders { get; } = [UniformBlock.Zeroed(BotwBindings.Bones)];
-
-    static Matrix4x4 PlacementMatrix(Vector4[] rows) => new(
-        rows[0].X, rows[1].X, rows[2].X, 0,
-        rows[0].Y, rows[1].Y, rows[2].Y, 0,
-        rows[0].Z, rows[1].Z, rows[2].Z, 0,
-        rows[0].W, rows[1].W, rows[2].W, 1);
 }

@@ -27,7 +27,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var settings = environment.Settings;
 
         _background.Run(services.Resources, frame.Targets, lighting.Background, lighting.BackgroundColor, frame.SunWorld,
-            environment.Palette, CameraData.Rows(frame.Cam.ViewInv, 3), frame.Cam.TanHalf, lighting.SceneGain, environment.SkyPostFx, environment.CloudPostFx,
+            environment.Palette, frame.Cam.ViewInv, frame.Cam.TanHalf, lighting.SceneGain, environment.SkyPostFx, environment.CloudPostFx,
             settings.AtmosphereIntensity);
         GLDiagnostics.CheckPass(services.Gl, "background");
 
@@ -124,7 +124,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var layers = ResolveCloudLayers(environment, seconds, frame.Camera.Eye.Z);
 
         _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, layers, seconds,
-            CameraData.Rows(cam.View, 3), CameraData.Rows(cam.Proj), frame.Camera.Eye, frame.SunWorld,
+            cam, frame.Camera.Eye, frame.SunWorld,
             settings.CloudBrightness, lighting.Exposure, settings.CloudFade, palette.FogColor,
             settings.CloudResolutionScale, bake.BakedInscatter);
         GLDiagnostics.CheckPass(services.Gl, "cloud dome");

@@ -36,7 +36,7 @@ public sealed class KnownMaterialFixes : IDisposable
     }
 
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups,
-        ReadOnlySpan<Vector4> viewProjFlippedRows, float emissionScale, float exposure)
+        Matrix4x4 viewProjFlipped, float emissionScale, float exposure)
     {
         var flaggedGroups = groups
             .Select(g => (Group: g, Flagged: g.Shapes.Where(NeedsEyeVisibilityMaskFix).ToList()))
@@ -63,7 +63,7 @@ public sealed class KnownMaterialFixes : IDisposable
         _gl.SetVec2(_program, "uViewportSize", new Vector2(targets.Width, targets.Height));
         _gl.SetFloat(_program, "uEmission", emissionScale);
         _gl.SetFloat(_program, "uEmissionExposureRcp", exposure > 1e-4f ? 1f / exposure : 1f);
-        _gl.SetMat4(_program, "uViewProj", viewProjFlippedRows);
+        _gl.SetMat4(_program, "uViewProj", viewProjFlipped);
 
         foreach (var (group, flagged) in flaggedGroups)
         {
@@ -71,8 +71,7 @@ public sealed class KnownMaterialFixes : IDisposable
             if (group.Batch is not null)
                 continue;
             group.BindUbos(resources);
-            var model = Rendering.Mat4Math.ToMat4(group.ModelMatrixRows);
-            var mvp = Rendering.Mat4Math.Multiply(viewProjFlippedRows, model);
+            var mvp = Graphics.CameraData.FromRows(group.ModelMatrixRows) * viewProjFlipped;
 
             foreach (var shape in flagged)
             {

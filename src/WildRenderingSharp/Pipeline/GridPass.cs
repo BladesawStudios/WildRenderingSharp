@@ -36,7 +36,7 @@ public sealed class GridPass : IDisposable
         gl.BindVertexArray(0);
     }
 
-    public unsafe void Run(RenderTargets targets, ReadOnlySpan<Vector4> viewProjRows, Vector3 cameraPos, float extent)
+    public unsafe void Run(RenderTargets targets, Matrix4x4 viewProj, Vector3 cameraPos, float extent)
     {
         targets.BindColorAndDepthTarget(targets.Scene, targets.GBufferDepth);
         _gl.Enable(EnableCap.DepthTest);
@@ -48,7 +48,7 @@ public sealed class GridPass : IDisposable
         _gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);
 
         _gl.UseProgram(_program);
-        _gl.SetMat4(_program, "uViewProj", viewProjRows);
+        _gl.SetMat4(_program, "uViewProj", viewProj);
         _gl.Uniform1(_gl.GetUniformLocation(_program, "uExtent"), extent);
         _gl.Uniform1(_gl.GetUniformLocation(_program, "uMinorCell"), MinorCellFor(extent));
         _gl.Uniform3(_gl.GetUniformLocation(_program, "uCameraPos"), cameraPos.X, cameraPos.Y, cameraPos.Z);

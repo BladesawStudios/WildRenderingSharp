@@ -172,22 +172,10 @@ public sealed class CloudDomePass : IDisposable
     }
 
 
-    static Vector4[] WidenFarPlane(ReadOnlySpan<Vector4> projRows, float wantedFar)
-    {
-        var rows = projRows.ToArray();
-        if (rows.Length < 4)
-            return rows;
-
-        float a = rows[2].Z, b = rows[2].W;
-        float near = MathF.Abs(a - 1f) > 1e-6f ? b / (a - 1f) : 0.1f;
-        float oldFar = MathF.Abs(a + 1f) > 1e-6f ? b / (a + 1f) : wantedFar;
-        if (!float.IsFinite(near) || near <= 0f)
-            near = 0.1f;
-        float far = MathF.Max(wantedFar, MathF.Abs(oldFar));
-
-        rows[2] = new Vector4(rows[2].X, rows[2].Y, -(far + near) / (far - near), -2f * far * near / (far - near));
-        return rows;
-    }
+    // The camera's projection with its far plane pushed out to at least wantedFar, so the dome is not clipped.
+    static Matrix4x4 WidenFarPlane(in CameraData camera, float wantedFar) =>
+        Matrix4x4.CreatePerspectiveFieldOfView(2f * MathF.Atan(camera.TanHalfFovY), camera.Aspect, camera.Near, MathF.Max(wantedFar, camera.Far))
+        * CameraData.ZeroToOneDepthToGl;
 
     // Uploads an extracted single-channel mask as an R8 texture swizzled to RRRR, as the game's BC4 textures are, or a flat
     // stand-in if the file is missing.
@@ -259,19 +247,19 @@ public sealed class CloudDomePass : IDisposable
     /// <summary>Draws the layers in the order given, which should be far to near.</summary>
     public void Run(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
         CloudPostFxShared shared, IReadOnlyList<Layer> layers, float seconds,
-        ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows, Vector3 cameraEye, Vector3 sunWorld,
+        in CameraData camera, Vector3 cameraEye, Vector3 sunWorld,
         float brightness, float exposure, CloudFadeSettings fade, Vector3 skyColor, float resolutionScale, uint scatterTexture)
     {
         if (_program == 0)
             return;
         foreach (var layer in layers)
-            DrawLayer(resources, targets, palette, shared, layer, seconds, viewRows, projRows, cameraEye, sunWorld,
+            DrawLayer(resources, targets, palette, shared, layer, seconds, camera, cameraEye, sunWorld,
                 brightness, exposure, fade, skyColor, resolutionScale, scatterTexture);
     }
 
     unsafe void DrawLayer(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
         CloudPostFxShared shared, Layer drawn, float seconds,
-        ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows, Vector3 cameraEye, Vector3 sunWorld,
+        in CameraData camera, Vector3 cameraEye, Vector3 sunWorld,
         float brightness, float exposure, CloudFadeSettings fade, Vector3 skyColor, float resolutionScale, uint scatterTexture)
     {
         var layer = drawn.Params;
@@ -296,7 +284,7 @@ public sealed class CloudDomePass : IDisposable
             if ((Environment.GetEnvironmentVariable("WRS_CLOUD_DUMP") ?? Environment.GetEnvironmentVariable("MARROW_CLOUD_DUMP")) is { Length: > 0 } dumpPath)
                 File.WriteAllBytes(dumpPath, common);
         }
-        byte[] view = BuildViewBlock(viewRows, WidenFarPlane(projRows, layer.SkyScale * 4f), cameraEye, layer, skyHeightAboveCamera, domeScale);
+        byte[] view = BuildViewBlock(camera.View, WidenFarPlane(camera, layer.SkyScale * 4f), cameraEye, layer, skyHeightAboveCamera, domeScale);
 
         // Rendered small, then composited (see _cloudTex).
         int cw = Math.Max(1, (int)(targets.Final.Width * resolutionScale));
@@ -459,7 +447,7 @@ public sealed class CloudDomePass : IDisposable
         return buf;
     }
 
-    static byte[] BuildViewBlock(ReadOnlySpan<Vector4> viewRows, ReadOnlySpan<Vector4> projRows,
+    static byte[] BuildViewBlock(Matrix4x4 view, Matrix4x4 proj,
         Vector3 cameraEye, CloudPostFxLayer layer, float skyHeightAboveCamera, float domeScale)
     {
         byte[] buf = new byte[ViewBytes];
@@ -467,19 +455,16 @@ public sealed class CloudDomePass : IDisposable
         // Local Y-up unit dome to the renderer's Z-up world: scale by the sky extent, map height to Z, centre on the camera.
         float radius = layer.SkyScale * domeScale;
         float height = skyHeightAboveCamera * domeScale;
-        Vector4[] model =
-        [
-            new Vector4(radius, 0f, 0f, cameraEye.X),
-            new Vector4(0f, 0f, radius, cameraEye.Y),
-            new Vector4(0f, height, 0f, cameraEye.Z),
-            new Vector4(0f, 0f, 0f, 1f),
-        ];
-        // The view arrives as three affine rows; complete it to four to multiply.
-        Vector4[] view4 = viewRows.Length == 3 ? Mat4Math.ToMat4(viewRows) : viewRows.ToArray();
-        Vector4[] viewModel = Mat4Math.Multiply(view4, model);
+        // Each row is where a local axis lands: local X stays X, local Y (up) becomes Z, local Z becomes Y.
+        var swapYZ = new Matrix4x4(
+            1, 0, 0, 0,
+            0, 0, 1, 0,
+            0, 1, 0, 0,
+            0, 0, 0, 1);
+        var model = Matrix4x4.CreateScale(radius, height, radius) * swapYZ * Matrix4x4.CreateTranslation(cameraEye);
 
-        new UniformWriter(buf).SetRows(4, viewModel);
-        new UniformWriter(buf).SetRows(8, projRows);
+        new UniformWriter(buf).SetRows(4, CameraData.Rows(model * view));
+        new UniformWriter(buf).SetRows(8, CameraData.Rows(proj));
         new UniformWriter(buf).Set(12, 0, CloudUboBaseline.ZOffsetParam);
         return buf;
     }

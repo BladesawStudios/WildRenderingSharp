@@ -24,7 +24,7 @@ public sealed class HighlightOverlayPass : IDisposable
         _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "highlight_overlay");
     }
 
-    public unsafe void Draw(GLResourceCache resources, RenderTargets targets, ActorDrawGroup owningActor, LoadedShape shape, ReadOnlySpan<Vector4> mvpRows, ReadOnlySpan<Vector4> viewProjRows, Vector4 color)
+    public unsafe void Draw(GLResourceCache resources, RenderTargets targets, ActorDrawGroup owningActor, LoadedShape shape, Matrix4x4 mvp, Matrix4x4 viewProj, Vector4 color)
     {
         // A skinned highlighted shape reads its bone pose from _Mtx (binding 2) exactly like every
         // other pass - has to be THIS shape's own actor's buffer, not whichever one happened to be
@@ -38,8 +38,8 @@ public sealed class HighlightOverlayPass : IDisposable
         _gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);
 
         _gl.UseProgram(_program);
-        _gl.SetMat4(_program, "uMVP", mvpRows);
-        _gl.SetMat4(_program, "uViewProj", viewProjRows);
+        _gl.SetMat4(_program, "uMVP", mvp);
+        _gl.SetMat4(_program, "uViewProj", viewProj);
         _gl.SetVec4(_program, "uColor", color);
         _gl.Uniform1(_gl.GetUniformLocation(_program, "uSkinCount"), shape.VertexSkinCount);
 

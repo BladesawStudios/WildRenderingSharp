@@ -17,7 +17,7 @@ public sealed class GridStage(FrameServices services, ForwardPass forward) : IFr
             .Concat(frame.Instances.Select(b => b.Model.BoundsRadius)).DefaultIfEmpty(1f).Max());
 
         forward.FlipInto(services.Resources, targets, targets.Scene, targets.Final, flip: true);
-        _grid.Run(targets, CameraData.Rows(frame.FlippedCam.ViewProj), frame.Camera.Eye, MathF.Max(20f, sceneRadius * 20f));
+        _grid.Run(targets, frame.FlippedCam.ViewProj, frame.Camera.Eye, MathF.Max(20f, sceneRadius * 20f));
         forward.FlipInto(services.Resources, targets, targets.Final, targets.Scene, flip: true);
         GLDiagnostics.CheckPass(services.Gl, "grid");
     }

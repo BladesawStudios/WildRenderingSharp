@@ -51,7 +51,10 @@ public readonly record struct CameraData(
     /// Remap [0, 1] depth to [-1, 1] depth
     public static readonly Matrix4x4 ZeroToOneDepthToGl = Matrix4x4.CreateScale(1, 1, 2) * Matrix4x4.CreateTranslation(0, 0, -1);
 
-    /// Get a matrix as an array of rows, useful for converting to 3x4 format
+    /// <summary>
+    /// Get a matrix as an array of rows, useful for converting to 3x4 format.
+    /// Automatically transposes the matrix.
+    /// </summary>
     public static Vector4[] Rows(Matrix4x4 m, int count = 4) {
         var t = Matrix4x4.Transpose(m);
         Vector4[] rows = [
@@ -61,5 +64,18 @@ public readonly record struct CameraData(
             new(t.M41, t.M42, t.M43, t.M44),
         ];
         return rows[..count];
+    }
+
+    
+    /// <summary>
+    /// Create a matrix from a set of rows and transpose it
+    /// </summary>
+    public static Matrix4x4 FromRows(ReadOnlySpan<Vector4> rows) {
+        var last = rows.Length > 3 ? rows[3] : Vector4.UnitW;
+        return Matrix4x4.Transpose(new Matrix4x4(
+            rows[0].X, rows[0].Y, rows[0].Z, rows[0].W,
+            rows[1].X, rows[1].Y, rows[1].Z, rows[1].W,
+            rows[2].X, rows[2].Y, rows[2].Z, rows[2].W,
+            last.X, last.Y, last.Z, last.W));
     }
 }

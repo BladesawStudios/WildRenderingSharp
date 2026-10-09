@@ -29,7 +29,7 @@ public sealed class BackgroundPass : IDisposable
     }
 
     public void Run(GLResourceCache resources, RenderTargets targets, BackgroundMode mode, Vector3 color,
-        Vector3 sunWorld, EnvPalette palette, ReadOnlySpan<Vector4> viewInv3Rows, Vector2 tanHalf, float sceneGain,
+        Vector3 sunWorld, EnvPalette palette, Matrix4x4 viewInv, Vector2 tanHalf, float sceneGain,
         SkyPostFx? postfx = null, CloudPostFx? cloudPostFx = null, float atmosphereIntensity = 1f)
     {
         postfx ??= SkyPostFx.Default;
@@ -56,7 +56,7 @@ public sealed class BackgroundPass : IDisposable
                 float mieG = palette.SkyMieSymmetrical != 0f ? palette.SkyMieSymmetrical : postfx.MieSymmetricalPropRendering;
 
                 _gl.UseProgram(_skyProgram);
-                _gl.SetMat4(_skyProgram, "uViewInv", Rendering.Mat4Math.ToMat4(viewInv3Rows));
+                _gl.SetMat4(_skyProgram, "uViewInv", viewInv);
                 _gl.SetVec2(_skyProgram, "uTanHalf", tanHalf);
                 _gl.SetVec3(_skyProgram, "uSunWorld", sunWorld);
 

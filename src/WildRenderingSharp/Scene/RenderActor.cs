@@ -1,3 +1,4 @@
+using WildRenderingSharp.Graphics;
 using System.Numerics;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline;
@@ -32,14 +33,9 @@ public class RenderActor : IDisposable
     public Vector4[] TransformRows() =>
         TransformOverride ?? EulerRotation.MakeYawPitchRollScaleAboutPivot(Yaw, Pitch, Roll, Scale, Model.BoundsCenter, Position);
 
-    public static Matrix4x4 MatrixFromRows(ReadOnlySpan<Vector4> r) => new(
-        r[0].X, r[1].X, r[2].X, 0f,
-        r[0].Y, r[1].Y, r[2].Y, 0f,
-        r[0].Z, r[1].Z, r[2].Z, 0f,
-        r[0].W, r[1].W, r[2].W, 1f);
 
     public Vector3 WorldCenter => TransformOverride is { } rows
-        ? Vector3.Transform(Model.BoundsCenter, MatrixFromRows(rows))
+        ? Vector3.Transform(Model.BoundsCenter, CameraData.FromRows(rows))
         : Position + Model.BoundsCenter;
 
     public Vector3 Forward() => EulerRotation.YawPitchRollBasis(Yaw, Pitch, Roll).Forward;

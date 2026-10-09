@@ -95,7 +95,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
 
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.ShadowVisible.Count > 0))
-            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, Mat4Math.Identity3,
+            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, CameraData.Rows(Matrix4x4.Identity, 3),
                 CastingShapes(batch), batch, ShadowRuns: true));
         return groups;
     }
@@ -106,7 +106,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         var cache = frame.ShadowCache;
         var targets = frame.Targets;
         int count = Math.Min(cascades.Count, RenderTargets.MaxCascades);
-        var viewProj = new Vector4[count][];
+        var viewProj = new Matrix4x4[count];
         var texelWorld = new float[count];
         var bias = new float[count];
         long actorSignature = ShadowSignatures.ActorSignature(request.Actors);
@@ -133,7 +133,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
                 drew = true;
             }
             cache.CascadeRadius[c] = focus.Radius;
-            viewProj[c] = CameraData.Rows(cache.CascadeLight[c].ViewProj);
+            viewProj[c] = cache.CascadeLight[c].ViewProj;
             texelWorld[c] = 2f * lightRadius / RenderTargets.CascadeSize;
             bias[c] = request.ShadowBias / (lightRadius * 5f - 0.01f);
         }
@@ -170,7 +170,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
 
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.CascadeRuns(cascade).Count > 0))
-            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, Mat4Math.Identity3,
+            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, CameraData.Rows(Matrix4x4.Identity, 3),
                 CastingShapes(batch), batch, ShadowRuns: true, Cascade: cascade));
         _shadow.Run(Resources, frame.Targets, groups, services.Programs, cascade);
 
