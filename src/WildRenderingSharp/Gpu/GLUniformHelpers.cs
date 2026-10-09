@@ -31,6 +31,11 @@ internal static class GLUniformHelpers
         gl.TexParameter(target, TextureParameterName.TextureWrapT, (int)wrap);
     }
 
+    public const float MaxAnisotropy = 8f;
+
+    public static void SetAnisotropy(this GL gl, TextureTarget target) =>
+        gl.TexParameter(target, (TextureParameterName)GLEnum.TextureMaxAnisotropy, MaxAnisotropy);
+
     public static void BindTextureAt(this GL gl, int unit, uint textureHandle, TextureTarget target = TextureTarget.Texture2D)
     {
         gl.ActiveTexture(TextureUnit.Texture0 + unit);

@@ -55,7 +55,7 @@ public sealed class CloudMasks : IDisposable
         gl.GenerateMipmap(TextureTarget.Texture2D);
         gl.SetSampling(TextureTarget.Texture2D, GLEnum.Linear, GLEnum.Repeat);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.LinearMipmapLinear);
-        gl.TexParameter(TextureTarget.Texture2D, (TextureParameterName)GLEnum.TextureMaxAnisotropy, 8f);
+        gl.SetAnisotropy(TextureTarget.Texture2D);
         Log.Info($"[CloudDomePass] loaded real {name} mask ({width}x{height}) from the system-texture cache.");
         return texture;
     }

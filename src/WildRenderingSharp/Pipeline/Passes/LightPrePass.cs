@@ -69,16 +69,9 @@ internal sealed class LightPrePass : IDisposable
         _gl.Uniform1(_gl.UniformLocation(_program, "uDirect"), direct);
 
         targets.BindColorTargetLayer(array, layer: 0);
-        BindTexture(_program, "tex_nld", 0, targets.LinearDepth.Handle);
-        BindTexture(_program, "tex_gnrm", 1, targets.GBuffer[3].Handle);
+        _gl.BindTextureUniform(_program, "tex_nld", 0, targets.LinearDepth.Handle);
+        _gl.BindTextureUniform(_program, "tex_gnrm", 1, targets.GBuffer[3].Handle);
         resources.DrawFullscreenTriangle();
-    }
-
-    void BindTexture(uint program, string uniform, int unit, uint textureHandle)
-    {
-        _gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        _gl.BindTexture(TextureTarget.Texture2D, textureHandle);
-        _gl.Uniform1(_gl.UniformLocation(program, uniform), unit);
     }
 
     public void Dispose() => _gl.ReleaseProgram(_program);

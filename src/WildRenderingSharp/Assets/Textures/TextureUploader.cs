@@ -7,8 +7,6 @@ namespace WildRenderingSharp.Assets.Textures;
 /// <summary>Uploads one exported texture, its mip chain and its sampling state, to a new GL texture.</summary>
 sealed class TextureUploader(GL gl)
 {
-    const float MaxAnisotropy = 8f;
-
     bool? _anisotropy;
 
     public LoadedTexture Upload(SamplerBinding s, CompressedTextureFormat.Info info, byte[] raw)
@@ -68,7 +66,7 @@ sealed class TextureUploader(GL gl)
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)(levels > 1 ? GLEnum.LinearMipmapLinear : GLEnum.Linear));
         // Surfaces seen edge-on blur under trilinear alone.
         if (levels > 1 && SupportsAnisotropy())
-            gl.TexParameter(TextureTarget.Texture2D, (TextureParameterName)GLEnum.TextureMaxAnisotropy, MaxAnisotropy);
+            gl.SetAnisotropy(TextureTarget.Texture2D);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)MapWrapMode(s.WrapU));
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)MapWrapMode(s.WrapV));

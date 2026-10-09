@@ -182,18 +182,12 @@ internal sealed unsafe class CloudDomePass : IDisposable
 
     void BindTextures(CloudPostFxLayer layer, uint scatterTexture)
     {
-        BindTexture(0, _masks![layer.BaseTextureNo]);
-        BindTexture(1, _masks[layer.BaseTextureNoBlend]);
-        BindTexture(2, _masks[layer.NoiseTextureNo]);
-        BindTexture(3, _masks[layer.NoiseTextureNoBlend]);
+        _gl.BindTextureAt(0, _masks![layer.BaseTextureNo]);
+        _gl.BindTextureAt(1, _masks[layer.BaseTextureNoBlend]);
+        _gl.BindTextureAt(2, _masks[layer.NoiseTextureNo]);
+        _gl.BindTextureAt(3, _masks[layer.NoiseTextureNoBlend]);
         // The atmosphere's scattered light, which the fragment shader adds to the cloud colour: the sky bake's table when available.
-        BindTexture(4, scatterTexture != 0 ? scatterTexture : _masks.ScatterPlaceholder);
-    }
-
-    void BindTexture(int unit, uint texture)
-    {
-        _gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        _gl.BindTexture(TextureTarget.Texture2D, texture);
+        _gl.BindTextureAt(4, scatterTexture != 0 ? scatterTexture : _masks.ScatterPlaceholder);
     }
 
     // Once per session the built block is checked against the game's capture, and written out when WRS_CLOUD_DUMP names a file.

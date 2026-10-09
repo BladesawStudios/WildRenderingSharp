@@ -63,9 +63,9 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         Gl.Enable(EnableCap.DepthTest);
         Gl.DepthFunc(DepthFunction.Less);
         Gl.DepthMask(true);
-        BindUnit(0, underAlbedo.Handle);
-        BindUnit(1, underNormal.Handle);
-        BindUnit(4, underDepth.Handle);
+        Gl.BindTextureAt(0, underAlbedo.Handle);
+        Gl.BindTextureAt(1, underNormal.Handle);
+        Gl.BindTextureAt(4, underDepth.Handle);
 
         ClipOrigin.Game(Gl, true);
         host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default));
@@ -92,9 +92,9 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
             Gl.Enable(EnableCap.DepthTest);
             Gl.DepthFunc(DepthFunction.Lequal);
             Gl.DepthMask(true);
-            BindUnit(SceneColorShapePass.MaterialIdUnit, targets.MaterialIdCopy.Handle);
-            BindUnit(SceneColorShapePass.LinearDepthHalfUnit, targets.LinearDepthHalf.Handle);
-            BindUnit(WaterColorBufferUnit, targets.Behind.Handle);
+            Gl.BindTextureAt(SceneColorShapePass.MaterialIdUnit, targets.MaterialIdCopy.Handle);
+            Gl.BindTextureAt(SceneColorShapePass.LinearDepthHalfUnit, targets.LinearDepthHalf.Handle);
+            Gl.BindTextureAt(WaterColorBufferUnit, targets.Behind.Handle);
             ClipOrigin.Game(Gl, true);
             host.DrawWater(draw, stamp: false);
             ClipOrigin.Game(Gl, false);
@@ -110,7 +110,7 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
             block.Set(0, (index + 1) / 255f, camera.NearPlane, camera.FarPlane, 0f);
             block.Set(1, 1f / targets.Width, 1f / targets.Height, 0f, 0f);
             Resources.Bind(block.ToUbo("terrain_water_stamp"));
-            BindUnit(TerrainShading.StampDepthUnit, targets.GBufferDepth.Handle);
+            Gl.BindTextureAt(TerrainShading.StampDepthUnit, targets.GBufferDepth.Handle);
             host.DrawWater(draw, stamp: true);
         }
 
@@ -136,12 +136,6 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         Gl.BindVertexArray(0);
         Gl.ActiveTexture(TextureUnit.Texture0);
         Gl.Disable(EnableCap.DepthTest);
-    }
-
-    void BindUnit(int unit, uint handle)
-    {
-        Gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        Gl.BindTexture(TextureTarget.Texture2D, handle);
     }
 
     static readonly string UnderDepthFragment = GlslFiles.Load("Totk/Terrain/TerrainRenderer/UnderDepth.frag");

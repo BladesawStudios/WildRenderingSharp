@@ -86,20 +86,14 @@ public sealed partial class TerrainShading
         }
         _waterMaterial ??= MaterialBlock.FromFile(_gl, Path.Combine(_shadersDir, "terrain_water_material.bin"));
         _gl.BindBufferBase(BufferTargetARB.UniformBuffer, _bindings.Material, _waterMaterial.Handle);
-        BindArray(WaterAlbUnit, _waterAlb);
+        _gl.BindTextureAt(WaterAlbUnit, _waterAlb, TextureTarget.Texture2DArray);
         // _s0, _n0, _t0, _a1: the normals; _e0: the emission.
-        BindArray(14, _waterNrm);
-        BindArray(15, _waterNrm);
-        BindArray(17, _waterNrm);
-        BindArray(18, _waterNrm);
-        BindArray(16, _waterEmm);
+        _gl.BindTextureAt(14, _waterNrm, TextureTarget.Texture2DArray);
+        _gl.BindTextureAt(15, _waterNrm, TextureTarget.Texture2DArray);
+        _gl.BindTextureAt(17, _waterNrm, TextureTarget.Texture2DArray);
+        _gl.BindTextureAt(18, _waterNrm, TextureTarget.Texture2DArray);
+        _gl.BindTextureAt(16, _waterEmm, TextureTarget.Texture2DArray);
         return true;
-    }
-
-    void BindArray(int unit, uint texture)
-    {
-        _gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        _gl.BindTexture(TextureTarget.Texture2DArray, texture);
     }
 
     unsafe void Upload(WaterTextures t)
@@ -143,7 +137,7 @@ public sealed partial class TerrainShading
         _gl.TexParameter(t, TextureParameterName.TextureWrapS, wrap);
         _gl.TexParameter(t, TextureParameterName.TextureWrapT, wrap);
         if (mips)
-            _gl.TexParameter(t, (TextureParameterName)GLEnum.TextureMaxAnisotropy, 8f);
+            _gl.SetAnisotropy(t);
     }
 
     void DisposeWater()
