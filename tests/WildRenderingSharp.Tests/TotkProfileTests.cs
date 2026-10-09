@@ -21,7 +21,7 @@ public class TotkProfileTests
         var blocks = Profile.Actor(new SkinningData(placement, null, null));
 
         Assert.Collection(blocks,
-            b => { Assert.Equal(2u, b.Binding); Assert.Equal(BonePaletteUbo.FillIdentity(placement).ToByteArray(), b.Data); },
+            b => { Assert.Equal(2u, b.Binding); Assert.Equal(BonePaletteUbo.FillIdentity(TotkBindings.Bones, placement).ToByteArray(), b.Data); },
             b => { Assert.Equal(4u, b.Binding); Assert.Equal(ShapeMatrixUbo.BuildFromModelMatrix(placement).ToByteArray(), b.Data); });
     }
 

@@ -18,9 +18,9 @@ public sealed class EngineVertexTextures(GL gl) : IDisposable
             _lieMap = Constant(0.5f, 0.5f);
             _thickness = Constant(0f, 0f);
         }
-        BindUnit(GlslSanitizer.WindSwellUnit, _windSwell);
-        BindUnit(GlslSanitizer.LieMapUnit, _lieMap);
-        BindUnit(GlslSanitizer.ThicknessUnit, _thickness);
+        BindUnit(TotkGlsl.WindSwellUnit, _windSwell);
+        BindUnit(TotkGlsl.LieMapUnit, _lieMap);
+        BindUnit(TotkGlsl.ThicknessUnit, _thickness);
         gl.ActiveTexture(TextureUnit.Texture0);
     }
 

@@ -35,8 +35,8 @@ public sealed class CaveShading : IDisposable
 
     uint Link(int program)
     {
-        string vert = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_shadersDir, $"cave_prog{program}_extracted.vert")));
-        string frag = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_shadersDir, $"cave_prog{program}_extracted.frag")));
+        string vert = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, $"cave_prog{program}_extracted.vert")));
+        string frag = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, $"cave_prog{program}_extracted.frag")));
         return GLProgramBuilder.Build(_gl, vert, frag, $"cave_prog{program}");
     }
 

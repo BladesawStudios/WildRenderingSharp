@@ -9,6 +9,8 @@ src/WildRenderingSharp/
   Pipeline/        the pipeline, its render targets, and the passes that do not depend on a game
     Frame/         FrameContext, IFrameStage and the stages that are game-neutral
   Profiles/Totk/   everything specific to Tears of the Kingdom
+  Profiles/Botw/   everything specific to Breath of the Wild
+  Shaders/         what both games' decompiled GLSL needs: its cleanup, support buffer and bindings
   Glsl/            the renderer's own shaders, one file each, embedded; Pipeline/ is shared, Totk/ is TotK's
   Assets/          prepared-model loading: manifests, textures, shapes
   Rendering/       camera, lighting state, palettes, animation evaluation
@@ -57,7 +59,7 @@ Stages that use nothing game-specific (`FrameSetupStage`, `ScreenSpaceLightingSt
 2. Add one class per uniform block under `Profiles/<Game>/Ubos/`, implementing `IUboBlock`.
    Build them from the neutral inputs, not from renderer internals.
 3. Write the three small builders (camera, lighting, actor) and a `<Game>Profile : IGameProfile`
-   that exposes them, its `ShaderBindings` and its `IShaderSources`.
+   that exposes them, its `ShaderBindings` and its `IShaderSources` (start from `DecompiledGlsl.Clean`).
 4. Write the stages the game's frame needs. Reuse the neutral ones; put game-specific passes under
    `Profiles/<Game>/` next to the shaders they drive.
 5. Assemble them in a `<Game>FrameGraph : IFrameGraph` and return it from `CreateFrameGraph`.

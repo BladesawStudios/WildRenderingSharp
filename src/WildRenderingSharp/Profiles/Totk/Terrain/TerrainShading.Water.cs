@@ -31,7 +31,7 @@ public sealed partial class TerrainShading
 
     public uint LinkWaterProgram(string hostSource)
     {
-        string frag = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.frag")));
+        string frag = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.frag")));
         // The game counts the water types it saw in a buffer of its own; here binding 0 is the bake table.
         frag = Regex.Replace(frag, @"fp_s0\.data\[[^\]]*\]\s*=\s*[^;]+;", "");
         return GLProgramBuilder.Build(_gl, WaterVertex(hostSource), frag, WaterProgramName);
@@ -42,7 +42,7 @@ public sealed partial class TerrainShading
 
     string WaterVertex(string hostSource)
     {
-        string vert = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.vert")));
+        string vert = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.vert")));
 
         vert = Regex.Replace(vert, @"layout \(location = 0\) in vec4 aPosition;",
             "vec4 aPosition = vec4(0.0, 0.0, 0.0, 1.0);\nvec4 wrs_node[18];\nfloat wrs_water_layer;");

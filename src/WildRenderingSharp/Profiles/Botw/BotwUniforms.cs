@@ -1,9 +1,5 @@
-using System.Numerics;
-using System.Runtime.InteropServices;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Profiles.Botw.Ubos;
-using WildRenderingSharp.Profiles.Totk.Ubos;
-using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Profiles.Botw;
 
@@ -16,16 +12,8 @@ static class BotwUniforms
         CameraData.Rows(camera.ViewInv, 3),
         camera.Aspect, camera.TanHalfFovY, camera.Near, camera.Far, camera.TexelSize);
 
-    public static IReadOnlyList<UniformBlock> Actor(in SkinningData actor)
-    {
-        Vector4[] placement = actor.PlacementRows;
-        var skeleton = actor.Skeleton;
-        BonePaletteUbo bones = skeleton is null
-            ? BonePaletteUbo.FillIdentity(placement)
-            : BonePaletteUbo.Build(actor.BoneWorld ?? SkeletonPose.BindPoseWorldMatrices(skeleton),
-                CollectionsMarshal.AsSpan(skeleton.MatrixToBoneList), skeleton.InverseModelMatricesAsMatrices(), CameraData.FromRows(placement));
-        return [UniformBlock.From(FrameUniformKeys.Bones, bones)];
-    }
+    public static IReadOnlyList<UniformBlock> Actor(in SkinningData actor) =>
+        [UniformBlock.From(FrameUniformKeys.Bones, BonePaletteUbo.For(actor, BotwBindings.Bones))];
 
     public static IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting) =>
     [

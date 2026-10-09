@@ -36,7 +36,7 @@ public sealed partial class TerrainShading : IDisposable
     public uint LinkGBufferProgram(string hostVertexSource, int program = 2)
     {
         string frag = File.ReadAllText(Path.Combine(_shadersDir, $"terrain_prog{program}_extracted.frag"));
-        frag = PatchTileSamplers(GlslSanitizer.Clean(frag));
+        frag = PatchTileSamplers(TotkGlsl.Clean(frag));
         return GLProgramBuilder.Build(_gl, hostVertexSource, frag, $"terrain_prog{program}");
     }
 

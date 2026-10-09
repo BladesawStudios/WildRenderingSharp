@@ -1,5 +1,8 @@
 using System.Numerics;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Profiles.Totk;
+using WildRenderingSharp.Shaders;
 using WildRenderingSharp.Profiles.Totk.Ubos;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 
@@ -45,10 +48,10 @@ public class UboSnapshotTests
         ShapeMatrixUbo.BuildFromModelMatrix(View).ToByteArray());
 
     [Fact]
-    public void BonePalette_identity() => Snapshot.Verify("bonepalette_identity", BonePaletteUbo.FillIdentity().ToByteArray());
+    public void BonePalette_identity() => Snapshot.Verify("bonepalette_identity", BonePaletteUbo.FillIdentity(TotkBindings.Bones).ToByteArray());
 
     [Fact]
-    public void BonePalette_identityWithModel() => Snapshot.Verify("bonepalette_identity_model", BonePaletteUbo.FillIdentity(View).ToByteArray());
+    public void BonePalette_identityWithModel() => Snapshot.Verify("bonepalette_identity_model", BonePaletteUbo.FillIdentity(TotkBindings.Bones, View).ToByteArray());
 
     [Fact]
     public void BonePalette_skinned()
@@ -63,7 +66,7 @@ public class UboSnapshotTests
         Matrix4x4[] inverseBind = [Matrix4x4.CreateTranslation(0, -1, 0), Matrix4x4.CreateTranslation(-1, -2, -3), Matrix4x4.Identity];
         var model = Matrix4x4.CreateRotationY(0.7f) * Matrix4x4.CreateTranslation(5, 0, -5);
 
-        Snapshot.Verify("bonepalette_skinned", BonePaletteUbo.Build(boneWorld, matrixToBone, inverseBind, model).ToByteArray());
+        Snapshot.Verify("bonepalette_skinned", BonePaletteUbo.Build(boneWorld, matrixToBone, inverseBind, TotkBindings.Bones, model).ToByteArray());
     }
 
     [Fact]

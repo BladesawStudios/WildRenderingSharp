@@ -285,7 +285,7 @@ where authored, but noon authors 0 while the capture shows 0.089538, so a floor 
 unfound. Taking the larger of the two reproduces the noon frame and gives a blood moon its band; it
 reconciles the evidence rather than deriving it.
 
-## WildRenderingSharp/Profiles/Totk/Ubos/BonePaletteUbo.cs
+## WildRenderingSharp/Graphics/BonePaletteUbo.cs
 
 **`public sealed class BonePaletteUbo : IUboBlock`**
 
