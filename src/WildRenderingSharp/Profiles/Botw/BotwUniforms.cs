@@ -9,16 +9,16 @@ namespace WildRenderingSharp.Profiles.Botw;
 
 static class BotwUniforms
 {
-    public static UniformBlock Camera(IWorldBasis world, string key, in CameraData camera) => UniformBlock.From(key, Context(world, camera));
+    public static UniformBlock Camera(string key, in CameraData camera) => UniformBlock.From(key, Context(camera));
 
-    public static BotwContextUbo Context(IWorldBasis world, in CameraData camera) => BotwContextUbo.ForCamera(
-        world.Rows(CameraData.Rows(camera.View, 3)), world.Rows(CameraData.Rows(camera.ViewProj)), CameraData.Rows(camera.Proj),
-        world.InverseRows(CameraData.Rows(camera.ViewInv, 3)),
+    public static BotwContextUbo Context(in CameraData camera) => BotwContextUbo.ForCamera(
+        CameraData.Rows(camera.View, 3), CameraData.Rows(camera.ViewProj), CameraData.Rows(camera.Proj),
+        CameraData.Rows(camera.ViewInv, 3),
         camera.Aspect, camera.TanHalfFovY, camera.Near, camera.Far, camera.TexelSize);
 
-    public static IReadOnlyList<UniformBlock> Actor(IWorldBasis world, in SkinningData actor)
+    public static IReadOnlyList<UniformBlock> Actor(in SkinningData actor)
     {
-        Vector4[] placement = world.PlacementRows(actor.PlacementRows);
+        Vector4[] placement = actor.PlacementRows;
         var skeleton = actor.Skeleton;
         BonePaletteUbo bones = skeleton is null
             ? BonePaletteUbo.FillIdentity(placement)

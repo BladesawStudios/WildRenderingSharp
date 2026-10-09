@@ -49,7 +49,7 @@ public sealed class FrameContext(FrameRequest request, RenderTargets targets, Sh
     public ScreenSpaceShadowAndAoPass.Params ShadowAoParams { get; set; }
     public LightPrePass.Params LightPrePassParams { get; set; }
 
-    /// <summary>The scene view-projection taking points in the game's world basis, which the mask and overlay shaders' actors are placed in.</summary>
+    /// <summary>The scene view-projection, for the mask and overlay shaders.</summary>
     public Matrix4x4 MaskViewProj { get; set; }
 
     public (long Triangles, long Instances) GBufferCounts { get; set; }

@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 public sealed class SkyBake(FrameServices services) : IDisposable
 {
     readonly SkyPrecomputePass _precompute = new(services.Gl, services.Programs);
-    readonly Vector3 _sun = new(0f, 0f, 1f);
+    readonly Vector3 _sun = Vector3.UnitY;
 
     string _key = "\0never";
 

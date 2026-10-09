@@ -24,18 +24,6 @@ public class Camera {
     public float NearPlane = 0.1f;
     public float FarPlane = 10000.0f;
 
-    /// @brief Gets the unit direction vector the camera is looking
-    public Vector3 facing()
-    {
-        Vector3 vec = Vector3.Normalize(Target - Eye);
-        return vec;
-    }
-
-    /// @brief Unit vector pointing to the right from the user's perspective
-    public Vector3 right() {
-        return Vector3.Normalize(Vector3.Cross(Up, facing()));
-    }
-
     // Get just the camera transform
     public Matrix4x4 view_matrix() {
         return Matrix4x4.CreateLookAt(Eye, Target, Up);
@@ -45,10 +33,5 @@ public class Camera {
     public Matrix4x4 proj_matrix() {
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(FovRadians, Aspect, NearPlane, FarPlane) * CameraData.ZeroToOneDepthToGl;
         return projection;
-    }
-
-    // Get combined projection & view matrix for the current camera position
-    public Matrix4x4 proj_view() {
-        return proj_matrix() * view_matrix();
     }
 };

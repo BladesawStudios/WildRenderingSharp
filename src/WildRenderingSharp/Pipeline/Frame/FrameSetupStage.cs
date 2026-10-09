@@ -16,7 +16,7 @@ public sealed class FrameSetupStage(FrameServices services) : IFrameStage
         var cam = CameraData.From(frame.Camera, frame.Targets.Width, frame.Targets.Height);
         frame.Cam = cam;
         frame.FlippedCam = cam.FlippedY();
-        frame.MaskViewProj = profile.World.FromGameWorld(cam.ViewProj);
+        frame.MaskViewProj = cam.ViewProj;
 
         frame.SunWorld = SunDirection.FromElevationAzimuth(lighting.SunElevation, lighting.SunAzimuth);
         frame.SunView = SunDirection.ToView(frame.SunWorld, cam.View);
@@ -45,7 +45,7 @@ public sealed class FrameSetupStage(FrameServices services) : IFrameStage
 
         var casting = frame.Request.Actors.Select(a => new ActorDrawGroup(
             profile.Actor(new SkinningData(a.ModelMatrixRows, a.Model.Skeleton, a.BoneWorldMatrices)),
-            profile.World.PlacementRows(a.ModelMatrixRows),
+            a.ModelMatrixRows,
             a.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow)).ToList())).ToList();
 
         foreach (var batch in frame.Instances.Where(b => b.Visible.Count > 0))

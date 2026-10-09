@@ -35,7 +35,7 @@ public sealed class TotkFrameConstantsStage : IFrameStage, IDisposable
         _services.Resources.BindZeroUbo(TotkBindings.Orphan, 65536);
         _vertexTextures.Bind();
         // Uploaded without a binding: the resolve pass binds it itself, in place of the scene camera, for the passes that tile the screen.
-        var field = TotkCameraUniforms.BuildField(_services.Profile.World, frame.Cam);
+        var field = TotkCameraUniforms.BuildField(frame.Cam);
         _services.Resources.Ubo(field.Key, field.Data!);
     }
 

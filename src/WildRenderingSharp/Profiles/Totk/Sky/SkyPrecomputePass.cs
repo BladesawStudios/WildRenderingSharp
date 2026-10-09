@@ -61,7 +61,7 @@ public sealed class SkyPrecomputePass : IDisposable
     public uint Transmittance => _transmittance;
 
     public bool Available { get; }
-    Vector3 _sunWorld = new(0f, 0f, 1f);
+    Vector3 _sunWorld = Vector3.UnitY;
     float _rayleighAmp = 1f, _mieAmp = 1f;
     SkyLook _look = SkyLook.Noon;
 
@@ -255,7 +255,7 @@ public sealed class SkyPrecomputePass : IDisposable
         0f, 0f, 0f, 0f,                              // [7] zero in the capture
     ];
 
-    internal static byte[] BuildBakeRenderInfo(SkyPostFx postfx, Vector3 sunWorldZUp, in SkyLook look)
+    internal static byte[] BuildBakeRenderInfo(SkyPostFx postfx, Vector3 sunWorld, in SkyLook look)
     {
         var buf = new byte[128];
         for (int i = 0; i < BakeRenderInfoBaseline.Length && i * 4 + 4 <= buf.Length; i++)
@@ -266,8 +266,7 @@ public sealed class SkyPrecomputePass : IDisposable
         var br = postfx.RayleighScatteringCoeff;
         u.Set(0, 0, br.X); u.Set(0, 1, br.Y); u.Set(0, 2, br.Z); u.Set(0, 3, postfx.MieScatteringCoeff);
 
-        // Y-up, like every other agl sky and cloud input.
-        Vector3 sun = new(sunWorldZUp.X, sunWorldZUp.Z, sunWorldZUp.Y);
+        Vector3 sun = sunWorld;
         if (sun.LengthSquared() > 1e-12f) sun = Vector3.Normalize(sun);
         u.Set(2, 0, sun.X); u.Set(2, 1, sun.Y); u.Set(2, 2, sun.Z);
 
@@ -382,14 +381,14 @@ public sealed class SkyPrecomputePass : IDisposable
         _gl.Clear(ClearBufferMask.ColorBufferBit);
     }
 
-    public void Run(GLResourceCache resources, SkyPostFx postfx, Vector3 sunWorldZUp = default,
+    public void Run(GLResourceCache resources, SkyPostFx postfx, Vector3 sunWorld = default,
         float rayleighAmplifier = 1f, float mieAmplifier = 1f, Vector3? paletteTint = null, SkyLook? look = null)
     {
         _look = look ?? SkyLook.Noon;
         PaletteTint = paletteTint ?? Vector3.One;
         _rayleighAmp = rayleighAmplifier;
         _mieAmp = mieAmplifier;
-        _sunWorld = sunWorldZUp == default ? new Vector3(0f, 0f, 1f) : sunWorldZUp;
+        _sunWorld = sunWorld == default ? Vector3.UnitY : sunWorld;
         if (!Available)
             return;
 

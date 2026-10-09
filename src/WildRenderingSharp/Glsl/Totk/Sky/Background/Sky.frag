@@ -92,9 +92,9 @@ vec3 atmosphereSingleScatter(vec3 worldDir, vec3 sunDir, float cameraHeightKm) {
     const int VIEW_STEPS = 16;
     const int SUN_STEPS = 8;
 
-    if (worldDir.z <= 1e-4) return vec3(0.0);
+    if (worldDir.y <= 1e-4) return vec3(0.0);
 
-    float viewDist = (ATMOSPHERE_TOP_KM - cameraHeightKm) / worldDir.z;
+    float viewDist = (ATMOSPHERE_TOP_KM - cameraHeightKm) / worldDir.y;
     float stepLen = viewDist / float(VIEW_STEPS);
     float cosTheta = dot(worldDir, sunDir);
     float rPhase = rayleighPhase(cosTheta);
@@ -106,14 +106,14 @@ vec3 atmosphereSingleScatter(vec3 worldDir, vec3 sunDir, float cameraHeightKm) {
 
     for (int i = 0; i < VIEW_STEPS; i++) {
         float t = (float(i) + 0.5) * stepLen;
-        float h = cameraHeightKm + t * worldDir.z;
+        float h = cameraHeightKm + t * worldDir.y;
         float densR = rayleighDensity(h);
         float densM = mieDensityAt(h);
         viewDepth += vec2(densR, densM) * stepLen;
 
-        float sunClimb = max(sunDir.z, 0.02);
+        float sunClimb = max(sunDir.y, 0.02);
         float sunDist = (ATMOSPHERE_TOP_KM - h) / sunClimb;
-        vec2 sunDepth = opticalDepthMarch(h, sunDir.z, sunDist, SUN_STEPS);
+        vec2 sunDepth = opticalDepthMarch(h, sunDir.y, sunDist, SUN_STEPS);
 
         vec2 totalDepth = viewDepth + sunDepth;
         vec3 transmittance = exp(-uRayleighCoeff * totalDepth.x - vec3(uMieCoeff * 1.1) * totalDepth.y);
@@ -159,7 +159,7 @@ void main() {
     vec3 worldDir = normalize(mat3(uViewInv) * viewDir);
 
     float cosTheta = dot(worldDir, uSunWorld);
-    float up = clamp(worldDir.z, -1.0, 1.0);
+    float up = clamp(worldDir.y, -1.0, 1.0);
     float horizonFactor = 1.0 - abs(up); // 0 at zenith/nadir, 1 at the horizon
 
     // The single-scattering integral, with the phase functions applied inside it.
@@ -174,7 +174,7 @@ void main() {
     sky = min(sky, vec3(4.0));
 
     // A shared (azimuth, elevation) dome projection for stars and clouds; a Cartesian grid would tile visibly near the horizon.
-    float azimuth = atan(worldDir.y, worldDir.x);
+    float azimuth = atan(-worldDir.z, worldDir.x);
     float elevation = asin(up);
     vec2 domeUV = vec2(azimuth, elevation);
 

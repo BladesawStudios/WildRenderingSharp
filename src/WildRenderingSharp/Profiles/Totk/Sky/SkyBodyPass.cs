@@ -69,7 +69,7 @@ public sealed class SkyBodyPass : IDisposable
     }
 
     public readonly record struct Params(
-        Vector3 SunDirZUp, Vector3 MoonDirZUp,
+        Vector3 SunDir, Vector3 MoonDir,
         Vector3 SunColor, Vector3 MoonColor,
         float SunAngularRadius, float MoonAngularRadius,
         int MoonPhase, bool DrawSun, bool DrawMoon);
@@ -95,8 +95,8 @@ public sealed class SkyBodyPass : IDisposable
         _gl.BindTextureUniform(_program, "tSun", 0, sun ? _sunTex : 0);
         _gl.BindTextureUniform(_program, "tMoon", 1, moon ? _moonTex[phase] : 0);
 
-        // Column-major for GL, with the Z-up to Y-up row swap (world Z feeds y, world Y feeds z), as BuildContext does for the real sky program. A local function would close over the span, which C# forbids, so the nine writes are spelled out.
-        Vector4 r0 = viewInv3Rows[0], r1 = viewInv3Rows[2], r2 = viewInv3Rows[1];
+        // Column-major for GL. A local function would close over the span, which C# forbids, so the nine writes are spelled out.
+        Vector4 r0 = viewInv3Rows[0], r1 = viewInv3Rows[1], r2 = viewInv3Rows[2];
         Span<float> m = stackalloc float[9]
         {
             r0.X, r1.X, r2.X,
@@ -107,8 +107,8 @@ public sealed class SkyBodyPass : IDisposable
         if (loc >= 0) _gl.UniformMatrix3(loc, 1, false, m);
 
         _gl.SetVec2(_program, "uTanHalf", new Vector2(aspect * tanHalfFovY, tanHalfFovY));
-        _gl.SetVec3(_program, "uSunDir", Normalise(SkyAxes.ToYUp(p.SunDirZUp)));
-        _gl.SetVec3(_program, "uMoonDir", Normalise(SkyAxes.ToYUp(p.MoonDirZUp)));
+        _gl.SetVec3(_program, "uSunDir", Normalise(p.SunDir));
+        _gl.SetVec3(_program, "uMoonDir", Normalise(p.MoonDir));
         _gl.SetVec3(_program, "uSunColor", p.SunColor);
         _gl.SetVec3(_program, "uMoonColor", p.MoonColor);
         _gl.SetFloat(_program, "uSunRadius", MathF.Max(1e-4f, p.SunAngularRadius));

@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
 /// Blender-style ground reference grid: this renderer's own small utility shader (not a decompiled game shader), a single large
-/// quad at world Z=0 with a procedural, distance-faded, anti-aliased pattern.
+/// quad at world Y=0 with a procedural, distance-faded, anti-aliased pattern.
 /// </summary>
 public sealed class GridPass : IDisposable
 {

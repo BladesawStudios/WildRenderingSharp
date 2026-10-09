@@ -20,7 +20,7 @@ public class RenderActor : IDisposable
 
     public Vector3 Position { get; set; }
     public float Yaw { get; set; }
-    public float Pitch { get; set; } = MathF.PI / 2f;
+    public float Pitch { get; set; }
     public float Roll { get; set; }
     public Vector3 Scale { get; set; } = Vector3.One;
 
@@ -37,14 +37,6 @@ public class RenderActor : IDisposable
     public Vector3 WorldCenter => TransformOverride is { } rows
         ? Vector3.Transform(Model.BoundsCenter, CameraData.FromRows(rows))
         : Position + Model.BoundsCenter;
-
-    public Vector3 Forward() => EulerRotation.YawPitchRollBasis(Yaw, Pitch, Roll).Forward;
-
-    public (Vector3 Forward, Vector3 Right, Vector3 Up) Basis()
-    {
-        var (right, up, forward) = EulerRotation.YawPitchRollBasis(Yaw, Pitch, Roll);
-        return (forward, right, up);
-    }
 
     // Per-actor animation state.
 

@@ -10,8 +10,6 @@ public interface IGameProfile
 {
     string Name { get; }
 
-    IWorldBasis World { get; }
-
     ShaderBindings Bindings { get; }
 
     IShaderSources ShaderSources { get; }

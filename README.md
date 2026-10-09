@@ -39,7 +39,7 @@ uint? texture = renderer.Render(camera, width, height, deltaSeconds);
 - `WildRenderer.Totk` - the TotK profile's live settings (`TotkSettings`): palette, atmosphere, sun and moon, lens flare, and the clouds
   (`CloudWeatherSet` 0-2, `CloudLayerEnabled`, `CloudWind`, `AnimateClouds`, `CloudBrightness`).
 - `GLHostState` - see below.
-- `YUpWorld` - conversions for a Y-up host (the renderer's world is Z-up).
+- The world is right-handed and Y-up, the games' own: cameras, actor placements and the sun are given in it as they are.
 - `Imaging.PngWriter` / `Imaging.HdrWriter` - dependency-free export.
 
 ### Build integration

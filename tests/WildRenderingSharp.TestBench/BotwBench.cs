@@ -45,8 +45,7 @@ static class BotwBench
         if (options.TryGetValue("exposure", out var exposure))
             lighting.Exposure = float.Parse(exposure);
 
-        // Z-up, like the renderer's world.
-        var camera = new Camera { Up = System.Numerics.Vector3.UnitZ, FovDegrees = 38f };
+        var camera = new Camera { FovDegrees = 38f };
         var (center, radius) = RenderActor.CombinedBounds([actor]);
         var framing = SceneFramingCalculator.ForModelRadius(radius);
         camera.NearPlane = framing.Near;
@@ -54,11 +53,11 @@ static class BotwBench
         camera.Target = center;
         var direction = SceneFramingCalculator.DefaultViewDirection;
         if (options.TryGetValue("yaw", out var yaw))
-            direction = System.Numerics.Vector3.Transform(direction, System.Numerics.Matrix4x4.CreateRotationZ(float.DegreesToRadians(float.Parse(yaw))));
+            direction = System.Numerics.Vector3.Transform(direction, System.Numerics.Matrix4x4.CreateRotationY(float.DegreesToRadians(float.Parse(yaw))));
         float distance = options.TryGetValue("distance", out var d) ? float.Parse(d) : 3.5f;
         camera.Eye = center + direction * radius * distance;
         if (options.TryGetValue("height", out var h))
-            camera.Target += System.Numerics.Vector3.UnitZ * radius * float.Parse(h);
+            camera.Target += System.Numerics.Vector3.UnitY * radius * float.Parse(h);
         camera.Eye += camera.Target - center;
 
         for (int i = 0; i < 3; i++)
