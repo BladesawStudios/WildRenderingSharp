@@ -13,3 +13,6 @@
 [submodule "vendor/TxtgSharp"]
 	path = vendor/TxtgSharp
 	url = https://github.com/BladesawStudios/TxtgSharp
+[submodule "vendor/Yaz0Sharp"]
+	path = vendor/Yaz0Sharp
+	url = https://github.com/BladesawStudios/Yaz0Sharp
