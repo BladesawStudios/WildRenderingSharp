@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Pipeline.Gpu;
 
 namespace WildRenderingSharp.Assets.Loading;
 

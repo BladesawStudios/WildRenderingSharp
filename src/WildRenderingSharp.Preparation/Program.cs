@@ -1,8 +1,10 @@
+using WildRenderingSharp.Storage;
 using WildRenderingSharp;
-using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Hosting.Preparers;
 using WildRenderingSharp.Preparation;
 using WildRenderingSharp.Preparation.Totk;
 using WildRenderingSharp.Rom;
+using WildRenderingSharp.Rom.Games;
 
 // ensure-system --romfs <dir> [--cache <dir>]
 // prepare --romfs <dir> --actor <name> [--game totk|botw] [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]

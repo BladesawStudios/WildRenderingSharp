@@ -1,4 +1,5 @@
 using ShaderLibrary;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;

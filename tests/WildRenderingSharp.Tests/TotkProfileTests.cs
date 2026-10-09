@@ -1,6 +1,8 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Ubos;

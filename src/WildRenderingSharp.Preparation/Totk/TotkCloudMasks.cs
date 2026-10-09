@@ -1,5 +1,6 @@
 using BntxSharp;
 using WildRenderingSharp.Profiles.Totk.Sky;
+using WildRenderingSharp.Profiles.Totk.Sky.Clouds;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;

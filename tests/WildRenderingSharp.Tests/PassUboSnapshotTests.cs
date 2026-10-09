@@ -1,9 +1,19 @@
 using System.Numerics;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Profiles.Botw;
+using WildRenderingSharp.Profiles.Botw.Ubos;
 using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Profiles.Totk.Sky;
+using WildRenderingSharp.Profiles.Totk.Sky.Clouds;
+using WildRenderingSharp.Profiles.Totk.Sky.LensFlare;
+using WildRenderingSharp.Profiles.Totk.Sky.PostFx;
+using WildRenderingSharp.Profiles.Totk.Sky.Precompute;
+using WildRenderingSharp.Profiles.Totk.Ubos;
+using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Tests;
 

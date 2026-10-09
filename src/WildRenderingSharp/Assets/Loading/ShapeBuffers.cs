@@ -1,3 +1,5 @@
+using WildRenderingSharp.Assets.Manifests;
+
 namespace WildRenderingSharp.Assets.Loading;
 
 // A shape's vertex and index buffers with the layout of the vertices in them, which is what a vertex array is built from.

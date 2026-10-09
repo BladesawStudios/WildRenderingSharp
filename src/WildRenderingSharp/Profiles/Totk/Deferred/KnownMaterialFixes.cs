@@ -1,9 +1,12 @@
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Data;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Drawing;
+using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
@@ -72,7 +75,7 @@ public sealed class KnownMaterialFixes : IDisposable
             if (group.Batch is not null)
                 continue;
             group.BindUbos(resources);
-            var mvp = Graphics.GpuMatrix.FromRows(group.ModelMatrixRows) * viewProjFlipped;
+            var mvp = GpuMatrix.FromRows(group.ModelMatrixRows) * viewProjFlipped;
 
             foreach (var shape in flagged)
             {

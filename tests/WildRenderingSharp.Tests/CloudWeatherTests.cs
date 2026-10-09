@@ -1,5 +1,6 @@
 using System.Numerics;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 
 namespace WildRenderingSharp.Tests;
 

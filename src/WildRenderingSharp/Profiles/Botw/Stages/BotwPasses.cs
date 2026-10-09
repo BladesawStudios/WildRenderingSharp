@@ -5,6 +5,7 @@ using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;

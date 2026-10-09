@@ -1,4 +1,5 @@
 using WildRenderingSharp.Rom;
+using WildRenderingSharp.Rom.Games;
 
 namespace WildRenderingSharp.Preparation.Totk;
 

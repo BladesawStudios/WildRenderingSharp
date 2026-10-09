@@ -1,7 +1,11 @@
 using WildRenderingSharp.Graphics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.PostProcess;
 

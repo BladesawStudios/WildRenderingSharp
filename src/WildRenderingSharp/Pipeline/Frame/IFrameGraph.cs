@@ -1,5 +1,6 @@
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline.Frame;

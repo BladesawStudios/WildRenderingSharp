@@ -4,9 +4,14 @@ using Silk.NET.Windowing;
 using WildRenderingSharp;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Hosting.Preparers;
 using WildRenderingSharp.Preparation;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Rendering.Lighting;
 using WildRenderingSharp.Rom;
+using WildRenderingSharp.Rom.Games;
+using WildRenderingSharp.Storage;
 using WildRenderingSharp.TestBench;
 
 // Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline.

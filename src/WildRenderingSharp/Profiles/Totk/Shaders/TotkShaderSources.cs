@@ -1,4 +1,5 @@
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 

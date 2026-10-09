@@ -2,13 +2,18 @@ using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Loading;
+using WildRenderingSharp.Assets.Textures;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Hosting.Views;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Preparation.Botw;
 using WildRenderingSharp.Profiles.Botw;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Rendering.Lighting;
 using WildRenderingSharp.Scene;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.TestBench;
 

@@ -3,6 +3,10 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Graphics.Ubos;
+using WildRenderingSharp.Pipeline.Gpu;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
 

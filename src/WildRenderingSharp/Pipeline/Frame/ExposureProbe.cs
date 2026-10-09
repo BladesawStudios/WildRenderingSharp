@@ -1,3 +1,5 @@
+using WildRenderingSharp.Pipeline.Gpu;
+
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>A one-shot request to measure the exposure a scene needs, answered on the next frame.</summary>

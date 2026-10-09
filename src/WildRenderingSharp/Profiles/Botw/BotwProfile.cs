@@ -1,6 +1,11 @@
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Botw.Shaders;
+using WildRenderingSharp.Profiles.Botw.Ubos;
+using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Profiles.Botw;
 

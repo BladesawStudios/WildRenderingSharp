@@ -1,4 +1,6 @@
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Ubos;
+using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
 

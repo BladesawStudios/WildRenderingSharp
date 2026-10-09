@@ -1,3 +1,5 @@
+using WildRenderingSharp.Pipeline.Passes;
+
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>The G-buffer attachments, under the names of the samplers they feed.</summary>

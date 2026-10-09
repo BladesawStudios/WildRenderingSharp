@@ -1,4 +1,5 @@
 using System.Text.Json;
+using WildRenderingSharp.Assets.Manifests;
 
 namespace WildRenderingSharp.Assets.Loading;
 

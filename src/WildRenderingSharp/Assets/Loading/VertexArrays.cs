@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Assets.Manifests;
 
 namespace WildRenderingSharp.Assets.Loading;
 

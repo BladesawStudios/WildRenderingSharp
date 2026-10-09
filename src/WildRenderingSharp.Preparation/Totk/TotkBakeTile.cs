@@ -3,6 +3,7 @@ using System.Text.Json;
 using BymlLibrary;
 using ShaderLibrary.CompileTool;
 using WildRenderingSharp.Rom;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Preparation.Totk;
 

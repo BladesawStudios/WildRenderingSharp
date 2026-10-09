@@ -1,4 +1,6 @@
 using System.Numerics;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;

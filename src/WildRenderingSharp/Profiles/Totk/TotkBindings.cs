@@ -1,3 +1,5 @@
+using WildRenderingSharp.Rendering.Cameras;
+
 namespace WildRenderingSharp.Profiles.Totk;
 
 /// <summary>Where TotK's shaders read each uniform block, as recovered from the compiled programs.</summary>

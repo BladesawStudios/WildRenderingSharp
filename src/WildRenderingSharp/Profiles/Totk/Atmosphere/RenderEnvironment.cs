@@ -1,3 +1,5 @@
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 using WildRenderingSharp.Rom;
 

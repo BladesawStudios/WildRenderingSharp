@@ -1,6 +1,8 @@
 using System.Numerics;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Profiles.Botw;
 

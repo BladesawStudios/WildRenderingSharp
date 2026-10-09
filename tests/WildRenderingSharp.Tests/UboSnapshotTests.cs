@@ -1,5 +1,7 @@
 using System.Numerics;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Stages;
 using WildRenderingSharp.Profiles.Totk.Ubos;

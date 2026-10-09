@@ -1,8 +1,11 @@
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Profiles.Totk.Deferred;
+using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 

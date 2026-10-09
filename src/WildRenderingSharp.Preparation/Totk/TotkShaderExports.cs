@@ -4,6 +4,7 @@ using EffectLibraryTest;
 using ShaderLibrary;
 using ShaderLibrary.CompileTool;
 using WildRenderingSharp.Rom;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Preparation.Totk;
 

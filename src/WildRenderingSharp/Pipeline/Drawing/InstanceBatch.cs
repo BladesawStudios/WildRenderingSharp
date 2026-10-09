@@ -1,8 +1,15 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Animation.Posing;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Assets.Baking;
+using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Assets.Textures;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline.Drawing;

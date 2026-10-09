@@ -1,6 +1,9 @@
 using WildRenderingSharp.Assets;
 using System.Numerics;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Pipeline.Gpu;
+using WildRenderingSharp.Pipeline.Passes;
 
 namespace WildRenderingSharp.Pipeline.Frame;
 

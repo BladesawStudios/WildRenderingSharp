@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
+using WildRenderingSharp.Rendering.Cameras;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Shaders;
