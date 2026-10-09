@@ -13,7 +13,7 @@ namespace WildRenderingSharp.Graphics.Ubos;
 internal static class BonePalette
 {
     public const int BytesPerBone = 48;
-    public const int ByteSize = 65536;
+    public const int ByteSize = 0x10000;
 
     public static UboSpec SpecAt(uint binding) => new("_Mtx", binding, ByteSize);
 
