@@ -17,17 +17,16 @@ public sealed class BotwProfileTests
         var blocks = Profile.Actor(new SkinningData(placement, null, null));
 
         var bones = Assert.Single(blocks);
-        Assert.Equal(BotwBindings.Bones, bones.Binding);
-        Assert.Equal(BonePaletteUbo.FillIdentity(BotwBindings.Bones, placement).ToByteArray(), bones.Data);
+        Assert.Equal(BotwBindings.Bones, bones.Spec.Binding);
+        Assert.Equal(BonePalette.Identity(bones.Spec, placement).Bytes.ToArray(), bones.Bytes.ToArray());
     }
 
     [Fact]
-    public void InstancedActorsGetAZeroedBonePalette()
+    public void InstancedActorsLeaveTheBonePaletteZeroed()
     {
-        var bones = Assert.Single(Profile.InstancedActorPlaceholders);
+        var bones = Assert.Single(Profile.InstancedActorBlocks);
 
         Assert.Equal(BotwBindings.Bones, bones.Binding);
-        Assert.Null(bones.Data);
     }
 
     [Fact]

@@ -8,7 +8,7 @@ public sealed partial class BotwShaderSources : IShaderSources
 {
     static readonly Dictionary<string, uint> BlockBindings = new(StringComparer.Ordinal)
     {
-        ["_support_buffer"] = SupportBufferUbo.BindingIndex,
+        ["_support_buffer"] = SupportBuffer.Spec.Binding,
         ["_Context"] = BotwBindings.Camera,
         ["_Mtx"] = BotwBindings.Bones,
         ["_Env"] = BotwBindings.Environment,

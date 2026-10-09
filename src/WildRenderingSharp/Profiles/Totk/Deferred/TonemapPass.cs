@@ -71,10 +71,10 @@ public sealed class TonemapPass : IDisposable
         return targets.Compressed;
     }
 
-    public void RunHdrComposite(GLResourceCache resources, RenderTargets targets, uint hdrComposeProgram, GpuTexture hdrSource, GpuTexture bloomSource, byte[] hdrComposeParamsBytes)
+    public void RunHdrComposite(GLResourceCache resources, RenderTargets targets, uint hdrComposeProgram, GpuTexture hdrSource, GpuTexture bloomSource, Ubo hdrComposeParams)
     {
         EnsureHdrQuadVao(hdrComposeProgram);
-        resources.Ubo("hdr_compose_params", hdrComposeParamsBytes, bindingIndex: Profiles.Totk.TotkBindings.HdrComposeParams);
+        resources.Bind(hdrComposeParams);
 
         targets.BindColorTarget(targets.Ldr);
         _gl.ClearColor(0, 0, 0, 1);

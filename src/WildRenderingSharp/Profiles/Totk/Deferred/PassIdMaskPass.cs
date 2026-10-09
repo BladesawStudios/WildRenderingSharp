@@ -26,7 +26,7 @@ public sealed class PassIdMaskPass : IDisposable
     // Mirrors the compiled TotK vertex shader's skinning: - blend indices are FLOAT attributes carrying an integer bit pattern,
     // unpacked with floatBitsToInt(v) & 0xFFFF (the real shader reads a second index from the high half, which the exporter
     // never packs); - _Mtx at binding 2 is a flat vec4 array, three rows per bone (48 bytes), each dotted with vec4(pos, 1) for
-    // one output component, row-vector convention, as BonePaletteUbo writes; - a skinned draw does not apply the shape
+    // one output component, row-vector convention, as BonePalette writes; - a skinned draw does not apply the shape
     // transform separately: the model matrix is folded into every palette entry, so skinned vertices go through uViewProj and
     // only SKIN_COUNT == 0 (pose baked into the positions) uses uMVP.
     static readonly string VertexSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.vert");

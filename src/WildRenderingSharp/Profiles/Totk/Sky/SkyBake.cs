@@ -22,13 +22,11 @@ public sealed class SkyBake(StageServices services) : IDisposable
         if (key == _key || !_precompute.Available)
             return;
 
-        // A palette may set Rayleigh to zero ("no blue sky"), so the amplifier is floored to keep the solve integrable.
-        float rayleigh = MathF.Max(0.02f, palette?.SkyRayleighAmplifier ?? 1f);
-        float mie = palette is { SkyMieAmplifier: > 0f } ? palette.SkyMieAmplifier : 1f;
+        var look = SkyLook.From(palette);
         _key = key;
-        Console.WriteLine($"[SkyBake] baking sky LUT for palette '{key}' (rayleigh x{rayleigh:G4}, mie x{mie:G4})");
+        Console.WriteLine($"[SkyBake] baking sky LUT for palette '{key}' (rayleigh x{look.RayleighAmplifier:G4}, mie x{look.MieAmplifier:G4})");
 
-        _precompute.Run(services.Resources, postFx, _sun, rayleigh, mie, TintColor(palette, tintStep), SkyLook.From(palette));
+        _precompute.Run(services.Resources, postFx, _sun, TintColor(palette, tintStep), look);
         GLDiagnostics.CheckPass(services.Gl, "sky precompute");
         _precompute.Verify();
     }

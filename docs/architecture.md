@@ -29,8 +29,8 @@ shaders read.
 | `SceneLightingData` | sun direction and colour, hemisphere ambient, volume mask, shadow map size |
 | `SkinningData` | an actor's placement, skeleton and posed bones |
 
-`IGameProfile` turns them into `UniformBlock`s (a key, a binding point and the bytes) and also
-supplies:
+`IGameProfile` turns them into `Ubo`s (the bytes of one block, the `UboSpec` that names its shader block, binding and size, and the key
+of the GL buffer it is kept in) and also supplies:
 
 - `ShaderBindings` - the binding points the shared passes use for the camera, environment and material blocks
 - `IShaderSources` - how a game's decompiled GLSL is cleaned, corrected and instanced
@@ -56,8 +56,9 @@ Stages that use nothing game-specific (`FrameSetupStage`, `ScreenSpaceLightingSt
 ## Adding a game
 
 1. Create `Profiles/<Game>/` with a `<Game>Bindings` class naming each binding point.
-2. Add one class per uniform block under `Profiles/<Game>/Ubos/`, implementing `IUboBlock`.
-   Build them from the neutral inputs, not from renderer internals.
+2. Describe each uniform block as a `UboSpec` beside the slot constants of its layout, and fill it with a `UboWriter`. The camera, light and
+   scene-material slots the Wild games share are in `Graphics/Gsys*`, so write those through them. Build blocks from the neutral inputs, not from
+   renderer internals; what each slot holds is in `uniform_blocks.md`.
 3. Write the three small builders (camera, lighting, actor) and a `<Game>Profile : IGameProfile`
    that exposes them, its `ShaderBindings` and its `IShaderSources` (start from `DecompiledGlsl.Clean`).
 4. Write the stages the game's frame needs. Reuse the neutral ones; put game-specific passes under

@@ -25,9 +25,9 @@ public sealed class FrameSetupStage(StageServices services) : IFrameStage
         frame.HemiGround = environment.HemiGround;
 
         frame.GameOrigin = ClipOrigin.Supported(services.Gl);
-        profile.Camera(FrameUniformKeys.SceneCamera, cam).Bind(services.Resources);
-        profile.Camera(FrameUniformKeys.GBufferCamera, frame.GameOrigin ? cam : frame.FlippedCam).Bind(services.Resources);
-        profile.Lighting(BuildSceneLighting(frame, environment)).Bind(services.Resources);
+        services.Resources.Bind(profile.Camera(FrameUniformKeys.SceneCamera, cam));
+        services.Resources.Bind(profile.Camera(FrameUniformKeys.GBufferCamera, frame.GameOrigin ? cam : frame.FlippedCam));
+        services.Resources.Bind(profile.Lighting(BuildSceneLighting(frame, environment)));
 
         BuildGroups(frame);
     }
@@ -49,8 +49,8 @@ public sealed class FrameSetupStage(StageServices services) : IFrameStage
             a.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow)).ToList())).ToList();
 
         foreach (var batch in frame.Instances.Where(b => b.Visible.Count > 0))
-            casting.Add(new ActorDrawGroup(profile.InstancedActorPlaceholders, GpuMatrix.Rows(Matrix4x4.Identity, 3),
-                batch.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow) && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList(), batch));
+            casting.Add(ActorDrawGroup.ForBatch(profile, batch,
+                batch.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow) && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList()));
 
         frame.CastingGroups = casting;
         frame.Groups = [.. casting.Select(g => g with { Shapes = g.Shapes.Where(s => !s.Hidden).ToList() })];

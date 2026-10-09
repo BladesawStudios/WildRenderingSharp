@@ -12,13 +12,13 @@ public sealed class TotkProfile : IGameProfile
 
     public ShaderBindings Bindings { get; } = new(TotkBindings.Camera, TotkBindings.Environment, TotkBindings.Material);
 
-    public UniformBlock Camera(string key, in CameraData camera) => TotkCameraUniforms.Build(key, camera);
+    public Ubo Camera(string key, in CameraData camera) => TotkCameraUniforms.Build(key, camera);
 
-    public IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting) => TotkLightingUniforms.Build(lighting);
+    public IReadOnlyList<Ubo> Lighting(in SceneLightingData lighting) => TotkLightingUniforms.Build(lighting);
 
-    public IReadOnlyList<UniformBlock> Actor(in SkinningData actor) => TotkActorUniforms.Build(actor);
+    public IReadOnlyList<Ubo> Actor(in SkinningData actor) => TotkActorUniforms.Build(actor);
 
-    public IReadOnlyList<UniformBlock> InstancedActorPlaceholders => TotkActorUniforms.InstancedPlaceholders;
+    public IReadOnlyList<UboSpec> InstancedActorBlocks => TotkActorUniforms.InstancedBlocks;
 
     public IFrameGraph CreateFrameGraph(StageServices services) => new TotkFrameGraph(services);
 }

@@ -114,7 +114,7 @@ is hardcoded, which is what makes this portable.
 - Sampler names are `fp_t_tcb_<hex>` where **slot = 8 + 2 × the archive's `Location`**, and that is
   *not* list order. Verified against five independently extracted programs. Binding by list
   position silently swaps textures rather than failing.
-- These shaders divide by `support_buffer.render_scale[0]`, so `SupportBufferUbo` must be bound.
+- These shaders divide by `support_buffer.render_scale[0]`, so `SupportBuffer` must be bound.
 
 ### Transmittance: verified
 

@@ -3,17 +3,18 @@ using WildRenderingSharp.Profiles.Totk.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk;
 
+/// <summary>Fills the per-actor blocks TotK's shaders read: the bone palette and the model transform.</summary>
 static class TotkActorUniforms
 {
-    public static UniformBlock[] Build(in SkinningData actor) =>
-    [
-        UniformBlock.From(FrameUniformKeys.Bones, BonePaletteUbo.For(actor, TotkBindings.Bones)),
-        UniformBlock.From(FrameUniformKeys.ShapeMatrix, ShapeMatrixUbo.BuildFromModelMatrix(actor.PlacementRows)),
-    ];
+    // The blocks instanced actors leave zeroed, since each instance carries its own transform.
+    public static IReadOnlyList<UboSpec> InstancedBlocks { get; } = [TotkBlocks.Bones, TotkBlocks.ShapeMatrix];
 
-    public static UniformBlock[] InstancedPlaceholders { get; } =
-    [
-        UniformBlock.Zeroed(TotkBindings.Bones),
-        UniformBlock.Zeroed(ShapeMatrixUbo.Binding),
-    ];
+    public static Ubo[] Build(in SkinningData actor) => [BonePalette.For(TotkBlocks.Bones, actor), ShapeMatrix(actor.PlacementRows)];
+
+    internal static Ubo ShapeMatrix(ReadOnlySpan<System.Numerics.Vector4> placementRows)
+    {
+        var block = new UboWriter(TotkBlocks.ShapeMatrix);
+        block.Set(TotkBlocks.ShapeModel, placementRows);
+        return block.ToUbo(FrameUniformKeys.ShapeMatrix);
+    }
 }

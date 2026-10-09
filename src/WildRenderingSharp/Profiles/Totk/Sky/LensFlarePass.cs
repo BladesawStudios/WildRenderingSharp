@@ -11,7 +11,6 @@ namespace WildRenderingSharp.Profiles.Totk.Sky;
 /// </summary>
 public sealed class LensFlarePass : IDisposable
 {
-    const uint RegisterBinding = 24;
 
     readonly GL _gl;
     readonly uint _program;
@@ -44,8 +43,8 @@ public sealed class LensFlarePass : IDisposable
 
         _program = programs.Load("agl_flare_filter_flare");
         // RegisterUBO is at location 0 in both stages, so it decompiles to vp_c3 and fp_c3: one block under two names once linked, the same collision CloudDomePass and SkyPostFxPass correct.
-        _gl.BindUniformBlock(_program, "_vp_c3", RegisterBinding);
-        _gl.BindUniformBlock(_program, "_fp_c3", RegisterBinding);
+        _gl.BindUniformBlock(_program, "_vp_c3", LensFlareBlocks.Register.Binding);
+        _gl.BindUniformBlock(_program, "_fp_c3", LensFlareBlocks.Register.Binding);
         _gl.UseProgram(_program);
         _gl.SetSamplerUnit(_program, "fp_t_tcb_8", 0); // cSrc
 
@@ -73,16 +72,6 @@ public sealed class LensFlarePass : IDisposable
         gl.BindVertexArray(0);
 
         Console.WriteLine("[LensFlarePass] real agl_flare_filter_flare linked (4 ghosts + halo).");
-    }
-
-    internal static byte[] BuildRegisterUbo(float ghostSpacing, Vector3 haloTint, float haloRadius, Vector3 intensity)
-    {
-        var buf = new byte[192];
-        var u = new UniformWriter(buf);
-        u.Set(0, 0, ghostSpacing);
-        u.Set(1, 0, haloTint.X); u.Set(1, 1, haloTint.Y); u.Set(1, 2, haloTint.Z); u.Set(1, 3, haloRadius);
-        u.Set(3, 0, intensity.X); u.Set(3, 1, intensity.Y); u.Set(3, 2, intensity.Z);
-        return buf;
     }
 
     public readonly record struct Params(
@@ -128,9 +117,8 @@ public sealed class LensFlarePass : IDisposable
         }
 
         // The source is in display units but the flare is added before exposure, so exposure is divided back out of the intensity (as DeferredResolvePass does for emission).
-        resources.Ubo("flare_register",
-            BuildRegisterUbo(p.GhostSpacing, p.HaloTint, p.HaloRadius,
-                p.Intensity / MathF.Max(p.Exposure, 1e-4f)), RegisterBinding);
+        resources.Bind(LensFlareBlocks.BuildRegister(p.GhostSpacing, p.HaloTint, p.HaloRadius,
+            p.Intensity / MathF.Max(p.Exposure, 1e-4f)));
 
         // Additive over the HDR buffer before exposure and tonemap: a flare is light the lens adds, so it belongs in linear space.
         targets.BindColorTarget(hdr);

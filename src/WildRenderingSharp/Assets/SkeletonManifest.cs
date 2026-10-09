@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace WildRenderingSharp.Assets;
 
 /// <summary>
-/// Deserialized <c>&lt;Model&gt;.skeleton.json</c>: everything needed to build the <c>BonePaletteUbo</c> at bind pose (via <see
+/// Deserialized <c>&lt;Model&gt;.skeleton.json</c>: everything needed to build the <c>BonePalette</c> at bind pose (via <see
 /// cref="WildRenderingSharp.Rendering.SkeletonPose.BindPoseWorldMatrices"/>) or at an animated pose given a <see
 /// cref="SkeletalAnimManifest"/>.
 /// </summary>

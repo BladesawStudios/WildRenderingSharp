@@ -6,6 +6,7 @@ using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Deferred;
+using WildRenderingSharp.Profiles.Totk.Ubos;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
@@ -43,7 +44,7 @@ public sealed class TerrainRenderer(StageServices services, TerrainShading shadi
         CopyGBufferLayer(targets, targets.GBuffer[1], underAlbedo);
         CopyGBufferLayer(targets, targets.GBuffer[3], underNormal);
 
-        services.Profile.Camera(FrameUniformKeys.TerrainCamera, terrainCamera).Bind(Resources);
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.TerrainCamera, terrainCamera));
         Resources.BindMaterial(shading.MaterialBuffer);
 
         targets.BindGBuffer();
@@ -95,8 +96,10 @@ public sealed class TerrainRenderer(StageServices services, TerrainShading shadi
             targets.BindPassIdTarget();
             Gl.Disable(EnableCap.DepthTest);
             int index = scene.PassIndex(DeferredScene.WaterPass);
-            var block = new float[8] { (index + 1) / 255f, camera.NearPlane, camera.FarPlane, 0f, 1f / targets.Width, 1f / targets.Height, 0f, 0f };
-            Resources.Ubo("terrain_water_stamp", System.Runtime.InteropServices.MemoryMarshal.AsBytes(block.AsSpan()), bindingIndex: TotkBindings.TerrainWaterStamp);
+            var block = new UboWriter(TotkBlocks.WaterStamp);
+            block.Set(0, (index + 1) / 255f, camera.NearPlane, camera.FarPlane, 0f);
+            block.Set(1, 1f / targets.Width, 1f / targets.Height, 0f, 0f);
+            Resources.Bind(block.ToUbo("terrain_water_stamp"));
             BindUnit(TerrainShading.StampDepthUnit, targets.GBufferDepth.Handle);
             host.DrawWater(draw, stamp: true);
         }
@@ -107,7 +110,7 @@ public sealed class TerrainRenderer(StageServices services, TerrainShading shadi
 
     public void DrawShadow(ITerrainHost host, int cascade, Camera camera, ShadowFocus focus, ShadowPass.LightMatrices light, CameraData sceneCamera)
     {
-        services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, sceneCamera.ForLight(light.View, light.Proj)).Bind(Resources);
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, sceneCamera.ForLight(light.View, light.Proj)));
         host.DrawShadow(new TerrainDraw(Gl, camera.Eye, cascade, new Vector4(focus.Center, focus.Radius)));
         Gl.UseProgram(0);
         Gl.BindVertexArray(0);

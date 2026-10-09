@@ -99,9 +99,9 @@ behaviour; every such file should be re-exported.
 
 **`public sealed class SkeletonManifest`**
 
-Deserialized `<Model>.skeleton.json`: everything needed to build the `BonePaletteUbo` at bind pose (via `BindPoseWorldMatrices`)
+Deserialized `<Model>.skeleton.json`: everything needed to build the `BonePalette` at bind pose (via `BindPoseWorldMatrices`)
 or at an animated pose given a `SkeletalAnimManifest`. The palette has two segments and `MatrixToBoneList` covers both (`SmoothCount` +
-`RigidCount` entries), while `InverseModelMatrices` is parallel to the smooth prefix only; see `BonePaletteUbo` for the Ghidra citations.
+`RigidCount` entries), while `InverseModelMatrices` is parallel to the smooth prefix only; see `BonePalette` for the Ghidra citations.
 
 **`/// <summary>Length of the palette's smooth segment (<c>FSKL[0x3A]</c>), or -1 in a manifest exported before this field existed - read <see cref`**
 
@@ -285,9 +285,9 @@ where authored, but noon authors 0 while the capture shows 0.089538, so a floor 
 unfound. Taking the larger of the two reproduces the noon frame and gives a blood moon its band; it
 reconciles the evidence rather than deriving it.
 
-## WildRenderingSharp/Graphics/BonePaletteUbo.cs
+## WildRenderingSharp/Graphics/BonePalette.cs
 
-**`public sealed class BonePaletteUbo : IUboBlock`**
+**`public static class BonePalette`**
 
 TotK's skinning matrix palette (the engine's `g3d_SkeletonUniformBlock`, the shader symbol `_Mtx`), binding 2. 48 bytes per matrix: a mat3x4 of three vec4
 rows, row-vector convention (a vertex is `v * M`; composition is "apply the first operand, then the second"; see `Mat4Math.Multiply` and

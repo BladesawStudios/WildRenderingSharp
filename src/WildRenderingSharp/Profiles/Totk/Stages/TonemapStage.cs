@@ -1,8 +1,9 @@
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Deferred;
-using WildRenderingSharp.Profiles.Totk.Shaders;
+using WildRenderingSharp.Profiles.Totk.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
@@ -28,7 +29,15 @@ public sealed class TonemapStage(StageServices services) : IFrameStage, IDisposa
         GLDiagnostics.CheckPass(services.Gl, "bloom");
 
         _tonemap.RunHdrComposite(services.Resources, targets, _hdrComposeProgram, frame.HdrCompressed, targets.Bloom,
-            HdrComposeParamsUbo.BuildDefault().ToByteArray());
+            HdrComposeParams());
+    }
+
+    // cParam is the only field the shader reads.
+    internal static Ubo HdrComposeParams()
+    {
+        var block = new UboWriter(TotkBlocks.HdrComposeParams);
+        block.Set(0, 1f, 0f, 0f, 0f);
+        return block.ToUbo("hdr_compose_params");
     }
 
     public void Dispose()

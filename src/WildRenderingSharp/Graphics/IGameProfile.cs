@@ -14,13 +14,13 @@ public interface IGameProfile
 
     IShaderSources ShaderSources { get; }
 
-    UniformBlock Camera(string key, in CameraData camera);
+    Ubo Camera(string key, in CameraData camera);
 
-    IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting);
+    IReadOnlyList<Ubo> Lighting(in SceneLightingData lighting);
 
-    IReadOnlyList<UniformBlock> Actor(in SkinningData actor);
+    IReadOnlyList<Ubo> Actor(in SkinningData actor);
 
-    IReadOnlyList<UniformBlock> InstancedActorPlaceholders { get; }
+    IReadOnlyList<UboSpec> InstancedActorBlocks { get; }
 
     IFrameGraph CreateFrameGraph(StageServices services);
 }

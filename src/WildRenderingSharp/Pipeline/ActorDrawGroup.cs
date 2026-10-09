@@ -12,9 +12,13 @@ namespace WildRenderingSharp.Pipeline;
 /// immediately before that actor's own draw calls - exactly what a real engine does between per-object draw calls - rather than
 /// trying to combine every actor into one buffer.
 /// </summary>
-public readonly record struct ActorDrawGroup(IReadOnlyList<UniformBlock> Uniforms, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
-    InstanceBatch? Batch = null, bool ShadowRuns = false, int Cascade = -1)
+public readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
+    InstanceBatch? Batch = null, bool ShadowRuns = false, int Cascade = -1, IReadOnlyList<UboSpec>? ZeroedBlocks = null)
 {
+    // A group that draws every instance of a batch, whose transforms come from the batch's buffer rather than the actor's blocks.
+    public static ActorDrawGroup ForBatch(IGameProfile profile, InstanceBatch batch, IReadOnlyList<LoadedShape> shapes, bool shadowRuns = false, int cascade = -1) =>
+        new([], GpuMatrix.Rows(Matrix4x4.Identity, 3), shapes, batch, shadowRuns, cascade, profile.InstancedActorBlocks);
+
     List<(int First, int Count, int Lod)>? Runs => Batch is null ? null
         : ShadowRuns ? (Cascade >= 0 ? Batch.CascadeRuns(Cascade) : Batch.ShadowVisible) : Batch.Visible;
 
@@ -25,13 +29,11 @@ public readonly record struct ActorDrawGroup(IReadOnlyList<UniformBlock> Uniform
 
     public void BindUbos(GLResourceCache resources)
     {
-        if (Batch is { } batch)
-        {
-            Uniforms.Bind(resources);
-            resources.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, InstancingContract.InstanceBinding, batch.Buffer);
-            return;
-        }
-        Uniforms.Bind(resources);
+        resources.Bind(Uniforms);
+        foreach (var block in ZeroedBlocks ?? [])
+            resources.BindZeroed(block);
+        if (Batch is not null)
+            BindInstanceBuffer(resources);
     }
 
     public void Draw(GL gl, ShaderProgramCache programs, LoadedShape shape, ShapeProgram which)

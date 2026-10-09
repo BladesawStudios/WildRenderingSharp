@@ -25,11 +25,11 @@ public sealed class DecompilerBindings : IDisposable
         BindStorage();
     }
 
-    /// <summary>Called every frame, since a host drawing in between may use storage binding 0 itself.</summary>
+    // Called every frame, since a host drawing in between may use storage binding 0 itself.
     public void Bind()
     {
         BindStorage();
-        _resources.Ubo("support", SupportBufferUbo.Build(), SupportBufferUbo.BindingIndex);
+        _resources.Bind(SupportBuffer.Block);
     }
 
     void BindStorage() => _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 0, _zeroStorage);

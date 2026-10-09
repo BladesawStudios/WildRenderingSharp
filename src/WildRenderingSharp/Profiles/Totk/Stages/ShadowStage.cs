@@ -71,7 +71,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
         if (frame.ShadowMapOverride is not null)
             return;
 
-        services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)).Bind(Resources);
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)));
         _shadow.Run(Resources, frame.Targets, ShadowGroups(frame, request.ShadowFocus), services.Programs);
         GLDiagnostics.CheckPass(services.Gl, "shadow pass");
         Resources.BindCamera(FrameUniformKeys.SceneCamera);
@@ -95,8 +95,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
 
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.ShadowVisible.Count > 0))
-            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, GpuMatrix.Rows(Matrix4x4.Identity, 3),
-                CastingShapes(batch), batch, ShadowRuns: true));
+            groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true));
         return groups;
     }
 
@@ -166,12 +165,11 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
 
     void DrawCascade(FrameContext frame, int cascade, ShadowFocus focus, ShadowPass.LightMatrices light)
     {
-        services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)).Bind(Resources);
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)));
 
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.CascadeRuns(cascade).Count > 0))
-            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, GpuMatrix.Rows(Matrix4x4.Identity, 3),
-                CastingShapes(batch), batch, ShadowRuns: true, Cascade: cascade));
+            groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
         _shadow.Run(Resources, frame.Targets, groups, services.Programs, cascade);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)

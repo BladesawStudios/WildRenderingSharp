@@ -4,17 +4,16 @@ using WildRenderingSharp.Graphics;
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>
-/// Persistent GL objects that would otherwise be reallocated every frame: named uniform buffers (rewritten in place rather than
-/// recreated) and the one attribute-less VAO every fullscreen pass draws through (the deferred vertex shaders synthesise position
-/// and UV from <c>gl_VertexID</c>).
+/// Persistent GL objects that would otherwise be reallocated every frame: uniform buffers kept under a key and rewritten in place,
+/// zeroed buffers by size, and the attribute-less VAO every fullscreen pass draws through (the deferred vertex shaders synthesise
+/// position and UV from <c>gl_VertexID</c>).
 /// </summary>
 public sealed class GLResourceCache : IDisposable
 {
     readonly GL _gl;
     readonly Dictionary<string, uint> _ubos = new(StringComparer.Ordinal);
+    readonly Dictionary<int, uint> _zeroed = [];
     readonly uint _attributelessVao;
-
-    public ShaderBindings Bindings { get; }
 
     public GLResourceCache(GL gl, ShaderBindings bindings)
     {
@@ -23,23 +22,43 @@ public sealed class GLResourceCache : IDisposable
         _attributelessVao = gl.GenVertexArray();
     }
 
-    public uint Ubo(string key, ReadOnlySpan<byte> data, uint? bindingIndex = null)
-    {
-        if (!_ubos.TryGetValue(key, out uint handle))
-        {
-            handle = _gl.GenBuffer();
-            _ubos[key] = handle;
-        }
-        _gl.BindBuffer(BufferTargetARB.UniformBuffer, handle);
-        _gl.BufferData(BufferTargetARB.UniformBuffer, data, BufferUsageARB.DynamicDraw);
-        if (bindingIndex is uint b)
-            _gl.BindBufferBase(BufferTargetARB.UniformBuffer, b, handle);
-        return handle;
-    }
-
     public GL Gl => _gl;
 
-    /// <summary>The bytes last uploaded under <paramref name="key"/>, read back from the GPU for a debug view; empty if there are none.</summary>
+    public ShaderBindings Bindings { get; }
+
+    // Writes the block into its buffer without binding it, to be bound later by BindUbo.
+    public void Upload(Ubo ubo) => Write(ubo.Key, ubo.Bytes.Span);
+
+    // Writes the block into its buffer and binds it at the binding its shader reads.
+    public void Bind(Ubo ubo) => BindBase(ubo.Spec.Binding, Write(ubo.Key, ubo.Bytes.Span));
+
+    public void Bind(IEnumerable<Ubo> blocks)
+    {
+        foreach (var ubo in blocks)
+            Bind(ubo);
+    }
+
+    public void BindZeroed(UboSpec spec)
+    {
+        if (!_zeroed.TryGetValue(spec.ByteSize, out uint handle))
+            _zeroed[spec.ByteSize] = handle = Write($"zero:{spec.ByteSize}", new byte[spec.ByteSize]);
+        BindBase(spec.Binding, handle);
+    }
+
+    // Binds a block uploaded earlier; nothing happens when there is none under that key.
+    public void BindUbo(string key, uint binding)
+    {
+        if (_ubos.TryGetValue(key, out uint handle))
+            BindBase(binding, handle);
+    }
+
+    public void BindCamera(string key) => BindUbo(key, Bindings.Camera);
+
+    public void BindEnvironment() => BindUbo(FrameUniformKeys.Environment, Bindings.Environment);
+
+    public void BindMaterial(uint buffer) => BindBase(Bindings.Material, buffer);
+
+    // The bytes last uploaded under the key, read back from the GPU for a debug view.
     public unsafe byte[] ReadUbo(string key)
     {
         if (!_ubos.TryGetValue(key, out uint handle))
@@ -51,33 +70,6 @@ public sealed class GLResourceCache : IDisposable
             _gl.GetBufferSubData(BufferTargetARB.UniformBuffer, 0, (nuint)size, p);
         return bytes;
     }
-
-    public void BindZeroUbo(uint bindingIndex, int size = 256)
-    {
-        if (!_zeroUbos.TryGetValue(size, out uint handle))
-        {
-            string key = $"zero:{size}";
-            if (!_ubos.ContainsKey(key))
-                Ubo(key, new byte[size]);
-            handle = _ubos[key];
-            _zeroUbos[size] = handle;
-        }
-        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, bindingIndex, handle);
-    }
-
-    readonly Dictionary<int, uint> _zeroUbos = [];
-
-    public void BindUbo(string key, uint bindingIndex)
-    {
-        if (_ubos.TryGetValue(key, out uint handle))
-            _gl.BindBufferBase(BufferTargetARB.UniformBuffer, bindingIndex, handle);
-    }
-
-    public void BindCamera(string key) => BindUbo(key, Bindings.Camera);
-
-    public void BindEnvironment() => BindUbo(FrameUniformKeys.Environment, Bindings.Environment);
-
-    public void BindMaterial(uint buffer) => _gl.BindBufferBase(BufferTargetARB.UniformBuffer, Bindings.Material, buffer);
 
     public void DrawFullscreenTriangle()
     {
@@ -93,10 +85,21 @@ public sealed class GLResourceCache : IDisposable
 
     public void Dispose()
     {
-        foreach (uint h in _ubos.Values)
-            _gl.DeleteBuffer(h);
+        foreach (uint handle in _ubos.Values)
+            _gl.DeleteBuffer(handle);
         _ubos.Clear();
-        _zeroUbos.Clear();
+        _zeroed.Clear();
         _gl.DeleteVertexArray(_attributelessVao);
     }
+
+    uint Write(string key, ReadOnlySpan<byte> bytes)
+    {
+        if (!_ubos.TryGetValue(key, out uint handle))
+            _ubos[key] = handle = _gl.GenBuffer();
+        _gl.BindBuffer(BufferTargetARB.UniformBuffer, handle);
+        _gl.BufferData(BufferTargetARB.UniformBuffer, bytes, BufferUsageARB.DynamicDraw);
+        return handle;
+    }
+
+    void BindBase(uint binding, uint buffer) => _gl.BindBufferBase(BufferTargetARB.UniformBuffer, binding, buffer);
 }
