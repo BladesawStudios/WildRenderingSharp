@@ -7,11 +7,9 @@ namespace WildRenderingSharp.Assets.Manifests;
 /// <summary>Deserialized <c>&lt;Model&gt;.skeleton.json</c>, everything needed to build the bone palette at bind pose or at a pose from a <see cref="SkeletalAnimManifest"/>.</summary>
 public sealed class SkeletonManifest
 {
-    // See SkeletonScalingMode. Defaults to Standard for a manifest exported before this field existed - the mode that matches
-    // the old unconditional walk.
+    // How the bones' scales combine down the hierarchy; see SkeletonScalingMode.
     [JsonPropertyName("scaling_mode")] public SkeletonScalingMode ScalingMode { get; set; } = SkeletonScalingMode.Standard;
-    // Length of the palette's smooth segment (FSKL[0x3A]), or -1 in a manifest exported before this field existed - read
-    // SmoothCount instead, which derives it in that case.
+    // Length of the palette's smooth segment (FSKL[0x3A]), or -1 when the manifest does not carry it; read SmoothCount, which derives it then.
     [JsonPropertyName("smooth_matrix_count")] public int SmoothMatrixCount { get; set; } = -1;
     [JsonPropertyName("rigid_matrix_count")] public int RigidMatrixCount { get; set; } = -1;
     [JsonPropertyName("bones")] public List<BoneManifestEntry> Bones { get; set; } = [];

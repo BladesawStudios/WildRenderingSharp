@@ -124,8 +124,7 @@ public sealed class BakeLibrary : IDisposable
 
     void RefreshLocked()
     {
-        // The index is read once it exists; re-reading its 600,000 entries on every refresh was a
-        // stall of its own.
+        // The index is read once it exists, because re-reading its 600,000 entries on every refresh would stall.
         if (_hashes.Length == 0)
             _indexLoaded = false;
         foreach (var key in _loaded.Where(kv => kv.Value is null).Select(kv => kv.Key).ToList())

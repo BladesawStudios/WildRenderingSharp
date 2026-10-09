@@ -15,8 +15,7 @@ internal sealed class ShapeManifestEntry
     [JsonPropertyName("index_file")] public string IndexFile { get; set; } = "";
     [JsonPropertyName("index_count")] public int IndexCount { get; set; }
 
-    // Every level of detail in IndexFile, finest first, as [first index, count], with LOD 0 always [0, IndexCount]; null for a model prepared before
-    // levels were exported, which has only LOD 0.
+    // Every level of detail in IndexFile, finest first, as [first index, count], with LOD 0 always [0, IndexCount]; null means LOD 0 only.
     [JsonPropertyName("lods")] public List<int[]>? Lods { get; set; }
 
     // 0 = rigid (bone space, BoneIndex), 1 = single-bind (bone space, per-vertex), >=2 = smooth (already model space). ExportTestBench bakes 0 and 1

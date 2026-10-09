@@ -28,7 +28,7 @@ internal sealed class PassIdMaskPass : IDisposable
     static readonly string VertexSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.vert");
 
     // Stamps the ID only where the G-buffer's own depth matches, which inherits the Z-only program's alpha cutout and occlusion.
-    // Without it, mask-mode quads were stamped whole and covered pixels the G-buffer did not.
+    // Without it, mask-mode quads would be stamped whole and cover pixels the G-buffer does not.
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.frag");
 
     public PassIdMaskPass(GL gl, ShapeDrawer drawer)
@@ -140,7 +140,7 @@ internal sealed class PassIdMaskPass : IDisposable
                 _gl.Uniform1(id, (index + 1) / 255f);
                 _gl.Uniform1(skin, sh.VertexSkinCount);
                 _gl.BindVertexArray(sh.PassIdVao);
-                // One multi-draw for every visible run, as the G-buffer does; run by run was thousands of calls a frame.
+                // One multi-draw for every visible run, as the G-buffer does, since run by run would be thousands of calls a frame.
                 _gl.Uniform1(first, 0);
                 if (_drawer.MultiDrawRuns(sh, batch.Visible))
                     continue;
