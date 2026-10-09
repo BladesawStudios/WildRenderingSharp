@@ -1,5 +1,4 @@
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Gpu;
 using static WildRenderingSharp.Profiles.Totk.Sky.Precompute.SkyPrecomputePass;
 

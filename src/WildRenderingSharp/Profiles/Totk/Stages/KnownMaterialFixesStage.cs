@@ -1,4 +1,3 @@
-using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;

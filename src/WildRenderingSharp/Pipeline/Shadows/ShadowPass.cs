@@ -1,9 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Gpu;
-using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Pipeline.Shadows;

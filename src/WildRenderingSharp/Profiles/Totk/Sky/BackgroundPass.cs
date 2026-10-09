@@ -1,13 +1,9 @@
-using WildRenderingSharp.Graphics;
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Pipeline.Passes;
-using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
-using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Lighting;
 using WildRenderingSharp.Shaders;
 

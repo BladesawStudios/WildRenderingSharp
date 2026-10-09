@@ -1,8 +1,6 @@
 using System.Numerics;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
-using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Profiles.Botw.Ubos;
 

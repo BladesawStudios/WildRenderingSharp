@@ -1,7 +1,6 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Graphics.Data;

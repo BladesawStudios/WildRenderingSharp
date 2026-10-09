@@ -1,4 +1,3 @@
-using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Profiles.Botw;
 

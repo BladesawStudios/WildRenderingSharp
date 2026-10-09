@@ -1,11 +1,9 @@
 using WildRenderingSharp.Animation.Clips;
 using WildRenderingSharp.Animation.Posing;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Data;
 using System.Numerics;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline;
-using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Scene;

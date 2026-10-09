@@ -1,15 +1,11 @@
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Contracts;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
-using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
-using WildRenderingSharp.Profiles.Totk.Sky;
 using WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 using WildRenderingSharp.Profiles.Totk.Stages;
 using WildRenderingSharp.Profiles.Totk.Terrain;

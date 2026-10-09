@@ -1,8 +1,6 @@
 using System.Numerics;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
-using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.Ubos;
 using static WildRenderingSharp.Profiles.Totk.Ubos.TotkEnvironmentLayout;
 

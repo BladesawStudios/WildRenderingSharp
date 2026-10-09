@@ -2,7 +2,6 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Manifests;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Assets.Textures;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Gpu;
 
 namespace WildRenderingSharp.Assets.Loading;

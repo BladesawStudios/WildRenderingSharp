@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using WildRenderingSharp.Animation.Posing;
-using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Animation.Clips;
 

@@ -1,4 +1,3 @@
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Ubos;
 
 namespace WildRenderingSharp.Shaders;

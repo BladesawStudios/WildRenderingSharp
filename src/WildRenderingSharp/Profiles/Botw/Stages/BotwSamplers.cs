@@ -1,4 +1,3 @@
-using WildRenderingSharp.Pipeline.Passes;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 

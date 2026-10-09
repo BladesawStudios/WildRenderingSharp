@@ -1,7 +1,5 @@
-using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Gpu;
-using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;

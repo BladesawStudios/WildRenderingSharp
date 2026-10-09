@@ -1,6 +1,5 @@
 using System.Numerics;
 using WildRenderingSharp.Animation.Clips;
-using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Manifests;
 
 namespace WildRenderingSharp.Animation.Posing;

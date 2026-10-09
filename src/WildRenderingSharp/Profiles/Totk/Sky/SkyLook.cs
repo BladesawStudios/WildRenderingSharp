@@ -1,5 +1,4 @@
 using System.Numerics;
-using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;

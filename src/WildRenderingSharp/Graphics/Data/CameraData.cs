@@ -1,5 +1,4 @@
 using System.Numerics;
-using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Graphics.Data;

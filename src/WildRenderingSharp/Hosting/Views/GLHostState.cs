@@ -1,6 +1,5 @@
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ARB;
-using WildRenderingSharp.Pipeline.Gpu;
 
 namespace WildRenderingSharp.Hosting.Views;
 

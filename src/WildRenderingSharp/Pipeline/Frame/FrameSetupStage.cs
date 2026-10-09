@@ -1,11 +1,9 @@
 using System.Numerics;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Gpu;
-using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
 using WildRenderingSharp.Rendering.Lighting;
 

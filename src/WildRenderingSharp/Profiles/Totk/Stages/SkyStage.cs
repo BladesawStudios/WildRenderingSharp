@@ -6,12 +6,10 @@ using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
-using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Profiles.Totk.Sky;
 using WildRenderingSharp.Profiles.Totk.Sky.Clouds;
 using WildRenderingSharp.Profiles.Totk.Sky.PostFx;
 using WildRenderingSharp.Profiles.Totk.Sky.Precompute;
-using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
 using WildRenderingSharp.Rendering.Lighting;
 

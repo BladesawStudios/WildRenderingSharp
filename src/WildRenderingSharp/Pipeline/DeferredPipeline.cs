@@ -1,13 +1,11 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Profiles.Totk;
-using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline;
 

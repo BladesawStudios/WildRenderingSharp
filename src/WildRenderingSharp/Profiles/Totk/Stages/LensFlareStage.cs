@@ -1,8 +1,6 @@
-using WildRenderingSharp.Assets;
 using System.Numerics;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Gpu;
-using WildRenderingSharp.Profiles.Totk.Sky;
 using WildRenderingSharp.Profiles.Totk.Sky.LensFlare;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;

@@ -1,10 +1,8 @@
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
-using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 

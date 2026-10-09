@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Assets.Materials;
 

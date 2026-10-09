@@ -1,7 +1,5 @@
-using WildRenderingSharp.Graphics;
 using System.Text;
 using System.Text.RegularExpressions;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Shaders;
 

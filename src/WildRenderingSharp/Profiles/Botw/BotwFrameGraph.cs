@@ -1,5 +1,4 @@
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Botw.Stages;

@@ -1,6 +1,5 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Pipeline.Passes;

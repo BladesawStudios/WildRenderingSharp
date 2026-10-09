@@ -1,13 +1,10 @@
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Data;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Profiles.Totk.Shaders;
-using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;

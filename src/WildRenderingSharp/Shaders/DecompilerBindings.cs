@@ -1,5 +1,4 @@
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Pipeline.Gpu;
 
 namespace WildRenderingSharp.Shaders;

@@ -1,5 +1,4 @@
 using System.Numerics;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.LensFlare;

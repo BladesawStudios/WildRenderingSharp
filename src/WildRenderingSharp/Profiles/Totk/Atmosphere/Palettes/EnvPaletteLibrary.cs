@@ -1,4 +1,3 @@
-using BymlLibrary;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;

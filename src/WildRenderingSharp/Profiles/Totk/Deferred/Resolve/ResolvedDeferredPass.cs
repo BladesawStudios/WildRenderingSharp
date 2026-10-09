@@ -1,4 +1,3 @@
-using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Materials;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;

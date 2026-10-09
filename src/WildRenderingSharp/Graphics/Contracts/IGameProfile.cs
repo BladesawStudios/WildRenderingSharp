@@ -1,7 +1,6 @@
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Graphics.Contracts;
 

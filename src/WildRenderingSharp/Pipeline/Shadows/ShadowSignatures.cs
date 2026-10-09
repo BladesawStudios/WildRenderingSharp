@@ -1,9 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Pipeline.Drawing;
-using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline.Shadows;
 

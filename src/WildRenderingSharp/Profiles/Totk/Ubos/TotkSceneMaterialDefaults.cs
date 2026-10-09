@@ -1,4 +1,3 @@
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Ubos;
 using static WildRenderingSharp.Profiles.Totk.Ubos.TotkSceneMaterialLayout;
 

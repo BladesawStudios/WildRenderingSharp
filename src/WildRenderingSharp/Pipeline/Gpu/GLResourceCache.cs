@@ -1,10 +1,7 @@
-using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Materials;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Graphics.Ubos;
-using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Pipeline.Gpu;
 

@@ -1,11 +1,9 @@
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Profiles.Totk.Ubos;
-using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Profiles.Totk;
 

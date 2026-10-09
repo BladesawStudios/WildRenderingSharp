@@ -1,7 +1,5 @@
 using System.Numerics;
-using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Ubos;
-using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Profiles.Totk.Sky.PostFx;
 using static WildRenderingSharp.Profiles.Totk.Sky.Precompute.SkyPrecomputePass;

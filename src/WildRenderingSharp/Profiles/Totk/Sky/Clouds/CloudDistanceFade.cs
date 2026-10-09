@@ -1,4 +1,3 @@
-using System.Numerics;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Shaders;
 
