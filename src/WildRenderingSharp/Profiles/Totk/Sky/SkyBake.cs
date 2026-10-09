@@ -28,7 +28,7 @@ public sealed class SkyBake(FrameServices services) : IDisposable
         _key = key;
         Console.WriteLine($"[SkyBake] baking sky LUT for palette '{key}' (rayleigh x{rayleigh:G4}, mie x{mie:G4})");
 
-        _precompute.Run(services.Resources, postFx, _sun, rayleigh, mie, TintColor(palette, tintStep));
+        _precompute.Run(services.Resources, postFx, _sun, rayleigh, mie, TintColor(palette, tintStep), SkyLook.From(palette));
         GLDiagnostics.CheckPass(services.Gl, "sky precompute");
         _precompute.Verify();
     }

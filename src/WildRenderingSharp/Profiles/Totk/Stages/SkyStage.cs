@@ -89,11 +89,12 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var palette = environment.Palette;
         var cam = frame.Cam;
 
-        // The disc is the sun seen through the atmosphere: white overhead, orange and then red as it nears the horizon. The palette's
-        // SkySunColor is the tint the sun scatters into the sky (a sunset authors a lilac there) and would paint the disc wrongly.
+        // The disc is the sun seen through the atmosphere, reddening as it nears the horizon. Relative to the sun overhead, whose colour is the
+        // palette's own SkySunColor, so a high sun is not tinted by an atmosphere it has barely crossed.
         float rayleighAmplifier = MathF.Max(0.02f, palette.SkyRayleighAmplifier);
         float mieAmplifier = palette.SkyMieAmplifier > 0f ? palette.SkyMieAmplifier : 1f;
-        Vector3 sunHue = SunTransmittance.Colour(environment.SkyPostFx, rayleighAmplifier, mieAmplifier, lighting.SunElevation);
+        Vector3 sunHue = SunTransmittance.Colour(environment.SkyPostFx, rayleighAmplifier, mieAmplifier, lighting.SunElevation)
+            / Vector3.Max(SunTransmittance.Colour(environment.SkyPostFx, rayleighAmplifier, mieAmplifier, MathF.PI / 2f), new Vector3(1e-4f));
         float sunPeak = MathF.Max(sunHue.X, MathF.Max(sunHue.Y, sunHue.Z));
         if (sunPeak > 1e-6f) sunHue /= sunPeak;
         _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, cam.ViewInv, cam.Aspect, cam.TanHalfFovY,

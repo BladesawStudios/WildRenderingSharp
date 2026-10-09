@@ -63,6 +63,7 @@ public sealed class SkyPrecomputePass : IDisposable
     public bool Available { get; }
     Vector3 _sunWorld = new(0f, 0f, 1f);
     float _rayleighAmp = 1f, _mieAmp = 1f;
+    SkyLook _look = SkyLook.Noon;
 
     // Every program in the chain. Sampler units follow the fp_t_tcb_<hex> naming, where hex is 8 + 2 *
     // the archive's sampler location; that is not the archive's list order, so binding by position swaps textures.
@@ -254,7 +255,7 @@ public sealed class SkyPrecomputePass : IDisposable
         0f, 0f, 0f, 0f,                              // [7] zero in the capture
     ];
 
-    internal static byte[] BuildBakeRenderInfo(SkyPostFx postfx, Vector3 sunWorldZUp)
+    internal static byte[] BuildBakeRenderInfo(SkyPostFx postfx, Vector3 sunWorldZUp, in SkyLook look)
     {
         var buf = new byte[128];
         for (int i = 0; i < BakeRenderInfoBaseline.Length && i * 4 + 4 <= buf.Length; i++)
@@ -270,17 +271,19 @@ public sealed class SkyPrecomputePass : IDisposable
         if (sun.LengthSquared() > 1e-12f) sun = Vector3.Normalize(sun);
         u.Set(2, 0, sun.X); u.Set(2, 1, sun.Y); u.Set(2, 2, sun.Z);
 
+        // The palette's phase asymmetry and amplifiers scale the bake's Rayleigh and Mie terms, and its sun colour is the light being scattered.
+        u.Set(1, 0, look.MieAsymmetry); u.Set(1, 1, look.RayleighAmplifier); u.Set(1, 2, look.MieAmplifier);
+        u.Set(3, 0, look.SunRadiance.X); u.Set(3, 1, look.SunRadiance.Y); u.Set(3, 2, look.SunRadiance.Z);
+
         var g = postfx.GroundColor;
         u.Set(6, 0, g.X); u.Set(6, 1, g.Y); u.Set(6, 2, g.Z); u.Set(6, 3, 1f);
         return buf;
     }
 
     // Config[1].x is the Mie phase asymmetry: the solve passes use it as g, g*g, 2+g*g and 1+g*g. The bake pass reads the same
-    // constant from RenderInfo[1].x, and the captured block holds 0.75 there.
-    const float MieAsymmetry = 0.75f;
-
+    // constant from RenderInfo[1].x.
     internal static byte[] BuildConfig(SkyPostFx postfx, int layer,
-        float rayleighAmplifier = 1f, float mieAmplifier = 1f)
+        float rayleighAmplifier = 1f, float mieAmplifier = 1f, float mieAsymmetry = 0.75f)
     {
         var buf = new byte[48];
         var u = new UniformWriter(buf);
@@ -291,7 +294,7 @@ public sealed class SkyPrecomputePass : IDisposable
         u.Set(0, 1, br.Y);
         u.Set(0, 2, br.Z);
         u.Set(0, 3, postfx.MieScatteringCoeff * mieAmplifier);
-        u.Set(1, 0, MieAsymmetry);
+        u.Set(1, 0, mieAsymmetry);
         u.Set(1, 1, postfx.RayleighBaseHeight);
         u.Set(1, 2, postfx.MieBaseHeight);
 
@@ -380,8 +383,9 @@ public sealed class SkyPrecomputePass : IDisposable
     }
 
     public void Run(GLResourceCache resources, SkyPostFx postfx, Vector3 sunWorldZUp = default,
-        float rayleighAmplifier = 1f, float mieAmplifier = 1f, Vector3? paletteTint = null)
+        float rayleighAmplifier = 1f, float mieAmplifier = 1f, Vector3? paletteTint = null, SkyLook? look = null)
     {
+        _look = look ?? SkyLook.Noon;
         PaletteTint = paletteTint ?? Vector3.One;
         _rayleighAmp = rayleighAmplifier;
         _mieAmp = mieAmplifier;
@@ -401,7 +405,7 @@ public sealed class SkyPrecomputePass : IDisposable
         _gl.Disable(EnableCap.CullFace);
         _gl.Disable(EnableCap.Blend);
 
-        void Config(int layer) => resources.Ubo("sky_config", BuildConfig(postfx, layer, _rayleighAmp, _mieAmp), ConfigBinding);
+        void Config(int layer) => resources.Ubo("sky_config", BuildConfig(postfx, layer, 1f, 1f, _look.MieAsymmetry), ConfigBinding);
         void RenderInfo(int layer) => resources.Ubo("sky_renderinfo", BuildRenderInfo(layer), RenderInfoBinding);
 
         // 1. transmittance T
@@ -497,7 +501,7 @@ public sealed class SkyPrecomputePass : IDisposable
         // 6. Collapse the 4D table into the 2D table the per-frame sky shader samples. This pass needs
         // the full RenderInfo, which carries betaR/betaM.
         Bind(0, TextureTarget.Texture3D, _inscatter);
-        resources.Ubo("sky_bake_renderinfo", BuildBakeRenderInfo(postfx, _sunWorld), RenderInfoBinding);
+        resources.Ubo("sky_bake_renderinfo", BuildBakeRenderInfo(postfx, _sunWorld, _look), RenderInfoBinding);
         Target2D(_bakedInscatter, BakedInscatterW, BakedInscatterH);
         DrawQuad("agl_sky_bake_inscatter");
 
