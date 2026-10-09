@@ -16,7 +16,7 @@ public sealed class BotwProfile : IGameProfile
 
     public UniformBlock Camera(string key, in CameraData camera) => BotwUniforms.Camera(World, key, camera);
 
-    public IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting) => [];
+    public IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting) => BotwUniforms.Lighting(lighting);
 
     public IReadOnlyList<UniformBlock> Actor(in SkinningData actor) => BotwUniforms.Actor(World, actor);
 

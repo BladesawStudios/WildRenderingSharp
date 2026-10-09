@@ -12,8 +12,6 @@ public sealed class BotwEnvironment : IFrameEnvironment
     public Vector3 HemiGround { get; set; } = new(0.25f, 0.22f, 0.18f);
     public Vector3 Background { get; set; } = new(0.35f, 0.5f, 0.75f);
 
-    public int ViewMode { get; set; }
-
     public EnvironmentLighting ResolveLighting(LightingContext lighting) =>
         new(SunColor, HemiSky * lighting.AmbientScale, HemiGround * lighting.AmbientScale, Vector3.Zero, 0f);
 

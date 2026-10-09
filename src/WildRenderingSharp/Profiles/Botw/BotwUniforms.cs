@@ -25,6 +25,12 @@ static class BotwUniforms
         return [UniformBlock.From(FrameUniformKeys.Bones, bones)];
     }
 
+    public static IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting) =>
+    [
+        UniformBlock.From(FrameUniformKeys.Environment, BotwEnvUbo.From(lighting.SunDirView, lighting.SunColor, lighting.HemiSky, lighting.HemiGround)),
+        UniformBlock.From(FrameUniformKeys.SceneMaterial, BotwSceneMatUbo.From(lighting.MidScale, lighting.HighlightScale)),
+    ];
+
     public static IReadOnlyList<UniformBlock> Placeholders { get; } = [UniformBlock.Zeroed(BotwBindings.Bones)];
 
     static Matrix4x4 PlacementMatrix(Vector4[] rows) => new(

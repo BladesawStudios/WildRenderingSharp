@@ -103,7 +103,7 @@ writes a PNG, failing on GL errors or a blank image:
 dotnet run --project tests/WildRenderingSharp.TestBench -- --game totk --romfs <romfs dir> --actor Npc_Zelda_AncientHyrule --out zelda.png
 ```
 
-`--game botw --romfs <Switch dump> --actor Link` prepares the model from the dump's packs and draws it through `Profiles/Botw`: the game's own G-buffer programs, then a placeholder sun-and-hemisphere resolve (`--view 1` albedo, `--view 2` normals, `--yaw <degrees>` to orbit).
+`--game botw --romfs <Switch dump> --actor Link` prepares the model from the dump's packs and draws it through `Profiles/Botw`: the game's own G-buffer programs, then its own character shading passes (`--yaw <degrees>`, `--distance`, `--height` move the camera).
 
 Reverse-engineering findings that used to sit in XML docs (Ghidra addresses, manifest format history) are in
 [game-notes.md](game-notes.md).

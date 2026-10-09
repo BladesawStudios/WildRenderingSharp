@@ -17,6 +17,8 @@ public static class BotwModelPreparer
 
     public static string PrepareIfNeeded(IRomAccess rom, string modelName, CacheLayout cache, Action<string>? log = null, bool force = false)
     {
+        ModelPreparer.EnsureBfresPatched();
+        BotwSystemAssets.Ensure(rom, cache, log);
         if (!force && cache.IsPrepared(modelName))
         {
             log?.Invoke($"[prepare] {modelName} is already prepared.");
@@ -28,6 +30,7 @@ public static class BotwModelPreparer
     public static string Prepare(IRomAccess rom, string modelName, CacheLayout cache, Action<string>? log = null)
     {
         ModelPreparer.EnsureBfresPatched();
+        BotwSystemAssets.Ensure(rom, cache, log);
         var assets = new BotwAssets(rom);
 
         string dataDirectory = cache.ModelDirectory(modelName);

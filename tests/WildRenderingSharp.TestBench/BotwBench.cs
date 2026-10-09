@@ -35,7 +35,7 @@ static class BotwBench
         var actor = new RenderActor { Model = loader.Load(model, enableKnownDecompilerCorrections: false), ModelName = model, Name = model };
         pipeline.SetScene([actor.Model]);
 
-        var environment = new BotwEnvironment { ViewMode = options.TryGetValue("view", out var v) ? int.Parse(v) : 0 };
+        var environment = new BotwEnvironment();
         var lighting = new LightingContext();
         if (options.TryGetValue("exposure", out var exposure))
             lighting.Exposure = float.Parse(exposure);
@@ -49,7 +49,11 @@ static class BotwBench
         var direction = SceneFramingCalculator.DefaultViewDirection;
         if (options.TryGetValue("yaw", out var yaw))
             direction = System.Numerics.Vector3.Transform(direction, System.Numerics.Matrix4x4.CreateRotationZ(float.DegreesToRadians(float.Parse(yaw))));
-        camera.Eye = center + direction * radius * 3.5f;
+        float distance = options.TryGetValue("distance", out var d) ? float.Parse(d) : 3.5f;
+        camera.Eye = center + direction * radius * distance;
+        if (options.TryGetValue("height", out var h))
+            camera.Target += System.Numerics.Vector3.UnitZ * radius * float.Parse(h);
+        camera.Eye += camera.Target - center;
 
         for (int i = 0; i < 3; i++)
         {
