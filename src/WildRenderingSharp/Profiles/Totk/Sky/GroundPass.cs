@@ -40,7 +40,7 @@ internal sealed class GroundPass : IDisposable
             r0.Y, r1.Y, r2.Y,
             r0.Z, r1.Z, r2.Z,
         };
-        int loc = _gl.GetUniformLocation(_program, "uViewInv");
+        int loc = _gl.UniformLocation(_program, "uViewInv");
         if (loc >= 0) _gl.UniformMatrix3(loc, 1, false, m);
         _gl.SetVec2(_program, "uTanHalf", new Vector2(aspect * tanHalfFovY, tanHalfFovY));
         _gl.SetVec3(_program, "uGround", colour);
@@ -51,6 +51,6 @@ internal sealed class GroundPass : IDisposable
 
     public void Dispose()
     {
-        if (_program != 0) _gl.DeleteProgram(_program);
+        if (_program != 0) _gl.ReleaseProgram(_program);
     }
 }

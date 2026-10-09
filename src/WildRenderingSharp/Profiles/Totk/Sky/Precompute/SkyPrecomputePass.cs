@@ -105,7 +105,7 @@ internal sealed class SkyPrecomputePass : IDisposable
         _tables?.Dispose();
         _canvas?.Dispose();
         if (_calibProgram != 0)
-            _gl.DeleteProgram(_calibProgram);
+            _gl.ReleaseProgram(_calibProgram);
     }
 
     // The atmosphere inputs are all that distinguishes this run from the game's; a spectral mismatch shows up here first.

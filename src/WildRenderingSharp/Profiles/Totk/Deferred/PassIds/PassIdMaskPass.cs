@@ -87,8 +87,8 @@ internal sealed class PassIdMaskPass : IDisposable
         _gl.BindTextureUniform(_program, "tex_gbuf_depth", 0, targets.GBufferDepth.Handle);
         _gl.SetVec2(_program, "uInvViewport", new Vector2(1f / targets.Width, 1f / targets.Height));
         _gl.SetVec2(_program, "uNearFar", new Vector2(near, far));
-        int idLocation = _gl.GetUniformLocation(_program, "uId");
-        int skinLocation = _gl.GetUniformLocation(_program, "uSkinCount");
+        int idLocation = _gl.UniformLocation(_program, "uId");
+        int skinLocation = _gl.UniformLocation(_program, "uSkinCount");
 
         foreach (var group in groups.Where(g => g.Batch is null))
         {
@@ -125,12 +125,12 @@ internal sealed class PassIdMaskPass : IDisposable
         _gl.BindTextureUniform(program, "tex_gbuf_depth", 0, targets.GBufferDepth.Handle);
         _gl.SetVec2(program, "uInvViewport", new Vector2(1f / targets.Width, 1f / targets.Height));
         _gl.SetVec2(program, "uNearFar", new Vector2(_near, _far));
-        int id = _gl.GetUniformLocation(program, "uId");
-        int skin = _gl.GetUniformLocation(program, "uSkinCount");
-        int first = _gl.GetUniformLocation(program, InstancingContract.FirstInstanceUniform);
-        int stride = _gl.GetUniformLocation(program, InstancingContract.StrideUniform);
-        int palette = _gl.GetUniformLocation(program, InstancingContract.PaletteVec4sUniform);
-        int repeat = _gl.GetUniformLocation(program, InstancingContract.PaletteRepeatUniform);
+        int id = _gl.UniformLocation(program, "uId");
+        int skin = _gl.UniformLocation(program, "uSkinCount");
+        int first = _gl.UniformLocation(program, InstancingContract.FirstInstanceUniform);
+        int stride = _gl.UniformLocation(program, InstancingContract.StrideUniform);
+        int palette = _gl.UniformLocation(program, InstancingContract.PaletteVec4sUniform);
+        int repeat = _gl.UniformLocation(program, InstancingContract.PaletteRepeatUniform);
 
         foreach (var group in groups)
         {
@@ -170,7 +170,7 @@ internal sealed class PassIdMaskPass : IDisposable
 
     public void Dispose()
     {
-        _gl.DeleteProgram(_program);
-        _gl.DeleteProgram(_instancedProgram);
+        _gl.ReleaseProgram(_program);
+        _gl.ReleaseProgram(_instancedProgram);
     }
 }

@@ -51,9 +51,9 @@ internal sealed class GridPass : IDisposable
 
         _gl.UseProgram(_program);
         _gl.SetMat4(_program, "uViewProj", viewProj);
-        _gl.Uniform1(_gl.GetUniformLocation(_program, "uExtent"), extent);
-        _gl.Uniform1(_gl.GetUniformLocation(_program, "uMinorCell"), MinorCellFor(extent));
-        _gl.Uniform3(_gl.GetUniformLocation(_program, "uCameraPos"), cameraPos.X, cameraPos.Y, cameraPos.Z);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uExtent"), extent);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uMinorCell"), MinorCellFor(extent));
+        _gl.Uniform3(_gl.UniformLocation(_program, "uCameraPos"), cameraPos.X, cameraPos.Y, cameraPos.Z);
         _gl.SetVec4(_program, "uLineColor", new Vector4(0.55f, 0.58f, 0.63f, 0.6f));
 
         _gl.BindVertexArray(_vao);
@@ -72,6 +72,6 @@ internal sealed class GridPass : IDisposable
     {
         _gl.DeleteBuffer(_vbo);
         _gl.DeleteVertexArray(_vao);
-        _gl.DeleteProgram(_program);
+        _gl.ReleaseProgram(_program);
     }
 }

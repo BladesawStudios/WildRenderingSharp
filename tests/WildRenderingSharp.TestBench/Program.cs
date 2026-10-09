@@ -19,7 +19,7 @@ using WildRenderingSharp.TestBench;
 //
 //   WildRenderingSharp.TestBench --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>]
 //                                [--size <px>] [--background sky|color] [--sun <elevation radians>]
-//                                [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1]
+//                                [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--frames <n>] [--instances <n> [--spacing <x>]]
 //   with --game totk: see TotkBenchOptions.Usage
 //
 // Exit codes: 0 rendered, 1 failure, 2 bad command line, 4 the image is nearly blank, 5 GL reported errors.
@@ -30,7 +30,7 @@ string Option(string key, string fallback) => options.TryGetValue(key, out var v
 if (!options.TryGetValue("romfs", out var romfs) || !options.TryGetValue("actor", out var actorName))
 {
     Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] " +
-        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] " +
+        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--frames <n>] [--instances <n> [--spacing <x>]] " +
         (Option("game", "totk") == "totk" ? TotkBenchOptions.Usage : ""));
     return 2;
 }
@@ -67,7 +67,9 @@ Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(St
 using var rom = TotkRom.Open(romfs);
 var renderer = new WildRenderer(gl, cache, rom, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
-renderer.AddActor(model);
+int instanceCount = int.Parse(Option("instances", "0"));
+if (instanceCount == 0)
+    renderer.AddActor(model);
 if (game == "totk")
     TotkBenchOptions.Apply(renderer, options);
 if (options.TryGetValue("azimuth", out var azimuth))
@@ -75,7 +77,14 @@ if (options.TryGetValue("azimuth", out var azimuth))
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
 var camera = new Camera { FovDegrees = 38f };
-var (center, radius) = renderer.FrameFor(camera);
+var (center, radius) = instanceCount > 0
+    ? InstanceGrid.Add(renderer, model, instanceCount, float.Parse(Option("spacing", "0.5")))
+    : renderer.FrameFor(camera);
+if (instanceCount > 0)
+{
+    var framing = SceneFramingCalculator.ForModelRadius(radius);
+    (camera.NearPlane, camera.FarPlane) = (framing.Near, framing.Far);
+}
 camera.Target = center;
 camera.Eye = center + SceneFramingCalculator.DefaultViewDirection * radius * 3.5f;
 
@@ -97,6 +106,9 @@ if (options.TryGetValue("exposure", out var exposure))
 // Several frames: the sky bake, shadow cache and exposure probe settle over the first few.
 for (int i = 0; i < 4; i++)
     renderer.Render(camera, size, size, 1f / 60f);
+
+if (options.TryGetValue("frames", out var frames))
+    Timing.Report(renderer, gl, camera, size, int.Parse(frames));
 
 var errors = new List<GLEnum>();
 for (var e = gl.GetError(); e != GLEnum.NoError; e = gl.GetError())

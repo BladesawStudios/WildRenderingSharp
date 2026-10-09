@@ -28,5 +28,5 @@ internal sealed class FxaaPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    public void Dispose() => _gl.DeleteProgram(_program);
+    public void Dispose() => _gl.ReleaseProgram(_program);
 }

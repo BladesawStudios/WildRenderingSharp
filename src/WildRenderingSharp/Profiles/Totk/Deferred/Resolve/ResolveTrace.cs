@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
@@ -55,7 +56,7 @@ internal sealed class ResolveTrace : IDisposable
     public void Bind()
     {
         _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, BufferBinding, _buffer);
-        _gl.Uniform2(_gl.GetUniformLocation(Program, "uWrsTraceXY"), _x, _y);
+        _gl.Uniform2(_gl.UniformLocation(Program, "uWrsTraceXY"), _x, _y);
     }
 
     public void Finish()
@@ -77,7 +78,7 @@ internal sealed class ResolveTrace : IDisposable
     public void Dispose()
     {
         _gl.DeleteBuffer(_buffer);
-        _gl.DeleteProgram(Program);
+        _gl.ReleaseProgram(Program);
     }
 
     static string Instrument(string source, List<string> names)

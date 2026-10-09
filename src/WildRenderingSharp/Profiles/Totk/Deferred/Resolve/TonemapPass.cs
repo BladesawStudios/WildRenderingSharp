@@ -121,8 +121,8 @@ internal sealed class TonemapPass : IDisposable
 
     public void Dispose()
     {
-        _gl.DeleteProgram(_exposureProgram);
-        _gl.DeleteProgram(_compressProgram);
+        _gl.ReleaseProgram(_exposureProgram);
+        _gl.ReleaseProgram(_compressProgram);
         _gl.DeleteBuffer(_hdrQuadVbo);
         if (_hdrQuadVao != 0)
             _gl.DeleteVertexArray(_hdrQuadVao);

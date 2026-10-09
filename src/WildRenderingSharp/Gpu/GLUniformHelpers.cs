@@ -18,7 +18,7 @@ internal static class GLUniformHelpers
 
     public static void SetSamplerUnit(this GL gl, uint program, string name, int unit)
     {
-        int location = gl.GetUniformLocation(program, name);
+        int location = gl.UniformLocation(program, name);
         if (location >= 0)
             gl.Uniform1(location, unit);
     }
@@ -40,16 +40,16 @@ internal static class GLUniformHelpers
     public static void BindTextureUniform(this GL gl, uint program, string uniform, int unit, uint textureHandle, TextureTarget target = TextureTarget.Texture2D)
     {
         gl.BindTextureAt(unit, textureHandle, target);
-        gl.Uniform1(gl.GetUniformLocation(program, uniform), unit);
+        gl.Uniform1(gl.UniformLocation(program, uniform), unit);
     }
 
     // System.Numerics stores the transpose of a GL matrix, which is exactly GL's column-major layout, so it goes up untransposed.
     public static void SetMat4(this GL gl, uint program, string name, Matrix4x4 m) =>
-        gl.UniformMatrix4(gl.GetUniformLocation(program, name), 1, false, MemoryMarshal.CreateReadOnlySpan(ref m.M11, 16));
+        gl.UniformMatrix4(gl.UniformLocation(program, name), 1, false, MemoryMarshal.CreateReadOnlySpan(ref m.M11, 16));
 
-    public static void SetVec2(this GL gl, uint program, string name, Vector2 v) => gl.Uniform2(gl.GetUniformLocation(program, name), v.X, v.Y);
-    public static void SetVec3(this GL gl, uint program, string name, Vector3 v) => gl.Uniform3(gl.GetUniformLocation(program, name), v.X, v.Y, v.Z);
-    public static void SetVec4(this GL gl, uint program, string name, Vector4 v) => gl.Uniform4(gl.GetUniformLocation(program, name), v.X, v.Y, v.Z, v.W);
-    public static void SetFloat(this GL gl, uint program, string name, float v) => gl.Uniform1(gl.GetUniformLocation(program, name), v);
-    public static void SetInt(this GL gl, uint program, string name, int v) => gl.Uniform1(gl.GetUniformLocation(program, name), v);
+    public static void SetVec2(this GL gl, uint program, string name, Vector2 v) => gl.Uniform2(gl.UniformLocation(program, name), v.X, v.Y);
+    public static void SetVec3(this GL gl, uint program, string name, Vector3 v) => gl.Uniform3(gl.UniformLocation(program, name), v.X, v.Y, v.Z);
+    public static void SetVec4(this GL gl, uint program, string name, Vector4 v) => gl.Uniform4(gl.UniformLocation(program, name), v.X, v.Y, v.Z, v.W);
+    public static void SetFloat(this GL gl, uint program, string name, float v) => gl.Uniform1(gl.UniformLocation(program, name), v);
+    public static void SetInt(this GL gl, uint program, string name, int v) => gl.Uniform1(gl.UniformLocation(program, name), v);
 }

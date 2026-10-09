@@ -65,7 +65,7 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
     public void Dispose()
     {
         foreach (uint program in new[] { _preshadowProgram, _preshadingFilterProgram, _preshadingReduceProgram, _preshadingUpsampleProgram, _aoProgram, _blurProgram })
-            _gl.DeleteProgram(program);
+            _gl.ReleaseProgram(program);
     }
 
     uint Build(string name, string fragmentSource) => GLProgramBuilder.Build(_gl, FullscreenShaders.Vertex450, fragmentSource, name);

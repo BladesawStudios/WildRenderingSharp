@@ -43,7 +43,7 @@ internal sealed class FrameCompositor(GL gl) : IDisposable
         gl.BlendFuncSeparate(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha, BlendingFactor.Zero, BlendingFactor.One);
 
         gl.UseProgram(_overProgram);
-        gl.Uniform1(gl.GetUniformLocation(_overProgram, "uImage"), 0);
+        gl.Uniform1(gl.UniformLocation(_overProgram, "uImage"), 0);
         gl.ActiveTexture(TextureUnit.Texture0);
         gl.BindTexture(TextureTarget.Texture2D, view.OutputTexture);
         DrawTriangle();
@@ -112,8 +112,8 @@ internal sealed class FrameCompositor(GL gl) : IDisposable
 
     public void Dispose()
     {
-        if (_overProgram != 0) gl.DeleteProgram(_overProgram);
-        if (_depthProgram != 0) gl.DeleteProgram(_depthProgram);
+        if (_overProgram != 0) gl.ReleaseProgram(_overProgram);
+        if (_depthProgram != 0) gl.ReleaseProgram(_depthProgram);
         if (_vao != 0) gl.DeleteVertexArray(_vao);
         _overProgram = _depthProgram = _vao = 0;
     }

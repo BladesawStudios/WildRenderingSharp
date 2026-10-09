@@ -35,22 +35,22 @@ internal sealed class LinearDepthPass : IDisposable
         targets.BindColorTarget(targets.LinearDepth);
         _gl.ActiveTexture(TextureUnit.Texture0);
         _gl.BindTexture(TextureTarget.Texture2D, targets.GBufferDepth.Handle);
-        _gl.Uniform1(_gl.GetUniformLocation(_fullProgram, "tex_depth"), 0);
-        _gl.Uniform1(_gl.GetUniformLocation(_fullProgram, "uNear"), near);
-        _gl.Uniform1(_gl.GetUniformLocation(_fullProgram, "uFar"), far);
+        _gl.Uniform1(_gl.UniformLocation(_fullProgram, "tex_depth"), 0);
+        _gl.Uniform1(_gl.UniformLocation(_fullProgram, "uNear"), near);
+        _gl.Uniform1(_gl.UniformLocation(_fullProgram, "uFar"), far);
         resources.DrawFullscreenTriangle();
 
         _gl.UseProgram(_halfProgram);
         targets.BindColorTarget(targets.LinearDepthHalf);
         _gl.ActiveTexture(TextureUnit.Texture0);
         _gl.BindTexture(TextureTarget.Texture2D, targets.LinearDepth.Handle);
-        _gl.Uniform1(_gl.GetUniformLocation(_halfProgram, "tex_nld"), 0);
+        _gl.Uniform1(_gl.UniformLocation(_halfProgram, "tex_nld"), 0);
         resources.DrawFullscreenTriangle();
     }
 
     public void Dispose()
     {
-        _gl.DeleteProgram(_fullProgram);
-        _gl.DeleteProgram(_halfProgram);
+        _gl.ReleaseProgram(_fullProgram);
+        _gl.ReleaseProgram(_halfProgram);
     }
 }

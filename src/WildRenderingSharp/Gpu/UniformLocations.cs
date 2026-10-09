@@ -1,0 +1,36 @@
+using System.Runtime.CompilerServices;
+using Silk.NET.OpenGL;
+
+namespace WildRenderingSharp.Gpu;
+
+/// <summary>
+/// Uniform locations by program and name, asked of the driver once. A program's locations are fixed after it links, and a lookup costs
+/// about a microsecond, which a frame's few hundred uniform sets would otherwise pay each time. Programs must be deleted through
+/// <see cref="ReleaseProgram"/>, since the driver reuses a deleted program's name.
+/// </summary>
+internal static class UniformLocations
+{
+    static readonly ConditionalWeakTable<GL, Dictionary<uint, Dictionary<string, int>>> Contexts = new();
+
+    // The location of the uniform, or -1 when the program has none by that name (which is cached too).
+    public static int UniformLocation(this GL gl, uint program, string name)
+    {
+        var programs = Contexts.GetOrCreateValue(gl);
+        lock (programs)
+        {
+            if (!programs.TryGetValue(program, out var names))
+                programs[program] = names = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (!names.TryGetValue(name, out int location))
+                names[name] = location = gl.GetUniformLocation(program, name);
+            return location;
+        }
+    }
+
+    public static void ReleaseProgram(this GL gl, uint program)
+    {
+        var programs = Contexts.GetOrCreateValue(gl);
+        lock (programs)
+            programs.Remove(program);
+        gl.DeleteProgram(program);
+    }
+}

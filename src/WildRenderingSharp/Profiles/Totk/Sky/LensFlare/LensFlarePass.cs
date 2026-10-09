@@ -70,7 +70,7 @@ internal sealed class LensFlarePass : IDisposable
     {
         foreach (uint program in new[] { _program, _brightProgram, _blurProgram })
             if (program != 0)
-                _gl.DeleteProgram(program);
+                _gl.ReleaseProgram(program);
         _source.Dispose();
         _quad?.Dispose();
     }

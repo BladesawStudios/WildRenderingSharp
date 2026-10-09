@@ -103,11 +103,11 @@ internal sealed class ShaderProgramCache : IDisposable
     public void Dispose()
     {
         foreach (uint program in _programs.Values)
-            _gl.DeleteProgram(program);
+            _gl.ReleaseProgram(program);
         _programs.Clear();
         foreach (uint program in _instancedPrograms.Values)
             if (program != 0)
-                _gl.DeleteProgram(program);
+                _gl.ReleaseProgram(program);
         _instancedPrograms.Clear();
     }
 }

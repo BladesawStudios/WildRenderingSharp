@@ -95,8 +95,8 @@ internal sealed class ColorCorrectionPass : IDisposable
 
     public void Dispose()
     {
-        if (_program != 0) _gl.DeleteProgram(_program);
-        if (_blitProgram != 0) _gl.DeleteProgram(_blitProgram);
+        if (_program != 0) _gl.ReleaseProgram(_program);
+        if (_blitProgram != 0) _gl.ReleaseProgram(_blitProgram);
         if (_scratchTex != 0) _gl.DeleteTexture(_scratchTex);
         if (_scratchFbo != 0) _gl.DeleteFramebuffer(_scratchFbo);
     }

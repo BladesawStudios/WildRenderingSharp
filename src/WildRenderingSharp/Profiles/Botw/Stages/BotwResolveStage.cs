@@ -80,5 +80,5 @@ internal sealed class BotwResolveStage(StageServices services, BotwPasses passes
         passes.BindAt(BotwSamplers.LightAnalyzed, passes.LightAnalyzed);
     }
 
-    public void Dispose() => services.Gl.DeleteProgram(_flip);
+    public void Dispose() => services.Gl.ReleaseProgram(_flip);
 }

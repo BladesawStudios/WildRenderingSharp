@@ -47,11 +47,11 @@ internal sealed class MaterialIdPass : IDisposable
         _gl.BindTextureUniform(_program, "tex_material_id", 0, targets.GBuffer[0].Handle);
         _gl.BindTextureUniform(_program, "tex_gbuf_depth", 1, targets.GBufferDepth.Handle);
         _gl.SetInt(_program, "uCount", count);
-        _gl.Uniform1(_gl.GetUniformLocation(_program, "uPriority"), (uint)count, priorities);
-        _gl.Uniform1(_gl.GetUniformLocation(_program, "uPassId"), (uint)count, ids);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uPriority"), (uint)count, priorities);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uPassId"), (uint)count, ids);
         resources.DrawFullscreenTriangle();
         _gl.DepthMask(true);
     }
 
-    public void Dispose() => _gl.DeleteProgram(_program);
+    public void Dispose() => _gl.ReleaseProgram(_program);
 }

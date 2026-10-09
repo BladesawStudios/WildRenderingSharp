@@ -105,7 +105,7 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             ForwardProgram = shapePrograms.Forward,
             ForwardSamplers = SamplersFor(shapePrograms.Forward, sh.MaterialSamplers),
             ForwardShaderName = shapePrograms.Forward != 0 ? sh.MaterialShader : "",
-            ReadsSceneColor = gl.GetUniformLocation(shapePrograms.GBuffer, "cTex_ColorBuffer") >= 0,
+            ReadsSceneColor = gl.UniformLocation(shapePrograms.GBuffer, "cTex_ColorBuffer") >= 0,
             MaterialBlock = new MaterialBlock(gl, File.ReadAllBytes(Path.Combine(dataDirectory, sh.MaterialFile))),
             MaterialParams = MaterialParamLayout.TryLoadBeside(dataDirectory, sh.MaterialFile),
         };

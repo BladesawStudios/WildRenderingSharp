@@ -64,14 +64,14 @@ internal sealed class LightPrePass : IDisposable
         _gl.Disable(EnableCap.DepthTest);
         _gl.UseProgram(_program);
         _gl.SetMat4(_program, "uViewInv", p.ViewInv);
-        _gl.Uniform2(_gl.GetUniformLocation(_program, "uTanHalf"), p.TanHalf.X, p.TanHalf.Y);
-        _gl.Uniform1(_gl.GetUniformLocation(_program, "uNear"), p.Near);
-        _gl.Uniform1(_gl.GetUniformLocation(_program, "uFar"), p.Far);
-        _gl.Uniform3(_gl.GetUniformLocation(_program, "uSunWorld"), p.SunWorld.X, p.SunWorld.Y, p.SunWorld.Z);
-        _gl.Uniform3(_gl.GetUniformLocation(_program, "uSunColor"), p.SunColor.X, p.SunColor.Y, p.SunColor.Z);
-        _gl.Uniform3(_gl.GetUniformLocation(_program, "uHemiSky"), p.HemiSky.X, p.HemiSky.Y, p.HemiSky.Z);
-        _gl.Uniform3(_gl.GetUniformLocation(_program, "uHemiGround"), p.HemiGround.X, p.HemiGround.Y, p.HemiGround.Z);
-        _gl.Uniform1(_gl.GetUniformLocation(_program, "uDirect"), direct);
+        _gl.Uniform2(_gl.UniformLocation(_program, "uTanHalf"), p.TanHalf.X, p.TanHalf.Y);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uNear"), p.Near);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uFar"), p.Far);
+        _gl.Uniform3(_gl.UniformLocation(_program, "uSunWorld"), p.SunWorld.X, p.SunWorld.Y, p.SunWorld.Z);
+        _gl.Uniform3(_gl.UniformLocation(_program, "uSunColor"), p.SunColor.X, p.SunColor.Y, p.SunColor.Z);
+        _gl.Uniform3(_gl.UniformLocation(_program, "uHemiSky"), p.HemiSky.X, p.HemiSky.Y, p.HemiSky.Z);
+        _gl.Uniform3(_gl.UniformLocation(_program, "uHemiGround"), p.HemiGround.X, p.HemiGround.Y, p.HemiGround.Z);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uDirect"), direct);
 
         targets.BindColorTargetLayer(array, layer: 0);
         BindTexture(_program, "tex_nld", 0, targets.LinearDepth.Handle);
@@ -83,8 +83,8 @@ internal sealed class LightPrePass : IDisposable
     {
         _gl.ActiveTexture(TextureUnit.Texture0 + unit);
         _gl.BindTexture(TextureTarget.Texture2D, textureHandle);
-        _gl.Uniform1(_gl.GetUniformLocation(program, uniform), unit);
+        _gl.Uniform1(_gl.UniformLocation(program, uniform), unit);
     }
 
-    public void Dispose() => _gl.DeleteProgram(_program);
+    public void Dispose() => _gl.ReleaseProgram(_program);
 }

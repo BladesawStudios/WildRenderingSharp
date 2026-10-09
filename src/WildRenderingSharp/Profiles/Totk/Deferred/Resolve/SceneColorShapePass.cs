@@ -79,5 +79,5 @@ internal sealed class SceneColorShapePass : IDisposable
         _gl.ActiveTexture(TextureUnit.Texture0);
     }
 
-    public void Dispose() => _gl.DeleteProgram(_copyProgram);
+    public void Dispose() => _gl.ReleaseProgram(_copyProgram);
 }

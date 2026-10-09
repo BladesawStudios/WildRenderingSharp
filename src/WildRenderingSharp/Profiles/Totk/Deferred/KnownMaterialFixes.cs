@@ -79,7 +79,7 @@ internal sealed class KnownMaterialFixes : IDisposable
             foreach (var shape in flagged)
             {
                 _gl.SetMat4(_program, "uMVP", mvp);
-                _gl.Uniform1(_gl.GetUniformLocation(_program, "uSkinCount"), shape.VertexSkinCount);
+                _gl.Uniform1(_gl.UniformLocation(_program, "uSkinCount"), shape.VertexSkinCount);
                 _gl.BindVertexArray(shape.PassIdVao);
                 _gl.DrawElements(PrimitiveType.Triangles, (uint)shape.IndexCount, DrawElementsType.UnsignedInt, null);
             }
@@ -90,5 +90,5 @@ internal sealed class KnownMaterialFixes : IDisposable
         _gl.DepthFunc(DepthFunction.Less);
     }
 
-    public void Dispose() => _gl.DeleteProgram(_program);
+    public void Dispose() => _gl.ReleaseProgram(_program);
 }

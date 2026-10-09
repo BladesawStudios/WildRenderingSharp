@@ -46,7 +46,7 @@ internal sealed class FlipBlit : IDisposable
 
     public void Dispose()
     {
-        _gl.DeleteProgram(_flipProgram);
-        _gl.DeleteProgram(_floorProgram);
+        _gl.ReleaseProgram(_flipProgram);
+        _gl.ReleaseProgram(_floorProgram);
     }
 }

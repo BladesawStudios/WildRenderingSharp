@@ -53,7 +53,7 @@ sealed unsafe class CloudComposite(GL gl) : IDisposable
         gl.DeleteFramebuffer(_framebuffer);
         gl.DeleteTexture(_texture);
         if (_program != 0)
-            gl.DeleteProgram(_program);
+            gl.ReleaseProgram(_program);
     }
 
     void Resize(int width, int height)

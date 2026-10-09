@@ -21,5 +21,5 @@ internal sealed class BotwTonemapStage(StageServices services) : IFrameStage, ID
         GLDiagnostics.CheckPass(gl, "BotW tonemap");
     }
 
-    public void Dispose() => services.Gl.DeleteProgram(_program);
+    public void Dispose() => services.Gl.ReleaseProgram(_program);
 }

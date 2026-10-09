@@ -69,7 +69,7 @@ internal sealed class DeferredResolvePass : IDisposable
 
     public void Dispose()
     {
-        _gl.DeleteProgram(_composeProgram);
+        _gl.ReleaseProgram(_composeProgram);
         _gl.DeleteTexture(_texPreFog);
         _gl.DeleteTexture(_texVolumeMask);
         _cubeEnvironment.Dispose();

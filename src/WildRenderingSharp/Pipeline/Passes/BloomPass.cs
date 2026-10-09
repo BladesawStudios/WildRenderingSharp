@@ -57,9 +57,9 @@ internal sealed class BloomPass : IDisposable
 
     public void Dispose()
     {
-        _gl.DeleteProgram(_brightProgram);
-        _gl.DeleteProgram(_blurProgram);
-        _gl.DeleteProgram(_composeProgram);
+        _gl.ReleaseProgram(_brightProgram);
+        _gl.ReleaseProgram(_blurProgram);
+        _gl.ReleaseProgram(_composeProgram);
     }
 
     void DrawBright(GLResourceCache resources, GpuTexture source, float threshold, float clamp)

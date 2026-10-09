@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Gpu;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
 
@@ -6,8 +7,8 @@ namespace WildRenderingSharp.Pipeline.Drawing;
 readonly record struct InstanceUniforms(int First, int Stride, int PaletteVec4s, int PaletteRepeat)
 {
     public static InstanceUniforms Find(GL gl, uint program) => new(
-        gl.GetUniformLocation(program, InstancingContract.FirstInstanceUniform),
-        gl.GetUniformLocation(program, InstancingContract.StrideUniform),
-        gl.GetUniformLocation(program, InstancingContract.PaletteVec4sUniform),
-        gl.GetUniformLocation(program, InstancingContract.PaletteRepeatUniform));
+        gl.UniformLocation(program, InstancingContract.FirstInstanceUniform),
+        gl.UniformLocation(program, InstancingContract.StrideUniform),
+        gl.UniformLocation(program, InstancingContract.PaletteVec4sUniform),
+        gl.UniformLocation(program, InstancingContract.PaletteRepeatUniform));
 }

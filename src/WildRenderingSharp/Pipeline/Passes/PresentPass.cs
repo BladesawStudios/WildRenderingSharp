@@ -55,5 +55,5 @@ internal sealed class PresentPass : IDisposable
         _gl.SetInt(_program, "uUseAlpha", alphaSource is null ? 0 : 1);
     }
 
-    public void Dispose() => _gl.DeleteProgram(_program);
+    public void Dispose() => _gl.ReleaseProgram(_program);
 }

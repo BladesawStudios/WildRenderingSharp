@@ -45,7 +45,7 @@ internal sealed class HighlightOverlayPass : IDisposable
         _gl.SetMat4(_program, "uMVP", mvp);
         _gl.SetMat4(_program, "uViewProj", viewProj);
         _gl.SetVec4(_program, "uColor", color);
-        _gl.Uniform1(_gl.GetUniformLocation(_program, "uSkinCount"), shape.VertexSkinCount);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uSkinCount"), shape.VertexSkinCount);
 
         _gl.BindVertexArray(shape.PassIdVao);
         _gl.DrawElements(PrimitiveType.Triangles, (uint)shape.IndexCount, DrawElementsType.UnsignedInt, null);
@@ -53,5 +53,5 @@ internal sealed class HighlightOverlayPass : IDisposable
         _gl.Disable(EnableCap.Blend);
     }
 
-    public void Dispose() => _gl.DeleteProgram(_program);
+    public void Dispose() => _gl.ReleaseProgram(_program);
 }

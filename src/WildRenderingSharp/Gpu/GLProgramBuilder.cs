@@ -36,7 +36,7 @@ internal static class GLProgramBuilder
         if (linked == 0)
         {
             string log = gl.GetProgramInfoLog(program);
-            gl.DeleteProgram(program);
+            gl.ReleaseProgram(program);
             throw new InvalidOperationException($"Failed to link shader program '{label}':\n{log}");
         }
 
@@ -94,7 +94,7 @@ internal static class GLProgramBuilder
         if (linked != 0)
             return program;
 
-        gl.DeleteProgram(program);
+        gl.ReleaseProgram(program);
         try { File.Delete(path); } catch { /* compiled again and rewritten by the caller */ }
         return null;
     }

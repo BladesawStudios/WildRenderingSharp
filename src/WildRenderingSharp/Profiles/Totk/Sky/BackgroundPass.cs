@@ -134,5 +134,5 @@ internal sealed class BackgroundPass : IDisposable
         _gl.SetFloat(_skyProgram, p + "Density", postfxLayer.Density);
     }
 
-    public void Dispose() => _gl.DeleteProgram(_skyProgram);
+    public void Dispose() => _gl.ReleaseProgram(_skyProgram);
 }
