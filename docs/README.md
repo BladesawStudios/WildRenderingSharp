@@ -1,9 +1,5 @@
-# Research notes
+# Docs
 
-Working notes from reverse-engineering TotK's renderer: uniform-block layouts recovered from the
-game binary (Ghidra) and GPU captures (RenderDoc), the sky/cloud/postfx decode, and open research
-questions.
-
-They were written while this renderer lived inside the **Marrow** viewer, before it was split out
-into WildRenderingSharp, so "Marrow" in them means this renderer (and, where a UI is mentioned,
-that viewer). Code paths have been updated to this repository's layout.
+- [architecture.md](architecture.md) - the layers, a frame, how to add a game, and the tests.
+- [uniform_blocks.md](uniform_blocks.md) - what the slots of the games' uniform blocks hold.
+- [game-research.md](game-research.md) - what is known about how the games render.

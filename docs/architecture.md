@@ -99,23 +99,18 @@ GLSL reappears inside C# or a decompiler-named symbol turns up in `Glsl/`.
 dotnet test tests/WildRenderingSharp.Tests
 ```
 
-`UboSnapshotTests` pins the exact bytes of every UBO builder to a recorded SHA-256 in
-`tests/WildRenderingSharp.Tests/Snapshots`. `TotkProfileTests` checks the profile produces what the
-pipeline used to build inline. Neither needs a GL context.
+`UboSnapshotTests` pins the exact bytes of every UBO builder to a recorded SHA-256 in `tests/WildRenderingSharp.Tests/Snapshots`; re-record after a
+deliberate layout change with `WRS_UPDATE_SNAPSHOTS=1`. `LayeringTests` and `PublicApiTests` pin the layers and the public types. None of them needs a GL context.
 
-After a deliberate layout change, re-record with `WRS_UPDATE_SNAPSHOTS=1`. `LayeringTests` and `PublicApiTests` pin the layers and the public types.
-
-`tests/WildRenderingSharp.TestBench` is the GL check the unit tests cannot be: it prepares one actor from a
-romfs, opens a hidden GL 4.5 window, renders it through the real pipeline (sky, clouds, deferred lighting) and
-writes a PNG, failing on GL errors or a blank image:
+`tests/WildRenderingSharp.TestBench` is the GL check: it prepares one actor from a romfs, renders it through the real pipeline in a hidden GL 4.5 window
+and writes a PNG, failing on GL errors or a blank image. `--frames <n>` reports per-frame CPU and GPU time and allocations, and `--instances <n>` draws
+that many copies as one batch.
 
 ```bash
 dotnet run --project tests/WildRenderingSharp.TestBench -- --game totk --romfs <romfs dir> --actor Npc_Zelda_AncientHyrule --out zelda.png
 ```
 
-`--frames <n>` renders that many frames and reports the CPU time to submit each, the GPU time, where both went, and the bytes allocated per frame; `--instances <n>` draws that many copies of the actor as one instanced batch, the way a map does. `--game botw --romfs <Switch dump> --actor Link` prepares the model from the dump's packs and draws it through `Profiles/Botw`: the game's own G-buffer programs, then its own character shading passes (`--yaw <degrees>`, `--distance`, `--height` move the camera).
+`tests/WildRenderingSharp.RenderRegression` runs the test bench over a fixed set of scenes and compares each render with a baseline recorded on the same
+machine; see its README.
 
-`tests/WildRenderingSharp.RenderRegression` runs the test bench over a fixed set of scenes and compares each render with a baseline recorded on the same machine, which is how a change to a pass or shader is checked against the picture; see its README.
-
-Reverse-engineering findings that used to sit in XML docs (Ghidra addresses, manifest format history) are in
-[game-notes.md](game-notes.md).
+What is known about the games' renderers is in [game-research.md](game-research.md).

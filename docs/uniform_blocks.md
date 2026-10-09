@@ -41,8 +41,7 @@ TotK only:
   height `h` (`SceneMat[28].w`). At zero every point is sampled directly overhead.
 - The four fog groups stay zero. Enemy_MiasmaTentacle's Mt_Skin forward program (material_prog10336) reads `WorldFogMaskColor` (slot 16) and `FogFxColor`
   (slot 19) as a bare multiplier into its highlight colour, ungated by `.w`, so a placeholder skews it toward cyan. The Depths' palette
-  (MainField_Underground) authors a FogColor of (0.001, 0.005, 0.001), so zero is a faithful stand-in and stays inert for the gated fog blend (see
-  `env_slot47_research_request.md`).
+  (MainField_Underground) authors a FogColor of (0.001, 0.005, 0.001), so zero is a faithful stand-in and stays inert for the gated fog blend.
 - `Env[47].z = 1` makes the height-based ambient attenuation a no-op for any height (verified in chara_metal). `.x` and `.y` are inert: the one forward
   consumer (Mt_Skin's material_prog10336, `temp_348`) has the same z-protected shape, which at z = 1 collapses to `fma(temp_29, 0.5, 0.5)`.
   `temp_N` numbering is not stable across re-preparations, so re-verify by shape.
