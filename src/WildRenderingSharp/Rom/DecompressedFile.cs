@@ -13,8 +13,24 @@ sealed class DecompressedFile(byte[] bytes)
     static bool IsSarc(byte[] data) => data.Length >= 4 && data[0] == 'S' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C';
 }
 
-/// <summary>The entries of one SARC by name, ignoring case.</summary>
-sealed class RomArchive(Sarc sarc)
+/// <summary>The entries of one SARC by name: an exact match wins, then one that differs only in case.</summary>
+sealed class RomArchive
 {
-    public IReadOnlyDictionary<string, ArraySegment<byte>> Files { get; } = sarc.ToDictionary(e => e.Key, e => e.Value, StringComparer.OrdinalIgnoreCase);
+    readonly Dictionary<string, ArraySegment<byte>> _exact = new(StringComparer.Ordinal);
+    readonly Dictionary<string, ArraySegment<byte>> _ignoringCase = new(StringComparer.OrdinalIgnoreCase);
+
+    public RomArchive(Sarc sarc)
+    {
+        foreach (var (name, data) in sarc)
+        {
+            _exact[name] = data;
+            _ignoringCase.TryAdd(name, data);
+        }
+    }
+
+    public IEnumerable<string> Names => _exact.Keys;
+
+    public bool TryGet(string name, out ArraySegment<byte> data) => _exact.TryGetValue(name, out data) || _ignoringCase.TryGetValue(name, out data);
+
+    public bool Contains(string name) => TryGet(name, out _);
 }

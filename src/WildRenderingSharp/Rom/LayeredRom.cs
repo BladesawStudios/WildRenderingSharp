@@ -46,7 +46,7 @@ public sealed class LayeredRom : IRomAccess
         var (container, inner) = Split(path);
         if (inner is null)
             return LocateFile(container) is not null;
-        return Open(container) is { } archive && archive.Files.ContainsKey(inner);
+        return Open(container) is { } archive && archive.Contains(inner);
     }
 
     public IEnumerable<string> Enumerate(string directory, string searchPattern = "*")
@@ -94,7 +94,7 @@ public sealed class LayeredRom : IRomAccess
     {
         string prefix = inner.Length == 0 || inner.EndsWith('/') ? inner : inner + "/";
         var archive = Open(container);
-        return archive is null ? [] : archive.Files.Keys
+        return archive is null ? [] : archive.Names
             .Where(name => name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && !name[prefix.Length..].Contains('/')
                 && Matches(name[prefix.Length..], searchPattern))
             .Select(name => container + NestSeparator + name);
@@ -113,7 +113,7 @@ public sealed class LayeredRom : IRomAccess
         else
         {
             var archive = Open(container) ?? throw new FileNotFoundException($"'{container}' is not an archive in the ROM.");
-            if (!archive.Files.TryGetValue(inner, out var entry))
+            if (!archive.TryGet(inner, out var entry))
                 throw new FileNotFoundException($"'{inner}' is not in '{container}'.");
             stored = entry.AsSpan();
         }

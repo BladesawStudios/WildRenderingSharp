@@ -4,6 +4,7 @@ using WildRenderingSharp.Assets;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rom;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Scene;
 using WildRenderingSharp.Profiles.Totk.Terrain;
@@ -21,7 +22,6 @@ public sealed class WildRenderer : IDisposable
     readonly List<RenderActor> _actors = [];
 
     public CacheLayout Cache { get; }
-    public string? RomfsRoot { get; }
     public RenderEnvironment Environment { get; }
     public LightingContext Lighting { get; } = new();
     public TotkSettings Totk { get; } = new();
@@ -42,7 +42,7 @@ public sealed class WildRenderer : IDisposable
 
     public (int ActorIndex, int ShapeIndex)? Highlight { get; set; }
 
-    public WildRenderer(GL gl, CacheLayout cache, string? romfsRoot, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
+    public WildRenderer(GL gl, CacheLayout cache, IRomAccess? rom, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
     {
         if (!cache.HasSystemAssets)
             throw new InvalidOperationException(
@@ -50,8 +50,7 @@ public sealed class WildRenderer : IDisposable
 
         _gl = gl;
         Cache = cache;
-        RomfsRoot = romfsRoot;
-        Environment = environment ?? RenderEnvironment.Load(romfsRoot, cache);
+        Environment = environment ?? RenderEnvironment.Load(rom);
 
         using (GLHostState.Enter(gl))
         {

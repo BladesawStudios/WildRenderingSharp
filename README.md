@@ -17,7 +17,8 @@ await preparer.EnsureSystemAssetsAsync(romfs, CacheLayout.Default);
 string model = await preparer.PrepareAsync(new PrepareRequest(romfs, "Npc_Zelda", CacheLayout.Default));
 
 // On the GL thread (a 4.5-capable context).
-var renderer = new WildRenderer(gl, CacheLayout.Default, romfs);
+using var rom = TotkRom.Open(romfs);
+var renderer = new WildRenderer(gl, CacheLayout.Default, rom);
 var actor = renderer.AddActor(model);
 
 // Each frame.

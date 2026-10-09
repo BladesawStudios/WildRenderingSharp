@@ -1,4 +1,5 @@
 using WildRenderingSharp.Profiles.Totk.Terrain;
+using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
@@ -18,22 +19,21 @@ public sealed class RenderEnvironment
 
     public CloudWeather CloudWeather { get; private set; } = CloudWeather.Empty;
 
-
-    public void LoadFromRomfs(string? romfsRoot)
+    public void LoadFrom(IRomAccess? rom)
     {
-        Palettes = EnvPaletteLibrary.LoadFromRomfs(romfsRoot);
-        (SkyPostFx, CloudPostFx, ColorCorrection) = SkyPostFxLibrary.LoadFromRomfs(romfsRoot);
-        CloudWeather = CloudWeather.LoadFromRomfs(romfsRoot);
+        Palettes = EnvPaletteLibrary.Load(rom);
+        (SkyPostFx, CloudPostFx, ColorCorrection) = SkyPostFxLibrary.Load(rom);
+        CloudWeather = CloudWeather.Load(rom);
     }
 
     public TotkEnvironment Resolve(TotkSettings settings, ITerrainHost? terrain = null) =>
         new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings, CloudWeather);
 
 
-    public static RenderEnvironment Load(string? romfsRoot, CacheLayout cache)
+    public static RenderEnvironment Load(IRomAccess? rom)
     {
         var environment = new RenderEnvironment();
-        environment.LoadFromRomfs(romfsRoot);
+        environment.LoadFrom(rom);
         return environment;
     }
 }

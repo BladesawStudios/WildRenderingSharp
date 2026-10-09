@@ -90,4 +90,18 @@ public sealed class LayeredRomTests : IDisposable
             for (int i = 0; i < 3; i++)
                 Assert.Equal(Enumerable.Repeat((byte)i, 300).ToArray(), rom.ReadAllBytesNested($"Pack/{i}.pack//Model/{i}.bin").ToArray());
     }
+
+    [Fact]
+    public void ArchiveEntriesThatDifferOnlyInCaseAreEachFoundByTheirExactName()
+    {
+        var sarc = new Sarc { ["res/Dungeon.bin"] = new byte[] { 1 }, ["res/dungeon.bin"] = new byte[] { 2 } };
+        using var packed = new MemoryStream();
+        sarc.Write(packed);
+        Write(_baseDir, "Pack/Case.pack", packed.ToArray());
+        using var rom = new LayeredRom([_baseDir]);
+
+        Assert.Equal(new byte[] { 1 }, rom.ReadAllBytesNested("Pack/Case.pack//res/Dungeon.bin").ToArray());
+        Assert.Equal(new byte[] { 2 }, rom.ReadAllBytesNested("Pack/Case.pack//res/dungeon.bin").ToArray());
+        Assert.True(rom.Exists("Pack/Case.pack//RES/DUNGEON.BIN"));
+    }
 }

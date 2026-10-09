@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 /// <summary>
 /// A <c>game::wm::ResEnvPalette</c> record: the per-time-of-day and weather parameter set the runtime feeds the renderer, loaded
-/// from romfs (<c>Pack/EnvPalette.pack.zs</c>; see <see cref="EnvPaletteLibrary.LoadFromRomfs"/>).
+/// from romfs (<c>Pack/EnvPalette.pack.zs</c>; see <see cref="EnvPaletteLibrary.Load"/>).
 /// </summary>
 public sealed class EnvPalette
 {

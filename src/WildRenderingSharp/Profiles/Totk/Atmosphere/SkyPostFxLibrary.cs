@@ -1,13 +1,13 @@
 using System.Numerics;
 using System.Text.Json;
-using SarcLibrary;
+using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
-/// <summary>Loads the sky, cloud and colour-correction post-fx once from <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>; cached process-wide.</summary>
+/// <summary>Loads the sky, cloud and colour-correction post-fx from <c>Env/GameScene.Nin_NX_NVN.genvb.zs</c>.</summary>
 public static class SkyPostFxLibrary
 {
-    static (SkyPostFx Sky, CloudPostFx Cloud, ColorCorrectionPostFx ColorCorrection)? _cached;
+    const string Archive = "Env/GameScene.Nin_NX_NVN.genvb.zs";
 
 
     static ColorCorrectionPostFx ColorCorrectionFromJson(JsonElement el)
@@ -41,35 +41,22 @@ public static class SkyPostFxLibrary
         return cc;
     }
 
-    public static (SkyPostFx Sky, CloudPostFx Cloud, ColorCorrectionPostFx ColorCorrection) LoadFromRomfs(string? romfsRoot)
+    public static (SkyPostFx Sky, CloudPostFx Cloud, ColorCorrectionPostFx ColorCorrection) Load(IRomAccess? rom)
     {
-        if (_cached is { } cached)
-            return cached;
-
         var fallback = (Sky: SkyPostFx.Default, Cloud: CloudPostFx.Default, ColorCorrection: ColorCorrectionPostFx.Default);
-        if (string.IsNullOrEmpty(romfsRoot))
+        if (rom is null)
             return fallback;
-
-        string genvbPath = Path.Combine(romfsRoot, "Env", "GameScene.Nin_NX_NVN.genvb.zs");
-        if (!File.Exists(genvbPath))
+        if (!rom.Exists(Archive))
         {
-            Console.WriteLine($"[SkyPostFxLibrary] no GameScene.Nin_NX_NVN.genvb.zs under '{romfsRoot}' - TotK Sky background falls back to hand-transcribed defaults.");
+            Console.WriteLine($"[SkyPostFxLibrary] no {Archive} - TotK Sky background falls back to hand-transcribed defaults.");
             return fallback;
         }
 
         try
         {
-            byte[] raw = File.ReadAllBytes(genvbPath);
-            byte[] decompressed = TotkCommon.Zstd.IsCompressed(raw) ? TotkCommon.Totk.Zstd.Decompress(raw) : raw;
-            var sarc = Sarc.FromBinary(new ArraySegment<byte>(decompressed));
-
-            byte[]? skyBytes = null, cloudBytes = null, ccrBytes = null;
-            foreach (var (path, data) in sarc)
-            {
-                if (path == "postfx/master_field.baglsky") skyBytes = data.ToArray();
-                else if (path == "postfx/master_field.baglclwd") cloudBytes = data.ToArray();
-                else if (path == "postfx/master_field.baglccr") ccrBytes = data.ToArray();
-            }
+            byte[]? skyBytes = ReadEntry(rom, "master_field.baglsky");
+            byte[]? cloudBytes = ReadEntry(rom, "master_field.baglclwd");
+            byte[]? ccrBytes = ReadEntry(rom, "master_field.baglccr");
             if (skyBytes is null) Console.WriteLine("[SkyPostFxLibrary] 'postfx/master_field.baglsky' not found in genvb archive - using defaults for sky.");
             if (cloudBytes is null) Console.WriteLine("[SkyPostFxLibrary] 'postfx/master_field.baglclwd' not found in genvb archive - using defaults for clouds.");
 
@@ -83,13 +70,18 @@ public static class SkyPostFxLibrary
 
             Console.WriteLine($"[SkyPostFxLibrary] loaded real sky/cloud postfx from romfs " +
                 $"(colour correction: enable={cc.Enable} saturation={cc.Saturation:G4} brightness={cc.Brightness:G4} gamma={cc.Gamma:G4} toycam={cc.ToycamEnable}).");
-            _cached = (sky, cloud, cc);
-            return _cached.Value;
+            return (sky, cloud, cc);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[SkyPostFxLibrary] failed to load real postfx from romfs, using defaults: {ex.Message}");
             return fallback;
         }
+    }
+
+    static byte[]? ReadEntry(IRomAccess rom, string name)
+    {
+        string path = $"{Archive}//postfx/{name}";
+        return rom.Exists(path) ? rom.ReadAllBytesNested(path).ToArray() : null;
     }
 }

@@ -1,5 +1,5 @@
 using BymlLibrary;
-using SarcLibrary;
+using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
@@ -17,7 +17,8 @@ public sealed class EnvPaletteLibrary
 
     public const string DefaultPaletteName = StudioLightPaletteName;
 
-    const string EntryPrefix = "WorldMgr/ResEnvPalette/";
+    const string Pack = "Pack/EnvPalette.pack.zs";
+    const string EntryDirectory = "WorldMgr/ResEnvPalette";
     const string EntrySuffix = ".game__wm__ResEnvPalette.bgyml";
 
     public IReadOnlyCollection<string> Names => _byName.Keys;
@@ -32,12 +33,6 @@ public sealed class EnvPaletteLibrary
         lib.AddPreset("UI", BuildUiPreset());
         return lib;
     }
-
-    /// <summary>
-    /// Loads every ResEnvPalette from <paramref name="romfsRoot"/>, or returns <see cref="Empty"/> (with a log line) if
-    /// <c>Pack/EnvPalette.pack.zs</c> is not there. Delta palettes name another palette in <c>$parent</c> and override only
-    /// some fields; those are flattened once here, with cycle protection, so every palette handed out is complete.
-    /// </summary>
 
     static Dictionary<string, object?> DeepMerge(
         IReadOnlyDictionary<string, object?> parent, IReadOnlyDictionary<string, object?> child)
@@ -59,35 +54,28 @@ public sealed class EnvPaletteLibrary
         return merged;
     }
 
-    public static EnvPaletteLibrary LoadFromRomfs(string? romfsRoot)
+    /// <summary>
+    /// Loads every ResEnvPalette from <c>Pack/EnvPalette.pack.zs</c>, or returns <see cref="Empty"/> (with a log line) if
+    /// <paramref name="rom"/> has none. Delta palettes name another palette in <c>$parent</c> and override only
+    /// some fields; those are flattened once here, with cycle protection, so every palette handed out is complete.
+    /// </summary>
+    public static EnvPaletteLibrary Load(IRomAccess? rom)
     {
         var lib = Empty();
-        if (string.IsNullOrEmpty(romfsRoot))
+        if (rom is null)
             return lib;
-
-        string pkgPath = Path.Combine(romfsRoot, "Pack", "EnvPalette.pack.zs");
-        if (!File.Exists(pkgPath))
+        if (!rom.Exists(Pack))
         {
-            Console.WriteLine($"[EnvPaletteLibrary] no EnvPalette.pack.zs under '{romfsRoot}' - only the built-in presets are available.");
+            Console.WriteLine($"[EnvPaletteLibrary] no {Pack} - only the built-in presets are available.");
             return lib;
         }
 
-        TotkCommon.Totk.Config.GamePath = romfsRoot;
-        byte[] raw = File.ReadAllBytes(pkgPath);
-        byte[] decompressed = TotkCommon.Zstd.IsCompressed(raw) ? TotkCommon.Totk.Zstd.Decompress(raw) : raw;
-        var sarc = Sarc.FromBinary(new ArraySegment<byte>(decompressed));
-
         var rawByName = new Dictionary<string, Dictionary<string, object?>>(StringComparer.Ordinal);
-        foreach (var (path, data) in sarc)
+        foreach (string entry in rom.Enumerate($"{Pack}//{EntryDirectory}", "*" + EntrySuffix))
         {
-            if (!path.StartsWith(EntryPrefix, StringComparison.Ordinal) || !path.EndsWith(EntrySuffix, StringComparison.Ordinal))
-                continue;
-            string name = path[EntryPrefix.Length..^EntrySuffix.Length];
-            byte[] bymlBytes = data.ToArray();
-            if (TotkCommon.Zstd.IsCompressed(bymlBytes))
-                bymlBytes = TotkCommon.Totk.Zstd.Decompress(bymlBytes);
-            var map = (Dictionary<string, object?>)EnvPalette.FromByml(Byml.FromBinary(bymlBytes))!;
-            rawByName[name] = map;
+            string name = Path.GetFileName(entry)[..^EntrySuffix.Length];
+            var bymlBytes = rom.ReadAllBytesNested(entry).ToArray();
+            rawByName[name] = (Dictionary<string, object?>)EnvPalette.FromByml(Byml.FromBinary(bymlBytes))!;
         }
 
         var resolved = new Dictionary<string, Dictionary<string, object?>>(StringComparer.Ordinal);
@@ -124,7 +112,7 @@ public sealed class EnvPaletteLibrary
             lib._byName[name] = new EnvPalette(name, Resolve(name, new HashSet<string>(StringComparer.Ordinal)));
         }
 
-        Console.WriteLine($"[EnvPaletteLibrary] loaded {rawByName.Count} palettes from '{pkgPath}'.");
+        Console.WriteLine($"[EnvPaletteLibrary] loaded {rawByName.Count} palettes from '{Pack}'.");
         return lib;
     }
 

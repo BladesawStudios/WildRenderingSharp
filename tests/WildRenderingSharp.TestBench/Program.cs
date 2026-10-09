@@ -6,6 +6,7 @@ using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Preparation;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rom;
 using WildRenderingSharp.TestBench;
 
 // Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline.
@@ -57,7 +58,8 @@ window.Initialize();
 using var gl = GL.GetApi(window.GLContext);
 Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
-var renderer = new WildRenderer(gl, cache, romfs, initialWidth: size, initialHeight: size);
+using var rom = TotkRom.Open(romfs);
+var renderer = new WildRenderer(gl, cache, rom, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
 renderer.AddActor(model);
 if (game == "totk")
