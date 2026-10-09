@@ -26,7 +26,7 @@ internal sealed class PassIdMaskPass : IDisposable
     readonly uint _instancedProgram;
     float _near, _far;
 
-    // Mirrors the compiled vertex shader's skinning: blend indices are float attributes carrying integer bits, and _Mtx (binding 2) is three row-vector vec4s per bone.
+    // Mirrors the compiled vertex shader's skinning: blend indices are float attributes carrying integer bits, and _Mtx (binding 2) has bone transforms in mat3x4 format.
     // A skinned draw has the model matrix folded into every palette entry, so only SKIN_COUNT == 0 uses uMVP.
     static readonly string VertexSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.vert");
 
