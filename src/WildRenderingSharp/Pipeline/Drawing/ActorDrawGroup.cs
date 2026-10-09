@@ -25,7 +25,7 @@ public readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector
         new([], GpuMatrix.Rows(Matrix4x4.Identity, 3), shapes, batch, shadowRuns, cascade, profile.InstancedActorBlocks);
 
     List<(int First, int Count, int Lod)>? Runs => Batch is null ? null
-        : ShadowRuns ? (Cascade >= 0 ? Batch.CascadeRuns(Cascade) : Batch.ShadowVisible) : Batch.Visible;
+        : ShadowRuns ? (Cascade >= 0 ? Batch.Shadow.Cascade(Cascade) : Batch.Shadow.Visible) : Batch.Visible;
 
     public string Label => Batch is { } b ? Path.GetFileName(b.Model.DataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) : (Shapes.Count > 0 ? Shapes[0].Name : "actor");
 

@@ -28,7 +28,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
 
         if (request.ShadowFocus is { } shadowFocus)
             foreach (var batch in frame.Instances)
-                batch.UpdateShadowRuns(shadowFocus);
+                batch.Shadow.Update(shadowFocus);
 
         frame.Cascades = request.ShadowCascades is { Count: > 0 } cascades && frame.ShadowMapOverride is null
             ? RenderCascades(frame, cascades)
@@ -100,7 +100,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
             return [.. frame.CastingGroups.Select(WithoutSceneColorShapes)];
 
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
-        foreach (var batch in frame.Instances.Where(b => b.ShadowVisible.Count > 0))
+        foreach (var batch in frame.Instances.Where(b => b.Shadow.Visible.Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true));
         return groups;
     }
@@ -127,7 +127,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
             var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
             var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
             foreach (var batch in frame.Instances)
-                batch.UpdateCascadeRuns(c, focus, right, up, lightRadius);
+                batch.Shadow.UpdateCascade(c, focus, right, up, lightRadius);
 
             long signature = CascadeSignature(frame, c, focus, actorSignature);
             if (cache.CascadeSignature[c] != signature)
@@ -163,7 +163,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
         foreach (var batch in frame.Instances)
         {
             hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(batch));
-            foreach (var run in batch.CascadeRuns(cascade))
+            foreach (var run in batch.Shadow.Cascade(cascade))
                 hash.Add(run);
         }
         return (uint)hash.ToHashCode() | (1L << 40);
@@ -174,7 +174,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)));
 
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
-        foreach (var batch in frame.Instances.Where(b => b.CascadeRuns(cascade).Count > 0))
+        foreach (var batch in frame.Instances.Where(b => b.Shadow.Cascade(cascade).Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
         _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
 

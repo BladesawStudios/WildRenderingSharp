@@ -56,7 +56,7 @@ public static class ShadowSignatures
         foreach (var batch in instances)
         {
             hash.Add(RuntimeHelpers.GetHashCode(batch));
-            foreach (var run in shadowRuns ? batch.ShadowVisible : batch.Visible)
+            foreach (var run in shadowRuns ? batch.Shadow.Visible : batch.Visible)
                 hash.Add(run);
         }
         return hash.ToHashCode();

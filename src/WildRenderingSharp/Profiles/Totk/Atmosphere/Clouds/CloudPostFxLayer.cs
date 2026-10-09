@@ -85,76 +85,116 @@ public sealed class CloudPostFxLayer
 
     internal static CloudPostFxLayer FromJson(JsonElement layer)
     {
-        var d = Default;
-        return new CloudPostFxLayer
-        {
-            IsEnable = SkyPostFx.ReadBool(layer, "mIsEnable", d.IsEnable),
-            BaseTextureNo = SkyPostFx.ReadInt(layer, "mBaseTextureNo", d.BaseTextureNo),
-            NoiseTextureNo = SkyPostFx.ReadInt(layer, "mNoiseTextureNo", d.NoiseTextureNo),
-            CloudTexBlend = SkyPostFx.ReadBool(layer, "mbCloudTexBlend", d.CloudTexBlend),
-            CloudTexBlendRate = SkyPostFx.ReadFloat(layer, "mCloudTexBlendRate", d.CloudTexBlendRate),
-            BaseTextureNoBlend = SkyPostFx.ReadInt(layer, "mBaseTextureNo_Blend", d.BaseTextureNoBlend),
-            NoiseTextureNoBlend = SkyPostFx.ReadInt(layer, "mNoiseTextureNo_Blend", d.NoiseTextureNoBlend),
-            ScatterHeight = SkyPostFx.ReadFloat(layer, "mScatterHeight", d.ScatterHeight),
-            ScatterAmb = SkyPostFx.ReadFloat(layer, "mScatterAmb", d.ScatterAmb),
-            SunOccChkSize = SkyPostFx.ReadFloat(layer, "mSunOccChkSize", d.SunOccChkSize),
-            DarkSideNoiseParam = SkyPostFx.ReadFloat(layer, "mDarkSideNoiseParam", d.DarkSideNoiseParam),
-            LightSideNoiseParam = SkyPostFx.ReadFloat(layer, "mLightSideNoiseParam", d.LightSideNoiseParam),
-            Distotion = SkyPostFx.ReadFloat(layer, "mDistotion", d.Distotion),
-            Density = SkyPostFx.ReadFloat(layer, "mDensity", d.Density),
-            NoiseSpeedMaster = SkyPostFx.ReadFloat(layer, "mNoiseSpeedMaster", d.NoiseSpeedMaster),
-            NoiseSpeed1X = SkyPostFx.ReadFloat(layer, "mNoiseSpeed1X", d.NoiseSpeed1X),
-            NoiseSpeed1Y = SkyPostFx.ReadFloat(layer, "mNoiseSpeed1Y", d.NoiseSpeed1Y),
-            NoiseSpeed2X = SkyPostFx.ReadFloat(layer, "mNoiseSpeed2X", d.NoiseSpeed2X),
-            NoiseSpeed2Y = SkyPostFx.ReadFloat(layer, "mNoiseSpeed2Y", d.NoiseSpeed2Y),
-            NoiseScale1 = SkyPostFx.ReadFloat(layer, "mNoiseScale1", d.NoiseScale1),
-            NoiseScale2 = SkyPostFx.ReadFloat(layer, "mNoiseScale2", d.NoiseScale2),
-            NoiseDensity1 = SkyPostFx.ReadFloat(layer, "mNoiseDensity1", d.NoiseDensity1),
-            NoiseDensity2 = SkyPostFx.ReadFloat(layer, "mNoiseDensity2", d.NoiseDensity2),
-            EmbossWidth = SkyPostFx.ReadFloat(layer, "mEmbossWidth", d.EmbossWidth),
-            EmbossDensity = SkyPostFx.ReadFloat(layer, "mEmbossDensity", d.EmbossDensity),
-            HilightPower = SkyPostFx.ReadFloat(layer, "mHilightPower", d.HilightPower),
-            ShadowPower = SkyPostFx.ReadFloat(layer, "mShadowPower", d.ShadowPower),
-            HighlightRange = SkyPostFx.ReadFloat(layer, "mHighlightRange", d.HighlightRange),
-            HighlightAmbient = SkyPostFx.ReadFloat(layer, "mHighlightAmbient", d.HighlightAmbient),
-            AlphaMul = SkyPostFx.ReadFloat(layer, "mAlphaMul", d.AlphaMul),
-            AlphaThreshold = SkyPostFx.ReadFloat(layer, "mAlphaThreshold", d.AlphaThreshold),
-            BacklightColor = SkyPostFx.ReadColorRgb(layer, "mBacklightColor", d.BacklightColor),
-            BacklightPower = SkyPostFx.ReadFloat(layer, "mBacklightPower", d.BacklightPower),
-            BacklightRange = SkyPostFx.ReadFloat(layer, "mBacklightRange", d.BacklightRange),
-            BacklightParam0 = SkyPostFx.ReadFloat(layer, "mBacklightParam0", d.BacklightParam0),
-            BacklightParam1 = SkyPostFx.ReadFloat(layer, "mBacklightParam1", d.BacklightParam1),
-            BaseColor = SkyPostFx.ReadColorRgb(layer, "mBaseColor", d.BaseColor),
-            HilightColor = SkyPostFx.ReadColorRgb(layer, "mHilightColor", d.HilightColor),
-            ShadowColor = SkyPostFx.ReadColorRgb(layer, "mShadowColor", d.ShadowColor),
-            BaseColorIntensity = SkyPostFx.ReadFloat(layer, "mBaseColorIntensity", d.BaseColorIntensity),
-            HilightColorIntensity = SkyPostFx.ReadFloat(layer, "mHilightColorIntensity", d.HilightColorIntensity),
-            ShadowColorIntensity = SkyPostFx.ReadFloat(layer, "mShadowColorIntensity", d.ShadowColorIntensity),
-            BaseTexScale = SkyPostFx.ReadFloat(layer, "mBaseTexScale", d.BaseTexScale),
-            BaseTexScrollSpdX = SkyPostFx.ReadFloat(layer, "mBaseTexScrollSpdX", d.BaseTexScrollSpdX),
-            BaseTexScrollSpdY = SkyPostFx.ReadFloat(layer, "mBaseTexScrollSpdY", d.BaseTexScrollSpdY),
-            SkyScale = SkyPostFx.ReadFloat(layer, "mSkyScale", d.SkyScale),
-            SkyHeight = SkyPostFx.ReadFloat(layer, "mSkyHeight", d.SkyHeight),
-            SunPosX = SkyPostFx.ReadFloat(layer, "mSunPosX", d.SunPosX),
-            SunPosY = SkyPostFx.ReadFloat(layer, "mSunPosY", d.SunPosY),
-            FarUVPow = SkyPostFx.ReadFloat(layer, "mFarUVPow", d.FarUVPow),
-            FarUVMul = SkyPostFx.ReadFloat(layer, "mFarUVMul", d.FarUVMul),
-            FarDensityChgStart = SkyPostFx.ReadFloat(layer, "mFarDensityChgStart", d.FarDensityChgStart),
-            FarDensityChgEnd = SkyPostFx.ReadFloat(layer, "mFarDensityChgEnd", d.FarDensityChgEnd),
-            FarDensityChgPower = SkyPostFx.ReadFloat(layer, "mFarDensityChgPower", d.FarDensityChgPower),
-            FarAlphaChgStart = SkyPostFx.ReadFloat(layer, "mFarAlphaChgStart", d.FarAlphaChgStart),
-            FarAlphaChgEnd = SkyPostFx.ReadFloat(layer, "mFarAlphaChgEnd", d.FarAlphaChgEnd),
-            FarAlphaChgPower = SkyPostFx.ReadFloat(layer, "mFarAlphaChgPower", d.FarAlphaChgPower),
-            FarDistotionChgStart = SkyPostFx.ReadFloat(layer, "mFarDistotionChgStart", d.FarDistotionChgStart),
-            FarDistotionChgEnd = SkyPostFx.ReadFloat(layer, "mFarDistotionChgEnd", d.FarDistotionChgEnd),
-            FarDistotionChgPower = SkyPostFx.ReadFloat(layer, "mFarDistotionChgPower", d.FarDistotionChgPower),
-            PosDensityChgX = SkyPostFx.ReadFloat(layer, "mPosDensityChgX", d.PosDensityChgX),
-            PosDensityChgY = SkyPostFx.ReadFloat(layer, "mPosDensityChgY", d.PosDensityChgY),
-            PosDensityChgRange = SkyPostFx.ReadFloat(layer, "mPosDensityChgRange", d.PosDensityChgRange),
-            PosDensityChgPower = SkyPostFx.ReadFloat(layer, "mPosDensityChgPower", d.PosDensityChgPower),
-            UseProcedualTexture = SkyPostFx.ReadBool(layer, "mUseProcedualTexture", d.UseProcedualTexture),
-            UseScatter = SkyPostFx.ReadBool(layer, "mUseScatter", d.UseScatter),
-            UseDebugDispSun = SkyPostFx.ReadBool(layer, "mUseDebugDispSun", d.UseDebugDispSun),
-        };
+        var result = Default.Copy();
+        result.ReadTextures(layer);
+        result.ReadNoise(layer);
+        result.ReadShading(layer);
+        result.ReadColors(layer);
+        result.ReadDome(layer);
+        result.ReadFades(layer);
+        result.ReadSwitches(layer);
+        return result;
+    }
+
+    // Which textures the layer samples and how it blends between two sets.
+    void ReadTextures(JsonElement layer)
+    {
+        IsEnable = SkyPostFx.ReadBool(layer, "mIsEnable", IsEnable);
+        BaseTextureNo = SkyPostFx.ReadInt(layer, "mBaseTextureNo", BaseTextureNo);
+        NoiseTextureNo = SkyPostFx.ReadInt(layer, "mNoiseTextureNo", NoiseTextureNo);
+        CloudTexBlend = SkyPostFx.ReadBool(layer, "mbCloudTexBlend", CloudTexBlend);
+        CloudTexBlendRate = SkyPostFx.ReadFloat(layer, "mCloudTexBlendRate", CloudTexBlendRate);
+        BaseTextureNoBlend = SkyPostFx.ReadInt(layer, "mBaseTextureNo_Blend", BaseTextureNoBlend);
+        NoiseTextureNoBlend = SkyPostFx.ReadInt(layer, "mNoiseTextureNo_Blend", NoiseTextureNoBlend);
+    }
+
+    // The scatter terms and the two scrolling noise layers.
+    void ReadNoise(JsonElement layer)
+    {
+        ScatterHeight = SkyPostFx.ReadFloat(layer, "mScatterHeight", ScatterHeight);
+        ScatterAmb = SkyPostFx.ReadFloat(layer, "mScatterAmb", ScatterAmb);
+        SunOccChkSize = SkyPostFx.ReadFloat(layer, "mSunOccChkSize", SunOccChkSize);
+        DarkSideNoiseParam = SkyPostFx.ReadFloat(layer, "mDarkSideNoiseParam", DarkSideNoiseParam);
+        LightSideNoiseParam = SkyPostFx.ReadFloat(layer, "mLightSideNoiseParam", LightSideNoiseParam);
+        Distotion = SkyPostFx.ReadFloat(layer, "mDistotion", Distotion);
+        Density = SkyPostFx.ReadFloat(layer, "mDensity", Density);
+        NoiseSpeedMaster = SkyPostFx.ReadFloat(layer, "mNoiseSpeedMaster", NoiseSpeedMaster);
+        NoiseSpeed1X = SkyPostFx.ReadFloat(layer, "mNoiseSpeed1X", NoiseSpeed1X);
+        NoiseSpeed1Y = SkyPostFx.ReadFloat(layer, "mNoiseSpeed1Y", NoiseSpeed1Y);
+        NoiseSpeed2X = SkyPostFx.ReadFloat(layer, "mNoiseSpeed2X", NoiseSpeed2X);
+        NoiseSpeed2Y = SkyPostFx.ReadFloat(layer, "mNoiseSpeed2Y", NoiseSpeed2Y);
+        NoiseScale1 = SkyPostFx.ReadFloat(layer, "mNoiseScale1", NoiseScale1);
+        NoiseScale2 = SkyPostFx.ReadFloat(layer, "mNoiseScale2", NoiseScale2);
+        NoiseDensity1 = SkyPostFx.ReadFloat(layer, "mNoiseDensity1", NoiseDensity1);
+        NoiseDensity2 = SkyPostFx.ReadFloat(layer, "mNoiseDensity2", NoiseDensity2);
+    }
+
+    // Emboss, highlight, shadow and alpha shaping.
+    void ReadShading(JsonElement layer)
+    {
+        EmbossWidth = SkyPostFx.ReadFloat(layer, "mEmbossWidth", EmbossWidth);
+        EmbossDensity = SkyPostFx.ReadFloat(layer, "mEmbossDensity", EmbossDensity);
+        HilightPower = SkyPostFx.ReadFloat(layer, "mHilightPower", HilightPower);
+        ShadowPower = SkyPostFx.ReadFloat(layer, "mShadowPower", ShadowPower);
+        HighlightRange = SkyPostFx.ReadFloat(layer, "mHighlightRange", HighlightRange);
+        HighlightAmbient = SkyPostFx.ReadFloat(layer, "mHighlightAmbient", HighlightAmbient);
+        AlphaMul = SkyPostFx.ReadFloat(layer, "mAlphaMul", AlphaMul);
+        AlphaThreshold = SkyPostFx.ReadFloat(layer, "mAlphaThreshold", AlphaThreshold);
+    }
+
+    // The backlight, base, highlight and shadow colours and their intensities.
+    void ReadColors(JsonElement layer)
+    {
+        BacklightColor = SkyPostFx.ReadColorRgb(layer, "mBacklightColor", BacklightColor);
+        BacklightPower = SkyPostFx.ReadFloat(layer, "mBacklightPower", BacklightPower);
+        BacklightRange = SkyPostFx.ReadFloat(layer, "mBacklightRange", BacklightRange);
+        BacklightParam0 = SkyPostFx.ReadFloat(layer, "mBacklightParam0", BacklightParam0);
+        BacklightParam1 = SkyPostFx.ReadFloat(layer, "mBacklightParam1", BacklightParam1);
+        BaseColor = SkyPostFx.ReadColorRgb(layer, "mBaseColor", BaseColor);
+        HilightColor = SkyPostFx.ReadColorRgb(layer, "mHilightColor", HilightColor);
+        ShadowColor = SkyPostFx.ReadColorRgb(layer, "mShadowColor", ShadowColor);
+        BaseColorIntensity = SkyPostFx.ReadFloat(layer, "mBaseColorIntensity", BaseColorIntensity);
+        HilightColorIntensity = SkyPostFx.ReadFloat(layer, "mHilightColorIntensity", HilightColorIntensity);
+        ShadowColorIntensity = SkyPostFx.ReadFloat(layer, "mShadowColorIntensity", ShadowColorIntensity);
+    }
+
+    // The base texture scroll, the dome size and height, and where the sun sits on it.
+    void ReadDome(JsonElement layer)
+    {
+        BaseTexScale = SkyPostFx.ReadFloat(layer, "mBaseTexScale", BaseTexScale);
+        BaseTexScrollSpdX = SkyPostFx.ReadFloat(layer, "mBaseTexScrollSpdX", BaseTexScrollSpdX);
+        BaseTexScrollSpdY = SkyPostFx.ReadFloat(layer, "mBaseTexScrollSpdY", BaseTexScrollSpdY);
+        SkyScale = SkyPostFx.ReadFloat(layer, "mSkyScale", SkyScale);
+        SkyHeight = SkyPostFx.ReadFloat(layer, "mSkyHeight", SkyHeight);
+        SunPosX = SkyPostFx.ReadFloat(layer, "mSunPosX", SunPosX);
+        SunPosY = SkyPostFx.ReadFloat(layer, "mSunPosY", SunPosY);
+    }
+
+    // How density, alpha and distortion change toward the horizon and across the dome.
+    void ReadFades(JsonElement layer)
+    {
+        FarUVPow = SkyPostFx.ReadFloat(layer, "mFarUVPow", FarUVPow);
+        FarUVMul = SkyPostFx.ReadFloat(layer, "mFarUVMul", FarUVMul);
+        FarDensityChgStart = SkyPostFx.ReadFloat(layer, "mFarDensityChgStart", FarDensityChgStart);
+        FarDensityChgEnd = SkyPostFx.ReadFloat(layer, "mFarDensityChgEnd", FarDensityChgEnd);
+        FarDensityChgPower = SkyPostFx.ReadFloat(layer, "mFarDensityChgPower", FarDensityChgPower);
+        FarAlphaChgStart = SkyPostFx.ReadFloat(layer, "mFarAlphaChgStart", FarAlphaChgStart);
+        FarAlphaChgEnd = SkyPostFx.ReadFloat(layer, "mFarAlphaChgEnd", FarAlphaChgEnd);
+        FarAlphaChgPower = SkyPostFx.ReadFloat(layer, "mFarAlphaChgPower", FarAlphaChgPower);
+        FarDistotionChgStart = SkyPostFx.ReadFloat(layer, "mFarDistotionChgStart", FarDistotionChgStart);
+        FarDistotionChgEnd = SkyPostFx.ReadFloat(layer, "mFarDistotionChgEnd", FarDistotionChgEnd);
+        FarDistotionChgPower = SkyPostFx.ReadFloat(layer, "mFarDistotionChgPower", FarDistotionChgPower);
+        PosDensityChgX = SkyPostFx.ReadFloat(layer, "mPosDensityChgX", PosDensityChgX);
+        PosDensityChgY = SkyPostFx.ReadFloat(layer, "mPosDensityChgY", PosDensityChgY);
+        PosDensityChgRange = SkyPostFx.ReadFloat(layer, "mPosDensityChgRange", PosDensityChgRange);
+        PosDensityChgPower = SkyPostFx.ReadFloat(layer, "mPosDensityChgPower", PosDensityChgPower);
+    }
+
+    // The procedural-texture, scatter and sun-debug switches.
+    void ReadSwitches(JsonElement layer)
+    {
+        UseProcedualTexture = SkyPostFx.ReadBool(layer, "mUseProcedualTexture", UseProcedualTexture);
+        UseScatter = SkyPostFx.ReadBool(layer, "mUseScatter", UseScatter);
+        UseDebugDispSun = SkyPostFx.ReadBool(layer, "mUseDebugDispSun", UseDebugDispSun);
     }
 }
