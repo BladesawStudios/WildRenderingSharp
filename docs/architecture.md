@@ -103,7 +103,7 @@ dotnet test tests/WildRenderingSharp.Tests
 `tests/WildRenderingSharp.Tests/Snapshots`. `TotkProfileTests` checks the profile produces what the
 pipeline used to build inline. Neither needs a GL context.
 
-After a deliberate layout change, re-record with `WRS_UPDATE_SNAPSHOTS=1`.
+After a deliberate layout change, re-record with `WRS_UPDATE_SNAPSHOTS=1`. `LayeringTests` and `PublicApiTests` pin the layers and the public types.
 
 `tests/WildRenderingSharp.TestBench` is the GL check the unit tests cannot be: it prepares one actor from a
 romfs, opens a hidden GL 4.5 window, renders it through the real pipeline (sky, clouds, deferred lighting) and
@@ -114,6 +114,8 @@ dotnet run --project tests/WildRenderingSharp.TestBench -- --game totk --romfs <
 ```
 
 `--game botw --romfs <Switch dump> --actor Link` prepares the model from the dump's packs and draws it through `Profiles/Botw`: the game's own G-buffer programs, then its own character shading passes (`--yaw <degrees>`, `--distance`, `--height` move the camera).
+
+`tests/WildRenderingSharp.RenderRegression` runs the test bench over a fixed set of scenes and compares each render with a baseline recorded on the same machine, which is how a change to a pass or shader is checked against the picture; see its README.
 
 Reverse-engineering findings that used to sit in XML docs (Ghidra addresses, manifest format history) are in
 [game-notes.md](game-notes.md).

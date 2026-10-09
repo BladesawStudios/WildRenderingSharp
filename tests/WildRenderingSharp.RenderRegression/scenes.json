@@ -1,0 +1,21 @@
+{
+  "scenes": [
+    { "name": "default", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": {} },
+    { "name": "lowsun", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "sun": "0.15", "azimuth": "1.5" } },
+    { "name": "plain_noon_a", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "40", "palette": "Prequel_MainField_Bluesky_3_Noon", "sun": "1.1", "azimuth": "2.0", "noclouds": "1", "nobodies": "1" } },
+    { "name": "plain_noon_b", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "25", "palette": "Prequel_MainField_Bluesky_3_Noon", "sun": "0.5", "azimuth": "4.0", "noclouds": "1", "nobodies": "1" } },
+    { "name": "plain_sunset", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "30", "palette": "Prequel_MainField_Bluesky_6_Sunset", "sun": "0.1", "azimuth": "1.0", "noclouds": "1", "nobodies": "1" } },
+    { "name": "plain_bloody", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "30", "palette": "BloodyMoon_DarknessDragon", "sun": "0.5", "azimuth": "3.0", "noclouds": "1", "nobodies": "1" } },
+    { "name": "plain_default", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "noclouds": "1", "nobodies": "1" } },
+    { "name": "sun_a", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "35", "palette": "Prequel_MainField_Bluesky_3_Noon", "sun": "0.9", "azimuth": "0.3", "noclouds": "1" } },
+    { "name": "sun_b", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "35", "palette": "Prequel_MainField_Bluesky_3_Noon", "sun": "0.7", "azimuth": "3.6", "noclouds": "1" } },
+    { "name": "lit_a", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "sun": "0.8", "azimuth": "0.5", "noclouds": "1", "nobodies": "1" } },
+    { "name": "lit_b", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "sun": "0.8", "azimuth": "3.5", "noclouds": "1", "nobodies": "1" } },
+    { "name": "sky20", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "20" } },
+    { "name": "sky35_sunset", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "35", "palette": "Prequel_MainField_Bluesky_6_Sunset", "sun": "0.07" } },
+    { "name": "sky30_bloody", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "30", "palette": "BloodyMoon_DarknessDragon", "sun": "0.5" } },
+    { "name": "noon_clouds", "game": "totk", "actor": "Npc_Zelda_AncientHyrule", "options": { "lookup": "40", "palette": "Prequel_MainField_Bluesky_3_Noon", "sun": "1.1", "azimuth": "2.0" } },
+    { "name": "botw_link", "game": "botw", "actor": "Link", "options": { "yaw": "150", "distance": "1.8", "height": "-0.15" } },
+    { "name": "botw_guardian", "game": "botw", "actor": "Enemy_Guardian_A", "options": { "yaw": "150", "distance": "2.2", "height": "-0.2" } }
+  ]
+}

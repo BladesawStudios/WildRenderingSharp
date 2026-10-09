@@ -7,6 +7,7 @@ using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Hosting.Views;
+using WildRenderingSharp.Imaging;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Preparation.Botw;
 using WildRenderingSharp.Profiles.Botw;
@@ -78,7 +79,7 @@ static class BotwBench
             errors.Add(e);
 
         byte[] rgba = view.ReadOutputRgba8();
-        PngWriter.Write(outPath, rgba, size, size);
+        PngWriter.WriteRgba(outPath, size, size, rgba);
         int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
         Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, GL errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
         return distinct < 64 || errors.Count > 0 ? 4 : 0;

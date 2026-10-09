@@ -5,6 +5,7 @@ using WildRenderingSharp;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Hosting.Preparers;
+using WildRenderingSharp.Imaging;
 using WildRenderingSharp.Preparation;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
@@ -21,7 +22,7 @@ using WildRenderingSharp.TestBench;
 //                                [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1]
 //   with --game totk: see TotkBenchOptions.Usage
 //
-// Exit codes: 0 rendered, 1 failure, 2 bad command line, 4 the image is blank.
+// Exit codes: 0 rendered, 1 failure, 2 bad command line, 4 the image is nearly blank, 5 GL reported errors.
 
 var options = args.Chunk(2).Where(p => p.Length == 2 && p[0].StartsWith("--")).ToDictionary(p => p[0][2..], p => p[1]);
 string Option(string key, string fallback) => options.TryGetValue(key, out var v) ? v : fallback;
@@ -106,7 +107,7 @@ if (options.ContainsKey("probe"))
         Console.WriteLine($"HDR v={v:F2}: {renderer.View.ProbeHdr(new Vector2(float.Parse(Option("probe-x", "0.85")), v))}");
 
 byte[] rgba = renderer.View.ReadOutputRgba8();
-PngWriter.Write(outPath, rgba, size, size);
+PngWriter.WriteRgba(outPath, size, size, rgba);
 
 int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
 double luma = Enumerable.Range(0, rgba.Length / 4).Average(i => (rgba[i * 4] + rgba[i * 4 + 1] + rgba[i * 4 + 2]) / 765.0);
@@ -114,4 +115,4 @@ Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, mean luminance
 
 renderer.Dispose();
 window.Dispose();
-return distinct < 64 || errors.Count > 0 ? 4 : 0;
+return errors.Count > 0 ? 5 : distinct < 64 ? 4 : 0;
