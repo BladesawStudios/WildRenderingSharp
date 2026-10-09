@@ -15,7 +15,7 @@ its files, or a mod file edited. Only files the prepare looked up are checked, s
 
 A cache predating this check has no stamp and is trusted only while no mods are active. A stamp from an older `PreparationVersion` is never up to date.
 
-## WildRenderingSharp/Assets/AnimCurveManifestEntry.cs
+## WildRenderingSharp/Animation/Clips/AnimCurveManifestEntry.cs
 
 **`public sealed class AnimCurveManifestEntry`**
 
@@ -39,7 +39,7 @@ with `Offset + raw * Scale`, where `raw` is the (usually quantized-integer)
 polynomial the Cubic/Linear/Baked evaluator produced. Do not confuse this with
 `Delta`.
 
-## WildRenderingSharp/Assets/BoneManifestEntry.cs
+## WildRenderingSharp/Assets/Manifests/BoneManifestEntry.cs
 
 **`public static Matrix4x4 EulerXyzToMatrix(float x, float y, float z)`**
 
@@ -49,7 +49,7 @@ then Z). Confirmed against `nn::g3d2::SkeletalAnimObj::ApplyToImpl<nn::g3d::Eule
 output row is `(cy*cz, cy*sz, -sy)` - the row 0 of exactly this product, and NOT of the
 reverse order.
 
-## WildRenderingSharp/Assets/MaterialUniformEntry.cs
+## WildRenderingSharp/Assets/Materials/MaterialUniformEntry.cs
 
 **``**
 
@@ -58,7 +58,7 @@ actually references this parameter - null when unknown (an older cache predating
 field, or `Type` is itself null). A live editor should treat null the same as
 true (show it) rather than hide anything it isn't certain about.
 
-## WildRenderingSharp/Assets/SamplerBinding.cs
+## WildRenderingSharp/Assets/Manifests/SamplerBinding.cs
 
 **``**
 
@@ -73,7 +73,7 @@ The authored GX2 wrap mode for this sampler's U/V axes (`GX2TexClamp`'s names: "
 `TextureCache.MapWrapMode`. Hardcoding GL_REPEAT made textures the game clamps (an eye iris scrolled by a texture-SRT anim) tile once animated UVs left 0..1. Null on a manifest prepared before
 the field existed, which falls back to Wrap.
 
-## WildRenderingSharp/Assets/ShapeManifestEntry.cs
+## WildRenderingSharp/Assets/Manifests/ShapeManifestEntry.cs
 
 **``**
 
@@ -81,7 +81,7 @@ Every level of detail in `IndexFile`, finest first, as `[first index, count]`.
 LOD 0 is always `[0, IndexCount]`, and the coarser ones follow it in the same file. Null
 for a model prepared before levels of detail were exported - it has only LOD 0.
 
-## WildRenderingSharp/Assets/SkeletalAnimManifest.cs
+## WildRenderingSharp/Animation/Clips/SkeletalAnimManifest.cs
 
 **`/// <summary><c>SkeletalAnim.FlagsScale</c>, same encoding as <see cref`**
 
@@ -95,7 +95,7 @@ garbage rotation, not a slightly-off one.
 Defaults to true only so an anim manifest exported before this field existed keeps its old
 behaviour; every such file should be re-exported.
 
-## WildRenderingSharp/Assets/SkeletonManifest.cs
+## WildRenderingSharp/Assets/Manifests/SkeletonManifest.cs
 
 **`public sealed class SkeletonManifest`**
 
@@ -115,7 +115,7 @@ Length of the palette's smooth segment (`FSKL[0x3A]`), or -1 in a manifest expor
 
 The length of the palette's smooth segment, clamped to what `MatrixToBoneList` can supply. A manifest exported before `SmoothMatrixCount` existed gets it counted off the bones' `SmoothMatrixIndex`, the same number, which also splits those manifests correctly.
 
-## WildRenderingSharp/Assets/SkeletonScalingMode.cs
+## WildRenderingSharp/Assets/Manifests/SkeletonScalingMode.cs
 
 **`public enum SkeletonScalingMode`**
 
@@ -137,7 +137,7 @@ How a skeleton's bone scales propagate down the hierarchy - `(FSKL.flags >> 8) &
 
 No dedicated specialisation exists in the shipped binary (the dispatch table at 0x71041da970 runs out at Maya); treated as `Maya`.
 
-## WildRenderingSharp/Assets/TexturePatternAnimManifest.cs
+## WildRenderingSharp/Animation/Clips/TexturePatternAnimManifest.cs
 
 **`public sealed class TexturePatternAnimManifest : IAnimClip`**
 
@@ -149,7 +149,7 @@ A texture pattern anim does not move or shade anything - it re-points a material
 different texture per frame. See `ExportTexturePatternAnim` for the Ghidra citations behind
 that; `TexturePatternPose` is the runtime that applies it.
 
-## WildRenderingSharp/Assets/TexturePatternSamplerEntry.cs
+## WildRenderingSharp/Animation/Clips/TexturePatternSamplerEntry.cs
 
 **`public int Evaluate(float frame)`**
 
@@ -160,7 +160,7 @@ to the step function at 0x7100073a68, which returns `keys[FindFrame(frame)]` wit
 blend of any kind, and adds the curve's integer `Offset` (already folded into
 `Values` at export).
 
-## WildRenderingSharp/Profiles/Totk/Atmosphere/CloudPostFxLayer.cs
+## WildRenderingSharp/Profiles/Totk/Atmosphere/Clouds/CloudPostFxLayer.cs
 
 **`public sealed class CloudPostFxLayer`**
 
@@ -222,7 +222,7 @@ Each fix is scoped to one named game asset and verified against observed behavio
 observation, exhaust static analysis (shader logic, material data, variant resolution, the game's option-resolution code via Ghidra), then add a narrow correction with the
 same evidence trail.
 
-## WildRenderingSharp/Profiles/Totk/Sky/CloudDomeMesh.cs
+## WildRenderingSharp/Profiles/Totk/Sky/Clouds/CloudDomeMesh.cs
 
 **`public static class CloudDomeMesh`**
 
@@ -260,7 +260,7 @@ Winding/index order was NOT traced (`Cloud::initIndex_` wasn't read, only
 `initVertex_`) - `BuildIndices` assumes counter-clockwise; flip it if backfaces
 show up.
 
-## WildRenderingSharp/Profiles/Totk/Sky/SkyPostFxPass.cs
+## WildRenderingSharp/Profiles/Totk/Sky/PostFx/SkyPostFxPass.cs
 
 **`public static AdhocFog Resolve(EnvPalette palette, SkyPostFx postfx, float skyIntensity, float strength,`**
 
@@ -285,7 +285,7 @@ where authored, but noon authors 0 while the capture shows 0.089538, so a floor 
 unfound. Taking the larger of the two reproduces the noon frame and gives a blood moon its band; it
 reconciles the evidence rather than deriving it.
 
-## WildRenderingSharp/Graphics/BonePalette.cs
+## WildRenderingSharp/Graphics/Ubos/BonePalette.cs
 
 **`public static class BonePalette`**
 
@@ -322,7 +322,7 @@ This is what explains the Zonai "Blueprint" cyan bug: every `ConstBlueprint*` co
 (0.01, 1, 0.2)), and leaving them zero made the formula collapse to a negative result, which produced the pure cyan on Enemy_MiasmaTentacle's Mt_Skin once its forward
 program ran (that material authors `p_blue_print_alpha = 1.0`).
 
-## WildRenderingSharp/Rendering/AnimCurveEval.cs
+## WildRenderingSharp/Animation/Posing/AnimCurveEval.cs
 
 **`public static class AnimCurveEval`**
 
@@ -350,7 +350,7 @@ repeat/mirror/relative-repeat wrapping (the pre/post wrap bits of `ResAnimCurve[
 which only differ outside an anim's own range - and WildRenderingSharp's playback already keeps the frame
 inside it.
 
-## WildRenderingSharp/Rendering/MaterialAnimPose.cs
+## WildRenderingSharp/Animation/Posing/MaterialAnimPose.cs
 
 **`public static class MaterialAnimPose`**
 
@@ -367,7 +367,7 @@ from its untouched baseline, so a later anim overwriting an earlier one's parame
 same as the engine's own sequential ApplyTo, and dropping an anim restores the baseline rather
 than leaving the last value it wrote.
 
-## WildRenderingSharp/Rendering/SkeletonPose.cs
+## WildRenderingSharp/Animation/Posing/SkeletonPose.cs
 
 **`public static class SkeletonPose`**
 
@@ -392,7 +392,7 @@ frame, blended by the fractional part. Every type finishes with `value = Offset 
 
 Delegates to `AnimCurveEval`, shared by every kind of animation played; the maths and its Ghidra derivation live there.
 
-## WildRenderingSharp/Rendering/TexSrtBake.cs
+## WildRenderingSharp/Animation/Posing/TexSrtBake.cs
 
 **`public static class TexSrtBake`**
 
@@ -405,7 +405,7 @@ is pure float math.
 sub-fields come from the material's authored baseline (`MaterialUniformEntry.RawSrt`) and all six values are re-baked together every frame, as the offline overlay does at export. Writing an
 animated curve's raw float into the already-baked buffer only looks right at the identity baseline (scale 1, rotation 0, where the pivot terms cancel) and is wrong for any real scale or rotation.
 
-## WildRenderingSharp/Rendering/TexturePatternPose.cs
+## WildRenderingSharp/Animation/Posing/TexturePatternPose.cs
 
 **`public static class TexturePatternPose`**
 
