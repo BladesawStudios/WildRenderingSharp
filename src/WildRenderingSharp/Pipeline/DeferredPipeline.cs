@@ -43,7 +43,7 @@ public sealed class DeferredPipeline : IDisposable
 
     public ExposureMeter.Result? LastExposureMeasurement => _exposure.Last;
 
-    internal DeferredPipeline(GL gl, string dataDirectory, string decompiledDirectory, int width, int height,
+    internal DeferredPipeline(GL gl, string decompiledDirectory, int width, int height,
         IGameProfile profile, string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null)
     {
         _gl = gl;

@@ -70,7 +70,7 @@ public sealed class WildRenderer : IDisposable
 
         using (GLHostState.Enter(gl))
         {
-            Pipeline = new DeferredPipeline(gl, cache.Root, cache.Shaders, initialWidth, initialHeight, new TotkProfile(),
+            Pipeline = new DeferredPipeline(gl, cache.Shaders, initialWidth, initialHeight, new TotkProfile(),
                 cache.DeferredMaterials, cache.SystemTextures);
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
