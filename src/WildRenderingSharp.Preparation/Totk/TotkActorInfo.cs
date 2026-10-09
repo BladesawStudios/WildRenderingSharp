@@ -4,23 +4,18 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// An actor's real model file stem and the animation archives it uses, read from its pack rather than guessed from file names.
-/// The pack's <c>ModelInfo</c> gives <c>ModelProjectName.FmdbName</c>, and its <c>AnimationParam</c> lists the packs of the
-/// sibling <c>Model/&lt;name&gt;.anim.bfres.zs</c> archives.
-/// </summary>
+/// <summary>Resolves an actor to its model file stem and animation archives from its pack's ModelInfo and AnimationParam.</summary>
 public static class TotkActorInfo
 {
     public sealed record Resolved(string ModelName, IReadOnlyList<string> AnimPackNames);
 
-    /// <summary>Null when there is no <c>Pack/Actor/&lt;actorName&gt;.pack.zs</c>: not every model is a full actor.</summary>
     public static Resolved? Resolve(IRomAccess rom, string actorName)
     {
         string packPath = $"Pack/Actor/{actorName}.pack.zs";
         if (!rom.Exists(packPath))
             return null;
 
-        var sarc = Sarc.FromBinary(new ArraySegment<byte>(rom.ReadAllBytesNested(packPath).ToArray()));
+        var sarc = rom.ReadSarc(packPath);
         var entries = sarc.Select(kv => kv.Key).ToList();
         if (ModelInfoKey(sarc, entries, actorName) is not { } modelInfoKey)
         {
@@ -82,7 +77,6 @@ public static class TotkActorInfo
         return packs;
     }
 
-    /// <summary>A parameter file and the ones its <c>$parent</c> names in turn, as far as the pack holds them.</summary>
     static List<IDictionary<string, Byml>> ParentChain(Sarc sarc, HashSet<string> entries, string name)
     {
         var chain = new List<IDictionary<string, Byml>>();
@@ -100,7 +94,6 @@ public static class TotkActorInfo
         return chain;
     }
 
-    /// <summary>A reference as a pack entry name: <c>?Component/X.bgyml</c> is the entry itself, and the authoring path <c>Work/Component/X.gyml</c> is the same file compiled.</summary>
     static string EntryName(string reference)
     {
         string name = reference.TrimStart('?');

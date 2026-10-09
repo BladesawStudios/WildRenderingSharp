@@ -2,10 +2,7 @@ using System.Collections.Concurrent;
 
 namespace WildRenderingSharp.Rom;
 
-/// <summary>
-/// The files a <see cref="LayeredRom"/> was asked for while it was active, on this async flow only, and the on-disk file that won each.
-/// A lookup that found nothing is recorded too, so a layer that later adds the file shows up as a change.
-/// </summary>
+/// <summary>The on-disk files a LayeredRom answered lookups with while it was active on this async flow, misses included.</summary>
 public sealed class RomRecording : IDisposable
 {
     readonly ConcurrentDictionary<string, string?> _files = new(StringComparer.OrdinalIgnoreCase);
@@ -19,7 +16,6 @@ public sealed class RomRecording : IDisposable
         slot.Value = this;
     }
 
-    /// <summary>Game-relative path to the winning file, or null when no layer had it.</summary>
     public IReadOnlyDictionary<string, string?> Files => _files;
 
     internal void Note(string path, string? winner) => _files[path] = winner;

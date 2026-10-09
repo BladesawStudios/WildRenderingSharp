@@ -1,6 +1,7 @@
 using ShaderLibrary.CompileTool;
 using WildRenderingSharp.Rom;
 using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Preparation.Totk;
 
 namespace WildRenderingSharp.Preparation.Botw;
 
@@ -19,7 +20,7 @@ public static class BotwSystemAssets
         if (IsBuilt(cache))
             return;
 
-        ModelPreparer.EnsureBfresPatched();
+        BfresPatches.EnsureApplied();
         log?.Invoke("[prepare] BotW deferred shading passes");
         var assets = new BotwAssets(rom);
         string archives = Path.Combine(cache.Root, "_botw_shader_archives");

@@ -3,7 +3,7 @@ using Yaz0Sharp;
 
 namespace WildRenderingSharp.Rom;
 
-/// <summary>The compression formats the Wild games ship their files in: Yaz0, and zstd with the dictionaries Tears of the Kingdom packs its own.</summary>
+/// <summary>Yaz0, and the zstd dictionaries Tears of the Kingdom packs its files with.</summary>
 public sealed class RomCompression
 {
     readonly Zstd _zstd = new();
@@ -12,7 +12,6 @@ public sealed class RomCompression
     {
     }
 
-    /// <param name="dictionaryPack">The game's <c>Pack/ZsDic.pack.zs</c>; a missing file leaves zstd without dictionaries.</param>
     public RomCompression(string dictionaryPack)
     {
         if (File.Exists(dictionaryPack))

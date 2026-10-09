@@ -5,7 +5,6 @@ namespace WildRenderingSharp.Graphics;
 /// <summary>Converts between System.Numerics matrices and the transposed row arrays the games' uniform blocks hold.</summary>
 public static class GpuMatrix
 {
-    /// <param name="count">3 for the 3x4 matrices the games store, 4 for a full matrix.</param>
     public static Vector4[] Rows(Matrix4x4 m, int count = 4)
     {
         var t = Matrix4x4.Transpose(m);
@@ -19,7 +18,6 @@ public static class GpuMatrix
         return rows[..count];
     }
 
-    /// <summary>The inverse of <see cref="Rows"/>; a missing fourth row is (0, 0, 0, 1).</summary>
     public static Matrix4x4 FromRows(ReadOnlySpan<Vector4> rows)
     {
         var last = rows.Length > 3 ? rows[3] : Vector4.UnitW;

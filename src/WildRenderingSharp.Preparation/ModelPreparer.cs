@@ -1,32 +1,12 @@
 using System.Collections.Concurrent;
-using ShaderLibrary.CompileTool;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Preparation.Totk;
 
 namespace WildRenderingSharp.Preparation;
 
-/// <summary>
-/// The Tears of the Kingdom <c>--prepare</c> pipeline called in-process: the shared system assets every model needs, then a model's
-/// geometry, textures, animations, material blocks and shader programs. Each call opens the romfs it is given, with any mod folders
-/// layered over it, so nothing about the ROM outlives the call.
-/// </summary>
+/// <summary>The TotK preparation pipeline in-process. Each call opens the romfs it is given with any mods layered over it.</summary>
 public static class ModelPreparer
 {
-    static readonly object PatchGate = new();
-    static bool _patched;
-
-    /// <summary>Patches BfresLibrary once per process so it can parse TotK's V10 materials.</summary>
-    public static void EnsureBfresPatched()
-    {
-        lock (PatchGate)
-        {
-            if (_patched)
-                return;
-            BfresLibraryPatches.EnsureApplied();
-            _patched = true;
-        }
-    }
-
     public static void EnsureSystemAssets(string romfsRoot, CacheLayout cache, Action<string>? log = null)
     {
         if (string.IsNullOrEmpty(romfsRoot) || !Directory.Exists(romfsRoot))
@@ -35,7 +15,9 @@ public static class ModelPreparer
             return;
         }
 
+        BfresPatches.EnsureApplied();
         using var romfs = new TotkRomfs(romfsRoot);
+        using var strings = ExternalStringTable.Use(romfs.Base);
         TotkSystemAssets.Ensure(romfs, cache, log);
     }
 
@@ -48,9 +30,9 @@ public static class ModelPreparer
     public static string PrepareIfNeeded(string romfsRoot, string actorOrModelName, CacheLayout cache, Action<string>? log = null,
         bool importAnims = true, bool force = false, IEnumerable<string>? modRomfsLayers = null)
     {
-        EnsureBfresPatched();
+        BfresPatches.EnsureApplied();
         using var romfs = new TotkRomfs(romfsRoot, modRomfsLayers);
-        TotkStringTable.Select(romfs.Layered, cache);
+        using var strings = ExternalStringTable.Use(romfs.Layered);
         return PrepareIfNeeded(romfs, actorOrModelName, cache, log, importAnims, force);
     }
 
@@ -58,9 +40,9 @@ public static class ModelPreparer
         Action<string>? onBegin, Action<PrepareOutcome> onOutcome, bool importAnims = true, bool force = false,
         IEnumerable<string>? modRomfsLayers = null, CancellationToken cancellationToken = default)
     {
-        EnsureBfresPatched();
+        BfresPatches.EnsureApplied();
         using var romfs = new TotkRomfs(romfsRoot, modRomfsLayers);
-        TotkStringTable.Select(romfs.Layered, cache);
+        using var strings = ExternalStringTable.Use(romfs.Layered);
         TotkShaderArchives.Extract(romfs.Base, cache, "material");
 
         var modelGates = new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -86,7 +68,6 @@ public static class ModelPreparer
         });
     }
 
-    /// <summary>False if the prepared model was built from different romfs files than the root and mod set would supply now.</summary>
     public static bool IsUpToDate(string romfsRoot, string dataDirectory, IEnumerable<string>? modRomfsLayers = null)
     {
         using var romfs = new TotkRomfs(romfsRoot, modRomfsLayers);

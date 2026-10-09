@@ -5,7 +5,7 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Botw;
 
-/// <summary>Breath of the Wild's models, textures and shader archives, read through whatever <see cref="IRomAccess"/> the host supplies.</summary>
+/// <summary>BotW's models, textures and shader archives, read through an IRomAccess.</summary>
 public sealed class BotwAssets(IRomAccess rom) : IGameAssets
 {
     const string GraphicsPack = "Pack/Bootup_Graphics.pack";
@@ -36,7 +36,6 @@ public sealed class BotwAssets(IRomAccess rom) : IGameAssets
 
     public IEnumerable<ResFile> AnimationArchives(string modelName, IReadOnlyList<string>? packNames) => [];
 
-    /// <summary>Writes <c>Shader/&lt;name&gt;.product.sbfsha</c> from the graphics pack into <paramref name="directory"/>, where the shader tools can open it by path.</summary>
     public string ExtractShaderArchive(string name, string directory)
     {
         string path = Path.Combine(directory, name + ".bfsha");

@@ -1,15 +1,14 @@
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
-/// <summary>The G-buffer attachments the game's passes read, under the names of the samplers they bind them to.</summary>
+/// <summary>The G-buffer attachments, under the names of the samplers they feed.</summary>
 public static class BotwGBuffer
 {
     public const int MaterialId = 0, Albedo = 1, Normal = 3, Emission = 5;
 }
 
-/// <summary>The texture units each of the game's passes samples from. The numbering differs between passes, so each has its own.</summary>
+/// <summary>The texture units each of the game's passes samples from; the numbering differs between passes.</summary>
 public static class BotwSamplers
 {
-    /// <summary>Units the renderer adds to every pass: the mask's ID texture and the ambient strip.</summary>
     public const int IdTexture = 20, LightAnalyzed = 21;
 
     public static class ShadowChara

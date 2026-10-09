@@ -2,7 +2,7 @@ using SarcLibrary;
 
 namespace WildRenderingSharp.Rom;
 
-/// <summary>A file's decompressed bytes, and the archive read from them when they are one.</summary>
+/// <summary>A file's decompressed bytes and, when they are a SARC, its archive.</summary>
 sealed class DecompressedFile(byte[] bytes)
 {
     readonly Lazy<RomArchive?> _archive = new(() => IsSarc(bytes) ? new RomArchive(Sarc.FromBinary(new ArraySegment<byte>(bytes))) : null);
@@ -13,7 +13,7 @@ sealed class DecompressedFile(byte[] bytes)
     static bool IsSarc(byte[] data) => data.Length >= 4 && data[0] == 'S' && data[1] == 'A' && data[2] == 'R' && data[3] == 'C';
 }
 
-/// <summary>The entries of one SARC by name: an exact match wins, then one that differs only in case.</summary>
+/// <summary>The entries of one SARC, where an exact name wins over one that differs only in case.</summary>
 sealed class RomArchive
 {
     readonly Dictionary<string, ArraySegment<byte>> _exact = new(StringComparer.Ordinal);

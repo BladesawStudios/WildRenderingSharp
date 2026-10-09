@@ -118,12 +118,7 @@ public static class GLProgramBuilder
                 return;
             BitConverter.TryWriteBytes(file.AsSpan(0, 4), (uint)format);
 
-            // Written aside and moved into place, so a reader - another viewer on the same cache -
-            // never sees half a file.
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            string temp = $"{path}.{Environment.ProcessId}.tmp";
-            File.WriteAllBytes(temp, file.AsSpan(0, (int)written + 4).ToArray());
-            File.Move(temp, path, overwrite: true);
+            AtomicFile.WriteAllBytes(path, file.AsSpan(0, (int)written + 4));
         }
         catch (IOException) { /* only a cache - the program itself is fine */ }
         catch (UnauthorizedAccessException) { }

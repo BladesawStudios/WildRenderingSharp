@@ -6,10 +6,7 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// The terrain water: <c>Shader/terrain_water</c>'s program 98, the ordinary water surface, with the <c>TranslucentNear</c> material's
-/// <c>gsys_material</c> built against that shading model's own block, and every slice of the three textures the program reads.
-/// </summary>
+/// <summary>Exports the terrain water program, its material block and the textures it reads.</summary>
 public static class TotkTerrainWater
 {
     public const int Program = 98;

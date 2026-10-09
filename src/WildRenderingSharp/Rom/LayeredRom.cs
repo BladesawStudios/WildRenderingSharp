@@ -3,11 +3,7 @@ using System.IO.Enumeration;
 
 namespace WildRenderingSharp.Rom;
 
-/// <summary>
-/// Folders layered over one another (base game, update, DLC, mods: later folders win) read as one filesystem, with SARC archives opened by
-/// path and Yaz0 and zstd understood. Plain files are memory-mapped; decompressed files and opened archives are kept until they add up to
-/// more than the cache budget, then the least recently used go.
-/// </summary>
+/// <summary>Folders layered over one another (base game, update, DLC, mods; later folders win) read as one filesystem, with SARC archives opened by path and Yaz0 and zstd understood. Decompressed files and opened archives are kept under a byte budget, least recently used going first.</summary>
 public sealed class LayeredRom : IRomAccess
 {
     public const long DefaultCacheBudget = 768L << 20;
@@ -20,8 +16,6 @@ public sealed class LayeredRom : IRomAccess
     readonly SizedLruCache<DecompressedFile> _decompressed;
     readonly AsyncLocal<RomRecording?> _recording = new();
 
-    /// <param name="roots">Lowest priority first.</param>
-    /// <param name="cacheBudget">The decompressed bytes to keep, at most, once the newest file is set aside.</param>
     public LayeredRom(IEnumerable<string> roots, RomCompression? compression = null, long cacheBudget = DefaultCacheBudget)
     {
         _roots = roots.Where(Directory.Exists).Reverse().ToArray();
@@ -31,13 +25,10 @@ public sealed class LayeredRom : IRomAccess
         _decompressed = new SizedLruCache<DecompressedFile>(cacheBudget, file => file.Bytes.LongLength);
     }
 
-    /// <summary>The folders that exist, highest priority first.</summary>
     public IReadOnlyList<string> Roots => _roots;
 
-    /// <summary>The file on disk that holds <paramref name="path"/>, or the archive that does when it names one inside an archive.</summary>
     public string? Locate(string path) => LocateFile(Split(path).Container);
 
-    /// <summary>Starts noting which on-disk file answers each lookup on this async flow, until the recording is disposed.</summary>
     public RomRecording Record() => new(_recording);
 
     public bool Exists(string path)

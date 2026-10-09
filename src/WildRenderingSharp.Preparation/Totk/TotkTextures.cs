@@ -4,15 +4,11 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// A material texture in <c>TexToGo/</c>, whichever container it ships in. Nearly every one is TotK's own <c>.txtg</c>, but a few
-/// hundred (among them <c>CmnTex_BakeDefault</c>, which every static world object samples as <c>bake0</c>) are a zstd <c>.bntx</c>.
-/// </summary>
+/// <summary>Finds and loads a material texture in TexToGo, whether it ships as a .txtg or as a zstd .bntx.</summary>
 public static class TotkTextures
 {
     static readonly string[] Extensions = [".txtg", ".bntx.zs", ".bntx"];
 
-    /// <summary>The texture's game-relative path, or null when no layer has it.</summary>
     public static string? Find(IRomAccess rom, string name)
     {
         foreach (string extension in Extensions)
@@ -27,7 +23,6 @@ public static class TotkTextures
     public static TextureHandle? Handle(IRomAccess rom, string name) =>
         Find(rom, name) is { } path ? new TextureHandle(surfaces => Load(rom, path, surfaces)) : null;
 
-    /// <param name="surfaces">How many surfaces, in file order, to read; 0 reads the header only.</param>
     public static TxtgTexture Load(IRomAccess rom, string path, int surfaces = int.MaxValue)
     {
         if (path.EndsWith(".txtg", StringComparison.OrdinalIgnoreCase))
@@ -35,7 +30,6 @@ public static class TotkTextures
         return TexToGo.FromBntx(ReadBntx(rom, path), surfaces);
     }
 
-    /// <summary>Mip 0 of every array slice, in slice order, for the few textures a program reads as an array.</summary>
     public static TxtgTexture LoadAllSlices(IRomAccess rom, string path)
     {
         if (path.EndsWith(".txtg", StringComparison.OrdinalIgnoreCase))

@@ -9,7 +9,7 @@ public readonly record struct Lens(float Aspect, float TanHalfFovY, float Near, 
     public Vector2 TanHalf => new(Aspect * TanHalfFovY, TanHalfFovY);
 }
 
-/// <summary>A camera's matrices and lens as the games' camera uniform blocks hold them; see <see cref="GpuMatrix"/> for their layout.</summary>
+/// <summary>A camera's matrices and lens as the games' camera uniform blocks hold them.</summary>
 public readonly record struct CameraData(
     Matrix4x4 View, Matrix4x4 ViewProj, Matrix4x4 Proj, Matrix4x4 ViewInv, Lens Lens, Vector2 TexelSize)
 {
@@ -28,11 +28,9 @@ public readonly record struct CameraData(
         return new CameraData(view, view * proj, proj, Inverse(view), lens, Vector2.One / new Vector2(width, height));
     }
 
-    /// <summary>The view from a light, which keeps this camera's lens and texel size.</summary>
     public CameraData ForLight(Matrix4x4 lightView, Matrix4x4 lightProj) =>
         this with { View = lightView, Proj = lightProj, ViewProj = lightView * lightProj, ViewInv = Inverse(lightView) };
 
-    /// <summary>The same camera with clip-space Y negated.</summary>
     public CameraData FlippedY() => this with { Proj = Proj * ClipSpace.FlipY, ViewProj = ViewProj * ClipSpace.FlipY };
 
     static Matrix4x4 Inverse(Matrix4x4 m) => Matrix4x4.Invert(m, out var inverse) ? inverse : Matrix4x4.Identity;

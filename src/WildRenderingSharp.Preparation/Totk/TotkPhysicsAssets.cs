@@ -1,12 +1,8 @@
-using SarcLibrary;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// Copies an actor's Havok Cloth (<c>.bphcl</c>) and Phive Helper Bone (<c>.bphhb</c>) files out of its pack into the model's cache
-/// directory. The renderer does not simulate them, but a host that does can read them beside the model.
-/// </summary>
+/// <summary>Copies an actor's cloth and helper-bone physics files out of its pack into its cache directory.</summary>
 public static class TotkPhysicsAssets
 {
     static readonly string[] Extensions = [".bphcl", ".bphhb"];
@@ -28,7 +24,7 @@ public static class TotkPhysicsAssets
 
             try
             {
-                var sarc = Sarc.FromBinary(new ArraySegment<byte>(rom.ReadAllBytesNested(packPath).ToArray()));
+                var sarc = rom.ReadSarc(packPath);
                 bool found = false;
                 foreach (var (entry, data) in sarc.Where(e => HasPhysicsExtension(e.Key)))
                 {

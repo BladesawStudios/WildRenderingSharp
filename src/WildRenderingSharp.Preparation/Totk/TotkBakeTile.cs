@@ -6,12 +6,7 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// One bake tile exported to <c>&lt;outDir&gt;/&lt;tile&gt;.json</c> plus its atlas texture(s) beside it. The JSON lists the textures,
-/// then per placement hash the model and each material's atlas region:
-/// <c>{ "textures": [{ "name", "file", "format", "width", "height" }], "actors": { "&lt;hash&gt;": { "model", "count",
-/// "materials": [{ "name", "index", "texture", "st": [sx, sy, ox, oy] }] } } }</c>.
-/// </summary>
+/// <summary>Exports one bake tile's atlas textures and per-actor material regions to JSON.</summary>
 public static class TotkBakeTile
 {
     sealed record Texture(string Name, string File, string Format, int Width, int Height);
@@ -94,10 +89,10 @@ public static class TotkBakeTile
 
     static void WriteJson(string outDir, string tile, List<Texture> textures, SortedDictionary<ulong, Actor> actors)
     {
-        string temp = Path.Combine(outDir, tile + ".json.tmp");
-        using (var stream = File.Create(temp))
-        using (var w = new Utf8JsonWriter(stream))
+        AtomicFile.Write(Path.Combine(outDir, tile + ".json"), temp =>
         {
+            using var stream = File.Create(temp);
+            using var w = new Utf8JsonWriter(stream);
             w.WriteStartObject();
             w.WriteStartArray("textures");
             foreach (var t in textures)
@@ -116,8 +111,7 @@ public static class TotkBakeTile
                 WriteActor(w, hash, actor);
             w.WriteEndObject();
             w.WriteEndObject();
-        }
-        File.Move(temp, Path.Combine(outDir, tile + ".json"), overwrite: true);
+        });
     }
 
     static void WriteActor(Utf8JsonWriter w, ulong hash, Actor actor)

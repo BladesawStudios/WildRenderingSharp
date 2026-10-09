@@ -1,9 +1,6 @@
 namespace WildRenderingSharp.Rom;
 
-/// <summary>
-/// A cache that drops its least recently used entries once their sizes add up to more than a budget. The newest entry is always kept,
-/// so one entry larger than the budget still caches.
-/// </summary>
+/// <summary>A cache that evicts its least recently used entries once their sizes pass a budget, always keeping the newest.</summary>
 public sealed class SizedLruCache<T>(long budget, Func<T, long> sizeOf) where T : class
 {
     readonly object _gate = new();
@@ -36,7 +33,6 @@ public sealed class SizedLruCache<T>(long budget, Func<T, long> sizeOf) where T 
         }
     }
 
-    /// <summary>Stores <paramref name="value"/> unless the key is already held, and returns the value the cache holds.</summary>
     public T Add(string key, T value)
     {
         lock (_gate)

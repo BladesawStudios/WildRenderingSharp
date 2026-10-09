@@ -2,7 +2,7 @@ using System.IO.MemoryMappedFiles;
 
 namespace WildRenderingSharp.Rom;
 
-/// <summary>A file read through a memory map, so a large archive costs address space rather than a copy.</summary>
+/// <summary>A file read through a memory map.</summary>
 sealed unsafe class MappedFile : IDisposable
 {
     readonly MemoryMappedFile? _file;

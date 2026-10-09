@@ -1,6 +1,7 @@
 using ShaderLibrary.CompileTool;
 using WildRenderingSharp.Rom;
 using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Preparation.Totk;
 
 namespace WildRenderingSharp.Preparation.Botw;
 
@@ -17,7 +18,7 @@ public static class BotwModelPreparer
 
     public static string PrepareIfNeeded(IRomAccess rom, string modelName, CacheLayout cache, Action<string>? log = null, bool force = false)
     {
-        ModelPreparer.EnsureBfresPatched();
+        BfresPatches.EnsureApplied();
         BotwSystemAssets.Ensure(rom, cache, log);
         if (!force && cache.IsPrepared(modelName))
         {
@@ -29,7 +30,7 @@ public static class BotwModelPreparer
 
     public static string Prepare(IRomAccess rom, string modelName, CacheLayout cache, Action<string>? log = null)
     {
-        ModelPreparer.EnsureBfresPatched();
+        BfresPatches.EnsureApplied();
         BotwSystemAssets.Ensure(rom, cache, log);
         var assets = new BotwAssets(rom);
 

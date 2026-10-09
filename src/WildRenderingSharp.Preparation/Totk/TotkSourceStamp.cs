@@ -2,17 +2,12 @@ using System.Text.Json;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// Which romfs file supplied each source a prepared model was built from, so a model is prepared again when toggling a mod changes which
-/// file would win, or a winning file changes.
-/// </summary>
+/// <summary>Records which romfs file supplied each source of a prepared model, so it is prepared again when a mod toggle or file change alters what wins.</summary>
 public static class TotkSourceStamp
 {
     public const string FileName = "romfs_sources.json";
 
-    // Bumped when preparation starts producing something an earlier model could be missing, so IsUpToDate sends it through
-    // again. 2: the model's own <Project>.anim.bfres joins the anim archives. 3: every level of detail is exported. 4: .bntx
-    // textures export (CmnTex_BakeDefault). 5: textures export their whole mip chain.
+    // Bumped when preparation starts producing something earlier models lack, so they are prepared again.
     const int PreparationVersion = 5;
 
     sealed record Entry(string? Path, long Size, long MTime);

@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Rendering;
 
-/// <summary>A perspective viewpoint. The aspect ratio comes from the target it renders into.</summary>
+/// <summary>A perspective viewpoint; the aspect ratio comes from the target it renders into.</summary>
 public sealed class Camera
 {
     public Vector3 Eye { get; set; } = new(0, 0, 3);

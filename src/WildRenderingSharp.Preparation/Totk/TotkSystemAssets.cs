@@ -2,23 +2,16 @@ using ShaderLibrary.CompileTool;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// The assets every TotK model shares, built once per cache from the bare ROM: the engine's screen shaders, the deferred shading
-/// passes with their material blocks, the system textures, and the terrain, cave and water programs. A step that fails costs a feature,
-/// not the renderer, so it is logged and the rest carry on; only the HDR compose shader is required.
-/// </summary>
+/// <summary>Builds the assets every TotK model shares, once per cache, from the bare ROM. A failing step costs a feature, not the renderer, so only the HDR compose shader is required.</summary>
 public static class TotkSystemAssets
 {
     const string DeferredModel = "SystemModel.DeferredMain";
 
     public static void Ensure(TotkRomfs romfs, CacheLayout cache, Action<string>? log)
     {
-        ModelPreparer.EnsureBfresPatched();
-        TotkStringTable.Select(romfs.Base, cache);
-
         var failures = new List<string>();
         void Step(string name, Action step) => Run(failures, log, name, step);
-        Step("system shaders", () => Once(Path.Combine(cache.Shaders, "agl_hdr_compose.vert"), cache.Shaders, () => TotkAglExtractors.HdrCompose(romfs.Root, cache.Shaders)));
+        Step("system shaders", () => Once(Path.Combine(cache.Shaders, "agl_hdr_compose.vert"), cache.Shaders, () => TotkAglShaders.HdrCompose(romfs.Base, cache.Shaders)));
         Step("deferred materials", () => DeferredPasses(romfs, cache));
         Step("system textures", () => Once(Path.Combine(cache.SystemTextures, "Proc3DNoise.r8"), null, () => TotkSystemTextures.ExtractProc3DNoise(romfs.Base, cache.SystemTextures)));
         Step("cloud textures", () =>
@@ -27,10 +20,10 @@ public static class TotkSystemAssets
                 TotkCloudMasks.Install(romfs.Base, cache.SystemTextures);
         });
         Step("sky bodies", () => Once(Path.Combine(cache.SystemTextures, "Moon8.rg8"), cache.SystemTextures, () => TotkSystemTextures.ExtractSkyBodies(romfs.Base, cache.SystemTextures)));
-        Step("lens flare", () => Once(Path.Combine(cache.Shaders, "agl_flare_filter_flare.frag"), cache.Shaders, () => TotkAglExtractors.LensFlare(romfs.Root, cache.Shaders)));
-        Step("cloud shader", () => Once(Path.Combine(cache.Shaders, "agl_cloud.frag"), cache.Shaders, () => TotkAglExtractors.CloudShader(romfs.Root, cache.Shaders)));
+        Step("lens flare", () => Once(Path.Combine(cache.Shaders, "agl_flare_filter_flare.frag"), cache.Shaders, () => TotkAglShaders.LensFlare(romfs.Base, cache.Shaders)));
+        Step("cloud shader", () => Once(Path.Combine(cache.Shaders, "agl_cloud.frag"), cache.Shaders, () => TotkAglShaders.Cloud(romfs.Base, cache.Shaders)));
         // Checks the newest file this extractor produces, so a cache built before the adhoc-fog variant existed gains it.
-        Step("sky shaders", () => Once(Path.Combine(cache.Shaders, "agl_sky_postfx_sky_fog.frag"), cache.Shaders, () => TotkAglExtractors.SkyPostFx(romfs.Root, cache.Shaders)));
+        Step("sky shaders", () => Once(Path.Combine(cache.Shaders, "agl_sky_postfx_sky_fog.frag"), cache.Shaders, () => TotkAglShaders.SkyPostFx(romfs.Base, cache.Shaders)));
         Step("terrain water", () =>
         {
             if (!TotkTerrainWater.IsExported(cache.Shaders))
@@ -76,7 +69,7 @@ public static class TotkSystemAssets
         {
             Directory.CreateDirectory(cache.Shaders);
             string modelPath = Path.Combine(TotkShaderArchives.Folder(cache), DeferredModel + ".bfres");
-            TotkShaderArchives.Write(modelPath, model);
+            AtomicFile.WriteAllBytes(modelPath, model);
             TestSystemShading.Run(systemBfsha, modelPath, cache.Shaders);
         }
     }

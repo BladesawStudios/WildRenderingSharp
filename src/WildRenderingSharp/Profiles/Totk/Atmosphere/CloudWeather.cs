@@ -63,5 +63,5 @@ public sealed class CloudWeather
     }
 
     static IReadOnlyDictionary<string, object?> ReadMap(IRomAccess rom, string entry) =>
-        (Dictionary<string, object?>)EnvPalette.FromByml(Byml.FromBinary(rom.ReadAllBytesNested(entry).ToArray()))!;
+        (Dictionary<string, object?>)EnvPalette.FromByml(rom.ReadByml(entry))!;
 }

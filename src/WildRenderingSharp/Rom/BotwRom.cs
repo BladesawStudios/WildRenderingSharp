@@ -1,6 +1,6 @@
 namespace WildRenderingSharp.Rom;
 
-/// <summary>Breath of the Wild's base game, update and DLC folders as one filesystem.</summary>
+/// <summary>Breath of the Wild's base, update and DLC folders as one filesystem.</summary>
 public static class BotwRom
 {
     public static LayeredRom Open(string baseRoot, string? updateRoot = null, string? dlcRoot = null)

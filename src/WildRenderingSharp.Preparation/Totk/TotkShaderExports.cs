@@ -7,13 +7,9 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// The G-buffer programs and default <c>gsys_material</c> blocks of the shading models the terrain and caves draw with, decompiled out of
-/// their shader archives. The game's own vertex stages read the page files as stored, so no host vertex stage is needed.
-/// </summary>
+/// <summary>Decompiles the G-buffer programs and default material blocks of the terrain and cave shading models from their shader archives.</summary>
 public static class TotkShaderExports
 {
-    /// <param name="Programs">Terrain's G-buffer programs are 2 (regular), 32 and 62 (the coarser levels); cave's are 2 (G-buffer) and 1 (depth only).</param>
     public sealed record ShadingModelExport(string Archive, string Model, int[] Programs, string ProgramPrefix, string MaterialFile)
     {
         public string ProgramName(int program) => $"{ProgramPrefix}{program}";
@@ -55,8 +51,7 @@ public static class TotkShaderExports
             if (code?.ByteCode == null)
                 continue;
             string target = Path.Combine(shadersDir, $"{name}_extracted.{extension}");
-            File.WriteAllText(target + ".tmp", ShaderExtract.GetCode(code, reflection));
-            File.Move(target + ".tmp", target, overwrite: true);
+            AtomicFile.WriteAllText(target, ShaderExtract.GetCode(code, reflection));
         }
     }
 }

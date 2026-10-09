@@ -4,7 +4,7 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>Tears of the Kingdom's models, textures and animation archives, read through whatever <see cref="IRomAccess"/> the host supplies.</summary>
+/// <summary>TotK's models, textures and animation archives, read through an IRomAccess.</summary>
 public sealed class TotkAssets(IRomAccess rom) : IGameAssets
 {
     readonly Dictionary<string, byte[]> _models = new(StringComparer.Ordinal);
@@ -22,7 +22,7 @@ public sealed class TotkAssets(IRomAccess rom) : IGameAssets
         }
 
         Console.WriteLine($"[ExportTestBench] Decompressing {path}...");
-        return _models[modelName] = DecompressModel(path);
+        return _models[modelName] = Mcpk.ToBfres(rom.ReadAllBytesDirectSpan(path).ToArray(), path);
     }
 
     public TextureHandle? FindTexture(string modelName, string name) => TotkTextures.Handle(rom, name);
@@ -33,15 +33,6 @@ public sealed class TotkAssets(IRomAccess rom) : IGameAssets
         foreach (string path in paths)
             if (LoadArchive(path) is { } archive)
                 yield return archive;
-    }
-
-    byte[] DecompressModel(string path)
-    {
-        byte[] fres = McSharp.MeshCodec.DecompressMc(rom.ReadAllBytesDirectSpan(path).ToArray(), out var status)
-            ?? throw new InvalidDataException($"McSharp failed on {path}: {status}");
-        if (fres.Length < 4 || fres[0] != 'F' || fres[1] != 'R' || fres[2] != 'E' || fres[3] != 'S')
-            throw new InvalidDataException($"{path}: decompressed data does not start with 'FRES'");
-        return fres;
     }
 
     // The pack names the actor lists are exact; a name that is not there is skipped with a note.

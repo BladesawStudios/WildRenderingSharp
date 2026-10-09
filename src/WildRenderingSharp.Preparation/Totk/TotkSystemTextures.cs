@@ -5,19 +5,11 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// Textures a compiled shader's sampler names but that belong to no material: shared, static assets every draw of an effect binds the
-/// same way, decoded to plain bytes for the renderer. The dynamic ones (shadow cascades, terrain streaming) are render targets with no file.
-/// </summary>
+/// <summary>Decodes the shared textures shaders sample but no material owns (the 3D noise volume, the sun and moon sprites) into plain bytes for the renderer.</summary>
 public static class TotkSystemTextures
 {
     const string NoiseAsset = "3DWorleyPerlinNoise_Fi";
 
-    /// <summary>
-    /// <c>cTex_Proc3DNoise</c>: <c>TexToGo/3DWorleyPerlinNoise_Fi.bntx.zs</c>, a 64x64x64 BC4 volume. Written as <c>Proc3DNoise.r8</c>
-    /// (one byte per texel) with a <c>Proc3DNoise.dims.txt</c> of "width height depth", decoded on the CPU because desktop GL does not
-    /// guarantee compressed 3D textures.
-    /// </summary>
     public static void ExtractProc3DNoise(IRomAccess rom, string outDir)
     {
         Directory.CreateDirectory(outDir);
@@ -35,11 +27,6 @@ public static class TotkSystemTextures
         Console.WriteLine($"[SystemTextures] cTex_Proc3DNoise <- {NoiseAsset}: {width}x{height}x{depth}, {decoded.Length} bytes -> {outDir}");
     }
 
-    /// <summary>
-    /// The sun and moon sprites. <c>Etc_Sun_A_Alb</c> is a 64x64 BC4 disc mask (the colour comes from the palette), and
-    /// <c>Etc_Moon_A_Alb.1</c> to <c>.8</c> are 256x256 BC5, one per phase. Each is isolated: <c>.5</c> is authored in an ASTC
-    /// format and is skipped, and the sky body pass falls back to the nearest phase it has.
-    /// </summary>
     public static void ExtractSkyBodies(IRomAccess rom, string outDir)
     {
         Directory.CreateDirectory(outDir);

@@ -36,6 +36,9 @@
     <Reference Include="BfresLibrary">
       <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\BfresLibrary.dll</HintPath>
     </Reference>
+    <Reference Include="Syroot.BinaryData">
+      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\Syroot.BinaryData.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <!-- The managed BNTX reader, with its own Tegra deswizzle. -->

@@ -2,15 +2,11 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>
-/// Finds a model in <c>Model/&lt;pack&gt;.&lt;model&gt;.bfres.mc</c> from any of the three names a person would type: the full stem,
-/// a short name whose pack and model coincide (<c>Weapon_Sword_070</c>), or just the model half when only one file ends with it.
-/// </summary>
+/// <summary>Finds a model's .bfres.mc by its full stem, by a short name whose pack and model coincide, or by its model half when that is unique.</summary>
 public static class TotkModelFiles
 {
     const string Suffix = ".bfres.mc";
 
-    /// <summary>The game-relative path of the model's file, or null when no layer has it or the name is ambiguous.</summary>
     public static string? Find(IRomAccess rom, string name)
     {
         foreach (string stem in new[] { name, $"{name}.{name}" })
@@ -24,7 +20,6 @@ public static class TotkModelFiles
         return hits.Length == 1 ? hits[0] : null;
     }
 
-    /// <summary>Why <see cref="Find"/> found nothing, with near matches: a wrong name is the usual way to fail here.</summary>
     public static string Explain(IRomAccess rom, string name)
     {
         var ambiguous = rom.Enumerate("Model", $"*.{name}{Suffix}").ToArray();

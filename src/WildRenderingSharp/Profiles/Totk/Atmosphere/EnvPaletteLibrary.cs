@@ -54,11 +54,7 @@ public sealed class EnvPaletteLibrary
         return merged;
     }
 
-    /// <summary>
-    /// Loads every ResEnvPalette from <c>Pack/EnvPalette.pack.zs</c>, or returns <see cref="Empty"/> (with a log line) if
-    /// <paramref name="rom"/> has none. Delta palettes name another palette in <c>$parent</c> and override only
-    /// some fields; those are flattened once here, with cycle protection, so every palette handed out is complete.
-    /// </summary>
+    // Delta palettes name another palette in $parent and override some fields, so they are flattened here with cycle protection.
     public static EnvPaletteLibrary Load(IRomAccess? rom)
     {
         var lib = Empty();
@@ -74,8 +70,7 @@ public sealed class EnvPaletteLibrary
         foreach (string entry in rom.Enumerate($"{Pack}//{EntryDirectory}", "*" + EntrySuffix))
         {
             string name = Path.GetFileName(entry)[..^EntrySuffix.Length];
-            var bymlBytes = rom.ReadAllBytesNested(entry).ToArray();
-            rawByName[name] = (Dictionary<string, object?>)EnvPalette.FromByml(Byml.FromBinary(bymlBytes))!;
+            rawByName[name] = (Dictionary<string, object?>)EnvPalette.FromByml(rom.ReadByml(entry))!;
         }
 
         var resolved = new Dictionary<string, Dictionary<string, object?>>(StringComparer.Ordinal);
