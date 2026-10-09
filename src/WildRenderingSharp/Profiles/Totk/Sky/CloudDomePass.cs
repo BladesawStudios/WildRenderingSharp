@@ -446,7 +446,7 @@ public sealed class CloudDomePass : IDisposable
         return buf;
     }
 
-    static byte[] BuildViewBlock(Matrix4x4 view, Matrix4x4 proj,
+    internal static byte[] BuildViewBlock(Matrix4x4 view, Matrix4x4 proj,
         Vector3 cameraEye, CloudPostFxLayer layer, float skyHeightAboveCamera, float domeScale)
     {
         byte[] buf = new byte[ViewBytes];

@@ -30,6 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="WildRenderingSharp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Glsl\**\*" LogicalName="Glsl/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
