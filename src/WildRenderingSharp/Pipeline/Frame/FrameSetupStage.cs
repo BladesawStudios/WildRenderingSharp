@@ -19,7 +19,7 @@ public sealed class FrameSetupStage(FrameServices services) : IFrameStage
         frame.MaskViewProj = profile.World.FromGameWorld(cam.ViewProj);
 
         frame.SunWorld = SunDirection.FromElevationAzimuth(lighting.SunElevation, lighting.SunAzimuth);
-        frame.SunView = Vector3.Transform(frame.SunWorld, cam.View);
+        frame.SunView = SunDirection.ToView(frame.SunWorld, cam.View);
         frame.SunColor = environment.SunColor;
         frame.HemiSky = environment.HemiSky;
         frame.HemiGround = environment.HemiGround;
