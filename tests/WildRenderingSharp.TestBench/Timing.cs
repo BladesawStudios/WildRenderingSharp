@@ -16,6 +16,7 @@ static class Timing
         gl.Finish();
 
         var cpu = new double[frames];
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         var total = Stopwatch.StartNew();
         for (int i = 0; i < frames; i++)
         {
@@ -25,10 +26,11 @@ static class Timing
         }
         gl.Finish();
         total.Stop();
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 
         Array.Sort(cpu);
         Console.WriteLine($"frames: {frames} in {total.Elapsed.TotalMilliseconds:F0} ms = {total.Elapsed.TotalMilliseconds / frames:F2} ms/frame throughput; " +
-            $"CPU submit median {cpu[frames / 2]:F2} ms, p95 {cpu[(int)(frames * 0.95)]:F2} ms");
+            $"CPU submit median {cpu[frames / 2]:F2} ms, p95 {cpu[(int)(frames * 0.95)]:F2} ms; allocated {allocated / frames / 1024.0:F1} KB/frame");
 
         var timer = renderer.Pipeline.Timer;
         Console.WriteLine($"GPU {timer.LastTotalMs:F2} ms by pass: " + Top(timer.Last, 10));

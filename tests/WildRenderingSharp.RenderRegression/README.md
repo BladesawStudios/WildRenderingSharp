@@ -2,7 +2,7 @@
 
 Renders a fixed set of scenes through the real pipeline and compares them with images recorded earlier, so a change to a pass,
 a shader or a uniform block that alters the picture is caught. The scenes are in `scenes.json`: TotK sky, lighting and shadow
-scenes, and two BotW actors.
+scenes, a grid of instanced actors, and two BotW actors.
 
 It needs your own ROM dumps and a GPU, so it is run by hand. Baselines are per machine and driver, so they are kept in `golden/`
 (ignored by git), not in the repository.

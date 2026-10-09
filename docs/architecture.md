@@ -113,7 +113,7 @@ writes a PNG, failing on GL errors or a blank image:
 dotnet run --project tests/WildRenderingSharp.TestBench -- --game totk --romfs <romfs dir> --actor Npc_Zelda_AncientHyrule --out zelda.png
 ```
 
-`--game botw --romfs <Switch dump> --actor Link` prepares the model from the dump's packs and draws it through `Profiles/Botw`: the game's own G-buffer programs, then its own character shading passes (`--yaw <degrees>`, `--distance`, `--height` move the camera).
+`--frames <n>` renders that many frames and reports the CPU time to submit each, the GPU time, where both went, and the bytes allocated per frame; `--instances <n>` draws that many copies of the actor as one instanced batch, the way a map does. `--game botw --romfs <Switch dump> --actor Link` prepares the model from the dump's packs and draws it through `Profiles/Botw`: the game's own G-buffer programs, then its own character shading passes (`--yaw <degrees>`, `--distance`, `--height` move the camera).
 
 `tests/WildRenderingSharp.RenderRegression` runs the test bench over a fixed set of scenes and compares each render with a baseline recorded on the same machine, which is how a change to a pass or shader is checked against the picture; see its README.
 
