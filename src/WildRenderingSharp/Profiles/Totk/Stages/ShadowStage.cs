@@ -33,20 +33,13 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             : null;
 
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
-        bool reuse = cascadeParams is not null
-            || frame.ShadowMapOverride is null && cache.ModelRowsPerActor is not null && cache.SunWorld == frame.Setup.SunWorld
-                && ShadowSignatures.ActorRowsEqual(cache.ModelRowsPerActor, modelRowsPerActor)
-                && ShadowSignatures.PosesEqual(cache.BonesPerActor, request.Actors)
-                && cache.Focus == request.ShadowFocus
-                && cache.InstanceSignature == ShadowSignatures.InstanceSignature(frame.Instances, request.ShadowFocus is not null);
 
         if (cascadeParams is not null)
         {
-            float radius = cache.CascadeRadius[0];
-            var center = request.ShadowCascades![0].Center;
-            frame.Shadow = new ShadowResult(cache.CascadeLight[0], center - new Vector3(radius), center + new Vector3(radius), cascadeParams);
+            var first = new ShadowFocus(request.ShadowCascades![0].Center, cache.CascadeRadius[0]);
+            frame.Shadow = new ShadowResult(cache.CascadeLight[0], first.Min, first.Max, cascadeParams);
         }
-        else if (reuse)
+        else if (frame.ShadowMapOverride is null && CachedMapIsCurrent(frame, modelRowsPerActor))
         {
             frame.Shadow = new ShadowResult(cache.LightMatrices, cache.RotatedLo, cache.RotatedHi);
         }
@@ -56,13 +49,25 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         }
     }
 
+    // True when nothing the last shadow map was drawn from has changed.
+    static bool CachedMapIsCurrent(FrameContext frame, Vector4[][] modelRowsPerActor)
+    {
+        var request = frame.Request;
+        var cache = frame.ShadowCache;
+        return cache.ModelRowsPerActor is not null && cache.SunWorld == frame.Setup.SunWorld
+            && ShadowSignatures.ActorRowsEqual(cache.ModelRowsPerActor, modelRowsPerActor)
+            && ShadowSignatures.PosesEqual(cache.BonesPerActor, request.Actors)
+            && cache.Focus == request.ShadowFocus
+            && cache.InstanceSignature == ShadowSignatures.InstanceSignature(frame.Instances, request.ShadowFocus is not null);
+    }
+
     void DrawShadowMap(FrameContext frame, Vector4[][] modelRowsPerActor)
     {
         var request = frame.Request;
         var cache = frame.ShadowCache;
 
         (Vector3 lo, Vector3 hi) = request.ShadowFocus is { } focus
-            ? (focus.Center - new Vector3(focus.Radius), focus.Center + new Vector3(focus.Radius))
+            ? (focus.Min, focus.Max)
             : ShadowSignatures.CombinedBounds(request.Actors, frame.Instances);
         var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
         frame.Shadow = new ShadowResult(light, lo, hi);
@@ -92,7 +97,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         if (focus is null)
             return [.. frame.Setup.CastingGroups.Select(WithoutSceneColorShapes)];
 
-        var groups = frame.Setup.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
+        var groups = ActorGroups(frame);
         foreach (var batch in frame.Instances.Where(b => b.Shadow.Visible.Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true));
         return groups;
@@ -113,8 +118,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         for (int c = 0; c < count; c++)
         {
             var focus = cascades[c];
-            var lo = focus.Center - new Vector3(focus.Radius);
-            var hi = focus.Center + new Vector3(focus.Radius);
+            var (lo, hi) = (focus.Min, focus.Max);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
             var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
             var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
@@ -166,7 +170,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     {
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
 
-        var groups = frame.Setup.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
+        var groups = ActorGroups(frame);
         foreach (var batch in frame.Instances.Where(b => b.Shadow.Cascade(cascade).Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
         _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
@@ -174,6 +178,10 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
             terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
     }
+
+    // The placed actors' casters, without the shapes that read the scene colour.
+    static List<ActorDrawGroup> ActorGroups(FrameContext frame) =>
+        frame.Setup.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
 
     static ActorDrawGroup WithoutSceneColorShapes(ActorDrawGroup group) =>
         group with { Shapes = group.Shapes.Where(s => !s.ReadsSceneColor).ToList() };

@@ -28,6 +28,7 @@ public sealed class WildRenderer : IDisposable
 {
     readonly GL _gl;
     readonly List<RenderActor> _actors = [];
+    readonly List<InstanceBatch> _instances = [];
     readonly ModelFactory _models;
     readonly BakeAttachment _bakes;
 
@@ -107,8 +108,6 @@ public sealed class WildRenderer : IDisposable
         return actor;
     }
 
-    readonly List<InstanceBatch> _instances = [];
-
     public IReadOnlyList<InstanceBatch> Instances => _instances;
 
     public ShadowFocus? ShadowFocus { get; set; }
@@ -137,8 +136,8 @@ public sealed class WildRenderer : IDisposable
         SceneChanged();
         using var _ = GLHostState.Enter(_gl);
         batch.Dispose();
-        if (disposeModel && !_instances.Any(b => ReferenceEquals(b.Model, batch.Model)) && !_actors.Any(a => ReferenceEquals(a.Model, batch.Model)))
-            batch.Model.Dispose();
+        if (disposeModel)
+            DisposeModelIfUnused(batch.Model);
     }
 
     public void ClearInstances()
@@ -150,10 +149,13 @@ public sealed class WildRenderer : IDisposable
         foreach (var batch in all)
             batch.Dispose();
         foreach (var model in all.Select(b => b.Model).Distinct())
-        {
-            if (!_actors.Any(a => ReferenceEquals(a.Model, model)))
-                model.Dispose();
-        }
+            DisposeModelIfUnused(model);
+    }
+
+    void DisposeModelIfUnused(LoadedModel model)
+    {
+        if (!_instances.Any(b => ReferenceEquals(b.Model, model)) && !_actors.Any(a => ReferenceEquals(a.Model, model)))
+            model.Dispose();
     }
 
     public void AddActor(RenderActor actor)
