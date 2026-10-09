@@ -119,8 +119,8 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
             var hi = focus.Center + new Vector3(focus.Radius);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
             var light = ShadowPass.BuildLightMatrices(lo, hi, frame.SunWorld);
-            var right = new Vector3(light.View3Rows[0].X, light.View3Rows[0].Y, light.View3Rows[0].Z);
-            var up = new Vector3(light.View3Rows[1].X, light.View3Rows[1].Y, light.View3Rows[1].Z);
+            var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
+            var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
             foreach (var batch in frame.Instances)
                 batch.UpdateCascadeRuns(c, focus, right, up, lightRadius);
 
@@ -133,7 +133,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
                 drew = true;
             }
             cache.CascadeRadius[c] = focus.Radius;
-            viewProj[c] = cache.CascadeLight[c].ViewProj;
+            viewProj[c] = CameraData.Rows(cache.CascadeLight[c].ViewProj);
             texelWorld[c] = 2f * lightRadius / RenderTargets.CascadeSize;
             bias[c] = request.ShadowBias / (lightRadius * 5f - 0.01f);
         }

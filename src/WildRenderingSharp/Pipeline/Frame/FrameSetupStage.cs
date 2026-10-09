@@ -1,3 +1,4 @@
+using System.Numerics;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Rendering;
 
@@ -15,10 +16,10 @@ public sealed class FrameSetupStage(FrameServices services) : IFrameStage
         var cam = CameraData.From(frame.Camera, frame.Targets.Width, frame.Targets.Height);
         frame.Cam = cam;
         frame.FlippedCam = cam.FlippedY();
-        frame.MaskViewProj = profile.World.Rows(cam.ViewProj);
+        frame.MaskViewProj = profile.World.Rows(CameraData.Rows(cam.ViewProj));
 
         frame.SunWorld = SunDirection.FromElevationAzimuth(lighting.SunElevation, lighting.SunAzimuth);
-        frame.SunView = Mat4Math.TransformDirection(cam.View, frame.SunWorld);
+        frame.SunView = Vector3.Transform(frame.SunWorld, cam.View);
         frame.SunColor = environment.SunColor;
         frame.HemiSky = environment.HemiSky;
         frame.HemiGround = environment.HemiGround;

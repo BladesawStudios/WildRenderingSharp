@@ -1,5 +1,6 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline;
@@ -15,37 +16,23 @@ public sealed class ShadowPass
 
     public ShadowPass(GL gl) => _gl = gl;
 
-    public readonly record struct LightMatrices(Vector4[] View3Rows, Vector4[] Proj, Vector4[] ViewProj);
+    public readonly record struct LightMatrices(Matrix4x4 View, Matrix4x4 Proj, Matrix4x4 ViewProj);
 
+    /// <summary>
+    /// An orthographic sun camera framing the bounding sphere of the box <paramref name="lo"/>..<paramref name="hi"/>: the eye sits
+    /// 2.5 radii out along the sun direction looking at the centre, and the depth range covers 5 radii.
+    /// </summary>
     public static LightMatrices BuildLightMatrices(Vector3 lo, Vector3 hi, Vector3 sunWorld)
     {
         var center = (lo + hi) * 0.5f;
         float radius = (hi - lo).Length() * 0.5f + 1e-4f;
         var eye = center + sunWorld * (radius * 2.5f);
-        var f = Vector3.Normalize(center - eye);
-        var up = MathF.Abs(f.Z) < 0.95f ? new Vector3(0, 0, 1) : new Vector3(0, 1, 0);
-        var r = Vector3.Normalize(Vector3.Cross(f, up));
-        var u = Vector3.Cross(r, f);
+        // Z is up, except when the sun is near-vertical and would look straight down it.
+        var up = MathF.Abs(Vector3.Normalize(sunWorld).Z) < 0.95f ? Vector3.UnitZ : Vector3.UnitY;
 
-        Vector4[] view =
-        [
-            new(r.X, r.Y, r.Z, -Vector3.Dot(r, eye)),
-            new(u.X, u.Y, u.Z, -Vector3.Dot(u, eye)),
-            new(-f.X, -f.Y, -f.Z, Vector3.Dot(f, eye)),
-            new(0, 0, 0, 1),
-        ];
-        const float near = 0.01f;
-        float far = radius * 5.0f;
-        float scale = 1f / radius;
-        Vector4[] proj =
-        [
-            new(scale, 0, 0, 0),
-            new(0, scale, 0, 0),
-            new(0, 0, -2f / (far - near), -(far + near) / (far - near)),
-            new(0, 0, 0, 1),
-        ];
-        var viewProj = Mat4Math.Multiply(proj, view);
-        return new LightMatrices(view[..3], proj, viewProj);
+        var view = Matrix4x4.CreateLookAt(eye, center, up);
+        var proj = Matrix4x4.CreateOrthographic(radius * 2f, radius * 2f, 0.01f, radius * 5f) * CameraData.ZeroToOneDepthToGl;
+        return new LightMatrices(view, proj, view * proj);
     }
 
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs, int cascade = -1)

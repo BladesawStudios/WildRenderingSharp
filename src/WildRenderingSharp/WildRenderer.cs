@@ -4,6 +4,7 @@ using WildRenderingSharp.Assets;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Scene;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
