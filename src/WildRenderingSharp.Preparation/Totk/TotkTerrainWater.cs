@@ -2,6 +2,7 @@ using System.Text.Json;
 using BfresLibrary;
 using ShaderLibrary;
 using ShaderLibrary.CompileTool;
+using TexSharp;
 using WildRenderingSharp.Logging;
 using WildRenderingSharp.Rom;
 
@@ -18,8 +19,11 @@ public static class TotkTerrainWater
 
     static readonly string[] Textures = ["WaterAlb", "WaterNrm", "WaterEmm"];
 
+    // A texture list that still names BC4 is stale, since the renderer reads the mask already decoded.
     public static bool IsExported(string shadersDir) =>
-        File.Exists(Path.Combine(shadersDir, TexturesFile)) && File.Exists(Path.Combine(shadersDir, ProgramName + "_extracted.frag"));
+        File.Exists(Path.Combine(shadersDir, ProgramName + "_extracted.frag"))
+        && File.Exists(Path.Combine(shadersDir, TexturesFile))
+        && !File.ReadAllText(Path.Combine(shadersDir, TexturesFile)).Contains("BC4", StringComparison.Ordinal);
 
     public static void Export(IRomAccess rom, string shadersDir)
     {
@@ -45,7 +49,7 @@ public static class TotkTerrainWater
         BuildMaterialUbo.WriteParamLayout(block, material, Path.Combine(shadersDir, "terrain_water_material.params.json"));
     }
 
-    // Every slice of each texture the program reads, mip 0, back to back.
+    // Every slice of each texture the program reads, mip 0, back to back; a BC4 mask is written decoded, as R8.
     static void WriteTextures(IRomAccess rom, string shadersDir)
     {
         var written = new List<object>();
@@ -58,13 +62,22 @@ public static class TotkTerrainWater
             }
 
             var texture = TotkTextures.LoadAllSlices(rom, path);
-            string file = $"terrain_water_{name}_{texture.Width}x{texture.Height}x{texture.ArrayCount}_{texture.Format}.bin";
+            bool mask = texture.Format.ToString().StartsWith("BC4", StringComparison.Ordinal);
+            string format = mask ? "R8" : texture.Format.ToString();
+            string file = $"terrain_water_{name}_{texture.Width}x{texture.Height}x{texture.ArrayCount}_{format}.bin";
             using (var stream = File.Create(Path.Combine(shadersDir, file)))
                 foreach (var surface in texture.Surfaces)
-                    stream.Write(surface.Data);
-            written.Add(new { name, file, format = texture.Format.ToString(), width = texture.Width, height = texture.Height, layers = texture.ArrayCount });
-            Log.Info($"[ExportTerrainWater] {name}: {texture.Width}x{texture.Height}, {texture.ArrayCount} slice(s), {texture.Format}");
+                    stream.Write(mask ? DecodeMask(surface.Data, texture.Width, texture.Height) : surface.Data);
+            written.Add(new { name, file, format, width = texture.Width, height = texture.Height, layers = texture.ArrayCount });
+            Log.Info($"[ExportTerrainWater] {name}: {texture.Width}x{texture.Height}, {texture.ArrayCount} slice(s), {format}");
         }
         File.WriteAllText(Path.Combine(shadersDir, TexturesFile), JsonSerializer.Serialize(written));
+    }
+
+    static byte[] DecodeMask(byte[] blocks, int width, int height)
+    {
+        var decoded = new byte[width * height];
+        TotkSystemTextures.RedChannel(TextureFormat.Bc4, blocks, width, height, decoded);
+        return decoded;
     }
 }

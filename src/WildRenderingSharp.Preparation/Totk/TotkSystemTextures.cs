@@ -82,7 +82,7 @@ public static class TotkSystemTextures
         return null;
     }
 
-    static void RedChannel(TextureFormat format, ReadOnlySpan<byte> blocks, int width, int height, Span<byte> destination)
+    internal static void RedChannel(TextureFormat format, ReadOnlySpan<byte> blocks, int width, int height, Span<byte> destination)
     {
         byte[] rgba = TextureDecoder.ToRgba8(format, blocks.ToArray(), width, height);
         for (int i = 0; i < width * height; i++)

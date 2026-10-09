@@ -190,52 +190,24 @@ public sealed partial class TerrainShading
             }
         }
 
+        // The export holds either ASTC blocks to decode or a mask already decoded to R8.
         static byte[] DecodeSlices(byte[] raw, Entry e, int channels)
         {
+            if (e.format == "R8")
+                return raw;
+
             var info = CompressedTextureFormat.Resolve(e.format) ?? throw new NotSupportedException(e.format);
+            if (info.AstcFootprint is not { } footprint)
+                throw new NotSupportedException(e.format);
+
             int slice = CompressedTextureFormat.ComputeDataLength(info, e.width, e.height);
             int texels = e.width * e.height;
             var output = new byte[texels * channels * e.layers];
             Parallel.For(0, e.layers, layer =>
             {
                 byte[] block = raw.AsSpan(layer * slice, slice).ToArray();
-                byte[] decoded = info.AstcFootprint is { } footprint
-                    ? CompressedTextureFormat.DecodeAstc(block, e.width, e.height, footprint, srgb: false)
-                    : DecodeBc4(block, e.width, e.height);
-                decoded.CopyTo(output, layer * texels * channels);
+                CompressedTextureFormat.DecodeAstc(block, e.width, e.height, footprint, srgb: false).CopyTo(output, layer * texels * channels);
             });
-            return output;
-        }
-
-        static byte[] DecodeBc4(byte[] data, int width, int height)
-        {
-            var output = new byte[width * height];
-            Span<byte> palette = stackalloc byte[8];
-            int blocksX = (width + 3) / 4, blocksY = (height + 3) / 4;
-            for (int by = 0; by < blocksY; by++)
-            for (int bx = 0; bx < blocksX; bx++)
-            {
-                int at = (by * blocksX + bx) * 8;
-                byte r0 = data[at], r1 = data[at + 1];
-                palette[0] = r0;
-                palette[1] = r1;
-                if (r0 > r1)
-                    for (int i = 1; i < 7; i++) palette[i + 1] = (byte)(((7 - i) * r0 + i * r1) / 7);
-                else
-                {
-                    for (int i = 1; i < 5; i++) palette[i + 1] = (byte)(((5 - i) * r0 + i * r1) / 5);
-                    palette[6] = 0;
-                    palette[7] = 255;
-                }
-                ulong bits = 0;
-                for (int i = 0; i < 6; i++) bits |= (ulong)data[at + 2 + i] << (8 * i);
-                for (int i = 0; i < 16; i++)
-                {
-                    int x = bx * 4 + (i & 3), y = by * 4 + (i >> 2);
-                    if (x < width && y < height)
-                        output[y * width + x] = palette[(int)((bits >> (3 * i)) & 7)];
-                }
-            }
             return output;
         }
     }
