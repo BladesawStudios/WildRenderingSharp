@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Pipeline.Drawing;
 
 /// <summary>
 /// What an instanced program and the code that draws it agree on: the storage buffer the per-placement data is read from and the

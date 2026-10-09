@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using WildRenderingSharp.Rendering;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Materials;
 
 /// <summary>One parameter's byte layout inside a compiled <c>gsys_material</c> block.</summary>
 public sealed class MaterialUniformEntry

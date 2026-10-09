@@ -2,6 +2,7 @@ using System.Numerics;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 using WildRenderingSharp.Rendering;

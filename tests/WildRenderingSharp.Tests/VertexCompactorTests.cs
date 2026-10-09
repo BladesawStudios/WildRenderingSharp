@@ -1,4 +1,5 @@
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Assets.Loading;
 
 namespace WildRenderingSharp.Tests;
 

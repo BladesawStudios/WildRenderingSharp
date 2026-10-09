@@ -5,7 +5,7 @@ using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Rendering;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Pipeline.Drawing;
 
 /// <summary>
 /// Every placement of one model, drawn with instanced calls through the game's own shaders (see <c>InstancedShaderPatch</c> for how

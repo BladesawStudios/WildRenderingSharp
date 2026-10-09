@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Loading;
 
 /// <summary>Builds the vertex arrays that read a shape's buffers for a program, and for the pass-ID stamp.</summary>
 sealed unsafe class VertexArrays(GL gl)

@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 

@@ -1,9 +1,10 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Graphics;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Pipeline.Drawing;
 
 /// <summary>
 /// One placed actor's shapes plus the per-actor GPU skinning resources every shape-drawing pass needs bound before drawing them -

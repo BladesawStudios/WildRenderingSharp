@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Materials;
 
 /// <summary>
 /// Deserialized <c>matubo/&lt;Material&gt;.params.json</c> - where each named shader parameter lives inside that material's

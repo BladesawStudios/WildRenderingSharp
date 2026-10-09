@@ -1,3 +1,4 @@
+using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Graphics;
 using System.Text.Json;
 using System.Text.RegularExpressions;

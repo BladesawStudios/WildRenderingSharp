@@ -1,5 +1,6 @@
 using System.Numerics;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Pipeline.Frame;

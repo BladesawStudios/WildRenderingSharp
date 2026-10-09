@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Loading;
 
 /// <summary>A shape's manifest extensions and its static options, read from the options file exported beside its geometry.</summary>
 sealed record ShapeOptions(Dictionary<string, string> Tags, bool HidesNormalPass)

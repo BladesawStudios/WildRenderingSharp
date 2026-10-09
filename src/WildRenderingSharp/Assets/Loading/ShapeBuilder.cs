@@ -1,7 +1,8 @@
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Pipeline;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Loading;
 
 // How a model's shapes are built: compacted vertices, vertex arrays left for the GL thread, and the forward programs' decompiler corrections.
 readonly record struct ShapeBuildOptions(bool CompactVertices, bool DeferVertexArrays, bool ForwardCorrections);

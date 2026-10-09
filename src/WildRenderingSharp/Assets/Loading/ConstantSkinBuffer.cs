@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Loading;
 
 /// <summary>The one vertex holding all skin weight on palette slot 0, shared by every shape in a GL context.</summary>
 static class ConstantSkinBuffer

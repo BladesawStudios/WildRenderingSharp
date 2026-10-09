@@ -2,6 +2,7 @@ using WildRenderingSharp.Graphics;
 using System.Text;
 using System.Text.RegularExpressions;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Pipeline.Drawing;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 

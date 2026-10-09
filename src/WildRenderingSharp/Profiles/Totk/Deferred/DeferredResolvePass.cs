@@ -1,3 +1,4 @@
+using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Graphics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;

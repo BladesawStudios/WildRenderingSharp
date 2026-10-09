@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Assets.Loading;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Pipeline;

@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;

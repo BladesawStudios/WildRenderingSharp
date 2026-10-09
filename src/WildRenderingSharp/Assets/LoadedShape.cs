@@ -1,3 +1,5 @@
+using WildRenderingSharp.Assets.Materials;
+
 
 namespace WildRenderingSharp.Assets;
 

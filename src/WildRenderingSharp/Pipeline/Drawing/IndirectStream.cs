@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Pipeline.Drawing;
 
 // One command of a multi-draw: GL's DrawElementsIndirectCommand.
 [StructLayout(LayoutKind.Sequential)]

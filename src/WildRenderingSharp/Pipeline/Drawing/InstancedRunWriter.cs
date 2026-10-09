@@ -1,7 +1,7 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Pipeline.Drawing;
 
 // The baked-lighting sampler a batch's shape draws with: its unit, the material's own texture for it, and which atlas each instance uses.
 readonly record struct BakeSlot(int Unit, LoadedTexture Own, int[] AtlasOf);

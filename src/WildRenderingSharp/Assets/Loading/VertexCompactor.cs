@@ -1,7 +1,8 @@
 using System.Numerics;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Pipeline.Drawing;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Loading;
 
 /// <summary>Drops the vertex attributes no program of a shape reads, repacking the buffer around the ones it keeps.</summary>
 static class VertexCompactor

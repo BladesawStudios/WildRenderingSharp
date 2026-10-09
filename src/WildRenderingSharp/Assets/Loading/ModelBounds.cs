@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Loading;
 
 /// <summary>The axis-aligned bounds and the positions of every vertex of a model's shapes.</summary>
 sealed class ModelBounds

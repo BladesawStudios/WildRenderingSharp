@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Pipeline.Drawing;
 
 // The locations of an instanced program's instancing uniforms.
 readonly record struct InstanceUniforms(int First, int Stride, int PaletteVec4s, int PaletteRepeat)

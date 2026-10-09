@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Pipeline;
+namespace WildRenderingSharp.Pipeline.Drawing;
 
 /// <summary>Remembers what is bound while a pass draws, so a draw can skip binds the previous draw already made.</summary>
 sealed class DrawBindingCache

@@ -3,6 +3,7 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Pipeline.Drawing;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 

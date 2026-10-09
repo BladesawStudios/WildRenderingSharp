@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Assets;
+namespace WildRenderingSharp.Assets.Materials;
 
 /// <summary>A material's <c>gsys_material</c> uniform block: its authored bytes and the padded GL buffer they are shown through.</summary>
 public sealed class MaterialBlock : IDisposable
