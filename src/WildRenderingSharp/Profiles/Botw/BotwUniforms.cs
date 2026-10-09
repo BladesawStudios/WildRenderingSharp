@@ -9,10 +9,11 @@ namespace WildRenderingSharp.Profiles.Botw;
 
 static class BotwUniforms
 {
-    public static UniformBlock Camera(IWorldBasis world, string key, in CameraData camera) =>
-        UniformBlock.From(key, BotwContextUbo.ForCamera(
-            world.Rows(camera.View), world.Rows(camera.ViewProj), camera.Proj, world.InverseRows(camera.ViewInv),
-            camera.Aspect, camera.TanHalfFovY, camera.Near, camera.Far, camera.TexelSize));
+    public static UniformBlock Camera(IWorldBasis world, string key, in CameraData camera) => UniformBlock.From(key, Context(world, camera));
+
+    public static BotwContextUbo Context(IWorldBasis world, in CameraData camera) => BotwContextUbo.ForCamera(
+        world.Rows(camera.View), world.Rows(camera.ViewProj), camera.Proj, world.InverseRows(camera.ViewInv),
+        camera.Aspect, camera.TanHalfFovY, camera.Near, camera.Far, camera.TexelSize);
 
     public static IReadOnlyList<UniformBlock> Actor(IWorldBasis world, in SkinningData actor)
     {

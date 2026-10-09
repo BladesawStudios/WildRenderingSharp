@@ -19,6 +19,8 @@ public sealed class BotwContextUbo : IUboBlock
         public const int CameraParam2 = 16;
         public const int CameraParam3 = 17;
         public const int Resolution = 18;
+        public const int Cascades = 42;
+        public const int CascadeSplits = 58;
     }
 
     readonly Std140Block _block = new(ByteSize);
@@ -41,6 +43,17 @@ public sealed class BotwContextUbo : IUboBlock
         ctx._block.SetSlot(Slots.CameraParam3, aspect * tanHalfFovY, tanHalfFovY, 2f * MathF.Atan(tanHalfFovY), 0f);
         ctx._block.SetSlot(Slots.Resolution, 1f / texelSize.X, 1f / texelSize.Y, texelSize.X, texelSize.Y);
         return ctx;
+    }
+
+    /// <summary>A copy that carries the shadow cascades the pre-shading passes read: each cascade's view-to-shadow matrix (four rows, texture space), and the depths where the next cascade takes over.</summary>
+    public BotwContextUbo WithCascade(ReadOnlySpan<Vector4> viewToShadow, float firstSplit, float secondSplit)
+    {
+        var copy = new BotwContextUbo();
+        for (int slot = 0; slot < _block.SizeBytes / 16; slot++)
+            copy._block.SetSlot(slot, _block.GetSlot(slot));
+        copy._block.WriteRows(Slots.Cascades, viewToShadow);
+        copy._block.SetSlot(Slots.CascadeSplits, firstSplit, secondSplit, secondSplit, secondSplit);
+        return copy;
     }
 
     public byte[] ToByteArray() => _block.ToByteArray();

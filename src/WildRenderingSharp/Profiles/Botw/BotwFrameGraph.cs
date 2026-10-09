@@ -13,12 +13,15 @@ public sealed class BotwFrameGraph : IFrameGraph
 
     public BotwFrameGraph(FrameServices services)
     {
+        var passes = Own(new BotwPasses(services));
+        var lighting = Own(new BotwLightingStage(services, passes));
         _stages =
         [
             new FrameSetupStage(services),
             Own(new BotwFrameConstantsStage(services)),
             new BotwGBufferStage(services),
-            Own(new BotwResolveStage(services)),
+            lighting,
+            Own(new BotwResolveStage(services, passes, lighting)),
             Own(new BotwTonemapStage(services)),
         ];
     }

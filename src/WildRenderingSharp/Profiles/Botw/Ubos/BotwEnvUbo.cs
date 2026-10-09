@@ -20,7 +20,13 @@ public sealed class BotwEnvUbo : IUboBlock
         public const int LightDir1 = 7;
         public const int LightColor1 = 8;
         public const int LightSpecColor1 = 9;
+        public const int WorldShadowWeights = 42;
+        public const int ViewToWorld = 43;
+        public const int CascadeTexel = 53;
     }
+
+    // The fog and curve slots the pre-shading passes read as exponents; zero would make their pow() NaN.
+    static readonly (int Slot, int Component)[] Exponents = [(18, 1), (27, 0), (27, 1), (29, 0), (29, 2)];
 
     readonly Std140Block _block = new(ByteSize);
 
@@ -28,7 +34,10 @@ public sealed class BotwEnvUbo : IUboBlock
     public int BindingIndex => (int)BotwBindings.Environment;
 
     /// <param name="sunDirView">Toward the sun, in view space; the shaders take the direction the light travels.</param>
-    public static BotwEnvUbo From(Vector3 sunDirView, Vector3 sunColor, Vector3 hemiSky, Vector3 hemiGround)
+    /// <param name="viewToWorld">The camera's view-to-world transform in the game's world, three rows.</param>
+    /// <param name="cascadeTexel">One texel of the shadow cascades, in uv.</param>
+    public static BotwEnvUbo From(Vector3 sunDirView, Vector3 sunColor, Vector3 hemiSky, Vector3 hemiGround,
+        ReadOnlySpan<Vector4> viewToWorld = default, float cascadeTexel = 0f)
     {
         var env = new BotwEnvUbo();
         var b = env._block;
@@ -42,6 +51,14 @@ public sealed class BotwEnvUbo : IUboBlock
         b.SetSlot(Slots.LightDir1, 0f, -1f, 0f, 0f);
         b.SetSlot(Slots.LightColor1, 0f, 0f, 0f, 1f);
         b.SetSlot(Slots.LightSpecColor1, 0f, 0f, 0f, 1f);
+
+        if (viewToWorld.Length == 3)
+            b.WriteRows(Slots.ViewToWorld, viewToWorld);
+        // The shadows fade out beyond the distance in .z and .w, which is set past anything drawn.
+        b.SetSlot(Slots.CascadeTexel, cascadeTexel, cascadeTexel, 100000f, 100000f);
+
+        foreach (var (slot, component) in Exponents)
+            b.SetComponent(slot, component, 1f);
         return env;
     }
 

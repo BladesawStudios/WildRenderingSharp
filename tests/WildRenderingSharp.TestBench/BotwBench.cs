@@ -35,8 +35,12 @@ static class BotwBench
         var actor = new RenderActor { Model = loader.Load(model, enableKnownDecompilerCorrections: false), ModelName = model, Name = model };
         pipeline.SetScene([actor.Model]);
 
-        var environment = new BotwEnvironment();
+        var environment = new BotwEnvironment { DebugPreShading = options.TryGetValue("debug-attachment", out var a) ? int.Parse(a) : -1 };
         var lighting = new LightingContext();
+        if (options.TryGetValue("azimuth", out var azimuth))
+            lighting.SunAzimuth = float.Parse(azimuth);
+        if (options.TryGetValue("sun", out var sun))
+            lighting.SunElevation = float.Parse(sun);
         if (options.TryGetValue("exposure", out var exposure))
             lighting.Exposure = float.Parse(exposure);
 
