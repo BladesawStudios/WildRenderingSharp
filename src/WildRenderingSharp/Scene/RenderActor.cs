@@ -38,14 +38,6 @@ public class RenderActor : IDisposable
         ? Vector3.Transform(Model.BoundsCenter, CameraData.FromRows(rows))
         : Position + Model.BoundsCenter;
 
-    public Vector3 Forward() => EulerRotation.YawPitchRollBasis(Yaw, Pitch, Roll).Forward;
-
-    public (Vector3 Forward, Vector3 Right, Vector3 Up) Basis()
-    {
-        var (right, up, forward) = EulerRotation.YawPitchRollBasis(Yaw, Pitch, Roll);
-        return (forward, right, up);
-    }
-
     // Per-actor animation state.
 
     public SkeletalAnimManifest? SkeletalClip { get; private set; }

@@ -24,8 +24,6 @@ public class LightingContext
 
     public float BloomIntensity { get; set; } = 1.0f;
 
-    public bool IconCaptureMode { get; set; }
-
     public bool SyntheticLightPrePass { get; set; }
 
     public bool ShowGrid { get; set; } = true;
