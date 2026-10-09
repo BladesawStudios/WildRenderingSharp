@@ -90,7 +90,7 @@ dotnet run --project tests/WildRenderingSharp.TestBench -- --game totk --romfs <
 
 ## Debugging switches
 
-Environment variables (the older `MARROW_*` names still work):
+Environment variables:
 
 | Variable | Effect |
 | --- | --- |

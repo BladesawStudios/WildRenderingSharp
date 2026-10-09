@@ -7,7 +7,7 @@ namespace WildRenderingSharp.Gpu;
 internal static class GLDiagnostics
 {
     public static bool VerbosePerPass { get; set; }
-        = (Environment.GetEnvironmentVariable("WRS_GL_TRACE") ?? Environment.GetEnvironmentVariable("MARROW_GL_TRACE")) == "1";
+        = Environment.GetEnvironmentVariable("WRS_GL_TRACE") == "1";
 
     public static bool CheckPass(GL gl, string context)
     {

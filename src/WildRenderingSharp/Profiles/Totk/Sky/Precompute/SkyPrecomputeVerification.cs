@@ -89,7 +89,7 @@ static class SkyPrecomputeVerification
     // Written when WRS_SKY_DUMP names a file, for diffing against a table lifted from a GPU capture (8 MB).
     static void DumpInscatter(GL gl, SkyTables tables)
     {
-        string? path = Environment.GetEnvironmentVariable("WRS_SKY_DUMP") ?? Environment.GetEnvironmentVariable("MARROW_SKY_DUMP");
+        string? path = Environment.GetEnvironmentVariable("WRS_SKY_DUMP");
         if (string.IsNullOrEmpty(path))
             return;
         float[] texels = ReadBack3D(gl, tables.Inscatter);

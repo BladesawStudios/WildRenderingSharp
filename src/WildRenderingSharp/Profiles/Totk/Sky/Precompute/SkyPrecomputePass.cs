@@ -63,7 +63,7 @@ internal sealed class SkyPrecomputePass : IDisposable
     public uint BakedInscatter => _tables?.BakedInscatter ?? 0;
 
     public int ScatteringOrders { get; set; } =
-        int.TryParse(Environment.GetEnvironmentVariable("WRS_SKY_ORDERS") ?? Environment.GetEnvironmentVariable("MARROW_SKY_ORDERS"), out int orders) && orders >= 1 ? orders : 6;
+        int.TryParse(Environment.GetEnvironmentVariable("WRS_SKY_ORDERS"), out int orders) && orders >= 1 ? orders : 6;
 
     public Vector3 SpectralCalibration { get; set; } = Vector3.One;
 

@@ -197,7 +197,7 @@ internal sealed unsafe class CloudDomePass : IDisposable
             return;
         _dumped = true;
         CloudCommonCapture.Report(common.Bytes.Span);
-        if ((Environment.GetEnvironmentVariable("WRS_CLOUD_DUMP") ?? Environment.GetEnvironmentVariable("MARROW_CLOUD_DUMP")) is { Length: > 0 } path)
+        if (Environment.GetEnvironmentVariable("WRS_CLOUD_DUMP") is { Length: > 0 } path)
             File.WriteAllBytes(path, common.Bytes.ToArray());
     }
 }
