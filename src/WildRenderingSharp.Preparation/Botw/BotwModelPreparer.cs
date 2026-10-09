@@ -1,4 +1,5 @@
 using ShaderLibrary.CompileTool;
+using ShaderLibrary.CompileTool.Rom;
 using WildRenderingSharp.Hosting;
 
 namespace WildRenderingSharp.Preparation.Botw;
@@ -10,18 +11,24 @@ public static class BotwModelPreparer
 
     public static string PrepareIfNeeded(string romRoot, string modelName, CacheLayout cache, Action<string>? log = null, bool force = false)
     {
+        using var rom = BotwRom.Open(romRoot);
+        return PrepareIfNeeded(rom, modelName, cache, log, force);
+    }
+
+    public static string PrepareIfNeeded(IRomAccess rom, string modelName, CacheLayout cache, Action<string>? log = null, bool force = false)
+    {
         if (!force && cache.IsPrepared(modelName))
         {
             log?.Invoke($"[prepare] {modelName} is already prepared.");
             return modelName;
         }
-        return Prepare(romRoot, modelName, cache, log);
+        return Prepare(rom, modelName, cache, log);
     }
 
-    public static string Prepare(string romRoot, string modelName, CacheLayout cache, Action<string>? log = null)
+    public static string Prepare(IRomAccess rom, string modelName, CacheLayout cache, Action<string>? log = null)
     {
-        ModelPreparer.EnsureBfresReady(romRoot);
-        var assets = new BotwAssets(romRoot);
+        ModelPreparer.EnsureBfresPatched();
+        var assets = new BotwAssets(rom);
 
         string dataDirectory = cache.ModelDirectory(modelName);
         Directory.CreateDirectory(dataDirectory);

@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WildRenderingSharp\WildRenderingSharp.csproj" />
+    <ProjectReference Include="..\..\vendor\ShaderLibrary\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
   </ItemGroup>
 
   <ItemGroup>

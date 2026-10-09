@@ -16,6 +16,11 @@ public static class ModelPreparer
     public static void EnsureBfresReady(string romfsRoot)
     {
         ExternalBinaryStringTable.RomfsRoot = romfsRoot ?? "";
+        EnsureBfresPatched();
+    }
+
+    public static void EnsureBfresPatched()
+    {
         lock (PatchGate)
         {
             if (_patched)
