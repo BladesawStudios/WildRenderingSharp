@@ -4,18 +4,19 @@ using Silk.NET.Windowing;
 using WildRenderingSharp;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Hosting.Preparers;
+using WildRenderingSharp.Imaging;
 using WildRenderingSharp.Preparation;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Rendering.Lighting;
+using WildRenderingSharp.Rom;
+using WildRenderingSharp.Rom.Games;
+using WildRenderingSharp.Storage;
 using WildRenderingSharp.TestBench;
 
-// Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline.
-//
-//   WildRenderingSharp.TestBench --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>]
-//                                [--size <px>] [--background sky|color] [--sun <elevation radians>]
-//                                [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1]
-//   with --game totk: see TotkBenchOptions.Usage
-//
-// Exit codes: 0 rendered, 1 failure, 2 bad command line, 4 the image is blank.
+// Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline; the options are in the usage text.
+// Exit codes: 0 rendered, 1 failure, 2 bad command line, 4 the image is nearly blank, 5 GL reported errors.
 
 var options = args.Chunk(2).Where(p => p.Length == 2 && p[0].StartsWith("--")).ToDictionary(p => p[0][2..], p => p[1]);
 string Option(string key, string fallback) => options.TryGetValue(key, out var v) ? v : fallback;
@@ -23,7 +24,7 @@ string Option(string key, string fallback) => options.TryGetValue(key, out var v
 if (!options.TryGetValue("romfs", out var romfs) || !options.TryGetValue("actor", out var actorName))
 {
     Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] " +
-        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] " +
+        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--frames <n>] [--instances <n> [--spacing <x>]] " +
         (Option("game", "totk") == "totk" ? TotkBenchOptions.Usage : ""));
     return 2;
 }
@@ -57,9 +58,12 @@ window.Initialize();
 using var gl = GL.GetApi(window.GLContext);
 Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
-var renderer = new WildRenderer(gl, cache, romfs, initialWidth: size, initialHeight: size);
+using var rom = TotkRom.Open(romfs);
+var renderer = new WildRenderer(gl, cache, rom, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
-renderer.AddActor(model);
+int instanceCount = int.Parse(Option("instances", "0"));
+if (instanceCount == 0)
+    renderer.AddActor(model);
 if (game == "totk")
     TotkBenchOptions.Apply(renderer, options);
 if (options.TryGetValue("azimuth", out var azimuth))
@@ -67,7 +71,14 @@ if (options.TryGetValue("azimuth", out var azimuth))
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
 var camera = new Camera { FovDegrees = 38f };
-var (center, radius) = renderer.FrameFor(camera);
+var (center, radius) = instanceCount > 0
+    ? InstanceGrid.Add(renderer, model, instanceCount, float.Parse(Option("spacing", "0.5")))
+    : renderer.FrameFor(camera);
+if (instanceCount > 0)
+{
+    var framing = SceneFramingCalculator.ForModelRadius(radius);
+    (camera.NearPlane, camera.FarPlane) = (framing.Near, framing.Far);
+}
 camera.Target = center;
 camera.Eye = center + SceneFramingCalculator.DefaultViewDirection * radius * 3.5f;
 
@@ -90,6 +101,9 @@ if (options.TryGetValue("exposure", out var exposure))
 for (int i = 0; i < 4; i++)
     renderer.Render(camera, size, size, 1f / 60f);
 
+if (options.TryGetValue("frames", out var frames))
+    Timing.Report(renderer, gl, camera, size, int.Parse(frames));
+
 var errors = new List<GLEnum>();
 for (var e = gl.GetError(); e != GLEnum.NoError; e = gl.GetError())
     errors.Add(e);
@@ -99,7 +113,7 @@ if (options.ContainsKey("probe"))
         Console.WriteLine($"HDR v={v:F2}: {renderer.View.ProbeHdr(new Vector2(float.Parse(Option("probe-x", "0.85")), v))}");
 
 byte[] rgba = renderer.View.ReadOutputRgba8();
-PngWriter.Write(outPath, rgba, size, size);
+PngWriter.WriteRgba(outPath, size, size, rgba);
 
 int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
 double luma = Enumerable.Range(0, rgba.Length / 4).Average(i => (rgba[i * 4] + rgba[i * 4 + 1] + rgba[i * 4 + 2]) / 765.0);
@@ -107,4 +121,4 @@ Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, mean luminance
 
 renderer.Dispose();
 window.Dispose();
-return distinct < 64 || errors.Count > 0 ? 4 : 0;
+return errors.Count > 0 ? 5 : distinct < 64 ? 4 : 0;

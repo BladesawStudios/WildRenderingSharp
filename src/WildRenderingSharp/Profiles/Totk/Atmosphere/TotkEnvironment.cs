@@ -1,7 +1,9 @@
 using System.Numerics;
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Profiles.Totk.Terrain;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 

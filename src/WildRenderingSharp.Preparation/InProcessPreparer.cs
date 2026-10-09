@@ -1,4 +1,6 @@
 using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Hosting.Preparers;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Preparation;
 
@@ -28,14 +30,12 @@ public sealed class InProcessPreparer : IModelPreparer
         {
             return await Task.Run(() =>
             {
-                if (request.ModRomfsLayers is { } mods)
-                    ModelPreparer.SetModRomfsLayers(mods);
                 ModelPreparer.EnsureSystemAssets(request.RomfsRoot, request.Cache, log);
 
                 var outcomes = new System.Collections.Concurrent.ConcurrentBag<PrepareOutcome>();
                 ModelPreparer.PrepareMany(request.RomfsRoot, request.ActorOrModelNames, request.Cache, request.EffectiveParallelism,
                     null, outcome => { outcomes.Add(outcome); onOutcome?.Invoke(outcome); },
-                    request.ImportAnimations, request.Force, cancellationToken);
+                    request.ImportAnimations, request.Force, request.ModRomfsLayers, cancellationToken);
                 return (IReadOnlyList<PrepareOutcome>)outcomes.ToList();
             }, cancellationToken).ConfigureAwait(false);
         }
@@ -52,10 +52,8 @@ public sealed class InProcessPreparer : IModelPreparer
         {
             return await Task.Run(() =>
             {
-                if (request.ModRomfsLayers is { } mods)
-                    ModelPreparer.SetModRomfsLayers(mods);
                 return ModelPreparer.PrepareIfNeeded(request.RomfsRoot, request.ActorOrModelName, request.Cache,
-                    log, request.ImportAnimations, request.Force);
+                    log, request.ImportAnimations, request.Force, request.ModRomfsLayers);
             }, cancellationToken).ConfigureAwait(false);
         }
         finally

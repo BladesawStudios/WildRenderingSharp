@@ -1,10 +1,12 @@
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Assets.Materials;
+using WildRenderingSharp.Assets.Textures;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Assets;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Profiles.Totk.Shaders;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
@@ -22,7 +24,8 @@ public sealed partial class TerrainShading
 
     const string WaterProgramName = "terrain_water_prog98";
 
-    uint _waterMaterial, _waterAlb, _waterNrm, _waterEmm;
+    MaterialBlock? _waterMaterial;
+    uint _waterAlb, _waterNrm, _waterEmm;
     Task<WaterTextures?>? _waterLoad;
 
     public bool WaterAvailable =>
@@ -31,7 +34,7 @@ public sealed partial class TerrainShading
 
     public uint LinkWaterProgram(string hostSource)
     {
-        string frag = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.frag")));
+        string frag = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.frag")));
         // The game counts the water types it saw in a buffer of its own; here binding 0 is the bake table.
         frag = Regex.Replace(frag, @"fp_s0\.data\[[^\]]*\]\s*=\s*[^;]+;", "");
         return GLProgramBuilder.Build(_gl, WaterVertex(hostSource), frag, WaterProgramName);
@@ -42,7 +45,7 @@ public sealed partial class TerrainShading
 
     string WaterVertex(string hostSource)
     {
-        string vert = GlslSanitizer.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.vert")));
+        string vert = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.vert")));
 
         vert = Regex.Replace(vert, @"layout \(location = 0\) in vec4 aPosition;",
             "vec4 aPosition = vec4(0.0, 0.0, 0.0, 1.0);\nvec4 wrs_node[18];\nfloat wrs_water_layer;");
@@ -81,26 +84,16 @@ public sealed partial class TerrainShading
                 return false;
             Upload(loaded);
         }
-        if (_waterMaterial == 0)
-        {
-            string path = Path.Combine(_shadersDir, "terrain_water_material.bin");
-            _waterMaterial = GLBuffer.CreatePaddedUniformBuffer(_gl, File.Exists(path) ? File.ReadAllBytes(path) : []);
-        }
-        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, _bindings.Material, _waterMaterial);
-        BindArray(WaterAlbUnit, _waterAlb);
+        _waterMaterial ??= MaterialBlock.FromFile(_gl, Path.Combine(_shadersDir, "terrain_water_material.bin"));
+        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, _bindings.Material, _waterMaterial.Handle);
+        _gl.BindTextureAt(WaterAlbUnit, _waterAlb, TextureTarget.Texture2DArray);
         // _s0, _n0, _t0, _a1: the normals; _e0: the emission.
-        BindArray(14, _waterNrm);
-        BindArray(15, _waterNrm);
-        BindArray(17, _waterNrm);
-        BindArray(18, _waterNrm);
-        BindArray(16, _waterEmm);
+        _gl.BindTextureAt(14, _waterNrm, TextureTarget.Texture2DArray);
+        _gl.BindTextureAt(15, _waterNrm, TextureTarget.Texture2DArray);
+        _gl.BindTextureAt(17, _waterNrm, TextureTarget.Texture2DArray);
+        _gl.BindTextureAt(18, _waterNrm, TextureTarget.Texture2DArray);
+        _gl.BindTextureAt(16, _waterEmm, TextureTarget.Texture2DArray);
         return true;
-    }
-
-    void BindArray(int unit, uint texture)
-    {
-        _gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        _gl.BindTexture(TextureTarget.Texture2DArray, texture);
     }
 
     unsafe void Upload(WaterTextures t)
@@ -144,17 +137,17 @@ public sealed partial class TerrainShading
         _gl.TexParameter(t, TextureParameterName.TextureWrapS, wrap);
         _gl.TexParameter(t, TextureParameterName.TextureWrapT, wrap);
         if (mips)
-            _gl.TexParameter(t, (TextureParameterName)GLEnum.TextureMaxAnisotropy, 8f);
+            _gl.SetAnisotropy(t);
     }
 
     void DisposeWater()
     {
         foreach (uint t in new[] { _waterAlb, _waterNrm, _waterEmm })
             if (t != 0) _gl.DeleteTexture(t);
-        if (_waterMaterial != 0) _gl.DeleteBuffer(_waterMaterial);
+        _waterMaterial?.Dispose();
     }
 
-    /// <summary>The water's textures decoded for upload: <c>WaterAlb</c> as half floats, <c>WaterNrm</c> as RGBA8, <c>WaterEmm</c> as R8.</summary>
+    // The water's textures decoded for upload: WaterAlb as half floats, WaterNrm as RGBA8, WaterEmm as R8.
     sealed class WaterTextures
     {
         public byte[] Alb = [], Nrm = [], Emm = [];
@@ -192,57 +185,29 @@ public sealed partial class TerrainShading
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[terrain water] {ex.Message}");
+                Log.Error($"[terrain water] {ex.Message}");
                 return null;
             }
         }
 
+        // The export holds either ASTC blocks to decode or a mask already decoded to R8.
         static byte[] DecodeSlices(byte[] raw, Entry e, int channels)
         {
+            if (e.format == "R8")
+                return raw;
+
             var info = CompressedTextureFormat.Resolve(e.format) ?? throw new NotSupportedException(e.format);
+            if (info.AstcFootprint is not { } footprint)
+                throw new NotSupportedException(e.format);
+
             int slice = CompressedTextureFormat.ComputeDataLength(info, e.width, e.height);
             int texels = e.width * e.height;
             var output = new byte[texels * channels * e.layers];
             Parallel.For(0, e.layers, layer =>
             {
                 byte[] block = raw.AsSpan(layer * slice, slice).ToArray();
-                byte[] decoded = info.AstcFootprint is { } footprint
-                    ? CompressedTextureFormat.DecodeAstc(block, e.width, e.height, footprint, srgb: false)
-                    : DecodeBc4(block, e.width, e.height);
-                decoded.CopyTo(output, layer * texels * channels);
+                CompressedTextureFormat.DecodeAstc(block, e.width, e.height, footprint, srgb: false).CopyTo(output, layer * texels * channels);
             });
-            return output;
-        }
-
-        static byte[] DecodeBc4(byte[] data, int width, int height)
-        {
-            var output = new byte[width * height];
-            Span<byte> palette = stackalloc byte[8];
-            int blocksX = (width + 3) / 4, blocksY = (height + 3) / 4;
-            for (int by = 0; by < blocksY; by++)
-            for (int bx = 0; bx < blocksX; bx++)
-            {
-                int at = (by * blocksX + bx) * 8;
-                byte r0 = data[at], r1 = data[at + 1];
-                palette[0] = r0;
-                palette[1] = r1;
-                if (r0 > r1)
-                    for (int i = 1; i < 7; i++) palette[i + 1] = (byte)(((7 - i) * r0 + i * r1) / 7);
-                else
-                {
-                    for (int i = 1; i < 5; i++) palette[i + 1] = (byte)(((5 - i) * r0 + i * r1) / 5);
-                    palette[6] = 0;
-                    palette[7] = 255;
-                }
-                ulong bits = 0;
-                for (int i = 0; i < 6; i++) bits |= (ulong)data[at + 2 + i] << (8 * i);
-                for (int i = 0; i < 16; i++)
-                {
-                    int x = bx * 4 + (i & 3), y = by * 4 + (i >> 2);
-                    if (x < width && y < height)
-                        output[y * width + x] = palette[(int)((bits >> (3 * i)) & 7)];
-                }
-            }
             return output;
         }
     }

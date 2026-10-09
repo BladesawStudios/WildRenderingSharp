@@ -1,5 +1,8 @@
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Graphics.Contracts;
+using WildRenderingSharp.Pipeline.Drawing;
+using WildRenderingSharp.Pipeline.Shadows;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Pipeline;
 

@@ -3,6 +3,7 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere;
 
 namespace WildRenderingSharp.Profiles.Totk;
 
+/// <summary>The TotK environment of a frame.</summary>
 static class TotkFrameContextExtensions
 {
     public static TotkEnvironment TotkEnvironment(this FrameContext frame) =>

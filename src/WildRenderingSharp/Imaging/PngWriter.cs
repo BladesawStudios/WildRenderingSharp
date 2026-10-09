@@ -3,11 +3,7 @@ using System.IO.Compression;
 
 namespace WildRenderingSharp.Imaging;
 
-/// <summary>
-/// Encodes a raw top-down RGBA8 buffer (what <see cref="Hosting.SceneView.ReadOutputRgba8"/> and
-/// <c>RenderTargets.ReadPixelsRgba8</c> return) as a PNG - with no imaging dependency, so it works on every platform the renderer
-/// does.
-/// </summary>
+/// <summary>Encodes a raw top-down RGBA8 buffer as a PNG, with no imaging dependency.</summary>
 public static class PngWriter
 {
     static ReadOnlySpan<byte> Signature => [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A];

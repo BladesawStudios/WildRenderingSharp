@@ -1,12 +1,11 @@
-using WildRenderingSharp.Graphics;
 using System.Text;
 using System.Text.RegularExpressions;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
 
 /// <summary>Makes a decompiled game vertex shader draw many placements in one instanced call, without changing anything it computes.</summary>
-public static class InstancedShaderPatch
+internal static class InstancedShaderPatch
 {
     static readonly Regex MainSignature = new(@"\bvoid\s+main\s*\(\s*\)", RegexOptions.Compiled);
 
@@ -14,7 +13,7 @@ public static class InstancedShaderPatch
         @"layout\s*\([^)]*\)\s*uniform\s+" + Regex.Escape(blockName) + @"\s*\{[^}]*\}\s*(\w+)\s*;",
         RegexOptions.Compiled);
 
-    public static string? Apply(string vertexSource)
+    public static string? Apply(string vertexSource, bool baseInstance)
     {
         string source = vertexSource;
         source = RemoveBlock(source, "_ShpMtx", out string? shapeName);
@@ -30,13 +29,12 @@ public static class InstancedShaderPatch
             return null;
         source = source[..main.Index] + "void wrs_inner_main()" + source[(main.Index + main.Length)..];
 
-        // The helpers depend on nothing in the shader, so they go first - straight after the
-        // #version/#extension lines that must open it - where every function that reads the
-        // blocks, not only main, comes after them.
+        // The helpers depend on nothing in the shader, so they go right after the #version and #extension lines and every function that
+        // reads the blocks comes after them.
         int at = EndOfDirectives(source);
-        string helpers = InstancingContract.BaseInstance ? "#extension GL_ARB_shader_draw_parameters : require\n" + Helpers : Helpers;
+        string helpers = baseInstance ? "#extension GL_ARB_shader_draw_parameters : require\n" + Helpers : Helpers;
         source = source[..at] + helpers + source[at..];
-        string wrapper = InstancingContract.BaseInstance ? Wrapper.Replace("wrs_first_instance + gl_InstanceID", "wrs_first_instance + gl_BaseInstanceARB + gl_InstanceID") : Wrapper;
+        string wrapper = baseInstance ? Wrapper.Replace("wrs_first_instance + gl_InstanceID", "wrs_first_instance + gl_BaseInstanceARB + gl_InstanceID") : Wrapper;
         return source.TrimEnd() + "\n\n" + wrapper;
     }
 

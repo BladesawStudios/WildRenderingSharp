@@ -1,3 +1,5 @@
+using WildRenderingSharp.Gpu;
+
 namespace WildRenderingSharp.Pipeline;
 
 /// <summary>The targets a viewer can show directly: the graded result and the intermediates behind it.</summary>

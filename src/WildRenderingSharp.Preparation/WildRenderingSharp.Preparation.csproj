@@ -27,8 +27,22 @@
   </Target>
 
   <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WildRenderingSharp\WildRenderingSharp.csproj" />
     <ProjectReference Include="$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
+  </ItemGroup>
+
+  <!-- The BFRES reader ShaderLibrary builds against; the asset readers here hand its ResFile to the exporters. -->
+  <ItemGroup>
+    <Reference Include="BfresLibrary">
+      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\BfresLibrary.dll</HintPath>
+    </Reference>
+    <Reference Include="Syroot.BinaryData">
+      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\Syroot.BinaryData.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <!-- The managed BNTX reader, with its own Tegra deswizzle. -->

@@ -1,17 +1,18 @@
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Profiles.Totk.Atmosphere;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Profiles.Totk.Deferred;
-using WildRenderingSharp.Profiles.Totk.Sky;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
+using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
+using WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 using WildRenderingSharp.Profiles.Totk.Stages;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 
 namespace WildRenderingSharp.Profiles.Totk;
 
 /// <summary>TotK's frame: a deferred G-buffer and lighting chain, the game's sky, and a forward pass for blended materials.</summary>
-public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
+internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
 {
     readonly DeferredScene _scene;
     readonly SkyBake _skyBake;
@@ -19,20 +20,21 @@ public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     readonly List<IFrameStage> _stages;
     readonly List<IDisposable> _owned = [];
 
-    /// <summary>The game's terrain programs, for a host that hands its terrain over (<see cref="TotkEnvironment.Terrain"/>).</summary>
+    // The game's terrain programs, for a host that hands its terrain over (Terrain).
     public TerrainShading Terrain { get; }
 
-    /// <summary>The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like.</summary>
+    // The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like.
     public CaveShading Cave { get; }
 
-    public TotkFrameGraph(FrameServices services)
+    public TotkFrameGraph(StageServices services)
     {
         var linearDepth = Own(new LinearDepthPass(services.Gl));
-        var forward = Own(new ForwardPass(services.Gl, services.Directories.SystemTextures));
+        var flip = Own(new FlipBlit(services.Gl));
+        var forward = new ForwardPass(services.Gl, flip, Own(new ForwardNeutralInputs(services.Gl, services.Directories.SystemTextures)));
         Terrain = Own(new TerrainShading(services.Gl, services.Directories.Decompiled, services.Profile.Bindings));
         Cave = Own(new CaveShading(services.Gl, services.Directories.Decompiled));
         _scene = Own(new DeferredScene(services.Gl, services.Programs, services.Directories));
-        var stamper = Own(new PassIdStamper(services.Gl, _scene));
+        var stamper = Own(new PassIdStamper(services.Gl, services.Drawer, _scene));
         _skyBake = Own(new SkyBake(services));
         var terrain = new TerrainRenderer(services, Terrain, linearDepth, _scene);
         var screenSpaceLighting = Own(new ScreenSpaceLightingStage(services, linearDepth));
@@ -49,8 +51,8 @@ public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
             Own(new SkyStage(services, _skyBake)),
             _resolve,
             new SnapshotStage(0),
-            Own(new GridStage(services, forward)),
-            Own(new KnownMaterialFixesStage(services, _scene, forward)),
+            Own(new GridStage(services, flip)),
+            Own(new KnownMaterialFixesStage(services, _scene, flip)),
             new ForwardStage(services, forward),
             new SnapshotStage(1),
             new ExposureMeasureStage(services),

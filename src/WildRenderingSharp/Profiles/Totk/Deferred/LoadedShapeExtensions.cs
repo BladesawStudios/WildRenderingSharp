@@ -2,9 +2,10 @@ using WildRenderingSharp.Assets;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
-public static class LoadedShapeExtensions
+/// <summary>The deferred pass that lights a shape.</summary>
+internal static class LoadedShapeExtensions
 {
-    /// <summary>The pass that resolves the shape; behave 102 and shrine entrances get theirs here when the manifest holds none.</summary>
+    // The pass that resolves the shape; behave 102 and shrine entrances get theirs here when the manifest holds none.
     public static string DeferredPass(this LoadedShape shape)
     {
         if (IsDungeonEntrance(shape))

@@ -1,10 +1,14 @@
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Botw.Shaders;
+using WildRenderingSharp.Profiles.Botw.Ubos;
 
 namespace WildRenderingSharp.Profiles.Botw;
 
-public sealed class BotwProfile : IGameProfile
+/// <summary>The Breath of the Wild profile: its bindings, shader sources and frame graph.</summary>
+internal sealed class BotwProfile : IGameProfile
 {
     public string Name => "Breath of the Wild";
 
@@ -12,13 +16,13 @@ public sealed class BotwProfile : IGameProfile
 
     public ShaderBindings Bindings { get; } = new(BotwBindings.Camera, BotwBindings.Environment, BotwBindings.Material);
 
-    public UniformBlock Camera(string key, in CameraData camera) => BotwUniforms.Camera(key, camera);
+    public Ubo Camera(string key, in CameraData camera) => BotwUniforms.Camera(key, camera);
 
-    public IReadOnlyList<UniformBlock> Lighting(in SceneLightingData lighting) => BotwUniforms.Lighting(lighting);
+    public IReadOnlyList<Ubo> Lighting(in SceneLightingData lighting) => BotwUniforms.Lighting(lighting);
 
-    public IReadOnlyList<UniformBlock> Actor(in SkinningData actor) => BotwUniforms.Actor(actor);
+    public IReadOnlyList<Ubo> Actor(in SkinningData actor) => BotwUniforms.Actor(actor);
 
-    public IReadOnlyList<UniformBlock> InstancedActorPlaceholders => BotwUniforms.Placeholders;
+    public IReadOnlyList<UboSpec> InstancedActorBlocks => BotwUniforms.InstancedBlocks;
 
-    public IFrameGraph CreateFrameGraph(FrameServices services) => new BotwFrameGraph(services);
+    public IFrameGraph CreateFrameGraph(StageServices services) => new BotwFrameGraph(services);
 }

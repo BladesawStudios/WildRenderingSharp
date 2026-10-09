@@ -1,17 +1,22 @@
-using WildRenderingSharp.Assets;
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Hosting;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Profiles.Totk.Deferred;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Shadows;
+using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
+using WildRenderingSharp.Profiles.Totk.Ubos;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
 /// <summary>Draws a host's terrain through the game's terrain programs: its G-buffer half, its water and its shadow.</summary>
-public sealed class TerrainRenderer(FrameServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene)
+internal sealed class TerrainRenderer(StageServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene)
 {
     const int WaterColorBufferUnit = 19;
 
@@ -24,6 +29,11 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
     public TerrainShading Shading => shading;
 
     public bool Available => shading.Available;
+
+    // Whether this frame's G-buffer holds the host's terrain, which the resolve stage lights apart from the rest.
+    public bool GBufferDrawn { get; private set; }
+
+    public void BeginFrame() => GBufferDrawn = false;
 
     public void DrawGBuffer(ITerrainHost host, RenderTargets targets, Camera camera, CameraData terrainCamera)
     {
@@ -43,8 +53,8 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         CopyGBufferLayer(targets, targets.GBuffer[1], underAlbedo);
         CopyGBufferLayer(targets, targets.GBuffer[3], underNormal);
 
-        services.Profile.Camera(FrameUniformKeys.TerrainCamera, terrainCamera).Bind(Resources);
-        Resources.BindMaterial(shading.MaterialBuffer);
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.TerrainCamera, terrainCamera));
+        Resources.BindMaterial(shading.Material);
 
         targets.BindGBuffer();
         targets.SetGBufferColorMask(true);
@@ -53,9 +63,9 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         Gl.Enable(EnableCap.DepthTest);
         Gl.DepthFunc(DepthFunction.Less);
         Gl.DepthMask(true);
-        BindUnit(0, underAlbedo.Handle);
-        BindUnit(1, underNormal.Handle);
-        BindUnit(4, underDepth.Handle);
+        Gl.BindTextureAt(0, underAlbedo.Handle);
+        Gl.BindTextureAt(1, underNormal.Handle);
+        Gl.BindTextureAt(4, underDepth.Handle);
 
         ClipOrigin.Game(Gl, true);
         host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default));
@@ -63,6 +73,7 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
 
         ResetState();
         GLDiagnostics.CheckPass(Gl, "terrain");
+        GBufferDrawn = true;
     }
 
     public void DrawWater(ITerrainHost host, RenderTargets targets, Camera camera, bool stamp)
@@ -81,9 +92,9 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
             Gl.Enable(EnableCap.DepthTest);
             Gl.DepthFunc(DepthFunction.Lequal);
             Gl.DepthMask(true);
-            BindUnit(SceneColorShapePass.MaterialIdUnit, targets.MaterialIdCopy.Handle);
-            BindUnit(SceneColorShapePass.LinearDepthHalfUnit, targets.LinearDepthHalf.Handle);
-            BindUnit(WaterColorBufferUnit, targets.Behind.Handle);
+            Gl.BindTextureAt(SceneColorShapePass.MaterialIdUnit, targets.MaterialIdCopy.Handle);
+            Gl.BindTextureAt(SceneColorShapePass.LinearDepthHalfUnit, targets.LinearDepthHalf.Handle);
+            Gl.BindTextureAt(WaterColorBufferUnit, targets.Behind.Handle);
             ClipOrigin.Game(Gl, true);
             host.DrawWater(draw, stamp: false);
             ClipOrigin.Game(Gl, false);
@@ -95,9 +106,11 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
             targets.BindPassIdTarget();
             Gl.Disable(EnableCap.DepthTest);
             int index = scene.PassIndex(DeferredScene.WaterPass);
-            var block = new float[8] { (index + 1) / 255f, camera.NearPlane, camera.FarPlane, 0f, 1f / targets.Width, 1f / targets.Height, 0f, 0f };
-            Resources.Ubo("terrain_water_stamp", System.Runtime.InteropServices.MemoryMarshal.AsBytes(block.AsSpan()), bindingIndex: TotkBindings.TerrainWaterStamp);
-            BindUnit(TerrainShading.StampDepthUnit, targets.GBufferDepth.Handle);
+            var block = new UboWriter(TotkBlocks.WaterStamp);
+            block.Set(0, (index + 1) / 255f, camera.NearPlane, camera.FarPlane, 0f);
+            block.Set(1, 1f / targets.Width, 1f / targets.Height, 0f, 0f);
+            Resources.Bind(block.ToUbo("terrain_water_stamp"));
+            Gl.BindTextureAt(TerrainShading.StampDepthUnit, targets.GBufferDepth.Handle);
             host.DrawWater(draw, stamp: true);
         }
 
@@ -107,7 +120,7 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
 
     public void DrawShadow(ITerrainHost host, int cascade, Camera camera, ShadowFocus focus, ShadowPass.LightMatrices light, CameraData sceneCamera)
     {
-        services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, CameraData.ForLight(light, sceneCamera)).Bind(Resources);
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, sceneCamera.ForLight(light.View, light.Proj)));
         host.DrawShadow(new TerrainDraw(Gl, camera.Eye, cascade, new Vector4(focus.Center, focus.Radius)));
         Gl.UseProgram(0);
         Gl.BindVertexArray(0);
@@ -123,12 +136,6 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
         Gl.BindVertexArray(0);
         Gl.ActiveTexture(TextureUnit.Texture0);
         Gl.Disable(EnableCap.DepthTest);
-    }
-
-    void BindUnit(int unit, uint handle)
-    {
-        Gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        Gl.BindTexture(TextureTarget.Texture2D, handle);
     }
 
     static readonly string UnderDepthFragment = GlslFiles.Load("Totk/Terrain/TerrainRenderer/UnderDepth.frag");

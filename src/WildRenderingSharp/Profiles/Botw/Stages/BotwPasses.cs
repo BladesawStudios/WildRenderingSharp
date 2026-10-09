@@ -1,23 +1,22 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Assets;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Assets.Materials;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>One of the game's deferred passes, compiled with the mask that stands in for its depth-tested material ID.</summary>
-public sealed record BotwPass(string Name, uint Program, uint Material, float Id);
+internal sealed record BotwPass(string Name, uint Program, MaterialBlock Material, float Id);
 
 /// <summary>Loads the game's deferred passes and the small textures they read, and draws them as fullscreen triangles.</summary>
-public sealed class BotwPasses(FrameServices services) : IDisposable
+internal sealed class BotwPasses(StageServices services) : IDisposable
 {
-    public const int IdUnit = 20, LightAnalyzedUnit = 21;
-
     // The pass's vertex shader reads its compare ID from material slot 26, .z, and turns it into the depth the pass draws at.
     const int MaterialIdOffset = 26 * 16 + 8;
 
-    readonly List<uint> _buffers = [];
+    readonly List<MaterialBlock> _blocks = [];
     uint _lightAnalyzed;
     (Vector3 Sky, Vector3 Ground) _analyzed;
 
@@ -25,7 +24,7 @@ public sealed class BotwPasses(FrameServices services) : IDisposable
     public uint Black { get; } = Texture1x1(services.Gl, Vector4.Zero);
     public uint LightAnalyzed => _lightAnalyzed;
 
-    /// <summary>The pass lighting material IDs <paramref name="idLow"/> to <paramref name="idHigh"/>, or null when the cache has no such pass.</summary>
+    // The pass lighting material IDs idLow to idHigh, or null when the cache has no such pass.
     public BotwPass? Load(string name, float? idLow = null, float? idHigh = null)
     {
         string? file = Directory.EnumerateFiles(services.Directories.Decompiled, $"deferred_{name}_prog*_extracted.frag").Order().FirstOrDefault();
@@ -33,14 +32,13 @@ public sealed class BotwPasses(FrameServices services) : IDisposable
         if (file is null || !File.Exists(materialPath))
             return null;
 
-        byte[] material = File.ReadAllBytes(materialPath);
-        float id = BitConverter.ToSingle(material, MaterialIdOffset);
+        var block = new MaterialBlock(services.Gl, File.ReadAllBytes(materialPath));
+        _blocks.Add(block);
+        float id = BitConverter.ToSingle(block.Authored[MaterialIdOffset..]);
         float low = idLow ?? id, high = idHigh ?? id;
         uint program = services.Programs.Load(Path.GetFileNameWithoutExtension(file),
             patchVertex: MoveLightAnalyzedSampler, patchFragment: source => MaskByMaterialId(source, low, high));
-        uint buffer = GLBuffer.CreatePaddedUniformBuffer(services.Gl, material);
-        _buffers.Add(buffer);
-        return new BotwPass(name, program, buffer, id);
+        return new BotwPass(name, program, block, id);
     }
 
     public void Draw(BotwPass pass)
@@ -48,26 +46,24 @@ public sealed class BotwPasses(FrameServices services) : IDisposable
         var gl = services.Gl;
         services.Resources.BindMaterial(pass.Material);
         gl.UseProgram(pass.Program);
-        gl.SetInt(pass.Program, "uIdTex", IdUnit);
+        gl.SetInt(pass.Program, "uIdTex", BotwSamplers.IdTexture);
         services.Resources.DrawFullscreenTriangle();
     }
 
-    public void BindAt(int unit, uint handle, TextureTarget target = TextureTarget.Texture2D)
-    {
-        services.Gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        services.Gl.BindTexture(target, handle);
-    }
+    public void BindAt(int unit, uint handle, TextureTarget target = TextureTarget.Texture2D) => services.Gl.BindTextureAt(unit, handle, target);
 
+    // Only the vertex shaders that read the ambient strip declare it.
     static string MoveLightAnalyzedSampler(string vertex) =>
-        vertex.Replace("layout (binding = 0) uniform sampler2D cGSys23_LightAnalyzedData;", $"layout (binding = {LightAnalyzedUnit}) uniform sampler2D cGSys23_LightAnalyzedData;");
+        vertex.Replace("layout (binding = 0) uniform sampler2D cGSys23_LightAnalyzedData;",
+            $"layout (binding = {BotwSamplers.LightAnalyzed}) uniform sampler2D cGSys23_LightAnalyzedData;");
 
     static string MaskByMaterialId(string fragment, float low, float high) =>
-        fragment.Replace("void main()\n{",
+        fragment.ReplaceRequired("void main()\n{",
             "uniform sampler2D uIdTex;\nvoid main()\n{\n" +
             "    float materialId = texture(uIdTex, gl_FragCoord.xy / vec2(textureSize(uIdTex, 0))).x * 255.0;\n" +
             FormattableString.Invariant($"    if (materialId < {low - 0.5f:F1} || materialId > {high + 0.5f:F1}) discard;\n"));
 
-    /// <summary>The vertex shader blends two samples of this strip, at 9/24 and 11/24, into the ambient colour it hands the fragment stage by screen height.</summary>
+    // The vertex shader blends two samples of this strip, at 9/24 and 11/24, into the ambient colour it hands the fragment stage by screen height.
     public unsafe void EnsureLightAnalyzed(Vector3 sky, Vector3 ground)
     {
         if (_lightAnalyzed != 0 && _analyzed == (sky, ground))
@@ -115,7 +111,7 @@ public sealed class BotwPasses(FrameServices services) : IDisposable
         gl.DeleteTexture(Black);
         if (_lightAnalyzed != 0)
             gl.DeleteTexture(_lightAnalyzed);
-        foreach (uint buffer in _buffers)
-            gl.DeleteBuffer(buffer);
+        foreach (var block in _blocks)
+            block.Dispose();
     }
 }

@@ -1,10 +1,15 @@
 ﻿using WildRenderingSharp.Graphics;
 ﻿using WildRenderingSharp.Assets;
 using System.Numerics;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Profiles.Totk.Sky;
-using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
+using WildRenderingSharp.Profiles.Totk.Sky;
+using WildRenderingSharp.Profiles.Totk.Sky.Clouds;
+using WildRenderingSharp.Profiles.Totk.Sky.PostFx;
+using WildRenderingSharp.Profiles.Totk.Sky.Precompute;
+using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
@@ -12,7 +17,7 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 /// Paints the background into the HDR image before the resolve, which only writes pixels its pass-ID mask claims: the plain
 /// background, then the game's sky shader over it, the sun and moon sprites, and the cloud dome.
 /// </summary>
-public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage, IDisposable
+internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameStage, IDisposable
 {
     readonly BackgroundPass _background = new(services.Gl);
     readonly SkyPostFxPass _skyPostFx = new(services.Gl, services.Programs);
@@ -26,9 +31,9 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var environment = frame.TotkEnvironment();
         var settings = environment.Settings;
 
-        _background.Run(services.Resources, frame.Targets, lighting.Background, lighting.BackgroundColor, frame.SunWorld,
-            environment.Palette, frame.Cam.ViewInv, frame.Cam.TanHalf, lighting.SceneGain, environment.SkyPostFx, environment.CloudPostFx,
-            settings.AtmosphereIntensity);
+        _background.Run(services.Resources, frame.Targets, lighting.Background, lighting.BackgroundColor,
+            new BackgroundPass.Inputs(environment.Palette, frame.Setup.SunWorld, frame.Setup.Cam.ViewInv, frame.Setup.Cam.TanHalf, lighting.SceneGain,
+                environment.SkyPostFx, environment.CloudPostFx, settings.AtmosphereIntensity));
         GLDiagnostics.CheckPass(services.Gl, "background");
 
         if (lighting.Background != BackgroundMode.Sky)
@@ -45,12 +50,8 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             DrawClouds(frame);
     }
 
-    // The game's sky shader sampling the baked atmosphere. The table is in the game's own units, so its intensity is scaled to
-    // land the brightest texel above 1 before the tonemap, which has the headroom to bring it down; the palette's own sky
-    // brightness (relative to its default of 5) then makes night palettes darker. The ground colour is mixed in unscaled by the
-    // shader, so it arrives pre-scaled.
-    // The game multiplies its raw table by 1 (Context[13].x in a capture). This renderer's lit path is scaled down by SceneGain, and
-    // the real skybin's high-sun zenith (0.69, 1.08, 1.28) sits at about 0.55-0.6 of this bake's, so the sky takes the same scale.
+    // The game's sky shader sampling the baked atmosphere, scaled by the palette's sky brightness (relative to 5) and by SkyGain.
+    // The shader mixes the ground colour in unscaled, so it arrives pre-scaled.
     const float SkyGain = 0.6f;
 
     void DrawSky(FrameContext frame)
@@ -59,7 +60,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var environment = frame.TotkEnvironment();
         var settings = environment.Settings;
         var palette = environment.Palette;
-        var cam = frame.Cam;
+        var cam = frame.Setup.Cam;
 
         float skyUnit = lighting.SceneGain * SkyGain * palette.BgDifIntensity / 5.0f;
         float intensity = settings.AtmosphereIntensity * skyUnit;
@@ -68,17 +69,16 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             ? SkyPostFxPass.Resolve(palette, environment.SkyPostFx, intensity, settings.SkyFogStrength, settings.SkyFogNormaliseHue)
             : default;
 
-        _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter,
-            CameraData.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY, frame.SunWorld, environment.SkyPostFx, intensity, hazeColor,
-            settings.SkyHorizonHaze, fog);
+        _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter, SkyView.From(cam), frame.Setup.SunWorld,
+            new SkyPostFxPass.Look(environment.SkyPostFx, intensity, hazeColor, settings.SkyHorizonHaze, fog));
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
     }
 
     void DrawGround(FrameContext frame)
     {
-        var cam = frame.Cam;
-        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, CameraData.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY,
-            frame.HemiGround * frame.Lighting.SceneGain * frame.TotkEnvironment().Palette.BgDifIntensity / 5.0f);
+        var cam = frame.Setup.Cam;
+        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, SkyView.From(cam),
+            frame.Setup.HemiGround * frame.Lighting.SceneGain * frame.TotkEnvironment().Palette.BgDifIntensity / 5.0f);
         GLDiagnostics.CheckPass(services.Gl, "sky ground");
     }
 
@@ -88,7 +88,7 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var environment = frame.TotkEnvironment();
         var settings = environment.Settings;
         var palette = environment.Palette;
-        var cam = frame.Cam;
+        var cam = frame.Setup.Cam;
 
         // The disc is the sun seen through the atmosphere, reddening as it nears the horizon. Relative to the sun overhead, whose colour is the
         // palette's own SkySunColor, so a high sun is not tinted by an atmosphere it has barely crossed.
@@ -98,9 +98,9 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
             / Vector3.Max(SunTransmittance.Colour(environment.SkyPostFx, rayleighAmplifier, mieAmplifier, MathF.PI / 2f), new Vector3(1e-4f));
         float sunPeak = MathF.Max(sunHue.X, MathF.Max(sunHue.Y, sunHue.Z));
         if (sunPeak > 1e-6f) sunHue /= sunPeak;
-        _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, CameraData.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY,
+        _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, SkyView.From(cam),
             new SkyBodyPass.Params(
-                SunDir: frame.SunWorld,
+                SunDir: frame.Setup.SunWorld,
                 MoonDir: SunDirection.FromElevationAzimuth(settings.MoonElevation, settings.MoonAzimuth),
                 SunColor: sunHue * settings.SunSpriteIntensity,
                 MoonColor: Vector3.One * settings.MoonSpriteIntensity,
@@ -118,15 +118,14 @@ public sealed class SkyStage(FrameServices services, SkyBake bake) : IFrameStage
         var environment = frame.TotkEnvironment();
         var settings = environment.Settings;
         var palette = environment.Palette;
-        var cam = frame.Cam;
+        var cam = frame.Setup.Cam;
 
         float seconds = _cloudDome.Advance(settings.AnimateClouds);
         var layers = ResolveCloudLayers(environment, seconds, frame.Camera.Eye.Y);
 
-        _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, layers, seconds,
-            cam, frame.Camera.Eye, frame.SunWorld,
-            settings.CloudBrightness, lighting.Exposure, settings.CloudFade, palette.FogColor,
-            settings.CloudResolutionScale, bake.BakedInscatter);
+        _cloudDome.Run(services.Resources, frame.Targets, layers,
+            new CloudDomePass.Frame(palette, environment.CloudPostFx.Shared, seconds, cam, frame.Camera.Eye, frame.Setup.SunWorld,
+                settings.CloudBrightness, lighting.Exposure, settings.CloudFade, palette.FogColor, settings.CloudResolutionScale, bake.BakedInscatter));
         GLDiagnostics.CheckPass(services.Gl, "cloud dome");
     }
 

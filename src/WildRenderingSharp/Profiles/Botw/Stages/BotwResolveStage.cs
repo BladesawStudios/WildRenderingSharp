@@ -1,18 +1,19 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>
-/// Runs the game's own character shading passes over the G-buffer and the lighting buffers before them. Each draws one fullscreen
-/// triangle for the material ID it lights; the game picks its pixels with the depth test, which is replaced here by a mask on the G-buffer's
-/// ID channel.
+/// Runs the game's character shading passes over the G-buffer and lighting buffers. Each draws one fullscreen triangle for its material ID,
+/// with a mask on the G-buffer's ID channel in place of the game's depth test.
 /// </summary>
-public sealed class BotwResolveStage(FrameServices services, BotwPasses passes, BotwLightingStage lighting) : IFrameStage, IDisposable
+internal sealed class BotwResolveStage(StageServices services, BotwPasses passes, BotwLightingStage lighting) : IFrameStage, IDisposable
 {
     static readonly string[] CharacterPasses =
         ["chara_nonmetal", "chara_nonmetal_direct", "chara_metal", "chara_grossy", "chara_hair", "chara_skin", "chara_eye"];
@@ -50,7 +51,7 @@ public sealed class BotwResolveStage(FrameServices services, BotwPasses passes, 
         gl.UseProgram(_flip);
         int debug = environment?.DebugPreShading ?? -1;
         gl.BindTextureUniform(_flip, "t", 0, debug >= 0 ? lighting.PreShading.Texture(debug) : targets.ResolvePass.Handle);
-        gl.BindTextureUniform(_flip, "tEmission", 1, targets.GBuffer[5].Handle);
+        gl.BindTextureUniform(_flip, "tEmission", 1, targets.GBuffer[BotwGBuffer.Emission].Handle);
         resources.DrawFullscreenTriangle();
         gl.ActiveTexture(TextureUnit.Texture0);
         GLDiagnostics.CheckPass(gl, "BotW resolve");
@@ -66,17 +67,17 @@ public sealed class BotwResolveStage(FrameServices services, BotwPasses passes, 
     void BindInputs(RenderTargets targets)
     {
         var pre = lighting.PreShading;
-        passes.BindAt(0, targets.GBuffer[1].Handle);
-        passes.BindAt(1, targets.GBuffer[3].Handle);
-        passes.BindAt(3, targets.LinearDepth.Handle);
-        passes.BindAt(5, pre.Texture(lighting.Shadow));
-        passes.BindAt(7, pre.Texture(lighting.Fog));
-        passes.BindAt(8, targets.GBufferDepth.Handle);
-        passes.BindAt(13, pre.Array, TextureTarget.Texture2DArray);
-        passes.BindAt(14, targets.LinearDepthHalf.Handle);
-        passes.BindAt(BotwPasses.IdUnit, targets.GBuffer[0].Handle);
-        passes.BindAt(BotwPasses.LightAnalyzedUnit, passes.LightAnalyzed);
+        passes.BindAt(BotwSamplers.Shading.Albedo, targets.GBuffer[BotwGBuffer.Albedo].Handle);
+        passes.BindAt(BotwSamplers.Shading.Normal, targets.GBuffer[BotwGBuffer.Normal].Handle);
+        passes.BindAt(BotwSamplers.Shading.LinearDepth, targets.LinearDepth.Handle);
+        passes.BindAt(BotwSamplers.Shading.Shadow, pre.Texture(lighting.Shadow));
+        passes.BindAt(BotwSamplers.Shading.PreFog, pre.Texture(lighting.Fog));
+        passes.BindAt(BotwSamplers.Shading.RenderDepth, targets.GBufferDepth.Handle);
+        passes.BindAt(BotwSamplers.Shading.LightPrePass, pre.Array, TextureTarget.Texture2DArray);
+        passes.BindAt(BotwSamplers.Shading.HalfDepth, targets.LinearDepthHalf.Handle);
+        passes.BindAt(BotwSamplers.IdTexture, targets.GBuffer[BotwGBuffer.MaterialId].Handle);
+        passes.BindAt(BotwSamplers.LightAnalyzed, passes.LightAnalyzed);
     }
 
-    public void Dispose() => services.Gl.DeleteProgram(_flip);
+    public void Dispose() => services.Gl.ReleaseProgram(_flip);
 }

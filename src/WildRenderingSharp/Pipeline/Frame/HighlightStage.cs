@@ -1,11 +1,11 @@
-using WildRenderingSharp.Assets;
 using System.Numerics;
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Pipeline.Passes;
 
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>Overlays the requested shape on the finished image, ignoring depth so it shows through whatever hides it.</summary>
-public sealed class HighlightStage(FrameServices services) : IFrameStage, IDisposable
+internal sealed class HighlightStage(StageServices services) : IFrameStage, IDisposable
 {
     static readonly Vector4 HighlightColor = new(1f, 0.85f, 0.2f, 0.2f);
 
@@ -19,10 +19,10 @@ public sealed class HighlightStage(FrameServices services) : IFrameStage, IDispo
             || target.ShapeIndex < 0 || target.ShapeIndex >= request.Actors[target.ActorIndex].Model.Shapes.Count)
             return;
 
-        var group = frame.Groups[target.ActorIndex];
+        var group = frame.Setup.Groups[target.ActorIndex];
         var shape = request.Actors[target.ActorIndex].Model.Shapes[target.ShapeIndex];
-        var mvp = CameraData.FromRows(group.ModelMatrixRows) * frame.MaskViewProj;
-        _highlight.Draw(services.Resources, frame.Targets, group, shape, mvp, frame.MaskViewProj, HighlightColor);
+        var mvp = GpuMatrix.FromRows(group.ModelMatrixRows) * frame.Setup.Cam.ViewProj;
+        _highlight.Draw(services.Resources, frame.Targets, group, shape, mvp, frame.Setup.Cam.ViewProj, HighlightColor);
         GLDiagnostics.CheckPass(services.Gl, "highlight overlay");
     }
 

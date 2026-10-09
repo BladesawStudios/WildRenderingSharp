@@ -1,9 +1,13 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Graphics.Contracts;
+using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Profiles.Totk;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Shadows;
+using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Pipeline;
 
@@ -16,17 +20,19 @@ public sealed class DeferredPipeline : IDisposable
 
     IReadOnlyList<LoadedModel> _models = [];
 
-    public IGameProfile Profile { get; }
-    public GLResourceCache Resources { get; }
+    internal IGameProfile Profile { get; }
+    internal GLResourceCache Resources { get; }
     public RenderTargets Targets { get; }
-    public ShaderProgramCache Programs { get; }
+    internal ShaderProgramCache Programs { get; }
 
-    public IFrameGraph Graph { get; }
+    internal ShapeDrawer Drawer { get; }
 
-    /// <summary>The graph's debug hooks, or null when it has none.</summary>
-    public IDeferredDebug? Debug => Graph as IDeferredDebug;
+    internal IFrameGraph Graph { get; }
 
-    /// <summary>Keeps a copy of the HDR frame after the deferred resolve, the forward pass and the lens flare, for the scene view's debug modes.</summary>
+    // The graph's debug hooks, or null when it has none.
+    internal IDeferredDebug? Debug => Graph as IDeferredDebug;
+
+    // Keeps a copy of the HDR frame after the deferred resolve, the forward pass and the lens flare, for the scene view's debug modes.
     public bool SnapshotStages { get; set; }
 
     public GpuPassTimer Timer { get; }
@@ -37,26 +43,26 @@ public sealed class DeferredPipeline : IDisposable
 
     public ExposureMeter.Result? LastExposureMeasurement => _exposure.Last;
 
-    public DeferredPipeline(GL gl, string dataDirectory, string decompiledDirectory, int width, int height,
-        string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null, IGameProfile? profile = null)
+    internal DeferredPipeline(GL gl, string decompiledDirectory, int width, int height,
+        IGameProfile profile, string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null)
     {
         _gl = gl;
-        Profile = profile ?? new TotkProfile();
-        InstancingContract.Detect(gl);
+        Profile = profile;
 
         string cacheRoot = Path.GetDirectoryName(decompiledDirectory) ?? decompiledDirectory;
         var directories = new AssetDirectories(
             decompiledDirectory,
             deferredMaterialsDirectory ?? Path.Combine(cacheRoot, "_deferred_materials"),
             systemTexturesDirectory ?? Path.Combine(cacheRoot, "_system_textures"));
-        GLProgramBuilder.BinaryCacheDirectory ??= Path.Combine(cacheRoot, "_glprograms");
+        GLProgramBuilder.UseBinaryCache(gl, Path.Combine(cacheRoot, "_glprograms"));
 
         Resources = new GLResourceCache(gl, Profile.Bindings);
         Targets = new RenderTargets(gl, width, height);
         Programs = new ShaderProgramCache(gl, decompiledDirectory, Profile.Bindings, Profile.ShaderSources);
+        Drawer = new ShapeDrawer(gl, Programs);
         Timer = new GpuPassTimer(gl);
 
-        Graph = Profile.CreateFrameGraph(new FrameServices(gl, Profile, Resources, Programs, _exposure, directories));
+        Graph = Profile.CreateFrameGraph(new StageServices(gl, Profile, Resources, Programs, Drawer, _exposure, directories));
     }
 
     public void RequestExposureMeasurement() => _exposure.Request();
@@ -79,7 +85,7 @@ public sealed class DeferredPipeline : IDisposable
         GpuTexture? shadowMapOverride = null)
     {
         Timer.BeginFrame();
-        ShapeDrawing.TakeCounts();
+        Drawer.TakeCounts();
         ShadowCounts = default;
         PrepareEnvironment(request.Environment);
 
@@ -96,8 +102,8 @@ public sealed class DeferredPipeline : IDisposable
         Graph.Run(frame);
         GLDiagnostics.Check(_gl, "RenderFrame");
 
-        GBufferCounts = frame.GBufferCounts;
-        ShadowCounts = frame.ShadowCounts;
+        GBufferCounts = frame.Stats.GBuffer;
+        ShadowCounts = frame.Stats.Shadow;
         Timer.Mark("post");
         return frame.Result;
     }
@@ -105,6 +111,7 @@ public sealed class DeferredPipeline : IDisposable
     public void Dispose()
     {
         Graph.Dispose();
+        Drawer.Dispose();
         Programs.Dispose();
         Resources.Dispose();
         Targets.Dispose();

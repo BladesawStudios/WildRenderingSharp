@@ -6,7 +6,7 @@ namespace WildRenderingSharp.Debug;
 /// Instruments a decompiled fragment shader so one chosen intermediate (<c>temp_N</c>, in the decompiler's numbering) is shown as
 /// the final pixel colour instead of the shader's output.
 /// </summary>
-public static class ShaderStepDebugger
+internal static class ShaderStepDebugger
 {
     const string UnreachedSentinel = "vec4(1.0, 0.5, 0.0, 1.0)";
 
@@ -18,9 +18,7 @@ public static class ShaderStepDebugger
         @"^(?<indent>[ \t]*)temp_(?<n>\d+)\s*=(?!=)",
         RegexOptions.Compiled);
 
-    // Every real fragment output the shader declares (a G-buffer program has several: albedo, normal and emission at different
-    // locations). The override must overwrite all of them, or the value shows only on whichever attachment comes first in the
-    // file.
+    // Every fragment output the shader declares; the override must write all of them or it only shows on the first attachment.
     static readonly Regex OutputDeclRegex = new(
         @"^\s*layout\s*\(location\s*=\s*\d+\)\s*out\s+vec4\s+(\w+(?:\[0\])?)\s*;",
         RegexOptions.Multiline);
@@ -66,12 +64,13 @@ public static class ShaderStepDebugger
 
         availableTargets = [.. targets];
 
-        // The override replaces every real fragment output, not only the first found, or the value shows only on whichever attachment is textually first (e.g. not the Albedo view).
+        // The override replaces every real fragment output, not only the first found, or the value shows only on whichever attachment is
+        // textually first (e.g. not the Albedo view).
         var outputNames = OutputDeclRegex.Matches(string.Join('\n', output))
             .Select(m => m.Groups[1].Value).Distinct().ToList();
 
-        // The point where debug mode takes over every output. It must run before the shader's own final output write, not merely before main()'s closing brace: these files end with an unconditional
-        // "return;" right before that brace, so inserting after it would be dead code. Insert before the last bare "return;" if there is one, else before the closing brace.
+        // The point where debug mode takes over every output must precede the shader's own final output write, and these files end with an
+        // unconditional "return;" before the closing brace, so it goes before the last bare return when there is one.
         int insertBefore = output.FindLastIndex(l => l.Trim() == "return;");
         if (insertBefore < 0)
             insertBefore = output.FindLastIndex(l => l.Trim() == "}");

@@ -1,50 +1,32 @@
-using Silk.NET.OpenGL;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Profiles.Totk.Shaders;
+using WildRenderingSharp.Profiles.Totk.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>
-/// Binds what the translated shaders expect regardless of the scene: the decompiler's support buffer, an empty storage buffer at
-/// binding 0, a zeroed block for orphaned bindings, and neutral stand-ins for the vertex textures the game's engine renders itself.
+/// Binds what the decompiled shaders expect whatever the scene, plus a zeroed block for orphaned bindings and neutral stand-ins for
+/// the vertex textures the game's engine renders itself.
 /// </summary>
-public sealed class TotkFrameConstantsStage : IFrameStage, IDisposable
+internal sealed class TotkFrameConstantsStage(StageServices services) : IFrameStage, IDisposable
 {
-    readonly FrameServices _services;
-    readonly EngineVertexTextures _vertexTextures;
-    readonly uint _zeroStorageBuffer;
-
-    public TotkFrameConstantsStage(FrameServices services)
-    {
-        _services = services;
-        _vertexTextures = new EngineVertexTextures(services.Gl);
-
-        // Some translated shaders declare a storage block at binding 0 and never meaningfully use it.
-        var gl = services.Gl;
-        _zeroStorageBuffer = gl.GenBuffer();
-        gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _zeroStorageBuffer);
-        gl.BufferData(BufferTargetARB.ShaderStorageBuffer, new byte[65536], BufferUsageARB.StaticDraw);
-        BindZeroStorage();
-    }
+    readonly DecompilerBindings _decompiler = new(services.Gl, services.Resources);
+    readonly EngineVertexTextures _vertexTextures = new(services.Gl);
 
     public void Run(FrameContext frame)
     {
-        // Rebound every frame: a host drawing between frames may use storage binding 0 itself.
-        BindZeroStorage();
-        _services.Resources.Ubo("support", SupportBufferUbo.Build(), bindingIndex: TotkBindings.Support);
-        _services.Resources.BindZeroUbo(TotkBindings.Orphan, 65536);
+        _decompiler.Bind();
+        services.Resources.BindZeroed(TotkBlocks.Orphan);
         _vertexTextures.Bind();
-        // Uploaded without a binding: the resolve pass binds it itself, in place of the scene camera, for the passes that tile the screen.
-        var field = TotkCameraUniforms.BuildField(frame.Cam);
-        _services.Resources.Ubo(field.Key, field.Data!);
-    }
 
-    void BindZeroStorage() =>
-        _services.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 0, _zeroStorageBuffer);
+        // Uploaded without a binding: the resolve pass binds it itself, in place of the scene camera, for the passes that tile the screen.
+        services.Resources.Upload(TotkCameraUniforms.BuildField(frame.Setup.Cam));
+    }
 
     public void Dispose()
     {
         _vertexTextures.Dispose();
-        _services.Gl.DeleteBuffer(_zeroStorageBuffer);
+        _decompiler.Dispose();
     }
 }

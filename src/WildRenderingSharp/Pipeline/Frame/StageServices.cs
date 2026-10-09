@@ -1,0 +1,16 @@
+using Silk.NET.OpenGL;
+using WildRenderingSharp.Pipeline.Drawing;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Shaders;
+
+namespace WildRenderingSharp.Pipeline.Frame;
+
+/// <summary>What every stage of a frame is built on.</summary>
+internal sealed record StageServices(
+    GL Gl,
+    IGameProfile Profile,
+    GLResourceCache Resources,
+    ShaderProgramCache Programs,
+    ShapeDrawer Drawer,
+    ExposureProbe Exposure,
+    AssetDirectories Directories);

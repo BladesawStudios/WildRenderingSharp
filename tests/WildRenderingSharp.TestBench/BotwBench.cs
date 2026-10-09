@@ -1,13 +1,21 @@
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Assets.Loading;
+using WildRenderingSharp.Assets.Textures;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Hosting.Views;
+using WildRenderingSharp.Imaging;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Preparation.Botw;
 using WildRenderingSharp.Profiles.Botw;
 using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Rendering.Lighting;
 using WildRenderingSharp.Scene;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.TestBench;
 
@@ -29,7 +37,7 @@ static class BotwBench
         Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
         using var host = GLHostState.Enter(gl);
-        var pipeline = new DeferredPipeline(gl, cache.Root, cache.Shaders, size, size, profile: new BotwProfile());
+        var pipeline = new DeferredPipeline(gl, cache.Shaders, size, size, profile: new BotwProfile());
         var view = new SceneView(gl, pipeline);
         var textures = new ExternalTextures(gl);
         var loader = new ModelLoader(gl, pipeline.Programs, cache.ModelDirectory(model), textures) { SharedTextures = new SharedTextures(gl) };
@@ -71,7 +79,7 @@ static class BotwBench
             errors.Add(e);
 
         byte[] rgba = view.ReadOutputRgba8();
-        PngWriter.Write(outPath, rgba, size, size);
+        PngWriter.WriteRgba(outPath, size, size, rgba);
         int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
         Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, GL errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
         return distinct < 64 || errors.Count > 0 ? 4 : 0;

@@ -1,17 +1,17 @@
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Botw.Stages;
 
 namespace WildRenderingSharp.Profiles.Botw;
 
 /// <summary>BotW's frame: a G-buffer, a lighting resolve and a tonemap.</summary>
-public sealed class BotwFrameGraph : IFrameGraph
+internal sealed class BotwFrameGraph : IFrameGraph
 {
     readonly List<IFrameStage> _stages;
     readonly List<IDisposable> _owned = [];
 
-    public BotwFrameGraph(FrameServices services)
+    public BotwFrameGraph(StageServices services)
     {
         var passes = Own(new BotwPasses(services));
         var lighting = Own(new BotwLightingStage(services, passes));

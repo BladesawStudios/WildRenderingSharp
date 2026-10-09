@@ -1,11 +1,11 @@
-using WildRenderingSharp.Assets;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.PostProcess;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Applies the final colour grade to the tonemapped image.</summary>
-public sealed class ColorCorrectionStage(FrameServices services) : IFrameStage, IDisposable
+internal sealed class ColorCorrectionStage(StageServices services) : IFrameStage, IDisposable
 {
     readonly ColorCorrectionPass _colorCorrection = new(services.Gl);
 

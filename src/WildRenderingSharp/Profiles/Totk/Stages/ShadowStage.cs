@@ -1,15 +1,19 @@
 using System.Numerics;
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Graphics.Ubos;
+using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Shadows;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Totk.Terrain;
-using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Draws the sun's shadow map, or its cascades.</summary>
-public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain) : IFrameStage
+internal sealed class ShadowStage(StageServices services, TerrainRenderer terrain) : IFrameStage
 {
     readonly ShadowPass _shadow = new(services.Gl);
 
@@ -22,37 +26,39 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
 
         if (request.ShadowFocus is { } shadowFocus)
             foreach (var batch in frame.Instances)
-                batch.UpdateShadowRuns(shadowFocus);
+                batch.Shadow.Update(shadowFocus);
 
-        frame.Cascades = request.ShadowCascades is { Count: > 0 } cascades && frame.ShadowMapOverride is null
+        var cascadeParams = request.ShadowCascades is { Count: > 0 } cascades && frame.ShadowMapOverride is null
             ? RenderCascades(frame, cascades)
             : null;
 
         var modelRowsPerActor = request.Actors.Select(a => a.ModelMatrixRows).ToArray();
-        bool reuse = frame.Cascades is not null
-            || frame.ShadowMapOverride is null && cache.ModelRowsPerActor is not null && cache.SunWorld == frame.SunWorld
-                && ShadowSignatures.ActorRowsEqual(cache.ModelRowsPerActor, modelRowsPerActor)
-                && ShadowSignatures.PosesEqual(cache.BonesPerActor, request.Actors)
-                && cache.Focus == request.ShadowFocus
-                && cache.InstanceSignature == ShadowSignatures.InstanceSignature(frame.Instances, request.ShadowFocus is not null);
 
-        if (frame.Cascades is not null)
+        if (cascadeParams is not null)
         {
-            float radius = cache.CascadeRadius[0];
-            frame.ShadowBoundsLo = request.ShadowCascades![0].Center - new Vector3(radius);
-            frame.ShadowBoundsHi = request.ShadowCascades[0].Center + new Vector3(radius);
-            frame.LightMatrices = cache.CascadeLight[0];
+            var first = new ShadowFocus(request.ShadowCascades![0].Center, cache.CascadeRadius[0]);
+            frame.Shadow = new ShadowResult(cache.CascadeLight[0], first.Min, first.Max, cascadeParams);
         }
-        else if (reuse)
+        else if (frame.ShadowMapOverride is null && CachedMapIsCurrent(frame, modelRowsPerActor))
         {
-            frame.ShadowBoundsLo = cache.RotatedLo;
-            frame.ShadowBoundsHi = cache.RotatedHi;
-            frame.LightMatrices = cache.LightMatrices;
+            frame.Shadow = new ShadowResult(cache.LightMatrices, cache.RotatedLo, cache.RotatedHi);
         }
         else
         {
             DrawShadowMap(frame, modelRowsPerActor);
         }
+    }
+
+    // True when nothing the last shadow map was drawn from has changed.
+    static bool CachedMapIsCurrent(FrameContext frame, Vector4[][] modelRowsPerActor)
+    {
+        var request = frame.Request;
+        var cache = frame.ShadowCache;
+        return cache.ModelRowsPerActor is not null && cache.SunWorld == frame.Setup.SunWorld
+            && ShadowSignatures.ActorRowsEqual(cache.ModelRowsPerActor, modelRowsPerActor)
+            && ShadowSignatures.PosesEqual(cache.BonesPerActor, request.Actors)
+            && cache.Focus == request.ShadowFocus
+            && cache.InstanceSignature == ShadowSignatures.InstanceSignature(frame.Instances, request.ShadowFocus is not null);
     }
 
     void DrawShadowMap(FrameContext frame, Vector4[][] modelRowsPerActor)
@@ -61,22 +67,20 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         var cache = frame.ShadowCache;
 
         (Vector3 lo, Vector3 hi) = request.ShadowFocus is { } focus
-            ? (focus.Center - new Vector3(focus.Radius), focus.Center + new Vector3(focus.Radius))
+            ? (focus.Min, focus.Max)
             : ShadowSignatures.CombinedBounds(request.Actors, frame.Instances);
-        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.SunWorld);
-        frame.ShadowBoundsLo = lo;
-        frame.ShadowBoundsHi = hi;
-        frame.LightMatrices = light;
+        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
+        frame.Shadow = new ShadowResult(light, lo, hi);
 
         if (frame.ShadowMapOverride is not null)
             return;
 
-        services.Profile.Camera(FrameUniformKeys.LightCamera, CameraData.ForLight(light, frame.Cam)).Bind(Resources);
-        _shadow.Run(Resources, frame.Targets, ShadowGroups(frame, request.ShadowFocus), services.Programs);
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
+        _shadow.Run(Resources, frame.Targets, ShadowGroups(frame, request.ShadowFocus), services.Drawer);
         GLDiagnostics.CheckPass(services.Gl, "shadow pass");
         Resources.BindCamera(FrameUniformKeys.SceneCamera);
 
-        cache.SunWorld = frame.SunWorld;
+        cache.SunWorld = frame.Setup.SunWorld;
         cache.ModelRowsPerActor = modelRowsPerActor;
         cache.BonesPerActor = request.Actors.Select(a => (Matrix4x4[]?)a.BoneWorldMatrices?.Clone()).ToArray();
         cache.Focus = request.ShadowFocus;
@@ -91,12 +95,11 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
     List<ActorDrawGroup> ShadowGroups(FrameContext frame, ShadowFocus? focus)
     {
         if (focus is null)
-            return [.. frame.CastingGroups.Select(WithoutSceneColorShapes)];
+            return [.. frame.Setup.CastingGroups.Select(WithoutSceneColorShapes)];
 
-        var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
-        foreach (var batch in frame.Instances.Where(b => b.ShadowVisible.Count > 0))
-            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, CameraData.Rows(Matrix4x4.Identity, 3),
-                CastingShapes(batch), batch, ShadowRuns: true));
+        var groups = ActorGroups(frame);
+        foreach (var batch in frame.Instances.Where(b => b.Shadow.Visible.Count > 0))
+            groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true));
         return groups;
     }
 
@@ -115,14 +118,13 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         for (int c = 0; c < count; c++)
         {
             var focus = cascades[c];
-            var lo = focus.Center - new Vector3(focus.Radius);
-            var hi = focus.Center + new Vector3(focus.Radius);
+            var (lo, hi) = (focus.Min, focus.Max);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
-            var light = ShadowPass.BuildLightMatrices(lo, hi, frame.SunWorld);
+            var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
             var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
             var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
             foreach (var batch in frame.Instances)
-                batch.UpdateCascadeRuns(c, focus, right, up, lightRadius);
+                batch.Shadow.UpdateCascade(c, focus, right, up, lightRadius);
 
             long signature = CascadeSignature(frame, c, focus, actorSignature);
             if (cache.CascadeSignature[c] != signature)
@@ -141,7 +143,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         if (drew)
         {
             GLDiagnostics.CheckPass(services.Gl, "shadow cascades");
-            frame.ShadowCounts = ShapeDrawing.TakeCounts();
+            frame.Stats.Shadow = services.Drawer.TakeCounts();
             Resources.BindCamera(FrameUniformKeys.SceneCamera);
         }
         return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias);
@@ -150,7 +152,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
     static long CascadeSignature(FrameContext frame, int cascade, ShadowFocus focus, long actorSignature)
     {
         var hash = new HashCode();
-        hash.Add(frame.SunWorld);
+        hash.Add(frame.Setup.SunWorld);
         hash.Add(focus);
         hash.Add(actorSignature);
         hash.Add(frame.TotkEnvironment().Terrain?.ShadowVersion ?? 0);
@@ -158,7 +160,7 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
         foreach (var batch in frame.Instances)
         {
             hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(batch));
-            foreach (var run in batch.CascadeRuns(cascade))
+            foreach (var run in batch.Shadow.Cascade(cascade))
                 hash.Add(run);
         }
         return (uint)hash.ToHashCode() | (1L << 40);
@@ -166,17 +168,20 @@ public sealed class ShadowStage(FrameServices services, TerrainRenderer terrain)
 
     void DrawCascade(FrameContext frame, int cascade, ShadowFocus focus, ShadowPass.LightMatrices light)
     {
-        services.Profile.Camera(FrameUniformKeys.LightCamera, CameraData.ForLight(light, frame.Cam)).Bind(Resources);
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
 
-        var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
-        foreach (var batch in frame.Instances.Where(b => b.CascadeRuns(cascade).Count > 0))
-            groups.Add(new ActorDrawGroup(services.Profile.InstancedActorPlaceholders, CameraData.Rows(Matrix4x4.Identity, 3),
-                CastingShapes(batch), batch, ShadowRuns: true, Cascade: cascade));
-        _shadow.Run(Resources, frame.Targets, groups, services.Programs, cascade);
+        var groups = ActorGroups(frame);
+        foreach (var batch in frame.Instances.Where(b => b.Shadow.Cascade(cascade).Count > 0))
+            groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
+        _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
-            terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Cam);
+            terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
     }
+
+    // The placed actors' casters, without the shapes that read the scene colour.
+    static List<ActorDrawGroup> ActorGroups(FrameContext frame) =>
+        frame.Setup.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
 
     static ActorDrawGroup WithoutSceneColorShapes(ActorDrawGroup group) =>
         group with { Shapes = group.Shapes.Where(s => !s.ReadsSceneColor).ToList() };

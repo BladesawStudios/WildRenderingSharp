@@ -1,12 +1,16 @@
-using WildRenderingSharp.Graphics;
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>The sun and the moon, drawn from the game's own sprites.</summary>
-public sealed class SkyBodyPass : IDisposable
+internal sealed class SkyBodyPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;
@@ -24,7 +28,7 @@ public sealed class SkyBodyPass : IDisposable
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "sky_body");
         if (string.IsNullOrEmpty(systemTexturesDirectory) || !Directory.Exists(systemTexturesDirectory))
         {
-            Console.WriteLine("[SkyBodyPass] no system-texture directory - sun/moon unavailable until extraction runs.");
+            Log.Warning("[SkyBodyPass] no system-texture directory - sun/moon unavailable until extraction runs.");
             return;
         }
 
@@ -32,7 +36,7 @@ public sealed class SkyBodyPass : IDisposable
         for (int i = 0; i < 8; i++)
             _moonTex[i] = LoadSingle(systemTexturesDirectory, $"Moon{i + 1}", channels: 2);
 
-        Console.WriteLine($"[SkyBodyPass] sun={(_sunTex != 0 ? "loaded" : "missing")}, " +
+        Log.Info($"[SkyBodyPass] sun={(_sunTex != 0 ? "loaded" : "missing")}, " +
             $"moon phases loaded: {_moonTex.Count(t => t != 0)}/8");
     }
 
@@ -74,9 +78,9 @@ public sealed class SkyBodyPass : IDisposable
         float SunAngularRadius, float MoonAngularRadius,
         int MoonPhase, bool DrawSun, bool DrawMoon);
 
-    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target,
-        ReadOnlySpan<Vector4> viewInv3Rows, float aspect, float tanHalfFovY, Params p)
+    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target, SkyView view, Params p)
     {
+        var (viewInv3Rows, aspect, tanHalfFovY) = view;
         bool sun = p.DrawSun && _sunTex != 0;
         int phase = NearestAvailablePhase(Math.Clamp(p.MoonPhase, 1, 8) - 1);
         bool moon = p.DrawMoon && phase >= 0 && _moonTex[phase] != 0;
@@ -86,7 +90,8 @@ public sealed class SkyBodyPass : IDisposable
         targets.BindColorTarget(target);
         _gl.Disable(EnableCap.DepthTest);
         _gl.Disable(EnableCap.CullFace);
-        // Straight alpha over the sky, not additive: an additive sun over a bright sky clips to white and loses the disc, and the moon must be able to be darker than the sky behind it.
+        // Straight alpha over the sky, not additive: an additive sun over a bright sky clips to white and loses the disc, and the moon must
+        // be able to be darker than the sky behind it.
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFuncSeparate(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha, GLEnum.Zero, GLEnum.One);
         _gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);
@@ -103,7 +108,7 @@ public sealed class SkyBodyPass : IDisposable
             r0.Y, r1.Y, r2.Y,
             r0.Z, r1.Z, r2.Z,
         };
-        int loc = _gl.GetUniformLocation(_program, "uViewInv");
+        int loc = _gl.UniformLocation(_program, "uViewInv");
         if (loc >= 0) _gl.UniformMatrix3(loc, 1, false, m);
 
         _gl.SetVec2(_program, "uTanHalf", new Vector2(aspect * tanHalfFovY, tanHalfFovY));
@@ -140,7 +145,7 @@ public sealed class SkyBodyPass : IDisposable
 
     public void Dispose()
     {
-        if (_program != 0) _gl.DeleteProgram(_program);
+        if (_program != 0) _gl.ReleaseProgram(_program);
         if (_sunTex != 0) _gl.DeleteTexture(_sunTex);
         foreach (uint t in _moonTex)
             if (t != 0) _gl.DeleteTexture(t);

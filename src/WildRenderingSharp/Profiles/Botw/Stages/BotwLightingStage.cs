@@ -1,11 +1,12 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Shadows;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Botw.Ubos;
-using WildRenderingSharp.Rendering;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
@@ -13,7 +14,7 @@ namespace WildRenderingSharp.Profiles.Botw.Stages;
 /// The game's lighting before the shading passes: the sun's shadow cascade, then its own pre-shading passes for characters, which turn
 /// the G-buffer into the shadow, light and fog buffers the shading passes composite.
 /// </summary>
-public sealed class BotwLightingStage(FrameServices services, BotwPasses passes) : IFrameStage, IDisposable
+internal sealed class BotwLightingStage(StageServices services, BotwPasses passes) : IFrameStage, IDisposable
 {
     const string ContextKey = "ctx_botw_preshading";
     const int ShadowAttachment = 5, FogAttachment = 1, DiffuseAttachment = 3;
@@ -36,11 +37,7 @@ public sealed class BotwLightingStage(FrameServices services, BotwPasses passes)
     public void Run(FrameContext frame)
     {
         var gl = services.Gl;
-        var resources = services.Resources;
         var targets = frame.Targets;
-        var camera = frame.Camera;
-        var cam = frame.Cam;
-
         if (!_loaded)
         {
             _shadowPass = passes.Load("preshading_shadow_chara", CharacterIdLow, CharacterIdHigh);
@@ -49,15 +46,9 @@ public sealed class BotwLightingStage(FrameServices services, BotwPasses passes)
         }
         _targets.Ensure(targets.Width, targets.Height);
 
-        _linearDepth.Run(resources, targets, camera.NearPlane, camera.FarPlane);
-        var viewToShadow = DrawCascade(frame);
-
-        float texel = 1f / RenderTargets.CascadeSize;
-        resources.Ubo(FrameUniformKeys.Environment,
-            BotwEnvUbo.From(frame.SunView, frame.SunColor, frame.HemiSky, frame.HemiGround, CameraData.Rows(cam.ViewInv, 3), texel).ToByteArray(),
-            BotwBindings.Environment);
-        resources.Ubo(ContextKey, BotwUniforms.Context(cam).WithCascade(viewToShadow, 1e9f, 1e9f).ToByteArray(), BotwBindings.Camera);
-        passes.EnsureLightAnalyzed(frame.HemiSky, frame.HemiGround);
+        _linearDepth.Run(services.Resources, targets, frame.Camera.NearPlane, frame.Camera.FarPlane);
+        UploadConstants(frame, DrawCascade(frame));
+        passes.EnsureLightAnalyzed(frame.Setup.HemiSky, frame.Setup.HemiGround);
 
         _targets.Clear(ShadowAttachment, 1, 1, 1, 1);
         _targets.Clear(DiffuseAttachment, 0, 0, 0, 0);
@@ -66,69 +57,86 @@ public sealed class BotwLightingStage(FrameServices services, BotwPasses passes)
         gl.Disable(EnableCap.DepthTest);
         gl.Disable(EnableCap.CullFace);
         gl.Disable(EnableCap.Blend);
-        resources.BindUbo(FrameUniformKeys.SceneMaterial, BotwBindings.SceneMaterial);
+        services.Resources.BindUbo(FrameUniformKeys.SceneMaterial, BotwBindings.SceneMaterial);
         ClipOrigin.Game(gl, true);
-
-        if (_shadowPass is not null)
-        {
-            _targets.Bind(ShadowAttachment);
-            passes.BindAt(0, targets.GBuffer[1].Handle);
-            passes.BindAt(1, targets.GBuffer[3].Handle);
-            passes.BindAt(9, passes.Black);
-            passes.BindAt(10, targets.ShadowCascades.Handle, TextureTarget.Texture2DArray);
-            passes.BindAt(12, targets.LinearDepthHalf.Handle);
-            passes.BindAt(14, passes.White);
-            passes.BindAt(BotwPasses.IdUnit, targets.GBuffer[0].Handle);
-            passes.BindAt(BotwPasses.LightAnalyzedUnit, passes.LightAnalyzed);
-            passes.Draw(_shadowPass);
-        }
-
-        if (_lightPass is not null)
-        {
-            _targets.Bind(0, 1, 2, 3, 4);
-            EnsureCube(frame.HemiSky, frame.HemiGround);
-            passes.BindAt(0, targets.GBuffer[1].Handle);
-            passes.BindAt(1, targets.GBuffer[3].Handle);
-            passes.BindAt(2, targets.GBuffer[5].Handle);
-            passes.BindAt(3, passes.White);
-            passes.BindAt(5, targets.GBuffer[0].Handle);
-            passes.BindAt(6, passes.White);
-            passes.BindAt(8, passes.White);
-            passes.BindAt(9, passes.Black);
-            passes.BindAt(13, targets.LinearDepthHalf.Handle);
-            passes.BindAt(14, passes.Black);
-            passes.BindAt(16, _cube, TextureTarget.TextureCubeMap);
-            passes.BindAt(BotwPasses.IdUnit, targets.GBuffer[0].Handle);
-            passes.BindAt(BotwPasses.LightAnalyzedUnit, passes.LightAnalyzed);
-            passes.Draw(_lightPass);
-        }
+        DrawShadowPass(targets);
+        DrawLightPass(frame);
         ClipOrigin.Game(gl, false);
         GLDiagnostics.CheckPass(gl, "BotW pre-shading");
 
         _targets.CopyToArray(DiffuseAttachment);
-        resources.BindCamera(FrameUniformKeys.SceneCamera);
+        services.Resources.BindCamera(FrameUniformKeys.SceneCamera);
         gl.ActiveTexture(TextureUnit.Texture0);
     }
 
-    /// <summary>Draws the one shadow cascade, and returns the matrix from view space to its texture space the shading passes read.</summary>
-    Vector4[] DrawCascade(FrameContext frame)
+    // The environment and context blocks the pre-shading passes read; the context carries the cascade's view-to-texture matrix.
+    void UploadConstants(FrameContext frame, Matrix4x4 viewToShadow)
+    {
+        float texel = 1f / RenderTargets.CascadeSize;
+        services.Resources.Bind(BotwUniforms.Environment(frame.Setup.SunView, frame.Setup.SunColor, frame.Setup.HemiSky, frame.Setup.HemiGround, frame.Setup.Cam.ViewInv, texel));
+        services.Resources.Bind(BotwUniforms.CascadeCamera(ContextKey, frame.Setup.Cam, viewToShadow, 1e9f, 1e9f));
+    }
+
+    void DrawShadowPass(RenderTargets targets)
+    {
+        if (_shadowPass is null)
+            return;
+        _targets.Bind(ShadowAttachment);
+        passes.BindAt(BotwSamplers.ShadowChara.Albedo, targets.GBuffer[BotwGBuffer.Albedo].Handle);
+        passes.BindAt(BotwSamplers.ShadowChara.Normal, targets.GBuffer[BotwGBuffer.Normal].Handle);
+        passes.BindAt(BotwSamplers.ShadowChara.WorldShadow, passes.Black);
+        passes.BindAt(BotwSamplers.ShadowChara.ShadowCascade, targets.ShadowCascades.Handle, TextureTarget.Texture2DArray);
+        passes.BindAt(BotwSamplers.ShadowChara.HalfDepth, targets.LinearDepthHalf.Handle);
+        passes.BindAt(BotwSamplers.ShadowChara.ResourceTexture1, passes.White);
+        BindMaskInputs(targets);
+        passes.Draw(_shadowPass);
+    }
+
+    void DrawLightPass(FrameContext frame)
+    {
+        if (_lightPass is null)
+            return;
+        var targets = frame.Targets;
+        _targets.Bind(0, 1, 2, 3, 4);
+        EnsureCube(frame.Setup.HemiSky, frame.Setup.HemiGround);
+        passes.BindAt(BotwSamplers.LightChara.Albedo, targets.GBuffer[BotwGBuffer.Albedo].Handle);
+        passes.BindAt(BotwSamplers.LightChara.Normal, targets.GBuffer[BotwGBuffer.Normal].Handle);
+        passes.BindAt(BotwSamplers.LightChara.Emission, targets.GBuffer[BotwGBuffer.Emission].Handle);
+        passes.BindAt(BotwSamplers.LightChara.Projection, passes.White);
+        passes.BindAt(BotwSamplers.LightChara.MaterialId, targets.GBuffer[BotwGBuffer.MaterialId].Handle);
+        passes.BindAt(BotwSamplers.LightChara.SkyInscatter, passes.White);
+        passes.BindAt(BotwSamplers.LightChara.Expand, passes.White);
+        passes.BindAt(BotwSamplers.LightChara.VolumeMask, passes.Black);
+        passes.BindAt(BotwSamplers.LightChara.HalfDepth, targets.LinearDepthHalf.Handle);
+        passes.BindAt(BotwSamplers.LightChara.ResourceTexture0, passes.Black);
+        passes.BindAt(BotwSamplers.LightChara.CubeEnvironment, _cube, TextureTarget.TextureCubeMap);
+        BindMaskInputs(targets);
+        passes.Draw(_lightPass);
+    }
+
+    void BindMaskInputs(RenderTargets targets)
+    {
+        passes.BindAt(BotwSamplers.IdTexture, targets.GBuffer[BotwGBuffer.MaterialId].Handle);
+        passes.BindAt(BotwSamplers.LightAnalyzed, passes.LightAnalyzed);
+    }
+
+    // Draws the one shadow cascade, and returns the matrix from view space to its texture space the shading passes read.
+    Matrix4x4 DrawCascade(FrameContext frame)
     {
         var resources = services.Resources;
         var request = frame.Request;
         var (lo, hi) = ShadowSignatures.CombinedBounds(request.Actors, frame.Instances);
-        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.SunWorld);
-        frame.LightMatrices = light;
-        frame.ShadowBoundsLo = lo;
-        frame.ShadowBoundsHi = hi;
+        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
+        frame.Shadow = new ShadowResult(light, lo, hi);
 
-        services.Profile.Camera(FrameUniformKeys.LightCamera, CameraData.ForLight(light, frame.Cam)).Bind(resources);
-        _shadow.Run(resources, frame.Targets, frame.CastingGroups, services.Programs, cascade: 0);
+        resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
+        _shadow.Run(resources, frame.Targets, frame.Setup.CastingGroups, services.Drawer, cascade: 0);
         GLDiagnostics.CheckPass(services.Gl, "shadow cascade");
         resources.BindCamera(FrameUniformKeys.SceneCamera);
 
         // Clip space [-1, 1] to texture space [0, 1].
         var toTexture = Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(0.5f, 0.5f, 0.5f);
-        return CameraData.Rows(frame.Cam.ViewInv * light.ViewProj * toTexture);
+        return frame.Setup.Cam.ViewInv * light.ViewProj * toTexture;
     }
 
     // Sky above the horizon and ground below it, which the character pass reflects at a coarse level.

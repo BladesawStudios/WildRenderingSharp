@@ -1,6 +1,8 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Ubos;
@@ -21,15 +23,14 @@ public class TotkProfileTests
         var blocks = Profile.Actor(new SkinningData(placement, null, null));
 
         Assert.Collection(blocks,
-            b => { Assert.Equal(2u, b.Binding); Assert.Equal(BonePaletteUbo.FillIdentity(placement).ToByteArray(), b.Data); },
-            b => { Assert.Equal(4u, b.Binding); Assert.Equal(ShapeMatrixUbo.BuildFromModelMatrix(placement).ToByteArray(), b.Data); });
+            b => { Assert.Equal(TotkBlocks.Bones, b.Spec); Assert.Equal(BonePalette.Identity(TotkBlocks.Bones, placement).Bytes.ToArray(), b.Bytes.ToArray()); },
+            b => { Assert.Equal(TotkBlocks.ShapeMatrix, b.Spec); Assert.Equal(TotkActorUniforms.ShapeMatrix(placement).Bytes.ToArray(), b.Bytes.ToArray()); });
     }
 
     [Fact]
-    public void InstancedPlaceholders_areZeroedBonesAndShapeMatrix()
+    public void InstancedActors_leaveTheBonesAndShapeMatrixZeroed()
     {
-        Assert.Collection(Profile.InstancedActorPlaceholders,
-            b => { Assert.Equal(2u, b.Binding); Assert.Null(b.Data); },
-            b => { Assert.Equal(4u, b.Binding); Assert.Null(b.Data); });
+        Assert.Equal([TotkBlocks.Bones, TotkBlocks.ShapeMatrix], Profile.InstancedActorBlocks);
+        Assert.Equal([2u, 4u], Profile.InstancedActorBlocks.Select(b => b.Binding));
     }
 }
