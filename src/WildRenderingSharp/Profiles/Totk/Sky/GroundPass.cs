@@ -22,9 +22,9 @@ internal sealed class GroundPass : IDisposable
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "sky_ground");
     }
 
-    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target, ReadOnlySpan<Vector4> viewInv3Rows,
-        float aspect, float tanHalfFovY, Vector3 colour)
+    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target, SkyView view, Vector3 colour)
     {
+        var (viewInv3Rows, aspect, tanHalfFovY) = view;
         targets.BindColorTarget(target);
         _gl.Disable(EnableCap.DepthTest);
         _gl.Disable(EnableCap.CullFace);

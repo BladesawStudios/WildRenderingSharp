@@ -81,17 +81,17 @@ internal sealed unsafe class CloudDomePass : IDisposable
         return _animSeconds;
     }
 
+    // What every layer is drawn from this frame.
+    public readonly record struct Frame(EnvPalette Palette, CloudPostFxShared Shared, float Seconds, CameraData Camera, Vector3 CameraEye,
+        Vector3 SunWorld, float Brightness, float Exposure, CloudFadeSettings Fade, Vector3 SkyColor, float ResolutionScale, uint ScatterTexture);
+
     // Draws the layers in the order given, which should be far to near.
-    public void Run(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
-        CloudPostFxShared shared, IReadOnlyList<Layer> layers, float seconds,
-        in CameraData camera, Vector3 cameraEye, Vector3 sunWorld,
-        float brightness, float exposure, CloudFadeSettings fade, Vector3 skyColor, float resolutionScale, uint scatterTexture)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<Layer> layers, in Frame frame)
     {
         if (_program == 0)
             return;
         foreach (var layer in layers)
-            DrawLayer(resources, targets, palette, shared, layer, seconds, camera, cameraEye, sunWorld,
-                brightness, exposure, fade, skyColor, resolutionScale, scatterTexture);
+            DrawLayer(resources, targets, layer, frame);
     }
 
     public void Dispose()
@@ -143,20 +143,17 @@ internal sealed unsafe class CloudDomePass : IDisposable
         Matrix4x4.CreatePerspectiveFieldOfView(2f * MathF.Atan(camera.TanHalfFovY), camera.Aspect, camera.Near, MathF.Max(wantedFar, camera.Far))
         * ClipSpace.ZeroToOneDepthToGl;
 
-    void DrawLayer(GLResourceCache resources, RenderTargets targets, EnvPalette palette,
-        CloudPostFxShared shared, Layer drawn, float seconds,
-        in CameraData camera, Vector3 cameraEye, Vector3 sunWorld,
-        float brightness, float exposure, CloudFadeSettings fade, Vector3 skyColor, float resolutionScale, uint scatterTexture)
+    void DrawLayer(GLResourceCache resources, RenderTargets targets, Layer drawn, in Frame frame)
     {
         var layer = drawn.Params;
-        float skyHeightAboveCamera = MathF.Max(1f, layer.SkyHeight - cameraEye.Y);
+        float skyHeightAboveCamera = MathF.Max(1f, layer.SkyHeight - frame.CameraEye.Y);
 
-        // The game renders under its own exposure and this buffer is multiplied by the renderer's later, so it is divided back out.
-        float skyColorGain = brightness / MathF.Max(1e-4f, exposure);
-        var common = CloudBlocks.BuildCommon(palette, drawn.Colours, shared, layer, sunWorld, seconds, skyHeightAboveCamera, skyColorGain);
+        // The game renders under its own frame.Exposure and this buffer is multiplied by the renderer's later, so it is divided back out.
+        float skyColorGain = frame.Brightness / MathF.Max(1e-4f, frame.Exposure);
+        var common = CloudBlocks.BuildCommon(frame.Palette, drawn.Colours, frame.Shared, layer, frame.SunWorld, frame.Seconds, skyHeightAboveCamera, skyColorGain);
         ReportOnce(common);
 
-        _composite!.Begin((int)(targets.Final.Width * resolutionScale), (int)(targets.Final.Height * resolutionScale));
+        _composite!.Begin((int)(targets.Final.Width * frame.ResolutionScale), (int)(targets.Final.Height * frame.ResolutionScale));
         _gl.Disable(EnableCap.DepthTest);
         // Stands in for the game's disabled far clip.
         _gl.Enable(EnableCap.DepthClamp);
@@ -166,11 +163,11 @@ internal sealed unsafe class CloudDomePass : IDisposable
 
         _gl.UseProgram(_program);
         resources.Bind(common);
-        // The distance fade is the renderer's own; its extents are the dome's half-sizes.
-        resources.Bind(CloudBlocks.BuildFade(fade.StartDistance, fade.Ramp, fade.Exponential, fade.Strength,
-            new Vector3(layer.SkyScale, skyHeightAboveCamera, layer.SkyScale), skyColor));
-        resources.Bind(CloudBlocks.BuildView(camera.View, WidenFarPlane(camera, layer.SkyScale * 4f), cameraEye, layer, skyHeightAboveCamera, DomeScale));
-        BindTextures(layer, scatterTexture);
+        // The distance frame.Fade is the renderer's own; its extents are the dome's half-sizes.
+        resources.Bind(CloudBlocks.BuildFade(frame.Fade.StartDistance, frame.Fade.Ramp, frame.Fade.Exponential, frame.Fade.Strength,
+            new Vector3(layer.SkyScale, skyHeightAboveCamera, layer.SkyScale), frame.SkyColor));
+        resources.Bind(CloudBlocks.BuildView(frame.Camera.View, WidenFarPlane(frame.Camera, layer.SkyScale * 4f), frame.CameraEye, layer, skyHeightAboveCamera, DomeScale));
+        BindTextures(layer, frame.ScatterTexture);
 
         _gl.BindVertexArray(_vao);
         _gl.DrawElements(PrimitiveType.Triangles, (uint)_indexCount, DrawElementsType.UnsignedInt, null);

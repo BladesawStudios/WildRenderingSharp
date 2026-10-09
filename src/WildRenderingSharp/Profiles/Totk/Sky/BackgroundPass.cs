@@ -32,12 +32,12 @@ internal sealed class BackgroundPass : IDisposable
         _skyProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, SkyFragmentSource, "background_sky");
     }
 
-    public void Run(GLResourceCache resources, RenderTargets targets, BackgroundMode mode, Vector3 color,
-        Vector3 sunWorld, EnvPalette palette, Matrix4x4 viewInv, Vector2 tanHalf, float sceneGain,
-        SkyPostFx? postfx = null, CloudPostFx? cloudPostFx = null, float atmosphereIntensity = 1f)
+    // What the sky is drawn from this frame.
+    public readonly record struct Inputs(EnvPalette Palette, Vector3 SunWorld, Matrix4x4 ViewInv, Vector2 TanHalf, float SceneGain,
+        SkyPostFx PostFx, CloudPostFx CloudPostFx, float AtmosphereIntensity);
+
+    public void Run(GLResourceCache resources, RenderTargets targets, BackgroundMode mode, Vector3 color, in Inputs inputs)
     {
-        postfx ??= SkyPostFx.Default;
-        cloudPostFx ??= CloudPostFx.Default;
         targets.BindColorTarget(targets.Final);
         _gl.Disable(EnableCap.DepthTest);
 
@@ -49,7 +49,7 @@ internal sealed class BackgroundPass : IDisposable
                 break;
 
             case BackgroundMode.Sky:
-                DrawSky(resources, palette, sunWorld, viewInv, tanHalf, sceneGain, postfx, cloudPostFx, atmosphereIntensity);
+                DrawSky(resources, inputs);
                 break;
 
             default: // Color
@@ -59,9 +59,10 @@ internal sealed class BackgroundPass : IDisposable
         }
     }
 
-    void DrawSky(GLResourceCache resources, EnvPalette palette, Vector3 sunWorld, Matrix4x4 viewInv, Vector2 tanHalf,
-        float sceneGain, SkyPostFx postfx, CloudPostFx cloudPostFx, float atmosphereIntensity)
+    void DrawSky(GLResourceCache resources, in Inputs inputs)
     {
+        var (palette, sunWorld, viewInv, tanHalf, sceneGain, postfx, cloudPostFx, atmosphereIntensity) = inputs;
+
         // Anchored to the SceneGain-corrected BgDifIntensity, the magnitude the lit path targets.
         float intensityScale = palette.BgDifIntensity * sceneGain * SkyColorAnchor;
 

@@ -78,9 +78,9 @@ internal sealed class SkyBodyPass : IDisposable
         float SunAngularRadius, float MoonAngularRadius,
         int MoonPhase, bool DrawSun, bool DrawMoon);
 
-    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target,
-        ReadOnlySpan<Vector4> viewInv3Rows, float aspect, float tanHalfFovY, Params p)
+    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target, SkyView view, Params p)
     {
+        var (viewInv3Rows, aspect, tanHalfFovY) = view;
         bool sun = p.DrawSun && _sunTex != 0;
         int phase = NearestAvailablePhase(Math.Clamp(p.MoonPhase, 1, 8) - 1);
         bool moon = p.DrawMoon && phase >= 0 && _moonTex[phase] != 0;

@@ -31,9 +31,9 @@ internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameSta
         var environment = frame.TotkEnvironment();
         var settings = environment.Settings;
 
-        _background.Run(services.Resources, frame.Targets, lighting.Background, lighting.BackgroundColor, frame.Setup.SunWorld,
-            environment.Palette, frame.Setup.Cam.ViewInv, frame.Setup.Cam.TanHalf, lighting.SceneGain, environment.SkyPostFx, environment.CloudPostFx,
-            settings.AtmosphereIntensity);
+        _background.Run(services.Resources, frame.Targets, lighting.Background, lighting.BackgroundColor,
+            new BackgroundPass.Inputs(environment.Palette, frame.Setup.SunWorld, frame.Setup.Cam.ViewInv, frame.Setup.Cam.TanHalf, lighting.SceneGain,
+                environment.SkyPostFx, environment.CloudPostFx, settings.AtmosphereIntensity));
         GLDiagnostics.CheckPass(services.Gl, "background");
 
         if (lighting.Background != BackgroundMode.Sky)
@@ -69,16 +69,15 @@ internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameSta
             ? SkyPostFxPass.Resolve(palette, environment.SkyPostFx, intensity, settings.SkyFogStrength, settings.SkyFogNormaliseHue)
             : default;
 
-        _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter,
-            GpuMatrix.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY, frame.Setup.SunWorld, environment.SkyPostFx, intensity, hazeColor,
-            settings.SkyHorizonHaze, fog);
+        _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter, SkyView.From(cam), frame.Setup.SunWorld,
+            new SkyPostFxPass.Look(environment.SkyPostFx, intensity, hazeColor, settings.SkyHorizonHaze, fog));
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
     }
 
     void DrawGround(FrameContext frame)
     {
         var cam = frame.Setup.Cam;
-        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, GpuMatrix.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY,
+        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, SkyView.From(cam),
             frame.Setup.HemiGround * frame.Lighting.SceneGain * frame.TotkEnvironment().Palette.BgDifIntensity / 5.0f);
         GLDiagnostics.CheckPass(services.Gl, "sky ground");
     }
@@ -99,7 +98,7 @@ internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameSta
             / Vector3.Max(SunTransmittance.Colour(environment.SkyPostFx, rayleighAmplifier, mieAmplifier, MathF.PI / 2f), new Vector3(1e-4f));
         float sunPeak = MathF.Max(sunHue.X, MathF.Max(sunHue.Y, sunHue.Z));
         if (sunPeak > 1e-6f) sunHue /= sunPeak;
-        _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, GpuMatrix.Rows(cam.ViewInv, 3), cam.Aspect, cam.TanHalfFovY,
+        _skyBody.Run(services.Resources, frame.Targets, frame.Targets.Final, SkyView.From(cam),
             new SkyBodyPass.Params(
                 SunDir: frame.Setup.SunWorld,
                 MoonDir: SunDirection.FromElevationAzimuth(settings.MoonElevation, settings.MoonAzimuth),
@@ -124,10 +123,9 @@ internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameSta
         float seconds = _cloudDome.Advance(settings.AnimateClouds);
         var layers = ResolveCloudLayers(environment, seconds, frame.Camera.Eye.Y);
 
-        _cloudDome.Run(services.Resources, frame.Targets, palette, environment.CloudPostFx.Shared, layers, seconds,
-            cam, frame.Camera.Eye, frame.Setup.SunWorld,
-            settings.CloudBrightness, lighting.Exposure, settings.CloudFade, palette.FogColor,
-            settings.CloudResolutionScale, bake.BakedInscatter);
+        _cloudDome.Run(services.Resources, frame.Targets, layers,
+            new CloudDomePass.Frame(palette, environment.CloudPostFx.Shared, seconds, cam, frame.Camera.Eye, frame.Setup.SunWorld,
+                settings.CloudBrightness, lighting.Exposure, settings.CloudFade, palette.FogColor, settings.CloudResolutionScale, bake.BakedInscatter));
         GLDiagnostics.CheckPass(services.Gl, "cloud dome");
     }
 

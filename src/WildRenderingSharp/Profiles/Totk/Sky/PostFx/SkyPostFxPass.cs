@@ -107,13 +107,17 @@ internal sealed class SkyPostFxPass : IDisposable
 
     public const float CapturedAttenSky = 0.5f;
 
+    // What the sky looks like this frame: the game's coefficients, the overall intensity, the haze colour and tint, and the ad hoc fog.
+    public readonly record struct Look(SkyPostFx PostFx, float Intensity, Vector3? FogColor, float PaletteTint, AdhocFog Fog);
+
     public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target,
-        uint bakedInscatter, ReadOnlySpan<Vector4> viewInv3Rows, float aspect, float tanHalfFovY,
-        Vector3 sunWorld, SkyPostFx postfx, float intensity, Vector3? fogColor = null,
-        float paletteTint = 0f, AdhocFog fog = default)
+        uint bakedInscatter, SkyView view, Vector3 sunWorld, in Look look)
     {
         if (!Available || bakedInscatter == 0)
             return;
+
+        var (viewInv3Rows, aspect, tanHalfFovY) = view;
+        var (postfx, intensity, fogColor, paletteTint, fog) = look;
 
         // The fog program is used only when there is fog: at density 0 the two give identical output, and this keeps a missing fog variant harmless.
         bool useFog = fog.Density > 1e-5f && _fogProgram != 0;
