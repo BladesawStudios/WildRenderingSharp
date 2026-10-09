@@ -1,5 +1,5 @@
 using ShaderLibrary.CompileTool;
-using ShaderLibrary.CompileTool.Rom;
+using WildRenderingSharp.Rom;
 using WildRenderingSharp.Hosting;
 
 namespace WildRenderingSharp.Preparation.Botw;

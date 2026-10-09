@@ -31,6 +31,13 @@
     <ProjectReference Include="$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
   </ItemGroup>
 
+  <!-- The BFRES reader ShaderLibrary builds against; the asset readers here hand its ResFile to the exporters. -->
+  <ItemGroup>
+    <Reference Include="BfresLibrary">
+      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\BfresLibrary.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
   <!-- The managed BNTX reader, with its own Tegra deswizzle. -->
   <ItemGroup>
     <ProjectReference Include="..\..\vendor\BntxSharp\src\BntxSharp\BntxSharp.csproj" />

@@ -1,5 +1,5 @@
 using SarcLibrary;
-using ShaderLibrary.CompileTool.Rom;
+using WildRenderingSharp.Rom;
 using Yaz0Sharp;
 
 namespace WildRenderingSharp.Tests;
@@ -72,5 +72,22 @@ public sealed class LayeredRomTests : IDisposable
         Write(_updateDir, "Model/b.bin", [3]);
         using var rom = new LayeredRom([_baseDir, _updateDir]);
         Assert.Equal(["Model/a.bin", "Model/b.bin"], rom.Enumerate("Model", "*.bin").Order().ToArray());
+    }
+
+    [Fact]
+    public void ArchivesStillReadCorrectlyWhenTheCacheBudgetForcesThemOut()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            var sarc = new Sarc { [$"Model/{i}.bin"] = Yaz0.Compress(Enumerable.Repeat((byte)i, 300).ToArray()) };
+            using var packed = new MemoryStream();
+            sarc.Write(packed);
+            Write(_baseDir, $"Pack/{i}.pack", Yaz0.Compress(packed.ToArray()));
+        }
+        using var rom = new LayeredRom([_baseDir], cacheBudget: 1);
+
+        for (int round = 0; round < 2; round++)
+            for (int i = 0; i < 3; i++)
+                Assert.Equal(Enumerable.Repeat((byte)i, 300).ToArray(), rom.ReadAllBytesNested($"Pack/{i}.pack//Model/{i}.bin").ToArray());
     }
 }
