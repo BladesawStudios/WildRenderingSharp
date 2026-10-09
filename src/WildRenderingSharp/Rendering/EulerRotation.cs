@@ -11,7 +11,7 @@ public static class EulerRotation
 {
     /// <summary>Scales, rolls, pitches and yaws about <paramref name="pivot"/>, then moves by <paramref name="translation"/>.</summary>
     public static Vector4[] MakeYawPitchRollScaleAboutPivot(float yawRadians, float pitchRadians, float rollRadians, Vector3 scale, Vector3 pivot, Vector3 translation) =>
-        CameraData.Rows(
+        GpuMatrix.Rows(
             Matrix4x4.CreateTranslation(-pivot)
             * Matrix4x4.CreateScale(scale)
             * YawPitchRoll(yawRadians, pitchRadians, rollRadians)

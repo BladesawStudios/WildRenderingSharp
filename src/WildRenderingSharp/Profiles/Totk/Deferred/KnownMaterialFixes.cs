@@ -71,7 +71,7 @@ public sealed class KnownMaterialFixes : IDisposable
             if (group.Batch is not null)
                 continue;
             group.BindUbos(resources);
-            var mvp = Graphics.CameraData.FromRows(group.ModelMatrixRows) * viewProjFlipped;
+            var mvp = Graphics.GpuMatrix.FromRows(group.ModelMatrixRows) * viewProjFlipped;
 
             foreach (var shape in flagged)
             {

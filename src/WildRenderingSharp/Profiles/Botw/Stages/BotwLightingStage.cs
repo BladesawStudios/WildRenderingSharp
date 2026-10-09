@@ -54,7 +54,7 @@ public sealed class BotwLightingStage(FrameServices services, BotwPasses passes)
 
         float texel = 1f / RenderTargets.CascadeSize;
         resources.Ubo(FrameUniformKeys.Environment,
-            BotwEnvUbo.From(frame.SunView, frame.SunColor, frame.HemiSky, frame.HemiGround, CameraData.Rows(cam.ViewInv, 3), texel).ToByteArray(),
+            BotwEnvUbo.From(frame.SunView, frame.SunColor, frame.HemiSky, frame.HemiGround, GpuMatrix.Rows(cam.ViewInv, 3), texel).ToByteArray(),
             BotwBindings.Environment);
         resources.Ubo(ContextKey, BotwUniforms.Context(cam).WithCascade(viewToShadow, 1e9f, 1e9f).ToByteArray(), BotwBindings.Camera);
         passes.EnsureLightAnalyzed(frame.HemiSky, frame.HemiGround);
@@ -121,14 +121,14 @@ public sealed class BotwLightingStage(FrameServices services, BotwPasses passes)
         frame.ShadowBoundsLo = lo;
         frame.ShadowBoundsHi = hi;
 
-        services.Profile.Camera(FrameUniformKeys.LightCamera, CameraData.ForLight(light, frame.Cam)).Bind(resources);
+        services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)).Bind(resources);
         _shadow.Run(resources, frame.Targets, frame.CastingGroups, services.Programs, cascade: 0);
         GLDiagnostics.CheckPass(services.Gl, "shadow cascade");
         resources.BindCamera(FrameUniformKeys.SceneCamera);
 
         // Clip space [-1, 1] to texture space [0, 1].
         var toTexture = Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(0.5f, 0.5f, 0.5f);
-        return CameraData.Rows(frame.Cam.ViewInv * light.ViewProj * toTexture);
+        return GpuMatrix.Rows(frame.Cam.ViewInv * light.ViewProj * toTexture);
     }
 
     // Sky above the horizon and ground below it, which the character pass reflects at a coarse level.

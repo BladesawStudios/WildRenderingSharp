@@ -94,7 +94,7 @@ public static class ShadowSignatures
 
     static (Vector3 Lo, Vector3 Hi) RotateBounds(Vector3 lo, Vector3 hi, ReadOnlySpan<Vector4> modelRows)
     {
-        var model = CameraData.FromRows(modelRows);
+        var model = GpuMatrix.FromRows(modelRows);
         var rotatedLo = new Vector3(float.MaxValue);
         var rotatedHi = new Vector3(float.MinValue);
         for (int i = 0; i < 8; i++)

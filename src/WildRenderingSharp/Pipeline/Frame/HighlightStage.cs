@@ -21,7 +21,7 @@ public sealed class HighlightStage(FrameServices services) : IFrameStage, IDispo
 
         var group = frame.Groups[target.ActorIndex];
         var shape = request.Actors[target.ActorIndex].Model.Shapes[target.ShapeIndex];
-        var mvp = CameraData.FromRows(group.ModelMatrixRows) * frame.MaskViewProj;
+        var mvp = GpuMatrix.FromRows(group.ModelMatrixRows) * frame.MaskViewProj;
         _highlight.Draw(services.Resources, frame.Targets, group, shape, mvp, frame.MaskViewProj, HighlightColor);
         GLDiagnostics.CheckPass(services.Gl, "highlight overlay");
     }

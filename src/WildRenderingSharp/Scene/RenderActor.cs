@@ -35,7 +35,7 @@ public class RenderActor : IDisposable
 
 
     public Vector3 WorldCenter => TransformOverride is { } rows
-        ? Vector3.Transform(Model.BoundsCenter, CameraData.FromRows(rows))
+        ? Vector3.Transform(Model.BoundsCenter, GpuMatrix.FromRows(rows))
         : Position + Model.BoundsCenter;
 
     // Per-actor animation state.

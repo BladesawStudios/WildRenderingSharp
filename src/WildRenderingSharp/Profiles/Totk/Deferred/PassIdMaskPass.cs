@@ -89,7 +89,7 @@ public sealed class PassIdMaskPass : IDisposable
         foreach (var group in groups.Where(g => g.Batch is null))
         {
             group.BindUbos(resources);
-            var mvp = CameraData.FromRows(group.ModelMatrixRows) * viewProj;
+            var mvp = GpuMatrix.FromRows(group.ModelMatrixRows) * viewProj;
             _gl.SetMat4(_program, "uMVP", mvp);
 
             foreach (var sh in group.Shapes)

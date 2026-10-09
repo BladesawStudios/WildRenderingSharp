@@ -31,7 +31,7 @@ public sealed class ShadowPass
         var up = MathF.Abs(Vector3.Normalize(sunWorld).Y) < 0.95f ? Vector3.UnitY : -Vector3.UnitZ;
 
         var view = Matrix4x4.CreateLookAt(eye, center, up);
-        var proj = Matrix4x4.CreateOrthographic(radius * 2f, radius * 2f, 0.01f, radius * 5f) * CameraData.ZeroToOneDepthToGl;
+        var proj = Matrix4x4.CreateOrthographic(radius * 2f, radius * 2f, 0.01f, radius * 5f) * ClipSpace.ZeroToOneDepthToGl;
         return new LightMatrices(view, proj, view * proj);
     }
 

@@ -8,8 +8,8 @@ static class BotwUniforms
     public static UniformBlock Camera(string key, in CameraData camera) => UniformBlock.From(key, Context(camera));
 
     public static BotwContextUbo Context(in CameraData camera) => BotwContextUbo.ForCamera(
-        CameraData.Rows(camera.View, 3), CameraData.Rows(camera.ViewProj), CameraData.Rows(camera.Proj),
-        CameraData.Rows(camera.ViewInv, 3),
+        GpuMatrix.Rows(camera.View, 3), GpuMatrix.Rows(camera.ViewProj), GpuMatrix.Rows(camera.Proj),
+        GpuMatrix.Rows(camera.ViewInv, 3),
         camera.Aspect, camera.TanHalfFovY, camera.Near, camera.Far, camera.TexelSize);
 
     public static IReadOnlyList<UniformBlock> Actor(in SkinningData actor) =>

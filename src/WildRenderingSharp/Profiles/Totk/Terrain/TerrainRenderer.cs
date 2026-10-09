@@ -107,7 +107,7 @@ public sealed class TerrainRenderer(FrameServices services, TerrainShading shadi
 
     public void DrawShadow(ITerrainHost host, int cascade, Camera camera, ShadowFocus focus, ShadowPass.LightMatrices light, CameraData sceneCamera)
     {
-        services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, CameraData.ForLight(light, sceneCamera)).Bind(Resources);
+        services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, sceneCamera.ForLight(light.View, light.Proj)).Bind(Resources);
         host.DrawShadow(new TerrainDraw(Gl, camera.Eye, cascade, new Vector4(focus.Center, focus.Radius)));
         Gl.UseProgram(0);
         Gl.BindVertexArray(0);

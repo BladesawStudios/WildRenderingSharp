@@ -166,7 +166,7 @@ public sealed class InstanceBatch : IDisposable
             }
             else
             {
-                Matrix4x4 placement = CameraData.FromRows(rows);
+                Matrix4x4 placement = GpuMatrix.FromRows(rows);
                 for (int s = 0; s < local.Length; s++)
                 {
                     Matrix4x4 m = local[s] * placement;

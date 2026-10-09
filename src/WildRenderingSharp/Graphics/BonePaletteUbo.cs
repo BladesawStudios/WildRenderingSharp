@@ -33,7 +33,7 @@ public sealed class BonePaletteUbo : IUboBlock
 
         Matrix4x4[] boneWorld = actor.BoneWorld ?? SkeletonPose.BindPoseWorldMatrices(skeleton);
         return Build(boneWorld, CollectionsMarshal.AsSpan(skeleton.MatrixToBoneList), skeleton.InverseModelMatricesAsMatrices(),
-            binding, CameraData.FromRows(actor.PlacementRows));
+            binding, GpuMatrix.FromRows(actor.PlacementRows));
     }
 
     public static BonePaletteUbo Build(
@@ -76,7 +76,7 @@ public sealed class BonePaletteUbo : IUboBlock
             throw new ArgumentException("modelRows must have exactly 3 rows (mat3x4)", nameof(modelRows));
 
         var bone = new Std140Block(BytesPerBone);
-        bone.WriteRows(0, modelRows.IsEmpty ? CameraData.Rows(Matrix4x4.Identity, 3) : modelRows);
+        bone.WriteRows(0, modelRows.IsEmpty ? GpuMatrix.Rows(Matrix4x4.Identity, 3) : modelRows);
         byte[] oneBone = bone.ToByteArray();
 
         var data = new byte[byteSize];
@@ -89,7 +89,7 @@ public sealed class BonePaletteUbo : IUboBlock
     static void WriteMatrix(byte[] data, int slot, in Matrix4x4 matrix)
     {
         var block = new Std140Block(BytesPerBone);
-        block.WriteRows(0, CameraData.Rows(matrix, 3));
+        block.WriteRows(0, GpuMatrix.Rows(matrix, 3));
         block.ToByteArray().CopyTo(data, slot * BytesPerBone);
     }
 

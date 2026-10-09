@@ -12,7 +12,7 @@ static class TotkCameraUniforms
         UniformBlock.From(TotkUniformKeys.FieldCamera, Context(camera).WithTileGrid(1, 1));
 
     static ContextUbo Context(in CameraData camera) => ContextUbo.BuildForCamera(
-        CameraData.Rows(camera.View, 3), CameraData.Rows(camera.ViewProj), CameraData.Rows(camera.Proj),
-        CameraData.Rows(camera.ViewInv, 3),
+        GpuMatrix.Rows(camera.View, 3), GpuMatrix.Rows(camera.ViewProj), GpuMatrix.Rows(camera.Proj),
+        GpuMatrix.Rows(camera.ViewInv, 3),
         camera.Aspect, camera.TanHalfFovY, camera.Near, camera.Far, camera.TexelSize);
 }

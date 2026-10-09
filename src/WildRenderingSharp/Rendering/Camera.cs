@@ -1,37 +1,26 @@
-// Created Oct 8 2026, adapted from Terrain Workbench
-// (which in turn copied it from a C++ class in RenderTron 9000)
-// @author Torphedo
-
 using System.Numerics;
-using WildRenderingSharp.Graphics;
 
 namespace WildRenderingSharp.Rendering;
 
-public class Camera {
-    public Vector3 Up = new(0, 1, 0);
+/// <summary>A perspective viewpoint. The aspect ratio comes from the target it renders into.</summary>
+public sealed class Camera
+{
+    public Vector3 Eye { get; set; } = new(0, 0, 3);
+    public Vector3 Target { get; set; } = Vector3.Zero;
+    public Vector3 Up { get; set; } = Vector3.UnitY;
 
-    public Vector3 Eye = new(0, 200, 0);
-    public Vector3 Target = new(0, 200, 0);
+    public float FovRadians { get; set; } = float.DegreesToRadians(70f);
+    public float NearPlane { get; set; } = 0.1f;
+    public float FarPlane { get; set; } = 10000f;
 
-    // Projection settings
-    public float FovRadians = Single.DegreesToRadians(70.0f);
-
-    public float FovDegrees {
-        get => Single.RadiansToDegrees(FovRadians);
-        set =>  FovRadians = Single.DegreesToRadians(value);
-    }
-    public float Aspect = 16f / 9f;
-    public float NearPlane = 0.1f;
-    public float FarPlane = 10000.0f;
-
-    // Get just the camera transform
-    public Matrix4x4 view_matrix() {
-        return Matrix4x4.CreateLookAt(Eye, Target, Up);
+    public float FovDegrees
+    {
+        get => float.RadiansToDegrees(FovRadians);
+        set => FovRadians = float.DegreesToRadians(value);
     }
 
-    // Get just the projection transform
-    public Matrix4x4 proj_matrix() {
-        var projection = Matrix4x4.CreatePerspectiveFieldOfView(FovRadians, Aspect, NearPlane, FarPlane) * CameraData.ZeroToOneDepthToGl;
-        return projection;
-    }
-};
+    public Matrix4x4 ViewMatrix() => Matrix4x4.CreateLookAt(Eye, Target, Up);
+
+    public Matrix4x4 ProjectionMatrix(float aspect) =>
+        Matrix4x4.CreatePerspectiveFieldOfView(FovRadians, aspect, NearPlane, FarPlane) * ClipSpace.ZeroToOneDepthToGl;
+}

@@ -175,7 +175,7 @@ public sealed class CloudDomePass : IDisposable
     // The camera's projection with its far plane pushed out to at least wantedFar, so the dome is not clipped.
     static Matrix4x4 WidenFarPlane(in CameraData camera, float wantedFar) =>
         Matrix4x4.CreatePerspectiveFieldOfView(2f * MathF.Atan(camera.TanHalfFovY), camera.Aspect, camera.Near, MathF.Max(wantedFar, camera.Far))
-        * CameraData.ZeroToOneDepthToGl;
+        * ClipSpace.ZeroToOneDepthToGl;
 
     // Uploads an extracted single-channel mask as an R8 texture swizzled to RRRR, as the game's BC4 textures are, or a flat
     // stand-in if the file is missing.
@@ -456,8 +456,8 @@ public sealed class CloudDomePass : IDisposable
         float height = skyHeightAboveCamera * domeScale;
         var model = Matrix4x4.CreateScale(radius, height, radius) * Matrix4x4.CreateTranslation(cameraEye);
 
-        new UniformWriter(buf).SetRows(4, CameraData.Rows(model * view));
-        new UniformWriter(buf).SetRows(8, CameraData.Rows(proj));
+        new UniformWriter(buf).SetRows(4, GpuMatrix.Rows(model * view));
+        new UniformWriter(buf).SetRows(8, GpuMatrix.Rows(proj));
         new UniformWriter(buf).Set(12, 0, CloudUboBaseline.ZOffsetParam);
         return buf;
     }
