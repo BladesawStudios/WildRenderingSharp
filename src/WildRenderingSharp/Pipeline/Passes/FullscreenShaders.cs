@@ -1,5 +1,6 @@
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Shaders;
+
 namespace WildRenderingSharp.Pipeline.Passes;
 
 /// <summary>

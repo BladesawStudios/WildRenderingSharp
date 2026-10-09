@@ -1,20 +1,14 @@
+using System.Numerics;
+using Silk.NET.OpenGL;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Shaders;
-using System.Numerics;
-using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline.Passes;
 
-/// <summary>
-/// Bright-pass -> 4 downsampled+blurred levels -> weighted compose, feeding straight into <c>agl_hdr_compose</c>'s own
-/// <c>cBloom</c> sampler (so it lands in the game's own compose, not a separate effect bolted on afterwards).
-/// </summary>
+/// <summary>A bright pass, four downsampled and blurred levels, and a weighted compose that feeds the game's own <c>agl_hdr_compose</c> through its <c>cBloom</c> sampler.</summary>
 public sealed class BloomPass : IDisposable
 {
-    readonly GL _gl;
-    readonly uint _brightProgram, _blurProgram, _composeProgram;
-
     public static readonly Vector4[] LevelColors =
     [
         new(1f, 1f, 1f, 0.50f),
@@ -26,10 +20,11 @@ public sealed class BloomPass : IDisposable
     public static readonly Vector3 Balance = Vector3.One;
 
     static readonly string BrightFragmentSource = GlslFiles.Load("Pipeline/Bloom/Bright.frag");
-
     static readonly string BlurFragmentSource = GlslFiles.Load("Pipeline/Bloom/Blur.frag");
-
     static readonly string ComposeFragmentSource = GlslFiles.Load("Pipeline/Bloom/Compose.frag");
+
+    readonly GL _gl;
+    readonly uint _brightProgram, _blurProgram, _composeProgram;
 
     public BloomPass(GL gl)
     {
@@ -43,44 +38,58 @@ public sealed class BloomPass : IDisposable
     {
         _gl.Disable(EnableCap.DepthTest);
 
-        var cur = hdrSource;
+        var source = hdrSource;
         for (int i = 0; i < RenderTargets.BloomLevelCount; i++)
         {
-            var lv = targets.BloomLevels[i];
-            var tmp = targets.BloomTmp[i];
-
-            targets.BindColorTarget(lv);
+            var level = targets.BloomLevels[i];
+            targets.BindColorTarget(level);
             if (i == 0)
-            {
-                _gl.UseProgram(_brightProgram);
-                _gl.SetVec3(_brightProgram, "uBalance", Balance);
-                _gl.SetFloat(_brightProgram, "uThreshold", threshold);
-                _gl.SetFloat(_brightProgram, "uClamp", clamp);
-                _gl.BindTextureUniform(_brightProgram, "t", 0, cur.Handle);
-            }
+                DrawBright(resources, source, threshold, clamp);
             else
-            {
-                _gl.UseProgram(_blurProgram);
-                _gl.BindTextureUniform(_blurProgram, "t", 0, cur.Handle);
-                _gl.SetVec2(_blurProgram, "uStep", new Vector2(1f / lv.Width, 0f));
-            }
-            resources.DrawFullscreenTriangle();
-
-            _gl.UseProgram(_blurProgram);
-            foreach (var (src, dst, step) in new[]
-                     {
-                         (lv, tmp, new Vector2(1f / lv.Width, 0f)),
-                         (tmp, lv, new Vector2(0f, 1f / lv.Height)),
-                     })
-            {
-                targets.BindColorTarget(dst);
-                _gl.BindTextureUniform(_blurProgram, "t", 0, src.Handle);
-                _gl.SetVec2(_blurProgram, "uStep", step);
-                resources.DrawFullscreenTriangle();
-            }
-            cur = lv;
+                DrawBlur(resources, source, new Vector2(1f / level.Width, 0f));
+            BlurLevel(resources, targets, level, targets.BloomTmp[i]);
+            source = level;
         }
 
+        Compose(resources, targets, intensity);
+    }
+
+    public void Dispose()
+    {
+        _gl.DeleteProgram(_brightProgram);
+        _gl.DeleteProgram(_blurProgram);
+        _gl.DeleteProgram(_composeProgram);
+    }
+
+    void DrawBright(GLResourceCache resources, GpuTexture source, float threshold, float clamp)
+    {
+        _gl.UseProgram(_brightProgram);
+        _gl.SetVec3(_brightProgram, "uBalance", Balance);
+        _gl.SetFloat(_brightProgram, "uThreshold", threshold);
+        _gl.SetFloat(_brightProgram, "uClamp", clamp);
+        _gl.BindTextureUniform(_brightProgram, "t", 0, source.Handle);
+        resources.DrawFullscreenTriangle();
+    }
+
+    void DrawBlur(GLResourceCache resources, GpuTexture source, Vector2 step)
+    {
+        _gl.UseProgram(_blurProgram);
+        _gl.BindTextureUniform(_blurProgram, "t", 0, source.Handle);
+        _gl.SetVec2(_blurProgram, "uStep", step);
+        resources.DrawFullscreenTriangle();
+    }
+
+    // Horizontal into the scratch target, then vertical back into the level.
+    void BlurLevel(GLResourceCache resources, RenderTargets targets, GpuTexture level, GpuTexture scratch)
+    {
+        targets.BindColorTarget(scratch);
+        DrawBlur(resources, level, new Vector2(1f / level.Width, 0f));
+        targets.BindColorTarget(level);
+        DrawBlur(resources, scratch, new Vector2(0f, 1f / level.Height));
+    }
+
+    void Compose(GLResourceCache resources, RenderTargets targets, float intensity)
+    {
         targets.BindColorTarget(targets.Bloom);
         _gl.UseProgram(_composeProgram);
         for (int i = 0; i < RenderTargets.BloomLevelCount; i++)
@@ -91,12 +100,5 @@ public sealed class BloomPass : IDisposable
         _gl.SetVec3(_composeProgram, "uCompose", ComposeColor);
         _gl.SetFloat(_composeProgram, "uIntensity", intensity);
         resources.DrawFullscreenTriangle();
-    }
-
-    public void Dispose()
-    {
-        _gl.DeleteProgram(_brightProgram);
-        _gl.DeleteProgram(_blurProgram);
-        _gl.DeleteProgram(_composeProgram);
     }
 }

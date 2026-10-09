@@ -31,10 +31,15 @@ public static class GLUniformHelpers
         gl.TexParameter(target, TextureParameterName.TextureWrapT, (int)wrap);
     }
 
-    public static void BindTextureUniform(this GL gl, uint program, string uniform, int unit, uint textureHandle, TextureTarget target = TextureTarget.Texture2D)
+    public static void BindTextureAt(this GL gl, int unit, uint textureHandle, TextureTarget target = TextureTarget.Texture2D)
     {
         gl.ActiveTexture(TextureUnit.Texture0 + unit);
         gl.BindTexture(target, textureHandle);
+    }
+
+    public static void BindTextureUniform(this GL gl, uint program, string uniform, int unit, uint textureHandle, TextureTarget target = TextureTarget.Texture2D)
+    {
+        gl.BindTextureAt(unit, textureHandle, target);
         gl.Uniform1(gl.GetUniformLocation(program, uniform), unit);
     }
 

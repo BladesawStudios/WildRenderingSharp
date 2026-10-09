@@ -53,7 +53,7 @@ public sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirec
 
         _passNames = passNames;
         DeleteMaterialBuffers();
-        _resolvedPasses = DeferredResolvePass.ResolveDeferredPasses(gl, programs, directories.Decompiled, directories.DeferredMaterials, _passNames);
+        _resolvedPasses = DeferredPassLoader.Load(gl, programs, directories.Decompiled, directories.DeferredMaterials, _passNames);
         Console.WriteLine($"  deferred passes: {string.Join(", ", _passNames)}");
     }
 
@@ -92,7 +92,7 @@ public sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirec
         _resolvedPasses =
         [
             .. _resolvedPasses,
-            .. DeferredResolvePass.ResolveDeferredPasses(gl, programs, directories.Decompiled, directories.DeferredMaterials, [pass])
+            .. DeferredPassLoader.Load(gl, programs, directories.Decompiled, directories.DeferredMaterials, [pass])
                 .Select(p => p with { PassIndex = _passNames.Count - 1 }),
         ];
     }

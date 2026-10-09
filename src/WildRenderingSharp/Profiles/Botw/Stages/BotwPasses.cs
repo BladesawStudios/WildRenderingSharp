@@ -53,11 +53,7 @@ public sealed class BotwPasses(StageServices services) : IDisposable
         services.Resources.DrawFullscreenTriangle();
     }
 
-    public void BindAt(int unit, uint handle, TextureTarget target = TextureTarget.Texture2D)
-    {
-        services.Gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        services.Gl.BindTexture(target, handle);
-    }
+    public void BindAt(int unit, uint handle, TextureTarget target = TextureTarget.Texture2D) => services.Gl.BindTextureAt(unit, handle, target);
 
     // Only the vertex shaders that read the ambient strip declare it.
     static string MoveLightAnalyzedSampler(string vertex) =>

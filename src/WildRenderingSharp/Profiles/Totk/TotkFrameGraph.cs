@@ -34,7 +34,8 @@ public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     public TotkFrameGraph(StageServices services)
     {
         var linearDepth = Own(new LinearDepthPass(services.Gl));
-        var forward = Own(new ForwardPass(services.Gl, services.Directories.SystemTextures));
+        var flip = Own(new FlipBlit(services.Gl));
+        var forward = new ForwardPass(services.Gl, flip, Own(new ForwardNeutralInputs(services.Gl, services.Directories.SystemTextures)));
         Terrain = Own(new TerrainShading(services.Gl, services.Directories.Decompiled, services.Profile.Bindings));
         Cave = Own(new CaveShading(services.Gl, services.Directories.Decompiled));
         _scene = Own(new DeferredScene(services.Gl, services.Programs, services.Directories));
@@ -55,8 +56,8 @@ public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
             Own(new SkyStage(services, _skyBake)),
             _resolve,
             new SnapshotStage(0),
-            Own(new GridStage(services, forward)),
-            Own(new KnownMaterialFixesStage(services, _scene, forward)),
+            Own(new GridStage(services, flip)),
+            Own(new KnownMaterialFixesStage(services, _scene, flip)),
             new ForwardStage(services, forward),
             new SnapshotStage(1),
             new ExposureMeasureStage(services),

@@ -3,6 +3,7 @@ using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline.Gpu;
 using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Rendering.Cameras;
+
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>Linear depth, screen-space shadow and ambient occlusion, and the light pre-pass.</summary>
