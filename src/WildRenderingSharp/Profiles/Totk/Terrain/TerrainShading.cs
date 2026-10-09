@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Pipeline;
 using WildRenderingSharp.Profiles.Totk.Shaders;
@@ -15,7 +16,7 @@ public sealed partial class TerrainShading : IDisposable
     readonly GL _gl;
     readonly string _shadersDir;
     readonly ShaderBindings _bindings;
-    uint _materialBuffer;
+    MaterialBlock? _material;
 
     public const string TileLayerVarying = "wrs_tile_layer";
 
@@ -61,28 +62,22 @@ public sealed partial class TerrainShading : IDisposable
     // Mat[29].z, the terrain's wetness bias.
     const int DrySlotOffset = 29 * 16 + 8;
 
-    internal uint MaterialBuffer
+    internal MaterialBlock Material => _material ??= CreateMaterial();
+
+    MaterialBlock CreateMaterial()
     {
-        get
-        {
-            if (_materialBuffer == 0)
-            {
-                string path = Path.Combine(_shadersDir, "terrain_gsys_material.bin");
-                byte[] bytes = File.Exists(path) ? File.ReadAllBytes(path) : [];
-                // The model's default has Mat slot 29 at 1, which the G-buffer program turns into full wet gloss. The game rewrites it with the
-                // weather; dry ground is 0.
-                if (bytes.Length >= DrySlotOffset + sizeof(float))
-                    BitConverter.TryWriteBytes(bytes.AsSpan(DrySlotOffset), 0f);
-                _materialBuffer = Assets.GLBuffer.CreatePaddedUniformBuffer(_gl, bytes);
-            }
-            return _materialBuffer;
-        }
+        string path = Path.Combine(_shadersDir, "terrain_gsys_material.bin");
+        byte[] bytes = File.Exists(path) ? File.ReadAllBytes(path) : [];
+        // The model's default has Mat slot 29 at 1, which the G-buffer program turns into full wet gloss. The game rewrites it with the
+        // weather; dry ground is 0.
+        if (bytes.Length >= DrySlotOffset + sizeof(float))
+            BitConverter.TryWriteBytes(bytes.AsSpan(DrySlotOffset), 0f);
+        return new MaterialBlock(_gl, bytes);
     }
 
     public void Dispose()
     {
-        if (_materialBuffer != 0)
-            _gl.DeleteBuffer(_materialBuffer);
+        _material?.Dispose();
         DisposeWater();
     }
 }

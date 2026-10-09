@@ -83,7 +83,7 @@ public class RenderActor : IDisposable
 
     protected virtual void ModifyPose(Matrix4x4[] world, float deltaSeconds) { }
 
-    public void ApplyMaterialAnimations(Silk.NET.OpenGL.GL gl)
+    public void ApplyMaterialAnimations()
     {
         var patternAnims = TexturePattern.Slots
             .Select(s => new TexturePatternPose.Playing(s.Clip, s.Frame)).ToList();
@@ -95,9 +95,9 @@ public class RenderActor : IDisposable
         var materialAnims = MaterialSlots
             .Select(s => new MaterialAnimPose.Playing(s.Clip, s.Frame)).ToList();
         if (materialAnims.Count > 0)
-            MaterialAnimPose.Apply(gl, Model, materialAnims);
+            MaterialAnimPose.Apply(Model, materialAnims);
         else
-            MaterialAnimPose.Clear(gl, Model);
+            MaterialAnimPose.Clear(Model);
     }
 
     public ActorRenderInput ToRenderInput(float deltaSeconds, ulong frameId) =>

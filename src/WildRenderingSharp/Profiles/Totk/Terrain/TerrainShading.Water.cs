@@ -22,7 +22,8 @@ public sealed partial class TerrainShading
 
     const string WaterProgramName = "terrain_water_prog98";
 
-    uint _waterMaterial, _waterAlb, _waterNrm, _waterEmm;
+    MaterialBlock? _waterMaterial;
+    uint _waterAlb, _waterNrm, _waterEmm;
     Task<WaterTextures?>? _waterLoad;
 
     public bool WaterAvailable =>
@@ -81,12 +82,8 @@ public sealed partial class TerrainShading
                 return false;
             Upload(loaded);
         }
-        if (_waterMaterial == 0)
-        {
-            string path = Path.Combine(_shadersDir, "terrain_water_material.bin");
-            _waterMaterial = GLBuffer.CreatePaddedUniformBuffer(_gl, File.Exists(path) ? File.ReadAllBytes(path) : []);
-        }
-        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, _bindings.Material, _waterMaterial);
+        _waterMaterial ??= MaterialBlock.FromFile(_gl, Path.Combine(_shadersDir, "terrain_water_material.bin"));
+        _gl.BindBufferBase(BufferTargetARB.UniformBuffer, _bindings.Material, _waterMaterial.Handle);
         BindArray(WaterAlbUnit, _waterAlb);
         // _s0, _n0, _t0, _a1: the normals; _e0: the emission.
         BindArray(14, _waterNrm);
@@ -151,7 +148,7 @@ public sealed partial class TerrainShading
     {
         foreach (uint t in new[] { _waterAlb, _waterNrm, _waterEmm })
             if (t != 0) _gl.DeleteTexture(t);
-        if (_waterMaterial != 0) _gl.DeleteBuffer(_waterMaterial);
+        _waterMaterial?.Dispose();
     }
 
     /// <summary>The water's textures decoded for upload: <c>WaterAlb</c> as half floats, <c>WaterNrm</c> as RGBA8, <c>WaterEmm</c> as R8.</summary>

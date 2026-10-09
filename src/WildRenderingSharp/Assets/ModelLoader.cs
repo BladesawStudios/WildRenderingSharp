@@ -108,8 +108,7 @@ public sealed class ModelLoader
                 forwardSamplers = textures.Resolve(sh.MaterialSamplers);
             }
 
-            byte[] materialUbo = File.ReadAllBytes(Path.Combine(_dataDirectory, sh.MaterialFile));
-            uint materialUboBuffer = GLBuffer.CreatePaddedUniformBuffer(_gl, materialUbo);
+            var materialBlock = new MaterialBlock(_gl, File.ReadAllBytes(Path.Combine(_dataDirectory, sh.MaterialFile)));
             var materialParams = MaterialParamLayout.TryLoadBeside(_dataDirectory, sh.MaterialFile);
             uint passIdVao = DeferVertexArrays ? 0 : BuildPassIdVao(layout, stride, vbo, ibo, constantSkin);
 
@@ -149,8 +148,7 @@ public sealed class ModelLoader
                 GBufferShaderName = sh.GBufferShader,
                 ZOnlyShaderName = zonlyProgram != 0 ? sh.ZOnlyShader : "",
                 ReadsSceneColor = _gl.GetUniformLocation(gbufferProgram, "cTex_ColorBuffer") >= 0,
-                MaterialBuffer = materialUboBuffer,
-                MaterialBytes = materialUbo,
+                MaterialBlock = materialBlock,
                 MaterialParams = materialParams,
                 PassIdVao = passIdVao,
             };

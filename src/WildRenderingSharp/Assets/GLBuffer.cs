@@ -12,19 +12,4 @@ public static class GLBuffer
         gl.BufferData(target, data, usage);
         return handle;
     }
-
-    public static uint CreatePaddedUniformBuffer(GL gl, ReadOnlySpan<byte> data, int totalSize = 65536)
-    {
-        var padded = new byte[totalSize];
-        data[..Math.Min(data.Length, totalSize)].CopyTo(padded);
-        return Create(gl, BufferTargetARB.UniformBuffer, padded, BufferUsageARB.DynamicDraw);
-    }
-
-    public static void UpdatePaddedUniformBuffer(GL gl, uint handle, ReadOnlySpan<byte> data, int totalSize = 65536)
-    {
-        var padded = new byte[totalSize];
-        data[..Math.Min(data.Length, totalSize)].CopyTo(padded);
-        gl.BindBuffer(BufferTargetARB.UniformBuffer, handle);
-        gl.BufferData(BufferTargetARB.UniformBuffer, new ReadOnlySpan<byte>(padded), BufferUsageARB.DynamicDraw);
-    }
 }

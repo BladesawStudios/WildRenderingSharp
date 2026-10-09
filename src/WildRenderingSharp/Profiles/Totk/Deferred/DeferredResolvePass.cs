@@ -154,9 +154,9 @@ public sealed class DeferredResolvePass : IDisposable
             byte[] matBytes = File.Exists(matPath) ? File.ReadAllBytes(matPath) : [];
             if (matBytes.Length == 0)
                 Console.WriteLine($"  [warn] no deferred gsys_material for pass '{name}' at '{matPath}' - resolving with an all-zero Mat block");
-            uint matBuffer = GLBuffer.CreatePaddedUniformBuffer(gl, matBytes);
+            var material = new MaterialBlock(gl, matBytes);
 
-            resolved.Add(new ResolvedDeferredPass(rawName, program, matBuffer, passIndex,
+            resolved.Add(new ResolvedDeferredPass(rawName, program, material, passIndex,
                 FieldLights: name.StartsWith("field_", StringComparison.Ordinal), Tiled: name is "field_hybrid" or "field_hybrid_all_shadow", Source: baseName));
         }
         return resolved;
@@ -178,7 +178,7 @@ public sealed class DeferredResolvePass : IDisposable
             // Rebound every pass: the mask-compose step claims units 0/1 (G-buffer albedo and normal), which would otherwise be the previous pass's output.
             BindResolveInputs(targets);
             BindAt(28, (pass.FieldLights ? targets.FieldLightPrePassArray : targets.LightPrePassArray).Handle, TextureTarget.Texture2DArray);
-            resources.BindMaterial(pass.MaterialBuffer);
+            resources.BindMaterial(pass.Material);
 
             targets.BindColorTarget(targets.ResolvePass);
             _gl.ClearColor(0, 0, 0, 1);

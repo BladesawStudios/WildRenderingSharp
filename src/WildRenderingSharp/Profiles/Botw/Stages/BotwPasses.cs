@@ -2,13 +2,14 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>One of the game's deferred passes, compiled with the mask that stands in for its depth-tested material ID.</summary>
-public sealed record BotwPass(string Name, uint Program, uint Material, float Id);
+public sealed record BotwPass(string Name, uint Program, MaterialBlock Material, float Id);
 
 /// <summary>Loads the game's deferred passes and the small textures they read, and draws them as fullscreen triangles.</summary>
 public sealed class BotwPasses(StageServices services) : IDisposable
@@ -16,7 +17,7 @@ public sealed class BotwPasses(StageServices services) : IDisposable
     // The pass's vertex shader reads its compare ID from material slot 26, .z, and turns it into the depth the pass draws at.
     const int MaterialIdOffset = 26 * 16 + 8;
 
-    readonly List<uint> _buffers = [];
+    readonly List<MaterialBlock> _blocks = [];
     uint _lightAnalyzed;
     (Vector3 Sky, Vector3 Ground) _analyzed;
 
@@ -32,14 +33,13 @@ public sealed class BotwPasses(StageServices services) : IDisposable
         if (file is null || !File.Exists(materialPath))
             return null;
 
-        byte[] material = File.ReadAllBytes(materialPath);
-        float id = BitConverter.ToSingle(material, MaterialIdOffset);
+        var block = new MaterialBlock(services.Gl, File.ReadAllBytes(materialPath));
+        _blocks.Add(block);
+        float id = BitConverter.ToSingle(block.Authored[MaterialIdOffset..]);
         float low = idLow ?? id, high = idHigh ?? id;
         uint program = services.Programs.Load(Path.GetFileNameWithoutExtension(file),
             patchVertex: MoveLightAnalyzedSampler, patchFragment: source => MaskByMaterialId(source, low, high));
-        uint buffer = GLBuffer.CreatePaddedUniformBuffer(services.Gl, material);
-        _buffers.Add(buffer);
-        return new BotwPass(name, program, buffer, id);
+        return new BotwPass(name, program, block, id);
     }
 
     public void Draw(BotwPass pass)
@@ -116,7 +116,7 @@ public sealed class BotwPasses(StageServices services) : IDisposable
         gl.DeleteTexture(Black);
         if (_lightAnalyzed != 0)
             gl.DeleteTexture(_lightAnalyzed);
-        foreach (uint buffer in _buffers)
-            gl.DeleteBuffer(buffer);
+        foreach (var block in _blocks)
+            block.Dispose();
     }
 }

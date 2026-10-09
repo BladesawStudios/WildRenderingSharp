@@ -44,7 +44,7 @@ public readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector
         if (Batch is not { } batch)
         {
             uint program = which switch { ShapeProgram.ZOnly => shape.ZOnlyProgram, ShapeProgram.Forward => shape.ForwardProgram, _ => shape.GBufferProgram };
-            ShapeDrawing.Draw(gl, programs.Bindings.Material, program, vao, shape.MaterialBuffer, samplers, shape.IndexCount, shape.SamplerOverrides);
+            ShapeDrawing.Draw(gl, programs.Bindings.Material, program, vao, shape.MaterialBlock, samplers, shape.IndexCount, shape.SamplerOverrides);
             return;
         }
 

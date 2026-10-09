@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Pipeline;
 /// </summary>
 public static class ShapeDrawing
 {
-    public static unsafe void Draw(GL gl, uint materialBinding, uint program, uint vao, uint materialUboBuffer,
+    public static unsafe void Draw(GL gl, uint materialBinding, uint program, uint vao, MaterialBlock material,
         IReadOnlyList<ShapeSampler> samplers, int indexCount,
         IReadOnlyDictionary<string, LoadedTexture>? overrides = null)
     {
@@ -18,7 +18,7 @@ public static class ShapeDrawing
 
         InvalidateStateCache();
         gl.UseProgram(program);
-        gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, materialUboBuffer);
+        gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, material.Handle);
         foreach (var (unit, key, texture) in samplers)
         {
             var bound = texture;
@@ -60,10 +60,10 @@ public static class ShapeDrawing
             _uniformBatch = batch;
         }
 
-        if (!_caching || _material != shape.MaterialBuffer)
+        if (!_caching || _material != shape.MaterialBlock.Handle)
         {
-            gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, shape.MaterialBuffer);
-            _material = shape.MaterialBuffer;
+            gl.BindBufferBase(BufferTargetARB.UniformBuffer, materialBinding, shape.MaterialBlock.Handle);
+            _material = shape.MaterialBlock.Handle;
         }
 
         // Baked lighting (InstanceBatch.SetBake): the per-instance table at binding 0, and each

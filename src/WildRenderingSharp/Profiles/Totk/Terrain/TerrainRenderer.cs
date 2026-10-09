@@ -45,7 +45,7 @@ public sealed class TerrainRenderer(StageServices services, TerrainShading shadi
         CopyGBufferLayer(targets, targets.GBuffer[3], underNormal);
 
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.TerrainCamera, terrainCamera));
-        Resources.BindMaterial(shading.MaterialBuffer);
+        Resources.BindMaterial(shading.Material);
 
         targets.BindGBuffer();
         targets.SetGBufferColorMask(true);

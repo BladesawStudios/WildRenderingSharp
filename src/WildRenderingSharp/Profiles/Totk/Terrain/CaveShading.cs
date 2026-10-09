@@ -17,7 +17,7 @@ public sealed class CaveShading : IDisposable
 
     readonly GL _gl;
     readonly string _shadersDir;
-    uint _materialBuffer;
+    MaterialBlock? _material;
 
     internal CaveShading(GL gl, string shadersDir)
     {
@@ -40,22 +40,7 @@ public sealed class CaveShading : IDisposable
         return GLProgramBuilder.Build(_gl, vert, frag, $"cave_prog{program}");
     }
 
-    public uint MaterialBuffer
-    {
-        get
-        {
-            if (_materialBuffer == 0)
-            {
-                string path = Path.Combine(_shadersDir, "cave_gsys_material.bin");
-                _materialBuffer = GLBuffer.CreatePaddedUniformBuffer(_gl, File.Exists(path) ? File.ReadAllBytes(path) : []);
-            }
-            return _materialBuffer;
-        }
-    }
+    public MaterialBlock Material => _material ??= MaterialBlock.FromFile(_gl, Path.Combine(_shadersDir, "cave_gsys_material.bin"));
 
-    public void Dispose()
-    {
-        if (_materialBuffer != 0)
-            _gl.DeleteBuffer(_materialBuffer);
-    }
+    public void Dispose() => _material?.Dispose();
 }

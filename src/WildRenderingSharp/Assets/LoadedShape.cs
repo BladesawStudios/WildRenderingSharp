@@ -55,13 +55,9 @@ public sealed class LoadedShape
 
     public IReadOnlyDictionary<string, LoadedTexture>? SamplerOverrides { get; set; }
 
-    public required uint MaterialBuffer { get; init; }
-
-    public required byte[] MaterialBytes { get; init; }
+    public required MaterialBlock MaterialBlock { get; init; }
 
     public MaterialParamLayout? MaterialParams { get; init; }
-
-    public bool MaterialIsPatched { get; set; }
 
     /// <summary>Whether the instance's baked lighting has a region for this material; one that does not keeps its own bake0.</summary>
     public bool HasBakeRegion { get; set; } = true;

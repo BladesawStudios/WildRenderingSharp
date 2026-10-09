@@ -1,3 +1,4 @@
+using WildRenderingSharp.Assets;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
@@ -7,4 +8,4 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 /// </summary>
 /// <param name="Tiled">Whether the program draws the screen as instanced tiles, as <c>field_hybrid</c>'s does.</param>
 public sealed record ResolvedDeferredPass(
-    string Name, uint Program, uint MaterialBuffer, int PassIndex, bool FieldLights = false, bool Tiled = false, string Source = "");
+    string Name, uint Program, MaterialBlock Material, int PassIndex, bool FieldLights = false, bool Tiled = false, string Source = "");

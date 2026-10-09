@@ -89,16 +89,9 @@ public sealed class WildRenderer : IDisposable
                 if (!any.MaterialIndexByName.TryGetValue(shape.Material, out int index))
                     continue;
                 var entry = shape.MaterialParams?.Uniforms.FirstOrDefault(u => u.Name == "gsys_material_id");
-                if (entry is null || entry.Offset + 4 > shape.MaterialBytes.Length)
+                if (entry is null || entry.Offset + 4 > shape.MaterialBlock.Authored.Length)
                     continue;
-                BitConverter.TryWriteBytes(shape.MaterialBytes.AsSpan(entry.Offset, 4), index);
-                unsafe
-                {
-                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, shape.MaterialBuffer);
-                    fixed (byte* p = &shape.MaterialBytes[entry.Offset])
-                        _gl.BufferSubData(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, entry.Offset, 4, p);
-                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, 0);
-                }
+                shape.MaterialBlock.SetAuthored(entry.Offset, index);
             }
         }
         batch.SetBake(perInstance);
@@ -255,7 +248,7 @@ public sealed class WildRenderer : IDisposable
     {
         FrameId++;
         foreach (var actor in _actors)
-            actor.ApplyMaterialAnimations(_gl);
+            actor.ApplyMaterialAnimations();
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
         return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain), inputs,
             AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades);

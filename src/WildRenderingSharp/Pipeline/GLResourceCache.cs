@@ -1,3 +1,4 @@
+using WildRenderingSharp.Assets;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Graphics;
 
@@ -56,7 +57,7 @@ public sealed class GLResourceCache : IDisposable
 
     public void BindEnvironment() => BindUbo(FrameUniformKeys.Environment, Bindings.Environment);
 
-    public void BindMaterial(uint buffer) => BindBase(Bindings.Material, buffer);
+    public void BindMaterial(MaterialBlock block) => BindBase(Bindings.Material, block.Handle);
 
     // The bytes last uploaded under the key, read back from the GPU for a debug view.
     public unsafe byte[] ReadUbo(string key)
