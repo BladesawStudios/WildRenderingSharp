@@ -10,7 +10,7 @@ namespace WildRenderingSharp.Profiles.Botw.Stages;
 public sealed record BotwPass(string Name, uint Program, uint Material, float Id);
 
 /// <summary>Loads the game's deferred passes and the small textures they read, and draws them as fullscreen triangles.</summary>
-public sealed class BotwPasses(FrameServices services) : IDisposable
+public sealed class BotwPasses(StageServices services) : IDisposable
 {
     public const int IdUnit = 20, LightAnalyzedUnit = 21;
 

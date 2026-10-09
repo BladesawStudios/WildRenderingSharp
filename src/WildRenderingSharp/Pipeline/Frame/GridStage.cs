@@ -3,7 +3,7 @@ using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>Draws the ground reference grid into the scene colour, depth-tested against the G-buffer.</summary>
-public sealed class GridStage(FrameServices services, ForwardPass forward) : IFrameStage, IDisposable
+public sealed class GridStage(StageServices services, ForwardPass forward) : IFrameStage, IDisposable
 {
     readonly GridPass _grid = new(services.Gl);
 

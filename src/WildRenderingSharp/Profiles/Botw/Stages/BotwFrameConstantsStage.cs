@@ -4,7 +4,7 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>Binds what the decompiled shaders expect whatever the scene.</summary>
-public sealed class BotwFrameConstantsStage(FrameServices services) : IFrameStage, IDisposable
+public sealed class BotwFrameConstantsStage(StageServices services) : IFrameStage, IDisposable
 {
     readonly DecompilerBindings _decompiler = new(services.Gl, services.Resources);
 

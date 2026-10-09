@@ -3,7 +3,7 @@ using WildRenderingSharp.Assets;
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>Linear depth, screen-space shadow and ambient occlusion, and the light pre-pass.</summary>
-public sealed class ScreenSpaceLightingStage(FrameServices services, LinearDepthPass linearDepth) : IFrameStage, IDisposable
+public sealed class ScreenSpaceLightingStage(StageServices services, LinearDepthPass linearDepth) : IFrameStage, IDisposable
 {
     readonly ScreenSpaceShadowAndAoPass _shadowAo = new(services.Gl);
     readonly LightPrePass _lightPrePass = new(services.Gl);

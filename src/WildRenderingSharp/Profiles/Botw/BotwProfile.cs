@@ -20,5 +20,5 @@ public sealed class BotwProfile : IGameProfile
 
     public IReadOnlyList<UniformBlock> InstancedActorPlaceholders => BotwUniforms.Placeholders;
 
-    public IFrameGraph CreateFrameGraph(FrameServices services) => new BotwFrameGraph(services);
+    public IFrameGraph CreateFrameGraph(StageServices services) => new BotwFrameGraph(services);
 }

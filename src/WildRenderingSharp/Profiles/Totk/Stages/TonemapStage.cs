@@ -7,7 +7,7 @@ using WildRenderingSharp.Profiles.Totk.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Exposure, highlight compression, bloom and the game's HDR compose, producing the display-range image.</summary>
-public sealed class TonemapStage(FrameServices services) : IFrameStage, IDisposable
+public sealed class TonemapStage(StageServices services) : IFrameStage, IDisposable
 {
     readonly TonemapPass _tonemap = new(services.Gl);
     readonly BloomPass _bloom = new(services.Gl);

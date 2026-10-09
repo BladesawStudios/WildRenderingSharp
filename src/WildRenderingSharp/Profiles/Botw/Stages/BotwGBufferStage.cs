@@ -6,7 +6,7 @@ using WildRenderingSharp.Pipeline.Frame;
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>Draws the opaque shapes into the G-buffer.</summary>
-public sealed class BotwGBufferStage(FrameServices services) : IFrameStage
+public sealed class BotwGBufferStage(StageServices services) : IFrameStage
 {
     readonly GBufferPass _gbuffer = new(services.Gl);
 

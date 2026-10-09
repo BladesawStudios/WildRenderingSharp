@@ -22,5 +22,5 @@ public interface IGameProfile
 
     IReadOnlyList<UniformBlock> InstancedActorPlaceholders { get; }
 
-    IFrameGraph CreateFrameGraph(FrameServices services);
+    IFrameGraph CreateFrameGraph(StageServices services);
 }

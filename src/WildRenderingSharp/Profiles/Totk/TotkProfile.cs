@@ -20,5 +20,5 @@ public sealed class TotkProfile : IGameProfile
 
     public IReadOnlyList<UniformBlock> InstancedActorPlaceholders => TotkActorUniforms.InstancedPlaceholders;
 
-    public IFrameGraph CreateFrameGraph(FrameServices services) => new TotkFrameGraph(services);
+    public IFrameGraph CreateFrameGraph(StageServices services) => new TotkFrameGraph(services);
 }

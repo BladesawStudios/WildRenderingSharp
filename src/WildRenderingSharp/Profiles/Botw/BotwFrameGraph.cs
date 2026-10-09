@@ -11,7 +11,7 @@ public sealed class BotwFrameGraph : IFrameGraph
     readonly List<IFrameStage> _stages;
     readonly List<IDisposable> _owned = [];
 
-    public BotwFrameGraph(FrameServices services)
+    public BotwFrameGraph(StageServices services)
     {
         var passes = Own(new BotwPasses(services));
         var lighting = Own(new BotwLightingStage(services, passes));

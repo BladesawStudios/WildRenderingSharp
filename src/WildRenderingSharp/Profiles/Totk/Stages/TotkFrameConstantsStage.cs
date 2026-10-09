@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 /// Binds what the decompiled shaders expect whatever the scene, plus a zeroed block for orphaned bindings and neutral stand-ins for
 /// the vertex textures the game's engine renders itself.
 /// </summary>
-public sealed class TotkFrameConstantsStage(FrameServices services) : IFrameStage, IDisposable
+public sealed class TotkFrameConstantsStage(StageServices services) : IFrameStage, IDisposable
 {
     const int OrphanBlockBytes = 65536;
 

@@ -11,7 +11,7 @@ using WildRenderingSharp.Rendering;
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
 /// <summary>Draws a host's terrain through the game's terrain programs: its G-buffer half, its water and its shadow.</summary>
-public sealed class TerrainRenderer(FrameServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene)
+public sealed class TerrainRenderer(StageServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene)
 {
     const int WaterColorBufferUnit = 19;
 

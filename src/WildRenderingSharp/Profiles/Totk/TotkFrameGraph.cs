@@ -25,7 +25,7 @@ public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     /// <summary>The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like.</summary>
     public CaveShading Cave { get; }
 
-    public TotkFrameGraph(FrameServices services)
+    public TotkFrameGraph(StageServices services)
     {
         var linearDepth = Own(new LinearDepthPass(services.Gl));
         var forward = Own(new ForwardPass(services.Gl, services.Directories.SystemTextures));

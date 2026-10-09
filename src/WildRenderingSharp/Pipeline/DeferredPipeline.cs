@@ -56,7 +56,7 @@ public sealed class DeferredPipeline : IDisposable
         Programs = new ShaderProgramCache(gl, decompiledDirectory, Profile.Bindings, Profile.ShaderSources);
         Timer = new GpuPassTimer(gl);
 
-        Graph = Profile.CreateFrameGraph(new FrameServices(gl, Profile, Resources, Programs, _exposure, directories));
+        Graph = Profile.CreateFrameGraph(new StageServices(gl, Profile, Resources, Programs, _exposure, directories));
     }
 
     public void RequestExposureMeasurement() => _exposure.Request();

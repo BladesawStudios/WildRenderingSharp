@@ -10,7 +10,7 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Lights the G-buffer one deferred pass at a time.</summary>
 public sealed class ResolveStage(
-    FrameServices services, DeferredScene scene, TerrainRenderer terrain,
+    StageServices services, DeferredScene scene, TerrainRenderer terrain,
     ScreenSpaceLightingStage screenSpaceLighting, PassIdStamper stamper) : IFrameStage, IDisposable
 {
     readonly DeferredResolvePass _resolve = new(services.Gl);
