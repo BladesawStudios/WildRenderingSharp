@@ -57,9 +57,9 @@ static class FrameProbe
         gl.GetBoolean(GetPName.ColorWritemask, mask);
         text.AppendLine($"GL colour mask {mask[0]} {mask[1]} {mask[2]} {mask[3]}; blend {gl.IsEnabled(EnableCap.Blend)}, " +
             $"scissor {gl.IsEnabled(EnableCap.ScissorTest)}, cull {gl.IsEnabled(EnableCap.CullFace)}, depth {gl.IsEnabled(EnableCap.DepthTest)}, stencil {gl.IsEnabled(EnableCap.StencilTest)}");
+        Span<bool> indexed = stackalloc bool[4];
         for (uint i = 0; i < 2; i++)
         {
-            Span<bool> indexed = stackalloc bool[4];
             gl.GetBoolean(GLEnum.ColorWritemask, i, indexed);
             text.AppendLine($"  indexed mask {i}: {indexed[0]} {indexed[1]} {indexed[2]} {indexed[3]}");
         }
