@@ -17,10 +17,10 @@ public sealed class GBufferStage(StageServices services, DeferredScene scene, Te
         var gl = services.Gl;
 
         ClipOrigin.Game(gl, true);
-        _gbuffer.Run(services.Resources, frame.Targets, frame.OpaqueGroups, services.Programs);
+        _gbuffer.Run(services.Resources, frame.Targets, frame.OpaqueGroups, services.Drawer);
         ClipOrigin.Game(gl, false);
         GLDiagnostics.CheckPass(gl, "G-buffer pass");
-        frame.GBufferCounts = ShapeDrawing.TakeCounts();
+        frame.GBufferCounts = services.Drawer.TakeCounts();
 
         frame.TerrainDrawn = false;
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)

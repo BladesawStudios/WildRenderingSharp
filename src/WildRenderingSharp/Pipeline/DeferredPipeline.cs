@@ -21,6 +21,8 @@ public sealed class DeferredPipeline : IDisposable
     public RenderTargets Targets { get; }
     public ShaderProgramCache Programs { get; }
 
+    public ShapeDrawer Drawer { get; }
+
     public IFrameGraph Graph { get; }
 
     /// <summary>The graph's debug hooks, or null when it has none.</summary>
@@ -54,9 +56,10 @@ public sealed class DeferredPipeline : IDisposable
         Resources = new GLResourceCache(gl, Profile.Bindings);
         Targets = new RenderTargets(gl, width, height);
         Programs = new ShaderProgramCache(gl, decompiledDirectory, Profile.Bindings, Profile.ShaderSources);
+        Drawer = new ShapeDrawer(gl, Programs);
         Timer = new GpuPassTimer(gl);
 
-        Graph = Profile.CreateFrameGraph(new StageServices(gl, Profile, Resources, Programs, _exposure, directories));
+        Graph = Profile.CreateFrameGraph(new StageServices(gl, Profile, Resources, Programs, Drawer, _exposure, directories));
     }
 
     public void RequestExposureMeasurement() => _exposure.Request();
@@ -79,7 +82,7 @@ public sealed class DeferredPipeline : IDisposable
         GpuTexture? shadowMapOverride = null)
     {
         Timer.BeginFrame();
-        ShapeDrawing.TakeCounts();
+        Drawer.TakeCounts();
         ShadowCounts = default;
         PrepareEnvironment(request.Environment);
 
@@ -105,6 +108,7 @@ public sealed class DeferredPipeline : IDisposable
     public void Dispose()
     {
         Graph.Dispose();
+        Drawer.Dispose();
         Programs.Dispose();
         Resources.Dispose();
         Targets.Dispose();

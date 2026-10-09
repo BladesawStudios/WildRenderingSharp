@@ -130,7 +130,7 @@ public sealed class BotwLightingStage(StageServices services, BotwPasses passes)
         frame.ShadowBoundsHi = hi;
 
         resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)));
-        _shadow.Run(resources, frame.Targets, frame.CastingGroups, services.Programs, cascade: 0);
+        _shadow.Run(resources, frame.Targets, frame.CastingGroups, services.Drawer, cascade: 0);
         GLDiagnostics.CheckPass(services.Gl, "shadow cascade");
         resources.BindCamera(FrameUniformKeys.SceneCamera);
 

@@ -32,7 +32,7 @@ public sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
         Terrain = Own(new TerrainShading(services.Gl, services.Directories.Decompiled, services.Profile.Bindings));
         Cave = Own(new CaveShading(services.Gl, services.Directories.Decompiled));
         _scene = Own(new DeferredScene(services.Gl, services.Programs, services.Directories));
-        var stamper = Own(new PassIdStamper(services.Gl, _scene));
+        var stamper = Own(new PassIdStamper(services.Gl, services.Drawer, _scene));
         _skyBake = Own(new SkyBake(services));
         var terrain = new TerrainRenderer(services, Terrain, linearDepth, _scene);
         var screenSpaceLighting = Own(new ScreenSpaceLightingStage(services, linearDepth));

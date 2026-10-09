@@ -72,7 +72,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
             return;
 
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Cam.ForLight(light.View, light.Proj)));
-        _shadow.Run(Resources, frame.Targets, ShadowGroups(frame, request.ShadowFocus), services.Programs);
+        _shadow.Run(Resources, frame.Targets, ShadowGroups(frame, request.ShadowFocus), services.Drawer);
         GLDiagnostics.CheckPass(services.Gl, "shadow pass");
         Resources.BindCamera(FrameUniformKeys.SceneCamera);
 
@@ -140,7 +140,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
         if (drew)
         {
             GLDiagnostics.CheckPass(services.Gl, "shadow cascades");
-            frame.ShadowCounts = ShapeDrawing.TakeCounts();
+            frame.ShadowCounts = services.Drawer.TakeCounts();
             Resources.BindCamera(FrameUniformKeys.SceneCamera);
         }
         return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias);
@@ -170,7 +170,7 @@ public sealed class ShadowStage(StageServices services, TerrainRenderer terrain)
         var groups = frame.CastingGroups.Where(g => g.Batch is null).Select(WithoutSceneColorShapes).ToList();
         foreach (var batch in frame.Instances.Where(b => b.CascadeRuns(cascade).Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
-        _shadow.Run(Resources, frame.Targets, groups, services.Programs, cascade);
+        _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
             terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Cam);

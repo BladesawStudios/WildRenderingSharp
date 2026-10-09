@@ -40,7 +40,7 @@ public sealed class SceneColorShapePass : IDisposable
             (uint)targets.Width, (uint)targets.Height, 1);
     }
 
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
     {
         targets.BindGBuffer();
         _gl.Disable(EnableCap.CullFace);
@@ -61,7 +61,7 @@ public sealed class SceneColorShapePass : IDisposable
                 continue;
             group.BindUbos(resources);
             foreach (var sh in shapes)
-                group.Draw(_gl, programs, sh, ShapeProgram.GBuffer);
+                group.Draw(drawer, sh, ShapeProgram.GBuffer);
         }
 
         _gl.DepthFunc(DepthFunction.Less);

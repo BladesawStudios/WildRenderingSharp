@@ -72,7 +72,7 @@ public sealed class ForwardPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
     {
         var forwardGroups = groups
             .Select(g => (Group: g, Forward: g.Shapes.Where(s => s.HasForward && (s.Blend || s.ForceForward)).ToList()))
@@ -150,7 +150,7 @@ public sealed class ForwardPass : IDisposable
 
             if (group.Batch is not null)
             {
-                group.Draw(_gl, programs, sh, ShapeProgram.Forward);
+                group.Draw(drawer, sh, ShapeProgram.Forward);
                 continue;
             }
             uint program = sh.ForwardProgram;
@@ -161,7 +161,7 @@ public sealed class ForwardPass : IDisposable
                 _gl.UseProgram(program);
                 _gl.SetInt(program, "uDebugStepTarget", sh.DebugStepTarget);
             }
-            ShapeDrawing.Draw(_gl, programs.Bindings.Material, program, sh.ForwardVao, sh.MaterialBlock, sh.ForwardSamplers, sh.IndexCount, sh.SamplerOverrides);
+            drawer.Draw(program, sh.ForwardVao, sh.MaterialBlock, sh.ForwardSamplers, sh.IndexCount, sh.SamplerOverrides);
         }
         }
 

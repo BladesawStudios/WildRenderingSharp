@@ -104,7 +104,6 @@ public sealed class ShaderProgramCache : IDisposable
         foreach (uint program in _programs.Values)
             _gl.DeleteProgram(program);
         _programs.Clear();
-        ShapeDrawing.ForgetPrograms(_instancedPrograms.Values);
         foreach (uint program in _instancedPrograms.Values)
             if (program != 0)
                 _gl.DeleteProgram(program);

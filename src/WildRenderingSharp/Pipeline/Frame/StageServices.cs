@@ -9,5 +9,6 @@ public sealed record StageServices(
     IGameProfile Profile,
     GLResourceCache Resources,
     ShaderProgramCache Programs,
+    ShapeDrawer Drawer,
     ExposureProbe Exposure,
     AssetDirectories Directories);

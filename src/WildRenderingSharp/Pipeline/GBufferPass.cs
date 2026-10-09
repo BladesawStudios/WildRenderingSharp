@@ -10,7 +10,7 @@ public sealed class GBufferPass
 
     public GBufferPass(GL gl) => _gl = gl;
 
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
     {
         targets.BindGBuffer();
         _gl.ClearColor(0, 0, 0, 0);
@@ -24,32 +24,32 @@ public sealed class GBufferPass
         timer?.Mark("G-buffer setup");
         timer?.Detail("");
         // A z-prepass pays only where the z-only program discards: that shape's G-buffer program takes its cutout from the prepass depth.
-        bool NeedsPrepass(LoadedShape s) => s.HasZOnly && s.RenderState.DepthWriteEnabled && programs.FragmentDiscards(s.ZOnlyShaderName);
+        bool NeedsPrepass(LoadedShape s) => s.HasZOnly && s.RenderState.DepthWriteEnabled && drawer.Programs.FragmentDiscards(s.ZOnlyShaderName);
         bool anyZOnly = groups.Any(g => g.Shapes.Any(NeedsPrepass));
-        ShapeDrawing.BeginStateCache();
+        drawer.BeginStateCache();
         if (anyZOnly)
         {
             targets.SetGBufferColorMask(false);
-            DrawSorted(resources, groups, programs, NeedsPrepass, ShapeProgram.ZOnly, "z ");
+            DrawSorted(resources, groups, drawer, NeedsPrepass, ShapeProgram.ZOnly, "z ");
             targets.SetGBufferColorMask(true);
             timer?.Mark("G-buffer z-prepass");
 
             _gl.DepthFunc(DepthFunction.Equal);
             _gl.DepthMask(false);
-            DrawSorted(resources, groups, programs, NeedsPrepass, ShapeProgram.GBuffer, "");
+            DrawSorted(resources, groups, drawer, NeedsPrepass, ShapeProgram.GBuffer, "");
             _gl.DepthMask(true);
             timer?.Mark("G-buffer main");
         }
 
         _gl.DepthFunc(DepthFunction.Less);
-        DrawSorted(resources, groups, programs, s => !NeedsPrepass(s) && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-z ");
+        DrawSorted(resources, groups, drawer, s => !NeedsPrepass(s) && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-z ");
 
         // Shapes whose render state writes no depth (a see-through surface the game blends into its G-buffer, like a shrine's warp-hole aura) draw after everything that does, tested but not written,
         // and never in the prepass, where writing them hid what is behind.
         _gl.DepthMask(false);
-        DrawSorted(resources, groups, programs, s => !s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-depth ");
+        DrawSorted(resources, groups, drawer, s => !s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-depth ");
         _gl.DepthMask(true);
-        ShapeDrawing.EndStateCache();
+        drawer.EndStateCache();
         _gl.ActiveTexture(TextureUnit.Texture0);
 
         // Shader step debugger, G-buffer target: an extra draw over just the shape being stepped, with depth testing forced to always-pass. The normal draws only show fragments the Z-only prepass let
@@ -72,7 +72,7 @@ public sealed class GBufferPass
                     // The step debugger's program declares uDebugStepTarget and the real GBufferProgram does not, so it is set before Draw's own UseProgram.
                     _gl.UseProgram(program);
                     _gl.SetInt(program, "uDebugStepTarget", sh.DebugGBufferStepTarget);
-                    ShapeDrawing.Draw(_gl, programs.Bindings.Material, program, sh.GBufferVao, sh.MaterialBlock, sh.GBufferSamplers, sh.IndexCount, sh.SamplerOverrides);
+                    drawer.Draw(program, sh.GBufferVao, sh.MaterialBlock, sh.GBufferSamplers, sh.IndexCount, sh.SamplerOverrides);
                 }
             }
             _gl.DepthMask(true);
@@ -86,7 +86,7 @@ public sealed class GBufferPass
     // few hundred programs, and drawn model by model each re-bound its program, uniforms and textures per shape, so the CPU
     // spent longer issuing a frame than the card spent drawing it. A placed actor's shapes keep their order and go first; their
     // per-actor uniforms make them unsortable.
-    void DrawSorted(GLResourceCache resources, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs,
+    void DrawSorted(GLResourceCache resources, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer,
         Func<LoadedShape, bool> include, ShapeProgram which, string detailPrefix)
     {
         _items.Clear();
@@ -101,7 +101,7 @@ public sealed class GBufferPass
                 ulong key = 0;
                 if (instanced)
                 {
-                    ActorDrawGroup.EnsureInstancedPrograms(programs, sh);
+                    ActorDrawGroup.EnsureInstancedPrograms(drawer.Programs, sh);
                     uint program = which == ShapeProgram.ZOnly ? sh.InstancedZOnlyProgram : sh.InstancedGBufferProgram;
                     key = (1UL << 63) | ((ulong)program << 32) | sh.MaterialBlock.Handle;
                 }
@@ -127,7 +127,7 @@ public sealed class GBufferPass
                 batchBlocks = group.Batch is not null;
                 bound = g;
             }
-            group.Draw(_gl, programs, sh, which);
+            group.Draw(drawer, sh, which);
             if (detailed) timer!.Detail(detailPrefix + group.Label);
         }
     }

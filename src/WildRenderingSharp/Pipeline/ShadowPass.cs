@@ -35,7 +35,7 @@ public sealed class ShadowPass
         return new LightMatrices(view, proj, view * proj);
     }
 
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShaderProgramCache programs, int cascade = -1)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer, int cascade = -1)
     {
         if (cascade >= 0)
             targets.BindShadowCascadeTarget(cascade);
@@ -53,7 +53,7 @@ public sealed class ShadowPass
             group.BindUbos(resources);
             foreach (var sh in group.Shapes)
             {
-                group.Draw(_gl, programs, sh, sh.HasZOnly ? ShapeProgram.ZOnly : ShapeProgram.GBuffer);
+                group.Draw(drawer, sh, sh.HasZOnly ? ShapeProgram.ZOnly : ShapeProgram.GBuffer);
             }
         }
     }

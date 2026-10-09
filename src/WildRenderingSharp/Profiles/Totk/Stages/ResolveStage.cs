@@ -79,7 +79,7 @@ public sealed class ResolveStage(
         {
             resources.BindCamera(FrameUniformKeys.GBufferCamera);
             ClipOrigin.Game(gl, true);
-            _sceneColorShapes.Run(resources, targets, frame.Groups, services.Programs);
+            _sceneColorShapes.Run(resources, targets, frame.Groups, services.Drawer);
             ClipOrigin.Game(gl, false);
         }
         if (waterHost is not null)

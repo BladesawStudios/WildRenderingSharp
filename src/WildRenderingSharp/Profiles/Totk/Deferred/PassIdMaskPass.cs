@@ -16,6 +16,7 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred;
 public sealed class PassIdMaskPass : IDisposable
 {
     readonly GL _gl;
+    readonly ShapeDrawer _drawer;
     readonly uint _program;
 
     // The same program for a batch of placements: patched like a game shader (see InstancedShaderPatch), with the rigid branch
@@ -40,9 +41,10 @@ public sealed class PassIdMaskPass : IDisposable
     // own ID.
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.frag");
 
-    public PassIdMaskPass(GL gl)
+    public PassIdMaskPass(GL gl, ShapeDrawer drawer)
     {
         _gl = gl;
+        _drawer = drawer;
         _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "pass_id_mask");
         string instanced = InstancedShaderPatch.Apply(VertexSource.Replace(
             "gl_Position = uMVP * vec4(p, 1.0);",
@@ -149,7 +151,7 @@ public sealed class PassIdMaskPass : IDisposable
                 _gl.BindVertexArray(sh.PassIdVao);
                 // One multi-draw for every visible run, as the G-buffer does; run by run was thousands of calls a frame.
                 _gl.Uniform1(first, 0);
-                if (ShapeDrawing.MultiDrawRuns(_gl, sh, batch.Visible))
+                if (_drawer.MultiDrawRuns(sh, batch.Visible))
                     continue;
                 foreach (var (start, count, lod) in batch.Visible)
                 {

@@ -8,7 +8,7 @@ public sealed class ForwardStage(StageServices services, ForwardPass forward) : 
 {
     public void Run(FrameContext frame)
     {
-        forward.Run(services.Resources, frame.Targets, frame.Groups, services.Programs);
+        forward.Run(services.Resources, frame.Targets, frame.Groups, services.Drawer);
         GLDiagnostics.CheckPass(services.Gl, "forward pass");
         services.Resources.BindCamera(FrameUniformKeys.SceneCamera);
     }

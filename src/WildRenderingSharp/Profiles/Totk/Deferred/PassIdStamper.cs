@@ -5,9 +5,9 @@ using WildRenderingSharp.Pipeline.Frame;
 namespace WildRenderingSharp.Profiles.Totk.Deferred;
 
 /// <summary>Fills the pass-ID mask: first from each shape's named pass, then from the material IDs the G-buffer programs wrote.</summary>
-public sealed class PassIdStamper(GL gl, DeferredScene scene) : IDisposable
+public sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene scene) : IDisposable
 {
-    readonly PassIdMaskPass _byShape = new(gl);
+    readonly PassIdMaskPass _byShape = new(gl, drawer);
     readonly MaterialIdPass _byMaterialId = new(gl);
 
     /// <summary>The pass that lights every pixel the mask leaves at zero (a host's terrain), or -1. Its own shapes are not stamped.</summary>

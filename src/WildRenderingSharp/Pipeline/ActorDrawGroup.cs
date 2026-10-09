@@ -36,7 +36,7 @@ public readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector
             BindInstanceBuffer(resources);
     }
 
-    public void Draw(GL gl, ShaderProgramCache programs, LoadedShape shape, ShapeProgram which)
+    public void Draw(ShapeDrawer drawer, LoadedShape shape, ShapeProgram which)
     {
         uint vao = which switch { ShapeProgram.ZOnly => shape.ZOnlyVao, ShapeProgram.Forward => shape.ForwardVao, _ => shape.GBufferVao };
         var samplers = which switch { ShapeProgram.ZOnly => shape.ZOnlySamplers, ShapeProgram.Forward => shape.ForwardSamplers, _ => shape.GBufferSamplers };
@@ -44,16 +44,16 @@ public readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector
         if (Batch is not { } batch)
         {
             uint program = which switch { ShapeProgram.ZOnly => shape.ZOnlyProgram, ShapeProgram.Forward => shape.ForwardProgram, _ => shape.GBufferProgram };
-            ShapeDrawing.Draw(gl, programs.Bindings.Material, program, vao, shape.MaterialBlock, samplers, shape.IndexCount, shape.SamplerOverrides);
+            drawer.Draw(program, vao, shape.MaterialBlock, samplers, shape.IndexCount, shape.SamplerOverrides);
             return;
         }
 
         var runs = Runs!;
         if (runs.Count == 0)
             return;
-        EnsureInstancedPrograms(programs, shape);
+        EnsureInstancedPrograms(drawer.Programs, shape);
         uint instanced = which switch { ShapeProgram.ZOnly => shape.InstancedZOnlyProgram, ShapeProgram.Forward => shape.InstancedForwardProgram, _ => shape.InstancedGBufferProgram };
-        ShapeDrawing.DrawInstanced(gl, programs.Bindings.Material, instanced, vao, shape, samplers, batch, runs);
+        drawer.DrawInstanced(instanced, vao, shape, samplers, batch, runs);
     }
 
     internal static void EnsureInstancedPrograms(ShaderProgramCache programs, LoadedShape shape)
