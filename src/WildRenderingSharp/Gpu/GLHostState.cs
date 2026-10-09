@@ -43,7 +43,7 @@ public sealed class GLHostState : IDisposable
     GLHostState(GL gl)
     {
         _gl = gl;
-        _clipControl = TryClipControl(gl);
+        _clipControl = ClipOrigin.Extension(gl);
 
         if (_clipControl is not null)
         {
@@ -110,18 +110,6 @@ public sealed class GLHostState : IDisposable
         _gl.GetInteger64(start, index, out long s);
         _gl.GetInteger64(size, index, out long z);
         return (buffer, s, z);
-    }
-
-    static ArbClipControl? TryClipControl(GL gl)
-    {
-        try
-        {
-            return gl.TryGetExtension(out ArbClipControl ext) ? ext : null;
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     void ApplyDefaults()

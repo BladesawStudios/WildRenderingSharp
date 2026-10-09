@@ -14,12 +14,14 @@ internal static class ClipOrigin
 
     public static bool Supported(GL gl) => Extension(gl) is not null;
 
-    static ArbClipControl? Extension(GL gl)
+    // Null when the context lacks ARB_clip_control.
+    public static ArbClipControl? Extension(GL gl)
     {
         var holder = ContextState<Holder>.For(gl);
         if (!holder.Looked)
         {
             try { holder.Extension = gl.TryGetExtension(out ArbClipControl ext) ? ext : null; }
+            // A driver that cannot enumerate its extensions counts as lacking this one.
             catch { holder.Extension = null; }
             holder.Looked = true;
         }
