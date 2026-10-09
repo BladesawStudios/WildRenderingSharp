@@ -2,6 +2,7 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Assets.Textures;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
@@ -83,7 +84,7 @@ internal sealed unsafe class ShapeDrawer : IDisposable
     // Draws the runs of a shape that needs no program of its own, as the shadow and pass-ID draws do; false when the driver has no base instance.
     public bool MultiDrawRuns(LoadedShape shape, IReadOnlyList<(int First, int Count, int Lod)> runs)
     {
-        if (!InstancingContract.BaseInstance)
+        if (!_gl.SupportsBaseInstance())
             return false;
 
         _commands.Clear();
@@ -111,7 +112,7 @@ internal sealed unsafe class ShapeDrawer : IDisposable
             _uniforms[program] = _current = InstanceUniforms.Find(_gl, program);
         _bound.ForgetBatchUniforms();
         // The first-instance uniform is zero for a multi-draw, where gl_BaseInstance carries it, and a program keeps its uniforms.
-        if (InstancingContract.BaseInstance)
+        if (_gl.SupportsBaseInstance())
             _gl.Uniform1(_current.First, 0);
     }
 

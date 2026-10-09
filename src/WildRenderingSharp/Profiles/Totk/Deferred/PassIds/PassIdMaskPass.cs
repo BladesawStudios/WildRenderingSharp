@@ -5,6 +5,7 @@ using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Shaders;
 
@@ -43,7 +44,8 @@ internal sealed class PassIdMaskPass : IDisposable
         _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "pass_id_mask");
         string instanced = InstancedShaderPatch.Apply(VertexSource.Replace(
             "gl_Position = uMVP * vec4(p, 1.0);",
-            "vec4 v0 = vec4(p, 1.0); gl_Position = uViewProj * vec4(dot(v0, wrs_shp(0)), dot(v0, wrs_shp(1)), dot(v0, wrs_shp(2)), 1.0);"))
+            "vec4 v0 = vec4(p, 1.0); gl_Position = uViewProj * vec4(dot(v0, wrs_shp(0)), dot(v0, wrs_shp(1)), dot(v0, wrs_shp(2)), 1.0);"),
+            gl.SupportsBaseInstance())
             ?? throw new InvalidOperationException("pass_id_mask has no main to instance");
         _instancedProgram = GLProgramBuilder.Build(gl, instanced, FragmentSource, "pass_id_mask_instanced");
     }

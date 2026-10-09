@@ -3,7 +3,6 @@ using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
-using WildRenderingSharp.Profiles.Totk.Sky;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 

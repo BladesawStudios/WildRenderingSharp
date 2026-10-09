@@ -1,5 +1,3 @@
-using Silk.NET.OpenGL;
-
 namespace WildRenderingSharp.Pipeline.Drawing;
 
 /// <summary>
@@ -14,8 +12,4 @@ internal static class InstancingContract
     public const string StrideUniform = "wrs_instance_stride";
     public const string PaletteVec4sUniform = "wrs_palette_vec4s";
     public const string PaletteRepeatUniform = "wrs_palette_repeat";
-
-    public static bool BaseInstance { get; set; }
-
-    public static void Detect(GL gl) => BaseInstance = gl.IsExtensionPresent("GL_ARB_shader_draw_parameters");
 }

@@ -9,5 +9,5 @@ internal sealed class TotkShaderSources : IShaderSources
 
     public string CorrectForwardFragment(string fragmentSource) => KnownDecompilerCorrections.Apply(fragmentSource);
 
-    public string? Instance(string cleanedVertexSource) => InstancedShaderPatch.Apply(cleanedVertexSource);
+    public string? Instance(string cleanedVertexSource, bool baseInstance) => InstancedShaderPatch.Apply(cleanedVertexSource, baseInstance);
 }

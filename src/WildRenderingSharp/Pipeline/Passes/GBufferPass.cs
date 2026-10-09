@@ -21,8 +21,8 @@ internal sealed class GBufferPass(GL gl)
         gl.Disable(EnableCap.CullFace);
         gl.Enable(EnableCap.DepthTest);
         gl.DepthFunc(DepthFunction.Less);
-        GpuPassTimer.Current?.Mark("G-buffer setup");
-        GpuPassTimer.Current?.Detail("");
+        GpuPassTimer.On(gl)?.Mark("G-buffer setup");
+        GpuPassTimer.On(gl)?.Detail("");
 
         drawer.BeginStateCache();
         DrawStages(resources, targets, groups, drawer);
@@ -38,7 +38,7 @@ internal sealed class GBufferPass(GL gl)
 
     void DrawStages(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
     {
-        var timer = GpuPassTimer.Current;
+        var timer = GpuPassTimer.On(gl);
         bool Prepassed(LoadedShape s) => NeedsPrepass(drawer, s);
 
         if (groups.Any(g => g.Shapes.Any(Prepassed)))
@@ -102,7 +102,7 @@ internal sealed class GBufferPass(GL gl)
     {
         CollectItems(groups, drawer, include, which);
 
-        var timer = GpuPassTimer.Current;
+        var timer = GpuPassTimer.On(gl);
         bool detailed = timer?.Detailed == true;
         int bound = -1;
         bool batchBlocks = false;

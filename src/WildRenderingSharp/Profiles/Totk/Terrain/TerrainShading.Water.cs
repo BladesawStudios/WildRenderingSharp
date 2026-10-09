@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Logging;
-using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Shaders;
 

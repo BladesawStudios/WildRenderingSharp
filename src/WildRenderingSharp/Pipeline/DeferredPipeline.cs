@@ -48,14 +48,13 @@ public sealed class DeferredPipeline : IDisposable
     {
         _gl = gl;
         Profile = profile;
-        InstancingContract.Detect(gl);
 
         string cacheRoot = Path.GetDirectoryName(decompiledDirectory) ?? decompiledDirectory;
         var directories = new AssetDirectories(
             decompiledDirectory,
             deferredMaterialsDirectory ?? Path.Combine(cacheRoot, "_deferred_materials"),
             systemTexturesDirectory ?? Path.Combine(cacheRoot, "_system_textures"));
-        GLProgramBuilder.BinaryCacheDirectory ??= Path.Combine(cacheRoot, "_glprograms");
+        GLProgramBuilder.UseBinaryCache(gl, Path.Combine(cacheRoot, "_glprograms"));
 
         Resources = new GLResourceCache(gl, Profile.Bindings);
         Targets = new RenderTargets(gl, width, height);

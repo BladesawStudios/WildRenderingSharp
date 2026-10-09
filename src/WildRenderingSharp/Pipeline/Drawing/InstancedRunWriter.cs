@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Textures;
+using WildRenderingSharp.Gpu;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
 
@@ -85,7 +86,7 @@ sealed unsafe class InstancedRunWriter(GL gl, IndirectStream stream, DrawBinding
         if (atlas != _pendingAtlas)
             SwitchAtlas(atlas);
 
-        if (!InstancingContract.BaseInstance)
+        if (!gl.SupportsBaseInstance())
         {
             gl.Uniform1(_firstInstanceLocation, at);
             gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)indexCount, DrawElementsType.UnsignedInt,

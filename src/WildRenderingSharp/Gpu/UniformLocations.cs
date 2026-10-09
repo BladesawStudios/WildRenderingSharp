@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Gpu;
@@ -9,12 +8,15 @@ namespace WildRenderingSharp.Gpu;
 /// </summary>
 internal static class UniformLocations
 {
-    static readonly ConditionalWeakTable<GL, Dictionary<uint, Dictionary<string, int>>> Contexts = new();
+    sealed class Cache
+    {
+        public readonly Dictionary<uint, Dictionary<string, int>> Programs = [];
+    }
 
     // The location of the uniform, or -1 when the program has none by that name (which is cached too).
     public static int UniformLocation(this GL gl, uint program, string name)
     {
-        var programs = Contexts.GetOrCreateValue(gl);
+        var programs = ContextState<Cache>.For(gl).Programs;
         lock (programs)
         {
             if (!programs.TryGetValue(program, out var names))
@@ -27,7 +29,7 @@ internal static class UniformLocations
 
     public static void ReleaseProgram(this GL gl, uint program)
     {
-        var programs = Contexts.GetOrCreateValue(gl);
+        var programs = ContextState<Cache>.For(gl).Programs;
         lock (programs)
             programs.Remove(program);
         gl.DeleteProgram(program);

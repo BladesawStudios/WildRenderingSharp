@@ -11,7 +11,14 @@ namespace WildRenderingSharp.Gpu;
 /// </summary>
 internal static class GLProgramBuilder
 {
-    public static string? BinaryCacheDirectory { get; set; }
+    sealed class BinaryCache
+    {
+        public string? Directory;
+        public string? DriverIdentity;
+    }
+
+    // Keeps compiled programs in the directory for this context, unless it already has one.
+    public static void UseBinaryCache(GL gl, string directory) => ContextState<BinaryCache>.For(gl).Directory ??= directory;
 
     public static uint Build(GL gl, string vertexSource, string fragmentSource, string label = "")
     {
@@ -60,22 +67,21 @@ internal static class GLProgramBuilder
         return shader;
     }
 
-    static string? _driverIdentity;
-
     static string? BinaryCachePath(GL gl, string vertexSource, string fragmentSource)
     {
-        if (BinaryCacheDirectory is not { } directory)
+        var cache = ContextState<BinaryCache>.For(gl);
+        if (cache.Directory is not { } directory)
             return null;
 
         // A binary is only good for the driver that wrote it, so who that is goes into the key.
         // Empty when the driver has no binary formats at all - then there is nothing to cache.
-        _driverIdentity ??= gl.GetInteger(GetPName.NumProgramBinaryFormats) > 0
+        cache.DriverIdentity ??= gl.GetInteger(GetPName.NumProgramBinaryFormats) > 0
             ? $"{gl.GetStringS(StringName.Vendor)}\n{gl.GetStringS(StringName.Renderer)}\n{gl.GetStringS(StringName.Version)}"
             : "";
-        if (_driverIdentity.Length == 0)
+        if (cache.DriverIdentity.Length == 0)
             return null;
 
-        byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes($"{_driverIdentity}\0{vertexSource}\0{fragmentSource}"));
+        byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes($"{cache.DriverIdentity}\0{vertexSource}\0{fragmentSource}"));
         return Path.Combine(directory, Convert.ToHexString(key) + ".bin");
     }
 

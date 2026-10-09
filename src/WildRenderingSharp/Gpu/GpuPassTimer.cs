@@ -22,7 +22,13 @@ public sealed class GpuPassTimer : IDisposable
     readonly Stack<uint> _free = new();
     int _slot = -1;
 
-    internal static GpuPassTimer? Current;
+    sealed class Active
+    {
+        public GpuPassTimer? Timer;
+    }
+
+    // The timer marking passes on this context, set while one of its frames is being drawn.
+    internal static GpuPassTimer? On(GL gl) => ContextState<Active>.For(gl).Timer;
 
     public IReadOnlyList<(string Pass, double Ms)> Last { get; private set; } = [];
 
@@ -93,7 +99,7 @@ public sealed class GpuPassTimer : IDisposable
         _cpu.Clear();
         _clock.Restart();
         _lastCpuMark = 0;
-        Current = this;
+        ContextState<Active>.For(_gl).Timer = this;
         Mark("start");
     }
 
@@ -122,14 +128,14 @@ public sealed class GpuPassTimer : IDisposable
     public void EndFrame(string lastPass)
     {
         Mark(lastPass);
-        if (ReferenceEquals(Current, this))
-            Current = null;
+        if (ReferenceEquals(On(_gl), this))
+            ContextState<Active>.For(_gl).Timer = null;
     }
 
     public void Dispose()
     {
-        if (ReferenceEquals(Current, this))
-            Current = null;
+        if (ReferenceEquals(On(_gl), this))
+            ContextState<Active>.For(_gl).Timer = null;
         foreach (var frame in _frames.Concat(_details))
             foreach (var (_, q) in frame)
                 _gl.DeleteQuery(q);

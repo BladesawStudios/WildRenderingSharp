@@ -11,7 +11,7 @@ internal static class GLDiagnostics
 
     public static bool CheckPass(GL gl, string context)
     {
-        GpuPassTimer.Current?.Mark(context);
+        GpuPassTimer.On(gl)?.Mark(context);
         return VerbosePerPass && Check(gl, context);
     }
 

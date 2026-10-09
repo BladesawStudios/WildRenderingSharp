@@ -7,5 +7,5 @@ internal interface IShaderSources
 
     string CorrectForwardFragment(string fragmentSource);
 
-    string? Instance(string cleanedVertexSource);
+    string? Instance(string cleanedVertexSource, bool baseInstance);
 }

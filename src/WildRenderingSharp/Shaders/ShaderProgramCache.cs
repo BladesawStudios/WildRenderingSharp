@@ -88,7 +88,7 @@ internal sealed class ShaderProgramCache : IDisposable
         if (_instancedPrograms.TryGetValue(key, out uint cached))
             return cached;
 
-        string vertSource = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")))) ?? "";
+        string vertSource = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert"))), _gl.SupportsBaseInstance()) ?? "";
         uint program = 0;
         if (vertSource.Length > 0)
         {

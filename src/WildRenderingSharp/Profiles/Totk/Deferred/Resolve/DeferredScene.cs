@@ -2,7 +2,6 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Logging;
 using WildRenderingSharp.Pipeline.Frame;
-using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 using WildRenderingSharp.Shaders;
 
