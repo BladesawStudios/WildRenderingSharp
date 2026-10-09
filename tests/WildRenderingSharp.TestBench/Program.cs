@@ -15,13 +15,7 @@ using WildRenderingSharp.Rom.Games;
 using WildRenderingSharp.Storage;
 using WildRenderingSharp.TestBench;
 
-// Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline.
-//
-//   WildRenderingSharp.TestBench --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>]
-//                                [--size <px>] [--background sky|color] [--sun <elevation radians>]
-//                                [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--frames <n>] [--instances <n> [--spacing <x>]]
-//   with --game totk: see TotkBenchOptions.Usage
-//
+// Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline; the options are in the usage text.
 // Exit codes: 0 rendered, 1 failure, 2 bad command line, 4 the image is nearly blank, 5 GL reported errors.
 
 var options = args.Chunk(2).Where(p => p.Length == 2 && p[0].StartsWith("--")).ToDictionary(p => p[0][2..], p => p[1]);

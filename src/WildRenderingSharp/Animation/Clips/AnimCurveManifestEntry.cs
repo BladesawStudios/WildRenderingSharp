@@ -1,18 +1,14 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>
-/// One curve from a <see cref="BoneAnimManifestEntry"/> - a straight transcription of <c>BfresLibrary.AnimCurve</c>'s
-/// already-decoded (float, regardless of on-disk compression) <c>Frames</c>/<c>Keys</c>, plus <see cref="TargetOffset"/>
-/// (<c>AnimCurve.AnimDataOffset</c>) to say which component of the bone's TRS this curve drives: 4=ScaleX, 8=ScaleY, 12=ScaleZ,
-/// 16=TranslateX, 20=TranslateY, 24=TranslateZ, 32=RotateX, 36=RotateY, 40=RotateZ, 44=RotateW.
-/// </summary>
+/// <summary>One curve from a <see cref="BoneAnimManifestEntry"/>, as BfresLibrary decoded it, with <see cref="TargetOffset"/> saying which TRS component it drives.</summary>
 public sealed class AnimCurveManifestEntry
 {
     // 0 = Cubic, 16 = Linear, 32 = BakedFloat (the only three SkeletonPose evaluates - the others are integer/bool curve types
     // no bone TRS component uses).
     [JsonPropertyName("curve_type")] public int CurveType { get; set; }
+    // The TRS component: 4/8/12 = scale XYZ, 16/20/24 = translate XYZ, 32/36/40/44 = rotate XYZW.
     [JsonPropertyName("target_offset")] public int TargetOffset { get; set; }
     [JsonPropertyName("start_frame")] public float StartFrame { get; set; }
     [JsonPropertyName("end_frame")] public float EndFrame { get; set; }

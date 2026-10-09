@@ -9,13 +9,9 @@ public sealed class BoneAnimManifestEntry
     [JsonPropertyName("use_scale")] public bool UseScale { get; set; }
     [JsonPropertyName("use_rotate")] public bool UseRotate { get; set; }
     [JsonPropertyName("use_translate")] public bool UseTranslate { get; set; }
-    // BoneAnim.ApplySegmentScaleCompensate. The game lets an anim override bone flag bits 23-27 wholesale (ApplyToImpl writes
-    // (animFlags >> 23 & 0x1F) << 23 into the bone's local-matrix flags), so an animated bone takes its
-    // segment-scale-compensate state from here rather than from the skeleton.
+    // An animated bone takes its segment-scale-compensate state (flag bits 23-27) from the anim rather than the skeleton.
     [JsonPropertyName("segment_scale_compensate")] public bool SegmentScaleCompensate { get; set; }
-    // Default/initial (Scale.xyz, Translate.xyz, Rotate.xyzw), read from BoneAnim.BaseData - the value a curve-less component
-    // holds. Only meaningful for a component whose matching use_* flag is set; the others are written as zero, not as an
-    // identity.
+    // The value a curve-less component holds (scale, translate, rotate); zero, not identity, for a component without its use_* flag.
     [JsonPropertyName("base_scale")] public float[] BaseScale { get; set; } = [1, 1, 1];
     [JsonPropertyName("base_translate")] public float[] BaseTranslate { get; set; } = [0, 0, 0];
     [JsonPropertyName("base_rotate")] public float[] BaseRotate { get; set; } = [0, 0, 0, 1];

@@ -4,11 +4,7 @@ using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 
-/// <summary>
-/// One <c>CloudParamN</c> block of <c>postfx/master_field.baglclwd</c>: the per-layer parameters of the <c>agl::fx::Cloud</c>
-/// billboard-dome shading model, every field (see <c>WildRenderingSharp.AampReader.SkyPostFxJson.ParseObject</c>, which dumps the
-/// object generically).
-/// </summary>
+/// <summary>One <c>CloudParamN</c> block of <c>postfx/master_field.baglclwd</c>, the per-layer parameters of the cloud billboard-dome shading model.</summary>
 public sealed class CloudPostFxLayer
 {
     public bool IsEnable = true;

@@ -2,11 +2,7 @@ using System.Numerics;
 
 namespace WildRenderingSharp.Rendering.Cameras;
 
-/// <summary>
-/// TotK model scales vary enormously - the Master Sword's bounding sphere has radius 0.74, the Light Dragon's is 694, a factor of
-/// 940 - so every world-unit constant tuned against the sword (near/far planes, AO radius and shadow bias)
-/// is re-derived per model as a FRACTION of its own radius.
-/// </summary>
+/// <summary>Derives the near and far planes, AO radius and shadow bias from a model's bounding radius, because model scales differ by a factor of hundreds.</summary>
 internal static class SceneFramingCalculator
 {
     const float SwordRadius = 0.7386f;

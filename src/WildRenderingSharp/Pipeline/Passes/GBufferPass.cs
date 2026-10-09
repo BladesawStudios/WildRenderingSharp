@@ -94,9 +94,8 @@ internal sealed class GBufferPass(GL gl)
         gl.DepthFunc(DepthFunction.Less);
     }
 
-    // Draws the shapes include picks, every group's together, ordered by program and then material: drawn model by model, each shape
-    // re-bound its program, uniforms and textures and the CPU outran the card. A placed actor's shapes keep their order and go first,
-    // since their per-actor uniforms make them unsortable.
+    // Draws every group's shapes ordered by program then material, since re-binding per shape left the CPU behind the GPU.
+    // A placed actor's shapes keep their order and go first, because their per-actor uniforms make them unsortable.
     void DrawSorted(GLResourceCache resources, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer,
         Func<LoadedShape, bool> include, ShapeProgram which, string detailPrefix)
     {

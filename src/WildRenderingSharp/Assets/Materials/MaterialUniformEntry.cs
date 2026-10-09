@@ -16,10 +16,7 @@ internal sealed class MaterialUniformEntry
     // should treat as true.
     [JsonPropertyName("used")] public bool? Used { get; set; }
 
-    // The material's AUTHORED (mode, scaleX, scaleY, rotation, translateX, translateY) for a TexSrt/TexSrtEx-typed parameter
-    // only - null for every other type. This is the pre-bake form; MaterialAnimPose needs it because an animation can drive
-    // just one sub-field (a scroll anim touching only translateY, say) and has to re-bake the whole six-value set every frame,
-    // using this as the baseline for whichever sub-fields the anim leaves untouched - see that class's own remarks and
-    // TexSrtBake.
+    // The authored (mode, scaleX, scaleY, rotation, translateX, translateY) of a TexSrt parameter, null for other types.
+    // An animation that drives one sub-field re-bakes the set from this baseline.
     [JsonPropertyName("raw_srt")] public float[]? RawSrt { get; set; }
 }

@@ -5,11 +5,7 @@ using WildRenderingSharp.Graphics.Ubos;
 
 namespace WildRenderingSharp.Pipeline.Resources;
 
-/// <summary>
-/// Persistent GL objects that would otherwise be reallocated every frame: uniform buffers kept under a key and rewritten in place,
-/// zeroed buffers by size, and the attribute-less VAO every fullscreen pass draws through (the deferred vertex shaders synthesise
-/// position and UV from <c>gl_VertexID</c>).
-/// </summary>
+/// <summary>Persistent GL objects reused every frame: uniform buffers kept under a key, zeroed buffers by size, and the attribute-less VAO the fullscreen passes draw through.</summary>
 internal sealed class GLResourceCache : IDisposable
 {
     readonly GL _gl;

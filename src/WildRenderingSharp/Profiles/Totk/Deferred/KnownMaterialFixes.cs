@@ -49,9 +49,8 @@ internal sealed class KnownMaterialFixes : IDisposable
             return;
 
         targets.BindColorAndDepthTarget(targets.Scene, targets.GBufferDepth);
-        // Depth-tested with a small negative polygon offset, the standard decal technique: this redraws geometry the G-buffer rasterised through
-        // another vertex shader, whose depth can land a few ULPs off, and a bare LEQUAL test z-fought while no test drew over genuine occluders. The
-        // offset is a couple of the buffer's smallest steps, enough to beat that mismatch and far short of a real occluder.
+        // Depth-tested with a small negative polygon offset, because this redraws geometry the G-buffer rasterised through another vertex shader.
+        // A bare LEQUAL test z-fought, and the offset is far short of a real occluder.
         _gl.Enable(EnableCap.DepthTest);
         _gl.DepthFunc(DepthFunction.Lequal);
         _gl.DepthMask(false);

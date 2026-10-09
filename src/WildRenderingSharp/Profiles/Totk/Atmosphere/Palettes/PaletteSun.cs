@@ -1,10 +1,6 @@
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 
-/// <summary>
-/// Where the sun is when the game uses a palette. The game picks a palette by time of day (<c>_0_Sunrise</c> to <c>_7_Night</c>) and moves the sun
-/// with the clock, so a palette lit by a sun elsewhere never occurs in the game: a night palette under a high sun is blown out, and a noon one
-/// under a low sun is orange.
-/// </summary>
+/// <summary>Where the sun is when the game uses a palette. The game moves the sun with the time of day that picks the palette, so a palette is never lit from a different sun.</summary>
 internal static class PaletteSun
 {
     static readonly (string Suffix, float Degrees)[] Slots =

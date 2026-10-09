@@ -8,9 +8,8 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 /// </summary>
 internal static class CloudLayerResolver
 {
-    // Texture units per second per unit of ScrollSpd, and per unit of NoiseAdd*, along a unit wind. The game scales both by wind state it computes
-    // elsewhere; these are fitted to a capture of its cloud draw, where the noise offsets (0.436, -0.083, -1.034, 1.299) and the scroll offsets
-    // (-0.0384, 0.0782) all follow from one wind direction (CapturedWind) and one multiplier each over the same 1107 seconds.
+    // Texture units per second per unit of ScrollSpd and of NoiseAdd*, along a unit wind.
+    // Fitted to a capture of the game's cloud draw, whose offsets all follow from one wind direction (CapturedWind).
     const float WindScrollUnit = 8.73e-5f;
     const float WindNoiseUnit = 1.74e-4f;
 

@@ -32,9 +32,8 @@ internal sealed class SkyBake(StageServices services) : IDisposable
         _precompute.Verify();
     }
 
-    // The fog colour's hue, normalised to its brightest channel. Fog is the better source than the background colour: a palette
-    // with no Rayleigh scattering has a sky that is effectively dense fog, and its fog colour is the red or amber the
-    // background colour only approximates.
+    // The fog colour's hue, normalised to its brightest channel.
+    // Fog is a better source than the background colour, because a palette with no Rayleigh scattering has a sky that is effectively dense fog.
     static Vector3 TintColor(EnvPalette? palette, float tintStep)
     {
         Vector3 fog = palette?.FogColor ?? Vector3.One;

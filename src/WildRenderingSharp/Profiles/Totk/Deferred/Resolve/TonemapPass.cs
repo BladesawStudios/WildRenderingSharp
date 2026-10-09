@@ -19,17 +19,15 @@ internal sealed class TonemapPass : IDisposable
     uint _hdrQuadVbo, _hdrQuadVao;
     uint _hdrQuadVaoProgram;
 
-    // The compression asymptotes to HdrCompressCeil, the brightest value that can leave this pass; it was 2.2, which a display cannot show, so values
-    // from 1 to 2.2 were clipped at present and clipping the dominant channel shifted hue (a red sky at (2.5, 0, 0.55) presented as (1, 0, 0.42),
-    // toward magenta). Asymptoting to 1.0 means nothing needs clipping later and the computed hue reaches the screen.
+    // The compression asymptotes to HdrCompressCeil, the brightest value that can leave this pass, so nothing needs clipping later.
+    // Clipping the dominant channel at present would shift the hue.
     public const float HdrCompressKnee = 0.8f;
     public const float HdrCompressCeil = 1.0f;
 
     static readonly string ExposureFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Exposure.frag");
 
-    // Compresses on the brightest channel and scales the colour as a whole, because per-channel compression desaturates (a blood-moon red (3.0, 0.6,
-    // 0.45) fell from saturation 0.850 to 0.772 and came out pink). Scaling by compressed/max keeps every channel ratio, so hue and saturation
-    // survive and neutral colours are unaffected.
+    // Compresses on the brightest channel and scales the colour as a whole, because per-channel compression desaturates.
+    // Scaling by compressed/max keeps every channel ratio, so hue and saturation survive.
     static readonly string CompressFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Compress.frag");
 
     public TonemapPass(GL gl)

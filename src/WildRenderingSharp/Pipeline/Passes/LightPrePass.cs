@@ -7,12 +7,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline.Passes;
 
-/// <summary>
-/// Produces layer 0 of <c>cTex_DeferredLightPrePass</c> (binding 28, <c>sampler2DArray</c>) - the real light-accumulation buffer
-/// every <c>chara_*</c> deferred resolve shader samples for its own main light colour (immediately converted to a luminance value
-/// that drives further shading - confirmed by reading chara_metal/chara_skin/chara_nonmetal/chara_grossy directly, all four
-/// identical: <c>texture(cTex_DeferredLightPrePass, vec3(u, v, 0)).xyz</c>).
-/// </summary>
+/// <summary>Produces layer 0 of <c>cTex_DeferredLightPrePass</c>, the light-accumulation buffer the <c>chara_*</c> resolve shaders sample for their main light colour.</summary>
 internal sealed class LightPrePass : IDisposable
 {
     readonly GL _gl;

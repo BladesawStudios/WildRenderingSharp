@@ -18,9 +18,7 @@ internal static class ShaderStepDebugger
         @"^(?<indent>[ \t]*)temp_(?<n>\d+)\s*=(?!=)",
         RegexOptions.Compiled);
 
-    // Every real fragment output the shader declares (a G-buffer program has several: albedo, normal and emission at different
-    // locations). The override must overwrite all of them, or the value shows only on whichever attachment comes first in the
-    // file.
+    // Every fragment output the shader declares; the override must write all of them or it only shows on the first attachment.
     static readonly Regex OutputDeclRegex = new(
         @"^\s*layout\s*\(location\s*=\s*\d+\)\s*out\s+vec4\s+(\w+(?:\[0\])?)\s*;",
         RegexOptions.Multiline);

@@ -30,9 +30,7 @@ internal sealed class HighlightOverlayPass : IDisposable
 
     public unsafe void Draw(GLResourceCache resources, RenderTargets targets, ActorDrawGroup owningActor, LoadedShape shape, Matrix4x4 mvp, Matrix4x4 viewProj, Vector4 color)
     {
-        // A skinned highlighted shape reads its bone pose from _Mtx (binding 2) exactly like every
-        // other pass - has to be THIS shape's own actor's buffer, not whichever one happened to be
-        // bound last (that's why this takes the owning ActorDrawGroup, not just the shape).
+        // A skinned shape reads its pose from _Mtx (binding 2), so this needs the owning actor's buffer rather than whichever was bound last.
         owningActor.BindUbos(resources);
         targets.BindColorTarget(targets.Ldr);
         _gl.Disable(EnableCap.DepthTest);

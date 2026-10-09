@@ -1,10 +1,6 @@
 namespace WildRenderingSharp.Animation.Posing;
 
-/// <summary>
-/// The one implementation of BFRES curve evaluation, shared by every kind of animation WildRenderingSharp plays - skeletal TRS
-/// curves, texture pattern index curves and shader parameter curves all come out of the same <c>ResAnimCurve</c> and are evaluated
-/// by the same two entry points in the game.
-/// </summary>
+/// <summary>Evaluates a BFRES curve, the one implementation that skeletal, texture pattern and shader parameter animations share.</summary>
 internal static class AnimCurveEval
 {
     public const int Cubic = 0x00;

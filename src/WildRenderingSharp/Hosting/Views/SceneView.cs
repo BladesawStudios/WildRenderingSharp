@@ -9,11 +9,7 @@ using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Hosting.Views;
 
-/// <summary>
-/// An offscreen view of a scene: renders a <see cref="FrameRequest"/> through a <see cref="DeferredPipeline"/> and composites the
-/// result (supersample downfilter, the palette's colour correction, sRGB encode, FXAA) into an RGBA8 texture the host displays
-/// however it likes. Every method needs the GL context current.
-/// </summary>
+/// <summary>An offscreen view of a scene: renders a <see cref="FrameRequest"/> through a <see cref="DeferredPipeline"/> into an RGBA8 texture the host displays. Every method needs the GL context current.</summary>
 public sealed class SceneView : IDisposable
 {
     readonly GL _gl;

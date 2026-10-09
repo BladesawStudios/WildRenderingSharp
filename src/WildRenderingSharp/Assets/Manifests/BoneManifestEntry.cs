@@ -11,9 +11,7 @@ public sealed class BoneManifestEntry
     // This bone's slot in the smooth-skinning segment of the palette, or -1 if it has none. Redundant with MatrixToBoneList
     // (its inverse) but kept for reference/debugging - and it is what SmoothCount falls back to counting.
     [JsonPropertyName("smooth_matrix_index")] public int SmoothMatrixIndex { get; set; } = -1;
-    // This bone's slot in the palette's rigid segment, or -1 if it has none. An absolute palette index: BFRES stores it already
-    // offset past the smooth segment (Animal_Bass has 4 smooth slots and its Head bone reports SmoothMatrixIndex 0,
-    // RigidMatrixIndex 4), so never add SmoothCount to it.
+    // This bone's slot in the palette's rigid segment, or -1 if it has none. It is already an absolute palette index, so never add SmoothCount.
     [JsonPropertyName("rigid_matrix_index")] public int RigidMatrixIndex { get; set; } = -1;
     // Billboard mode index, or -1. Not implemented by SkeletonPose (the game's own SkeletonObj::CalculateBillboardMtx needs a
     // camera); carried so a billboarded bone is at least identifiable.

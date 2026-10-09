@@ -29,9 +29,7 @@ internal static class InstancedShaderPatch
             return null;
         source = source[..main.Index] + "void wrs_inner_main()" + source[(main.Index + main.Length)..];
 
-        // The helpers depend on nothing in the shader, so they go first - straight after the
-        // #version/#extension lines that must open it - where every function that reads the
-        // blocks, not only main, comes after them.
+        // The helpers depend on nothing in the shader, so they go right after the #version and #extension lines and every function that reads the blocks comes after them.
         int at = EndOfDirectives(source);
         string helpers = baseInstance ? "#extension GL_ARB_shader_draw_parameters : require\n" + Helpers : Helpers;
         source = source[..at] + helpers + source[at..];

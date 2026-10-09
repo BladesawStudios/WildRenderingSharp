@@ -11,11 +11,7 @@ using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 
-/// <summary>
-/// A model is not one deferred pass: <c>o_material_behave</c> picks a different resolve program per material (the Master Sword is
-/// <c>chara_metal</c> throughout; a character can span <c>chara_nonmetal</c>, <c>chara_hair</c>, <c>chara_skin</c> and
-/// <c>chara_grossy</c>).
-/// </summary>
+/// <summary>Draws a mask of which resolve program each pixel needs, because a model can span several (<c>chara_metal</c>, <c>chara_skin</c>, <c>chara_hair</c> and so on) chosen per material by <c>o_material_behave</c>.</summary>
 internal sealed class PassIdMaskPass : IDisposable
 {
     readonly GL _gl;
@@ -27,14 +23,12 @@ internal sealed class PassIdMaskPass : IDisposable
     readonly uint _instancedProgram;
     float _near, _far;
 
-    // Mirrors the compiled TotK vertex shader's skinning: blend indices are float attributes carrying an integer bit pattern (floatBitsToInt(v) &
-    // 0xFFFF), and _Mtx at binding 2 is three vec4 rows per bone in row-vector convention, as BonePalette writes. A skinned draw has the model matrix
-    // folded into every palette entry, so only SKIN_COUNT == 0 (pose baked into the positions) uses uMVP and skinned vertices go through uViewProj.
+    // Mirrors the compiled vertex shader's skinning: blend indices are float attributes carrying integer bits, and _Mtx (binding 2) is three row-vector vec4s per bone.
+    // A skinned draw has the model matrix folded into every palette entry, so only SKIN_COUNT == 0 uses uMVP.
     static readonly string VertexSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.vert");
 
-    // Stamps the ID only where the G-buffer wrote a fragment, by reading the G-buffer's own depth and stamping where it matches, which inherits the
-    // Z-only program's alpha cutout and the occlusion that rasterising alone cannot reproduce. Without it, mask-mode quads were stamped whole
-    // (Ganondorf_Miasma's masked hair and miasma cards covered 47% more of the mask than the G-buffer and hid the eyes).
+    // Stamps the ID only where the G-buffer's own depth matches, which inherits the Z-only program's alpha cutout and occlusion.
+    // Without it, mask-mode quads were stamped whole and covered pixels the G-buffer did not.
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.frag");
 
     public PassIdMaskPass(GL gl, ShapeDrawer drawer)

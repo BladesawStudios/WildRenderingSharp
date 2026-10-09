@@ -4,11 +4,7 @@ using WildRenderingSharp.Assets.Manifests;
 
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>
-/// Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.texpat.json</c>, written by
-/// <c>ShaderLibrary.CompileTool.ExportTexturePatternAnim</c> from a BFRES texture pattern anim (an FMAA with <c>TexturePatternCount
-/// &gt; 0</c>).
-/// </summary>
+/// <summary>Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.texpat.json</c>, the texture pattern anim exported from a BFRES.</summary>
 public sealed class TexturePatternAnimManifest : IAnimClip
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";

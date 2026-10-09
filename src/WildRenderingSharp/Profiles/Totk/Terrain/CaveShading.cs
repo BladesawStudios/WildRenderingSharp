@@ -5,12 +5,7 @@ using WildRenderingSharp.Profiles.Totk.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
-/// <summary>
-/// The game's own programs for a crbin mesh (a cave, a sky island, an edit part), linked as they are and fed by the host through
-/// cave_ChunkDynamicDataUBO (ChunkBinding), cave_MaterialPaletteUBO (PaletteBinding) and cave_CaveInstanceDynamicDataUBO
-/// (InstanceBinding). The pages are already what its vertex stage reads (28 bytes a vertex, as two vec4s at locations 0 and 1), and
-/// the fragment stage reads the terrain's material arrays on its units.
-/// </summary>
+/// <summary>The game's own programs for a crbin mesh (a cave, a sky island, an edit part), fed by the host through the cave UBOs and the terrain's material arrays.</summary>
 public sealed class CaveShading : IDisposable
 {
     public const uint ChunkBinding = 3, InstanceBinding = 12, PaletteBinding = 13;

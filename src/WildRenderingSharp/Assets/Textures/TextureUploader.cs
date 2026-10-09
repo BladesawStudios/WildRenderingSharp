@@ -77,9 +77,7 @@ sealed class TextureUploader(GL gl)
     bool SupportsAnisotropy() =>
         _anisotropy ??= gl.IsExtensionPresent("GL_EXT_texture_filter_anisotropic") || gl.IsExtensionPresent("GL_ARB_texture_filter_anisotropic");
 
-    // NVN swizzles per texture descriptor, not by the format's channel count, so GL's identity swizzle can disagree with what a shader
-    // expects from a missing channel. The authority is the TXTG container's CompSelect bytes, in the Switch-Toolbox encoding
-    // (0=R, 1=G, 2=B, 3=A, 4=Zero, 5=One).
+    // NVN swizzles per texture descriptor, so the swizzle comes from the TXTG container's CompSelect bytes (0=R, 1=G, 2=B, 3=A, 4=Zero, 5=One).
     void ApplySwizzle(SamplerBinding s)
     {
         bool isBc4 = s.Format.StartsWith("BC4", StringComparison.Ordinal);

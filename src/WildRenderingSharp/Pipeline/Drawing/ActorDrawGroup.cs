@@ -9,13 +9,7 @@ using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
 
-/// <summary>
-/// One placed actor's shapes plus the per-actor GPU skinning resources every shape-drawing pass needs bound before drawing them -
-/// the real compiled game shaders read bone transforms from shared UBO binding points (<c>_Mtx</c>/binding 2, <c>ShpMtx</c>/binding
-/// 4) with no per-draw instance addressing at all, so multi-actor rendering works by REBINDING a different actor's own buffer
-/// immediately before that actor's own draw calls - exactly what a real engine does between per-object draw calls - rather than
-/// trying to combine every actor into one buffer.
-/// </summary>
+/// <summary>One placed actor's shapes plus the skinning buffers its draws need bound. The game's shaders read bone transforms from fixed UBO bindings, so each actor rebinds its own buffers before its draw calls.</summary>
 internal readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vector4[] ModelMatrixRows, IReadOnlyList<LoadedShape> Shapes,
     InstanceBatch? Batch = null, bool ShadowRuns = false, int Cascade = -1, IReadOnlyList<UboSpec>? ZeroedBlocks = null)
 {

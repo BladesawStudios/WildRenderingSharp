@@ -7,11 +7,7 @@ using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Pipeline.Shadows;
 
-/// <summary>
-/// Renders the shadow map by feeding the REAL G-buffer vertex shader a light-space <c>Context</c> - no separate depth shader is
-/// needed, since the vertex stage transforms by <c>cViewProj</c> regardless of which pass is running and this FBO has no colour
-/// attachment.
-/// </summary>
+/// <summary>Renders the shadow map by running the G-buffer vertex shader with a light-space context. It needs no separate depth shader because the framebuffer has no colour attachment.</summary>
 internal sealed class ShadowPass
 {
     readonly GL _gl;

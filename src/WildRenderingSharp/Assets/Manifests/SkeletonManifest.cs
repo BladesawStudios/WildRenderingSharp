@@ -4,11 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Assets.Manifests;
 
-/// <summary>
-/// Deserialized <c>&lt;Model&gt;.skeleton.json</c>: everything needed to build the <c>BonePalette</c> at bind pose (via <see
-/// cref="WildRenderingSharp.Animation.Posing.SkeletonPose.BindPoseWorldMatrices"/>) or at an animated pose given a <see
-/// cref="SkeletalAnimManifest"/>.
-/// </summary>
+/// <summary>Deserialized <c>&lt;Model&gt;.skeleton.json</c>, everything needed to build the bone palette at bind pose or at a pose from a <see cref="SkeletalAnimManifest"/>.</summary>
 public sealed class SkeletonManifest
 {
     // See SkeletonScalingMode. Defaults to Standard for a manifest exported before this field existed - the mode that matches

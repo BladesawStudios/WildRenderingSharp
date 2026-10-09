@@ -3,11 +3,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Assets.Manifests;
 
-/// <summary>
-/// A material's render state as the engine's own RenderInfo strings (see <c>ExportManifest.RenderState</c>) - <c>mode ==
-/// "custom"</c> means the blend/depth fields are authoritative rather than a named preset, which is how a translucent material
-/// (e.g.
-/// </summary>
+/// <summary>A material's render state as the engine's RenderInfo strings; mode "custom" means the blend and depth fields are authoritative rather than a named preset.</summary>
 internal sealed class RenderState
 {
     [JsonPropertyName("mode")] public string Mode { get; set; } = "";

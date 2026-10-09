@@ -6,11 +6,7 @@ using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Pipeline.Passes;
 
-/// <summary>
-/// Builds <c>cTex_NormalizedLinearDepth</c> - <c>(viewZ - near) / (far - near)</c> - at full resolution from the G-buffer's
-/// hardware depth, then a half-resolution copy via a 4-tap <c>textureGather</c> min (matching
-/// <c>prog_nld</c>/<c>prog_nld_half</c>).
-/// </summary>
+/// <summary>Builds <c>cTex_NormalizedLinearDepth</c>, <c>(viewZ - near) / (far - near)</c>, from the G-buffer depth at full and half resolution.</summary>
 internal sealed class LinearDepthPass : IDisposable
 {
     readonly GL _gl;

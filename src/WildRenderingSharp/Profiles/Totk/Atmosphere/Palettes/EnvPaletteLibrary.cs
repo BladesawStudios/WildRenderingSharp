@@ -129,9 +129,8 @@ public sealed class EnvPaletteLibrary
         throw new KeyNotFoundException($"Unknown palette '{name}', and not even the built-in '{StudioLightPaletteName}' preset is loaded.");
     }
 
-    // Blank studio lighting: a neutral white key, an untinted ambient and every grade, glow and tint off, so the model's own albedo and emission
-    // show. Every shipped palette omits HemiSkyColor and HemiGroundColor, which sends AmbientLighting to its blue-sky fallback, so a neutral ambient
-    // needs the pair declared.
+    // Blank studio lighting: a neutral white key and ambient with every grade, glow and tint off, so the model's own albedo and emission show.
+    // HemiSkyColor and HemiGroundColor are declared because omitting them sends AmbientLighting to its blue-sky fallback.
     static Dictionary<string, object?> BuildStudioLightPreset() => new()
     {
         ["BgDifColor"] = new object?[] { 1.0, 1.0, 1.0, 1.0 },

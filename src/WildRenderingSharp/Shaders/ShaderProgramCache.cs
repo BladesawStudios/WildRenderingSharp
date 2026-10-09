@@ -4,11 +4,7 @@ using WildRenderingSharp.Graphics.Contracts;
 
 namespace WildRenderingSharp.Shaders;
 
-/// <summary>
-/// Loads and links a decompiled <c>&lt;base&gt;.vert</c>/<c>&lt;base&gt;.frag</c> pair from <c>Shaders/Decompiled</c> into a GL
-/// program, caching by base name - many shapes/materials across a model (and across the deferred resolve passes) share the same
-/// compiled program, so this is what makes that sharing actually happen instead of relinking per shape.
-/// </summary>
+/// <summary>Loads and links a decompiled vertex and fragment pair into a GL program, cached by base name so shapes and passes that use the same program share it.</summary>
 internal sealed class ShaderProgramCache : IDisposable
 {
     readonly GL _gl;

@@ -179,9 +179,8 @@ public sealed class RenderTargets : IDisposable
             _gl.DeleteFramebuffer(_passIdFbo);
     }
 
-    // Attachments 0-4 are 8-bit UNORM: the resolve decodes packed flag bits with trunc(v * 255), which needs exactly 8-bit quantisation and
-    // nearest filtering so bit-packed data is never interpolated. Attachment 5 is emission and must be half-float, or it clamps at 1.0 and
-    // never crosses the bloom threshold.
+    // Attachments 0-4 are 8-bit UNORM with nearest filtering because the resolve decodes packed flag bits from them.
+    // Attachment 5 is emission and must be half-float, or it clamps at 1.0 and never crosses the bloom threshold.
     void CreateGBuffer(int width, int height)
     {
         GBuffer = new GpuTexture[GBufferCount];

@@ -9,11 +9,7 @@ using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
-/// <summary>
-/// Runs the game's own character shading passes over the G-buffer and the lighting buffers before them. Each draws one fullscreen
-/// triangle for the material ID it lights; the game picks its pixels with the depth test, which is replaced here by a mask on the G-buffer's
-/// ID channel.
-/// </summary>
+/// <summary>Runs the game's character shading passes over the G-buffer and lighting buffers. Each draws one fullscreen triangle for its material ID, with a mask on the G-buffer's ID channel in place of the game's depth test.</summary>
 internal sealed class BotwResolveStage(StageServices services, BotwPasses passes, BotwLightingStage lighting) : IFrameStage, IDisposable
 {
     static readonly string[] CharacterPasses =
