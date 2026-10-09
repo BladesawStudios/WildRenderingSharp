@@ -1,6 +1,8 @@
 using WildRenderingSharp;
 using WildRenderingSharp.Hosting;
 using WildRenderingSharp.Preparation;
+using WildRenderingSharp.Preparation.Totk;
+using WildRenderingSharp.Rom;
 
 // ensure-system --romfs <dir> [--cache <dir>]
 // prepare --romfs <dir> --actor <name> [--game totk|botw] [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]
@@ -88,9 +90,8 @@ static class Cli
                         Console.WriteLine(OutOfProcessPreparer.ResultPrefix + botwModel);
                         return 0;
                     }
-                    ModelPreparer.SetModRomfsLayers(mods);
                     ModelPreparer.EnsureSystemAssets(romfs, cache, Console.WriteLine);
-                    string model = ModelPreparer.PrepareIfNeeded(romfs, actor, cache, Console.WriteLine, importAnims, force);
+                    string model = ModelPreparer.PrepareIfNeeded(romfs, actor, cache, Console.WriteLine, importAnims, force, mods);
                     Console.Out.Flush();
                     Console.WriteLine(OutOfProcessPreparer.ResultPrefix + model);
                     return 0;
@@ -136,7 +137,6 @@ static class Cli
             }
         }
 
-        ModelPreparer.SetModRomfsLayers(mods);
         try
         {
             ModelPreparer.EnsureSystemAssets(romfs, cache, verbose ? Console.WriteLine : null);
@@ -157,7 +157,7 @@ static class Cli
             outcome => Say(outcome.Succeeded
                 ? $"WRS_DONE {outcome.ActorOrModelName}	{outcome.ModelName}"
                 : $"WRS_FAIL {outcome.ActorOrModelName}	{outcome.Error}"),
-            importAnims, force);
+            importAnims, force, mods);
         return 0;
     }
 
@@ -165,8 +165,9 @@ static class Cli
     {
         int parallelism = jobs > 0 ? jobs : PrepareBatchRequest.DefaultParallelism;
         string dir = cache.Bake;
-        if (force || !File.Exists(Path.Combine(dir, ShaderLibrary.CompileTool.ExportBake.IndexFile)))
-            ShaderLibrary.CompileTool.ExportBake.BuildIndex(romfs, dir, parallelism);
+        using var rom = TotkRom.Open(romfs);
+        if (force || !File.Exists(Path.Combine(dir, TotkBake.IndexFile)))
+            TotkBake.BuildIndex(rom, dir, parallelism);
         Console.Out.Flush();
 
         var gate = new object();
@@ -185,7 +186,7 @@ static class Cli
             try
             {
                 if (force || !File.Exists(Path.Combine(dir, tile + ".json")))
-                    ShaderLibrary.CompileTool.ExportBake.ExportTile(romfs, tile, dir);
+                    TotkBakeTile.Export(rom, tile, dir);
                 Say($"WRS_DONE {tile}	{tile}");
             }
             catch (Exception ex)

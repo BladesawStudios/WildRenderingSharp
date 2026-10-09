@@ -8,7 +8,7 @@ Reverse-engineering findings and format history that used to live in XML doc com
 
 Superseded by `TotkCloudMasks`, which reads the real assets (below). The old name-guess extraction and the captured BC4 copies are gone.
 
-**`public static bool IsUpToDate(string romfsRoot, string dataDirectory)`**
+**`public static bool IsUpToDate(string romfsRoot, string dataDirectory, IEnumerable<string>? modRomfsLayers = null)`**
 
 False if the prepared model was built from different romfs files than the current root and mod set would supply: a mod toggled that touches one of
 its files, or a mod file edited. Only files the prepare looked up are checked, so toggling an unrelated mod costs nothing.

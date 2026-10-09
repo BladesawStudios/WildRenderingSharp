@@ -104,4 +104,38 @@ public sealed class LayeredRomTests : IDisposable
         Assert.Equal(new byte[] { 2 }, rom.ReadAllBytesNested("Pack/Case.pack//res/dungeon.bin").ToArray());
         Assert.True(rom.Exists("Pack/Case.pack//RES/DUNGEON.BIN"));
     }
+
+    [Fact]
+    public void LocateNamesTheFileInTheHighestFolderThatHasIt()
+    {
+        Write(_baseDir, "Model/a.bin", [1]);
+        Write(_baseDir, "Model/only-base.bin", [1]);
+        Write(_updateDir, "Model/a.bin", [2]);
+        using var rom = new LayeredRom([_baseDir, _updateDir]);
+
+        Assert.Equal(Path.Combine(_updateDir, "Model/a.bin"), rom.Locate("Model/a.bin"));
+        Assert.Equal(Path.Combine(_baseDir, "Model/only-base.bin"), rom.Locate("Model\\only-base.bin"));
+        Assert.Null(rom.Locate("Model/missing.bin"));
+    }
+
+    [Fact]
+    public void ARecordingNotesTheFileThatAnsweredEachLookupIncludingMisses()
+    {
+        Write(_baseDir, "Model/a.bin", [1]);
+        Write(_updateDir, "Model/a.bin", [2]);
+        using var rom = new LayeredRom([_baseDir, _updateDir]);
+
+        using (var recording = rom.Record())
+        {
+            rom.ReadAllBytesDirectSpan("Model/a.bin");
+            rom.Exists("Model/missing.bin");
+
+            Assert.Equal(Path.Combine(_updateDir, "Model/a.bin"), recording.Files["Model/a.bin"]);
+            Assert.Null(recording.Files["Model/missing.bin"]);
+        }
+
+        using var after = rom.Record();
+        rom.Exists("Model/a.bin");
+        Assert.Single(after.Files);
+    }
 }
