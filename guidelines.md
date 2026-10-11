@@ -17,4 +17,6 @@
 
 - Keep it clean. The same functionality is never defined in more than one class.
 - Always abstract the shared part.
-- Nothing is temporary: no stopgaps, no "for now".
+- Nothing is temporary: no stopgaps, no "for now". The one exception is a stopgap that prevents a partial implementation, which is marked
+  `// TODO:` and says it is there to prevent a partial implementation.
+- A known limitation is marked `// TODO:` and says what the code does today and what would remove the limitation.
