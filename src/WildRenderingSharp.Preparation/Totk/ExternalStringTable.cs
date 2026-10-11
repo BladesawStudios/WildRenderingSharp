@@ -5,12 +5,13 @@ using WildRenderingSharp.Rom;
 namespace WildRenderingSharp.Preparation.Totk;
 
 /// <summary>
-/// The shared table naming the keys of TotK's V10 materials, read from the ROM; a scope makes one ROM's table the one BFRES parsing on this
-/// async flow uses.
+/// Turns the 64-bit keys that TotK's V10 BFRES files store in place of names back into the names, using a string table from the ROM.
 /// </summary>
 /// <remarks>
-/// The file holds a sorted array of 64-bit keys starting at byte 224, followed by an entries array whose offset the header stores at byte 192.
-/// Each entry is 16 bytes and begins with the offset of a length-prefixed UTF-8 string. A key's string is the entry at the same index as the key.
+/// Call <see cref="Use"/> with a ROM before parsing a BFRES and dispose the result afterwards; <see cref="Lookup"/> reads from the table it
+/// loaded, which is kept per async flow. The table file holds a sorted array of 64-bit keys starting at byte 224, followed by an entries
+/// array whose offset the header stores at byte 192. Each entry is 16 bytes and begins with the offset of a length-prefixed UTF-8 string, and a
+/// key's string is the entry at the same index as the key.
 /// </remarks>
 public sealed class ExternalStringTable
 {
@@ -39,7 +40,7 @@ public sealed class ExternalStringTable
             _keys[i] = BitConverter.ToUInt64(data, (int)(KeyArrayStart + i * 8));
     }
 
-    // Loads the ROM's table and makes it the current one for this async flow until the returned scope is disposed.
+    // Loads the ROM's table for Lookup to use until the returned scope is disposed, then goes back to the previous table.
     public static IDisposable Use(IRomAccess rom)
     {
         byte[] table = Mcpk.ToBfres(rom.ReadAllBytesDirectSpan(TablePath).ToArray(), TablePath);
