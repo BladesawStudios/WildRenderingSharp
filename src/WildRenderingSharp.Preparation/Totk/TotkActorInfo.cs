@@ -6,6 +6,11 @@ using WildRenderingSharp.Rom;
 namespace WildRenderingSharp.Preparation.Totk;
 
 /// <summary>Resolves an actor to its model file stem and animation archives from its pack's ModelInfo and AnimationParam.</summary>
+/// <remarks>
+/// An actor's pack is a SARC of BYML files that inherit from each other through <c>$parent</c>. The model name joins ModelProjectName and
+/// FmdbName, each taken from the nearest file in the ModelInfo's parent chain that defines it, and the animation archives are listed in the
+/// pack's AnimationParam. <see cref="Resolve"/> returns null, with the reason logged, when the pack or a real model is missing.
+/// </remarks>
 public static class TotkActorInfo
 {
     public sealed record Resolved(string ModelName, IReadOnlyList<string> AnimPackNames);

@@ -10,6 +10,11 @@ using WildRenderingSharp.Logging;
 namespace WildRenderingSharp.Preparation.Totk;
 
 /// <summary>Runtime patches that let the vendored BfresLibrary parse TotK's V10 materials.</summary>
+/// <remarks>
+/// These Harmony prefixes replace the three steps of the BfresLibrary loader that fail on V10 materials. A material with no boolean shader
+/// options gets an empty bit-flag array, a duplicate dictionary key is skipped instead of throwing, and names stored as 64-bit keys are
+/// resolved through <see cref="ExternalStringTable"/>. <see cref="EnsureApplied"/> is safe to call repeatedly and must run before any BFRES is parsed.
+/// </remarks>
 public static class BfresPatches
 {
     static readonly object Gate = new();

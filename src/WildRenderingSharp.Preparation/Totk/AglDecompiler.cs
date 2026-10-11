@@ -9,6 +9,12 @@ using WildRenderingSharp.Rom;
 namespace WildRenderingSharp.Preparation.Totk;
 
 /// <summary>Decompiles programs of the engine's agl shader archives to GLSL, one file per macro combination and stage.</summary>
+/// <remarks>
+/// A variation is one combination of a program's macro values, and each yields a vertex and a pixel stage. <see cref="Variant"/> writes one
+/// combination and throws if the archive does not match, while <see cref="AllVariants"/> writes every combination and logs the ones that fail.
+/// The decompiled code reads the immediate constant buffer from a block nothing binds, so those reads are replaced with the values from the
+/// variation's control shader.
+/// </remarks>
 public static class AglDecompiler
 {
     public static SharcfbFile Open(IRomAccess rom, string sarcPath, string name)
