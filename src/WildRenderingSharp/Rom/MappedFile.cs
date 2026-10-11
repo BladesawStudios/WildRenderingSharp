@@ -9,6 +9,7 @@ sealed unsafe class MappedFile : IDisposable
     readonly MemoryMappedViewAccessor? _view;
     readonly byte* _pointer;
     readonly int _length;
+    bool _disposed;
 
     public MappedFile(string path)
     {
@@ -26,10 +27,15 @@ sealed unsafe class MappedFile : IDisposable
 
     public ReadOnlySpan<byte> Span => _length == 0 ? default : new ReadOnlySpan<byte>(_pointer, _length);
 
+    // Releases the map if its owner never disposed it.
+    ~MappedFile() => Dispose();
+
     public void Dispose()
     {
-        if (_view is null)
+        if (_view is null || _disposed)
             return;
+        _disposed = true;
+        GC.SuppressFinalize(this);
         _view.SafeMemoryMappedViewHandle.ReleasePointer();
         _view.Dispose();
         _file!.Dispose();
