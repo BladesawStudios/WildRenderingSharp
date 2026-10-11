@@ -23,12 +23,13 @@ internal static partial class DecompiledGlsl
         "#define inversesqrt(x) safe_inversesqrt(x)",
     ];
 
-    // The decompiler numbers constant buffer N as binding N - 3, so the driver's own buffer comes out negative and stricter
-    // drivers refuse it. Nothing ever fills that buffer, which is why it can share one binding.
+    // Matches a negative layout binding such as `binding = -1`: the decompiler numbers constant buffer N as binding N - 3, so the driver's own
+    // buffer comes out negative. Stricter drivers refuse it, and nothing fills that buffer, so it can share one binding.
     [GeneratedRegex(@"binding\s*=\s*-\d+")]
     private static partial Regex NegativeBinding();
 
-    // Fragment stores to the engine's feedback buffer are read by nothing here, and a shader with side effects loses early depth testing.
+    // Matches a whole line that assigns into a fragment storage buffer, such as `fp_s0.data[3] = x;`, but not a comparison. Nothing here reads
+    // the engine's feedback buffer, and a shader with side effects loses early depth testing.
     [GeneratedRegex(@"^[ \t]*fp_s\d+\.data\[[^\]\n]*\][ \t]*=(?!=)[^;\n]*;", RegexOptions.Multiline)]
     private static partial Regex FragmentStorageWrite();
 

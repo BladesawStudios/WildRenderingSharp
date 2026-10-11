@@ -9,6 +9,7 @@ namespace WildRenderingSharp.Shaders;
 /// </summary>
 internal static partial class ShadowLodRewrite
 {
+    // Matches a declaration such as `uniform sampler2DArrayShadow name;`, capturing the sampler type and its name.
     [GeneratedRegex(@"\buniform\s+(sampler2DArrayShadow|samplerCubeShadow|samplerCubeArrayShadow)\s+(\w+)\s*;")]
     private static partial Regex ShadowSamplerDeclaration();
 
@@ -24,6 +25,7 @@ internal static partial class ShadowLodRewrite
 
     static string RewriteCalls(string source, string sampler, string zero)
     {
+        // Matches the start of a `textureLod(sampler,` call on this one sampler; TryReadArguments reads the rest of the call.
         var call = new Regex(@"\btextureLod\s*\(\s*" + Regex.Escape(sampler) + @"\s*,");
         var result = new StringBuilder(source.Length);
         int at = 0;
