@@ -1,12 +1,12 @@
-using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>Exposure and a soft shoulder, from the HDR target to the display-range one.</summary>
-public sealed class BotwTonemapStage(FrameServices services) : IFrameStage, IDisposable
+internal sealed class BotwTonemapStage(StageServices services) : IFrameStage, IDisposable
 {
     readonly uint _program = GLProgramBuilder.Build(services.Gl, FullscreenShaders.Vertex450, GlslFiles.Load("Botw/Tonemap.frag"), "botw_tonemap");
 
@@ -21,5 +21,5 @@ public sealed class BotwTonemapStage(FrameServices services) : IFrameStage, IDis
         GLDiagnostics.CheckPass(gl, "BotW tonemap");
     }
 
-    public void Dispose() => services.Gl.DeleteProgram(_program);
+    public void Dispose() => services.Gl.ReleaseProgram(_program);
 }

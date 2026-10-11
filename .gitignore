@@ -3,3 +3,8 @@ obj/
 .vs/
 .idea/
 *.user
+
+
+# Per-machine render baselines and outputs (see tests/WildRenderingSharp.RenderRegression/README.md)
+tests/WildRenderingSharp.RenderRegression/golden/
+tests/WildRenderingSharp.RenderRegression/out/

@@ -30,11 +30,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="WildRenderingSharp.Tests" />
+    <InternalsVisibleTo Include="WildRenderingSharp.TestBench" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Glsl\**\*" LogicalName="Glsl/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\vendor\AampSharp\src\AampSharp\AampSharp.csproj" />
+    <ProjectReference Include="..\..\vendor\Yaz0Sharp\src\Yaz0Sharp\Yaz0Sharp.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,7 @@
 using System.Numerics;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Graphics.Data;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Rendering.Lighting;
 
 namespace WildRenderingSharp.Tests;
 

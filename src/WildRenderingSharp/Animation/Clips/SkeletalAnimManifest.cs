@@ -1,0 +1,39 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using WildRenderingSharp.Assets.Manifests;
+
+namespace WildRenderingSharp.Animation.Clips;
+
+/// <summary>
+/// Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.anim.json</c>, written by
+/// <c>ShaderLibrary.CompileTool.ExportTestBench.ExportSkeletalAnim</c> from a <c>BfresLibrary.SkeletalAnim</c> (FSKA).
+/// </summary>
+public sealed class SkeletalAnimManifest : IAnimClip
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("frame_count")] public int FrameCount { get; set; }
+    [JsonPropertyName("loop")] public bool Loop { get; set; }
+    // True when rotations are quaternions; otherwise BaseRotate and curve offsets 32/36/40 are Euler XYZ radians and W is unused.
+    [JsonPropertyName("rotation_is_quaternion")] public bool RotationIsQuaternion { get; set; } = true;
+    // SkeletalAnim.FlagsScale, same encoding as SkeletonScalingMode. Carried for completeness; the hierarchy walk uses the SKELETON's mode, which is
+    // what SkeletonObj::CalculateWorldMtx reads.
+    [JsonPropertyName("scaling_mode")] public SkeletonScalingMode ScalingMode { get; set; } = SkeletonScalingMode.Standard;
+    [JsonPropertyName("bone_anims")] public List<BoneAnimManifestEntry> BoneAnims { get; set; } = [];
+
+    static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    public static SkeletalAnimManifest Load(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return JsonSerializer.Deserialize<SkeletalAnimManifest>(stream, JsonOptions)
+            ?? throw new InvalidDataException($"'{path}' did not deserialize to a skeletal anim manifest.");
+    }
+
+    public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
+        Directory.Exists(dataDirectory)
+            ? Directory.EnumerateFiles(dataDirectory, $"{modelName}.*.anim.json")
+                .Select(Path.GetFileName)
+                .Select(n => n![(modelName.Length + 1)..^".anim.json".Length])
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            : [];
+}

@@ -1,12 +1,15 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Sky;
 
 /// <summary>Fills the view below the horizon with one colour, fading in over the haze just under it; the sky's table has nothing meaningful down there.</summary>
-public sealed class GroundPass : IDisposable
+internal sealed class GroundPass : IDisposable
 {
     static readonly string FragmentSource = GlslFiles.Load("Totk/Sky/Ground/Main.frag");
 
@@ -19,9 +22,9 @@ public sealed class GroundPass : IDisposable
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "sky_ground");
     }
 
-    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target, ReadOnlySpan<Vector4> viewInv3Rows,
-        float aspect, float tanHalfFovY, Vector3 colour)
+    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture target, SkyView view, Vector3 colour)
     {
+        var (viewInv3Rows, aspect, tanHalfFovY) = view;
         targets.BindColorTarget(target);
         _gl.Disable(EnableCap.DepthTest);
         _gl.Disable(EnableCap.CullFace);
@@ -37,7 +40,7 @@ public sealed class GroundPass : IDisposable
             r0.Y, r1.Y, r2.Y,
             r0.Z, r1.Z, r2.Z,
         };
-        int loc = _gl.GetUniformLocation(_program, "uViewInv");
+        int loc = _gl.UniformLocation(_program, "uViewInv");
         if (loc >= 0) _gl.UniformMatrix3(loc, 1, false, m);
         _gl.SetVec2(_program, "uTanHalf", new Vector2(aspect * tanHalfFovY, tanHalfFovY));
         _gl.SetVec3(_program, "uGround", colour);
@@ -48,6 +51,6 @@ public sealed class GroundPass : IDisposable
 
     public void Dispose()
     {
-        if (_program != 0) _gl.DeleteProgram(_program);
+        if (_program != 0) _gl.ReleaseProgram(_program);
     }
 }

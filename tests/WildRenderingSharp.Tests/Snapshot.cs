@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using WildRenderingSharp.Graphics.Ubos;
 
 namespace WildRenderingSharp.Tests;
 
@@ -8,6 +9,8 @@ namespace WildRenderingSharp.Tests;
 /// </summary>
 static class Snapshot
 {
+    public static void Verify(string name, WildRenderingSharp.Graphics.Ubos.Ubo ubo) => Verify(name, ubo.Bytes.ToArray());
+
     public static void Verify(string name, byte[] bytes)
     {
         string actual = Convert.ToHexString(SHA256.HashData(bytes));

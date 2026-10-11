@@ -1,16 +1,18 @@
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Totk.Deferred;
+using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
+using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Lights the G-buffer one deferred pass at a time.</summary>
-public sealed class ResolveStage(
-    FrameServices services, DeferredScene scene, TerrainRenderer terrain,
+internal sealed class ResolveStage(
+    StageServices services, DeferredScene scene, TerrainRenderer terrain,
     ScreenSpaceLightingStage screenSpaceLighting, PassIdStamper stamper) : IFrameStage, IDisposable
 {
     readonly DeferredResolvePass _resolve = new(services.Gl);
@@ -29,13 +31,13 @@ public sealed class ResolveStage(
         var targets = frame.Targets;
         StartPendingTrace(targets);
 
-        bool hasSceneColorShapes = SceneColorShapePass.Any(frame.Groups);
+        bool hasSceneColorShapes = SceneColorShapePass.Any(frame.Setup.Groups);
         var sceneColorPasses = hasSceneColorShapes
-            ? frame.Groups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass()).ToHashSet(StringComparer.Ordinal)
+            ? frame.Setup.Groups.SelectMany(g => g.Shapes).Where(s => s.ReadsSceneColor).Select(s => s.DeferredPass()).ToHashSet(StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);
 
         // The host's water reads the lit scene too, and is lit by its own pass.
-        var waterHost = frame.TerrainDrawn && frame.TotkEnvironment().Terrain is { HasWater: true } && terrain.Shading.WaterAvailable
+        var waterHost = terrain.GBufferDrawn && frame.TotkEnvironment().Terrain is { HasWater: true } && terrain.Shading.WaterAvailable
             ? frame.TotkEnvironment().Terrain : null;
         if (waterHost is not null)
         {
@@ -44,7 +46,7 @@ public sealed class ResolveStage(
         }
 
         bool twoHalves = hasSceneColorShapes || waterHost is not null;
-        _resolve.SetEnvironment(frame.HemiSky, frame.HemiGround);
+        _resolve.SetEnvironment(frame.Setup.HemiSky, frame.Setup.HemiGround);
 
         // The pass that lights the terrain, which no actor stamps, in whichever half it runs in.
         int defaultPass = stamper.ClaimPass(frame);
@@ -79,7 +81,7 @@ public sealed class ResolveStage(
         {
             resources.BindCamera(FrameUniformKeys.GBufferCamera);
             ClipOrigin.Game(gl, true);
-            _sceneColorShapes.Run(resources, targets, frame.Groups, services.Programs);
+            _sceneColorShapes.Run(resources, targets, frame.Setup.Groups, services.Drawer);
             ClipOrigin.Game(gl, false);
         }
         if (waterHost is not null)

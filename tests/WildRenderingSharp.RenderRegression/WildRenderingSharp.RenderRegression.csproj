@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WildRenderingSharp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WildRenderingSharp\WildRenderingSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Built first because the scenes are rendered by running it, but not linked against. -->
+    <ProjectReference Include="..\WildRenderingSharp.TestBench\WildRenderingSharp.TestBench.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

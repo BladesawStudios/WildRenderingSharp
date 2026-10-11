@@ -1,8 +1,11 @@
-using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Animation.Clips;
+using WildRenderingSharp.Animation.Posing;
+using WildRenderingSharp.Gpu;
 using System.Numerics;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Scene.Posing;
 
 namespace WildRenderingSharp.Scene;
 
@@ -35,7 +38,7 @@ public class RenderActor : IDisposable
 
 
     public Vector3 WorldCenter => TransformOverride is { } rows
-        ? Vector3.Transform(Model.BoundsCenter, CameraData.FromRows(rows))
+        ? Vector3.Transform(Model.BoundsCenter, GpuMatrix.FromRows(rows))
         : Position + Model.BoundsCenter;
 
     // Per-actor animation state.
@@ -83,7 +86,7 @@ public class RenderActor : IDisposable
 
     protected virtual void ModifyPose(Matrix4x4[] world, float deltaSeconds) { }
 
-    public void ApplyMaterialAnimations(Silk.NET.OpenGL.GL gl)
+    public void ApplyMaterialAnimations()
     {
         var patternAnims = TexturePattern.Slots
             .Select(s => new TexturePatternPose.Playing(s.Clip, s.Frame)).ToList();
@@ -95,9 +98,9 @@ public class RenderActor : IDisposable
         var materialAnims = MaterialSlots
             .Select(s => new MaterialAnimPose.Playing(s.Clip, s.Frame)).ToList();
         if (materialAnims.Count > 0)
-            MaterialAnimPose.Apply(gl, Model, materialAnims);
+            MaterialAnimPose.Apply(Model, materialAnims);
         else
-            MaterialAnimPose.Clear(gl, Model);
+            MaterialAnimPose.Clear(Model);
     }
 
     public ActorRenderInput ToRenderInput(float deltaSeconds, ulong frameId) =>

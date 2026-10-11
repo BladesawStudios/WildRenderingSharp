@@ -1,5 +1,6 @@
 using System.Numerics;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 
 namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 
@@ -24,7 +25,7 @@ public sealed class TotkSettings
 
     public float SkyPaletteTint { get; set; }
 
-    /// <summary>How far the sky shader blends the haze colour (the palette's fog colour) into the table where the table is thick, which is toward the horizon.</summary>
+    // How far the sky shader blends the haze colour (the palette's fog colour) into the table where the table is thick, which is toward the horizon.
     public float SkyHorizonHaze { get; set; }
 
 
@@ -57,12 +58,12 @@ public sealed class TotkSettings
 
     public float CloudResolutionScale { get; set; } = 0.5f;
 
-    /// <summary>Which of the game's cloud weathers (the <c>PrequelCwCloud</c> file number, 0 to 2) the layers look like.</summary>
+    // Which of the game's cloud weathers (the PrequelCwCloud file number, 0 to 2) the layers look like.
     public int CloudWeatherSet { get; set; }
 
-    /// <summary>Which of the three cloud layers are drawn, still subject to the weather leaving one invisible.</summary>
+    // Which of the three cloud layers are drawn, still subject to the weather leaving one invisible.
     public bool[] CloudLayerEnabled { get; } = [true, true, true];
 
-    /// <summary>The unit wind the clouds scroll along; the default is the one a capture of the game's cloud draw implies.</summary>
+    // The unit wind the clouds scroll along; the default is the one a capture of the game's cloud draw implies.
     public Vector2 CloudWind { get; set; } = CloudLayerResolver.CapturedWind;
 }

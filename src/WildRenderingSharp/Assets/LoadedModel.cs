@@ -1,14 +1,19 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Assets.Textures;
 
 namespace WildRenderingSharp.Assets;
 
-/// <summary>A model loaded and ready to draw - the manifest plus every shape's GL objects and world-space bounds. Needs the GL context current; a model loaded on a worker thread needs <see cref="FinishOnRenderThread"/> on the renderer's thread before drawing.</summary>
+/// <summary>
+/// A model loaded and ready to draw - the manifest plus every shape's GL objects and world-space bounds. Needs the GL context current; a
+/// model loaded on a worker thread needs <see cref="FinishOnRenderThread"/> on the renderer's thread before drawing.
+/// </summary>
 public sealed class LoadedModel : IDisposable
 {
     readonly GL _gl;
 
-    public required ModelManifest Manifest { get; init; }
+    internal ModelManifest Manifest { get; init; } = null!;
     public required IReadOnlyList<LoadedShape> Shapes { get; init; }
     public required Vector3 BoundsMin { get; init; }
     public required Vector3 BoundsMax { get; init; }
@@ -23,7 +28,7 @@ public sealed class LoadedModel : IDisposable
 
     public IReadOnlyList<string> AvailableMaterialAnims { get; init; } = [];
 
-    public TextureCache Textures { get; }
+    internal TextureCache Textures { get; }
 
     internal List<Action>? PendingVertexArrays { get; set; }
 
@@ -57,7 +62,7 @@ public sealed class LoadedModel : IDisposable
             _gl.DeleteVertexArray(shape.PassIdVao);
             _gl.DeleteBuffer(shape.VertexBuffer);
             _gl.DeleteBuffer(shape.IndexBuffer);
-            _gl.DeleteBuffer(shape.MaterialBuffer);
+            shape.MaterialBlock.Dispose();
         }
         Textures.Dispose();
     }

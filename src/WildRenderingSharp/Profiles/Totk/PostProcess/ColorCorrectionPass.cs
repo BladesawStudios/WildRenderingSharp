@@ -1,7 +1,10 @@
-using WildRenderingSharp.Graphics;
 using Silk.NET.OpenGL;
-using WildRenderingSharp.Profiles.Totk.Atmosphere;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.PostProcess;
 
@@ -9,13 +12,14 @@ namespace WildRenderingSharp.Profiles.Totk.PostProcess;
 /// The game's final grade, <c>agl::pfx::ColorCorrection</c> driven by <c>postfx/master_field.baglccr</c>, applied after
 /// <c>agl_hdr_compose</c>.
 /// </summary>
-public sealed class ColorCorrectionPass : IDisposable
+internal sealed class ColorCorrectionPass : IDisposable
 {
     readonly GL _gl;
     readonly uint _program;
     readonly uint _blitProgram;
 
-    // Its own scratch, not targets.Scene: grading in place needs a bounce buffer, but Scene holds a Y-flipped copy for depth-testing against the G-buffer, and copying back through a helper with its own
+    // Its own scratch, not targets.Scene: grading in place needs a bounce buffer, but Scene holds a Y-flipped copy for depth-testing
+    // against the G-buffer, and copying back through a helper with its own
     // flip semantics produced an inverted frame. Blitting both ways with the same vertex shader keeps the orientation self-consistent.
     uint _scratchTex, _scratchFbo;
     int _scratchW, _scratchH;
@@ -92,8 +96,8 @@ public sealed class ColorCorrectionPass : IDisposable
 
     public void Dispose()
     {
-        if (_program != 0) _gl.DeleteProgram(_program);
-        if (_blitProgram != 0) _gl.DeleteProgram(_blitProgram);
+        if (_program != 0) _gl.ReleaseProgram(_program);
+        if (_blitProgram != 0) _gl.ReleaseProgram(_blitProgram);
         if (_scratchTex != 0) _gl.DeleteTexture(_scratchTex);
         if (_scratchFbo != 0) _gl.DeleteFramebuffer(_scratchFbo);
     }

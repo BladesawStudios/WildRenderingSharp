@@ -1,13 +1,22 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Hosting;
+using WildRenderingSharp.Assets.Baking;
+using WildRenderingSharp.Assets.Textures;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Hosting.Content;
+using WildRenderingSharp.Hosting.Views;
 using WildRenderingSharp.Pipeline;
-using WildRenderingSharp.Rendering;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Scene;
-using WildRenderingSharp.Profiles.Totk.Terrain;
+using WildRenderingSharp.Pipeline.Drawing;
+using WildRenderingSharp.Pipeline.Shadows;
+using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Terrain;
+using WildRenderingSharp.Rendering.Cameras;
+using WildRenderingSharp.Rendering.Lighting;
+using WildRenderingSharp.Rom;
+using WildRenderingSharp.Scene;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp;
 
@@ -19,9 +28,11 @@ public sealed class WildRenderer : IDisposable
 {
     readonly GL _gl;
     readonly List<RenderActor> _actors = [];
+    readonly List<InstanceBatch> _instances = [];
+    readonly ModelFactory _models;
+    readonly BakeAttachment _bakes;
 
     public CacheLayout Cache { get; }
-    public string? RomfsRoot { get; }
     public RenderEnvironment Environment { get; }
     public LightingContext Lighting { get; } = new();
     public TotkSettings Totk { get; } = new();
@@ -33,6 +44,12 @@ public sealed class WildRenderer : IDisposable
 
     public SharedTextures SharedTextures { get; }
 
+    // The game's terrain programs, for a host that hands its terrain over (Terrain); null when the pipeline is not TotK's.
+    public TerrainShading? TerrainShading => (Pipeline.Graph as TotkFrameGraph)?.Terrain;
+
+    // The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like; null when the pipeline is not TotK's.
+    public CaveShading? CaveShading => (Pipeline.Graph as TotkFrameGraph)?.Cave;
+
     public IReadOnlyList<RenderActor> Actors => _actors;
 
     public ulong FrameId { get; private set; }
@@ -42,7 +59,7 @@ public sealed class WildRenderer : IDisposable
 
     public (int ActorIndex, int ShapeIndex)? Highlight { get; set; }
 
-    public WildRenderer(GL gl, CacheLayout cache, string? romfsRoot, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
+    public WildRenderer(GL gl, CacheLayout cache, IRomAccess? rom, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
     {
         if (!cache.HasSystemAssets)
             throw new InvalidOperationException(
@@ -50,94 +67,39 @@ public sealed class WildRenderer : IDisposable
 
         _gl = gl;
         Cache = cache;
-        RomfsRoot = romfsRoot;
-        Environment = environment ?? RenderEnvironment.Load(romfsRoot, cache);
+        Environment = environment ?? RenderEnvironment.Load(rom);
 
         using (GLHostState.Enter(gl))
         {
-            Pipeline = new DeferredPipeline(gl, cache.Root, cache.Shaders, initialWidth, initialHeight,
+            Pipeline = new DeferredPipeline(gl, cache.Shaders, initialWidth, initialHeight, new TotkProfile(),
                 cache.DeferredMaterials, cache.SystemTextures);
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
+            _models = new ModelFactory(gl, Pipeline.Programs, cache, ExternalTextures, SharedTextures, Totk);
+            _bakes = new BakeAttachment(gl, cache);
             // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
             Pipeline.PrepareEnvironment(Environment.Resolve(Totk));
         }
     }
 
-    public bool CompactModelVertices { get; set; }
-
-    BakeLibrary? _bakes;
-
-    public BakeLibrary Bakes => _bakes ?? Interlocked.CompareExchange(ref _bakes, new BakeLibrary(_gl, Cache.Bake), null) ?? _bakes!;
-
-    public IReadOnlyList<string> AttachBake(InstanceBatch batch, IReadOnlyList<ulong> hashes)
+    public bool CompactModelVertices
     {
-        using var _ = GLHostState.Enter(_gl);
-        var (perInstance, missing) = FindBakes(hashes);
-        ApplyBake(batch, perInstance);
-        return missing;
+        get => _models.CompactVertices;
+        set => _models.CompactVertices = value;
     }
 
-    public void ApplyBake(InstanceBatch batch, BakeActor?[] perInstance)
-    {
-        using var _ = GLHostState.Enter(_gl);
-        if (perInstance.FirstOrDefault(b => b is not null) is { } any)
-        {
-            foreach (var shape in batch.Model.Shapes)
-            {
-                shape.HasBakeRegion = any.MaterialIndexByName.ContainsKey(shape.Material);
-                if (!any.MaterialIndexByName.TryGetValue(shape.Material, out int index))
-                    continue;
-                var entry = shape.MaterialParams?.Uniforms.FirstOrDefault(u => u.Name == "gsys_material_id");
-                if (entry is null || entry.Offset + 4 > shape.MaterialBytes.Length)
-                    continue;
-                BitConverter.TryWriteBytes(shape.MaterialBytes.AsSpan(entry.Offset, 4), index);
-                unsafe
-                {
-                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, shape.MaterialBuffer);
-                    fixed (byte* p = &shape.MaterialBytes[entry.Offset])
-                        _gl.BufferSubData(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, entry.Offset, 4, p);
-                    _gl.BindBuffer(Silk.NET.OpenGL.BufferTargetARB.UniformBuffer, 0);
-                }
-            }
-        }
-        batch.SetBake(perInstance);
-    }
+    public BakeLibrary Bakes => _bakes.Library;
 
-    public LoadedModel LoadModelOnWorker(string resolvedModelName)
-    {
-        var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName), ExternalTextures)
-        {
-            CompactVertices = CompactModelVertices,
-            SharedTextures = SharedTextures,
-            DeferVertexArrays = true,
-        };
-        var model = loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Totk.EnableKnownMaterialFixes);
-        foreach (var shape in model.Shapes)
-            ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
-        _gl.Finish();
-        return model;
-    }
+    public IReadOnlyList<string> AttachBake(InstanceBatch batch, IReadOnlyList<ulong> hashes) => _bakes.Attach(batch, hashes);
 
-    public (BakeActor?[] PerInstance, IReadOnlyList<string> Missing) FindBakes(IReadOnlyList<ulong> hashes)
-    {
-        var library = Bakes;
-        var missing = library.MissingTiles(hashes);
-        var perInstance = hashes.Select(library.Find).ToArray();
-        return (perInstance, missing);
-    }
+    public void ApplyBake(InstanceBatch batch, BakeActor?[] perInstance) => _bakes.Apply(batch, perInstance);
 
-    public LoadedModel LoadModel(string resolvedModelName)
-    {
-        using var _ = GLHostState.Enter(_gl);
-        var loader = new ModelLoader(_gl, Pipeline.Programs, Cache.ModelDirectory(resolvedModelName), ExternalTextures)
-        {
-            CompactVertices = CompactModelVertices,
-            SharedTextures = SharedTextures,
-        };
-        return loader.Load(resolvedModelName, enableKnownDecompilerCorrections: Totk.EnableKnownMaterialFixes);
-    }
+    public LoadedModel LoadModelOnWorker(string resolvedModelName) => _models.LoadOnWorker(resolvedModelName);
+
+    public (BakeActor?[] PerInstance, IReadOnlyList<string> Missing) FindBakes(IReadOnlyList<ulong> hashes) => _bakes.Find(hashes);
+
+    public LoadedModel LoadModel(string resolvedModelName) => _models.Load(resolvedModelName);
 
     public RenderActor AddActor(string resolvedModelName)
     {
@@ -145,8 +107,6 @@ public sealed class WildRenderer : IDisposable
         AddActor(actor);
         return actor;
     }
-
-    readonly List<InstanceBatch> _instances = [];
 
     public IReadOnlyList<InstanceBatch> Instances => _instances;
 
@@ -176,8 +136,8 @@ public sealed class WildRenderer : IDisposable
         SceneChanged();
         using var _ = GLHostState.Enter(_gl);
         batch.Dispose();
-        if (disposeModel && !_instances.Any(b => ReferenceEquals(b.Model, batch.Model)) && !_actors.Any(a => ReferenceEquals(a.Model, batch.Model)))
-            batch.Model.Dispose();
+        if (disposeModel)
+            DisposeModelIfUnused(batch.Model);
     }
 
     public void ClearInstances()
@@ -189,10 +149,13 @@ public sealed class WildRenderer : IDisposable
         foreach (var batch in all)
             batch.Dispose();
         foreach (var model in all.Select(b => b.Model).Distinct())
-        {
-            if (!_actors.Any(a => ReferenceEquals(a.Model, model)))
-                model.Dispose();
-        }
+            DisposeModelIfUnused(model);
+    }
+
+    void DisposeModelIfUnused(LoadedModel model)
+    {
+        if (!_instances.Any(b => ReferenceEquals(b.Model, model)) && !_actors.Any(a => ReferenceEquals(a.Model, model)))
+            model.Dispose();
     }
 
     public void AddActor(RenderActor actor)
@@ -256,7 +219,7 @@ public sealed class WildRenderer : IDisposable
     {
         FrameId++;
         foreach (var actor in _actors)
-            actor.ApplyMaterialAnimations(_gl);
+            actor.ApplyMaterialAnimations();
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
         return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain), inputs,
             AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades);
@@ -294,7 +257,7 @@ public sealed class WildRenderer : IDisposable
         View.Dispose();
         ExternalTextures.Dispose();
         SharedTextures.Dispose();
-        _bakes?.Dispose();
+        _bakes.Dispose();
         Pipeline.Dispose();
     }
 }

@@ -1,3 +1,4 @@
+using WildRenderingSharp.Gpu;
 using Silk.NET.OpenGL;
 
 namespace WildRenderingSharp.Profiles.Totk.Shaders;
@@ -6,7 +7,7 @@ namespace WildRenderingSharp.Profiles.Totk.Shaders;
 /// Neutral stand-ins for the vertex textures the game's engine renders itself: no wind swell, grass pressed nowhere (the lie map is
 /// read as <c>2x - 1</c>, so 0.5 is no push), no thickness.
 /// </summary>
-public sealed class EngineVertexTextures(GL gl) : IDisposable
+internal sealed class EngineVertexTextures(GL gl) : IDisposable
 {
     uint _windSwell, _lieMap, _thickness;
 
@@ -18,16 +19,10 @@ public sealed class EngineVertexTextures(GL gl) : IDisposable
             _lieMap = Constant(0.5f, 0.5f);
             _thickness = Constant(0f, 0f);
         }
-        BindUnit(GlslSanitizer.WindSwellUnit, _windSwell);
-        BindUnit(GlslSanitizer.LieMapUnit, _lieMap);
-        BindUnit(GlslSanitizer.ThicknessUnit, _thickness);
+        gl.BindTextureAt(TotkGlsl.WindSwellUnit, _windSwell);
+        gl.BindTextureAt(TotkGlsl.LieMapUnit, _lieMap);
+        gl.BindTextureAt(TotkGlsl.ThicknessUnit, _thickness);
         gl.ActiveTexture(TextureUnit.Texture0);
-    }
-
-    void BindUnit(int unit, uint handle)
-    {
-        gl.ActiveTexture(TextureUnit.Texture0 + unit);
-        gl.BindTexture(TextureTarget.Texture2D, handle);
     }
 
     unsafe uint Constant(float r, float g)

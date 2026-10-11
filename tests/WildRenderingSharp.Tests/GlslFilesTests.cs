@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using WildRenderingSharp.Graphics;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Tests;
 

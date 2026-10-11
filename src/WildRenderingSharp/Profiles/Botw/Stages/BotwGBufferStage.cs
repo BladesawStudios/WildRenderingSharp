@@ -1,22 +1,22 @@
-using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Pipeline;
+using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
+using WildRenderingSharp.Pipeline.Passes;
 
 namespace WildRenderingSharp.Profiles.Botw.Stages;
 
 /// <summary>Draws the opaque shapes into the G-buffer.</summary>
-public sealed class BotwGBufferStage(FrameServices services) : IFrameStage
+internal sealed class BotwGBufferStage(StageServices services) : IFrameStage
 {
     readonly GBufferPass _gbuffer = new(services.Gl);
 
     public void Run(FrameContext frame)
     {
         ClipOrigin.Game(services.Gl, true);
-        _gbuffer.Run(services.Resources, frame.Targets, frame.OpaqueGroups, services.Programs);
+        _gbuffer.Run(services.Resources, frame.Targets, frame.Setup.OpaqueGroups, services.Drawer);
         ClipOrigin.Game(services.Gl, false);
         GLDiagnostics.CheckPass(services.Gl, "G-buffer pass");
-        frame.GBufferCounts = ShapeDrawing.TakeCounts();
+        frame.Stats.GBuffer = services.Drawer.TakeCounts();
         services.Resources.BindCamera(FrameUniformKeys.SceneCamera);
     }
 }

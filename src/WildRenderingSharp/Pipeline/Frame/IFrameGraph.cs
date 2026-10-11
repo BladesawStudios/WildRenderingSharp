@@ -1,11 +1,10 @@
 using WildRenderingSharp.Assets;
-using WildRenderingSharp.Graphics;
-using WildRenderingSharp.Rendering;
+using WildRenderingSharp.Graphics.Contracts;
 
 namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>A game's ordered frame, with whatever scene and environment state its stages share.</summary>
-public interface IFrameGraph : IDisposable
+internal interface IFrameGraph : IDisposable
 {
     void SetScene(IReadOnlyList<LoadedModel> models);
 
