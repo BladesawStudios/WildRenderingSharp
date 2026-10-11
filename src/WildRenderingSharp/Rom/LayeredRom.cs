@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Rom;
 /// </summary>
 public sealed class LayeredRom : IRomAccess
 {
-    public const long DefaultCacheBudget = 768L << 20;
+    public const long DefaultCacheBudget = 768L * 1024 * 1024;
 
     const string NestSeparator = "//";
 
