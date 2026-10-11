@@ -8,6 +8,10 @@ namespace WildRenderingSharp.Preparation.Totk;
 /// The shared table naming the keys of TotK's V10 materials, read from the ROM; a scope makes one ROM's table the one BFRES parsing on this
 /// async flow uses.
 /// </summary>
+/// <remarks>
+/// The file holds a sorted array of 64-bit keys starting at byte 224, followed by an entries array whose offset the header stores at byte 192.
+/// Each entry is 16 bytes and begins with the offset of a length-prefixed UTF-8 string. A key's string is the entry at the same index as the key.
+/// </remarks>
 public sealed class ExternalStringTable
 {
     const string TablePath = "Shader/ExternalBinaryString.bfres.mc";
@@ -35,6 +39,7 @@ public sealed class ExternalStringTable
             _keys[i] = BitConverter.ToUInt64(data, (int)(KeyArrayStart + i * 8));
     }
 
+    // Loads the ROM's table and makes it the current one for this async flow until the returned scope is disposed.
     public static IDisposable Use(IRomAccess rom)
     {
         byte[] table = Mcpk.ToBfres(rom.ReadAllBytesDirectSpan(TablePath).ToArray(), TablePath);
@@ -43,6 +48,7 @@ public sealed class ExternalStringTable
         return new Scope(previous);
     }
 
+    // The string a key names in the current table, or null if the table has no entry for it.
     public static string? Lookup(ulong key) =>
         (Current.Value ?? throw new InvalidOperationException("No external string table is in use.")).Find(key);
 
