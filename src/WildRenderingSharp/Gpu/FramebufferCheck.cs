@@ -7,6 +7,8 @@ namespace WildRenderingSharp.Gpu;
 static class FramebufferCheck
 {
     // Checked once per construction because the status query can force a driver sync.
+    // TODO: this only checks completeness. Each render target creates and attaches its own framebuffer, and an FBO class that owns creation,
+    // attachments and this check would replace that.
     public static void Validate(GL gl, string name)
     {
         var status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);

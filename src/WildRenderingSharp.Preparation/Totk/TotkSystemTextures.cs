@@ -82,6 +82,8 @@ public static class TotkSystemTextures
         return null;
     }
 
+    // TODO: the decoder takes a managed array, so the blocks are copied before decoding and the decoded RGBA is copied again into the red
+    // channel. BC decoding also happens here, in the extractor, rather than in the texture pipeline.
     internal static void RedChannel(TextureFormat format, ReadOnlySpan<byte> blocks, int width, int height, Span<byte> destination)
     {
         byte[] rgba = TextureDecoder.ToRgba8(format, blocks.ToArray(), width, height);

@@ -15,6 +15,8 @@ public sealed class LayeredRom : IRomAccess
 
     readonly string[] _roots;
     readonly RomCompression _compression;
+    // TODO: mapped files are not counted by the cache budget and stay mapped until the ROM is disposed. They cost address space, and the
+    // OS can reclaim the pages they have read.
     readonly ConcurrentDictionary<string, MappedFile> _mapped = new(StringComparer.OrdinalIgnoreCase);
     readonly SizedLruCache<DecompressedFile> _decompressed;
     readonly AsyncLocal<RomRecording?> _recording = new();
@@ -129,6 +131,8 @@ public sealed class LayeredRom : IRomAccess
             try
             {
                 ReadOnlySpan<byte> stored = Read(path, decompress: false);
+                // TODO: an uncompressed archive is copied out of its memory map because the cache holds byte arrays, so the map saves
+                // nothing here. Reading archives through a Stream over MappedFile would avoid the copy.
                 bytes = _compression.IsCompressed(stored) ? _compression.Decompress(stored) : stored.ToArray();
             }
             catch (FileNotFoundException)

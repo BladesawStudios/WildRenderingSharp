@@ -18,6 +18,8 @@ using WildRenderingSharp.Rendering.Cameras;
 
 namespace WildRenderingSharp.Tests;
 
+// TODO: each test compares a SHA-256 of a generated UBO with a recorded one, so an intended layout change fails every affected test and a
+// failure does not say which field moved. Comparing the fields would be more robust.
 public class PassUboSnapshotTests
 {
     static readonly Vector3 SunView = Vector3.Normalize(new(0.3f, 0.8f, 0.5f));
