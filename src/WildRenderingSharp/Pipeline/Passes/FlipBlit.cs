@@ -11,8 +11,8 @@ internal sealed class FlipBlit : IDisposable
 {
     static readonly string FlipFragmentSource = GlslFiles.Load("Pipeline/Forward/Flip.frag");
 
-    // The combine step after forward geometry has been added into the scene. The forward program's base colour term is negative for
-    // every input (a decompiler artifact), so the result is floored at the deferred-only copy to let the forward pass only brighten.
+    // The combine step after forward geometry has been added into the scene, floored at the deferred-only copy so the forward pass only
+    // brightens and only adds coverage: the forward program's base colour term is negative for every input (a decompiler artifact).
     static readonly string FloorFragmentSource = GlslFiles.Load("Pipeline/Forward/Floor.frag");
 
     readonly GL _gl;
