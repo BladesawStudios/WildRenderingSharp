@@ -112,7 +112,7 @@ sealed class TextureUploader(GL gl)
         _ => GLEnum.Alpha,
     };
 
-    // Maps a GX2 wrap mode name to GL, where null means repeat. GL has no border-colour clamp, so every clamp variant and the MirrorOnce ones collapse to clamp-to-edge.
+    // Maps a GX2 wrap mode name to GL, where null means repeat. Every clamp variant, including border-colour clamps and the MirrorOnce ones, collapses to clamp-to-edge.
     static GLEnum MapWrapMode(string? wrap) => wrap switch
     {
         null or "Wrap" => GLEnum.Repeat,
