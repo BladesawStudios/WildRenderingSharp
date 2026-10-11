@@ -23,7 +23,7 @@ public sealed class TotkAssets(IRomAccess rom) : IGameAssets
         }
 
         Log.Info($"[ExportTestBench] Decompressing {path}...");
-        return _models[modelName] = Mcpk.ToBfres(rom.ReadAllBytesDirectSpan(path).ToArray(), path);
+        return _models[modelName] = Mcpk.ToBfres(rom.ReadAllBytesDirectSpan(path), path);
     }
 
     public TextureHandle? FindTexture(string modelName, string name) => TotkTextures.Handle(rom, name);

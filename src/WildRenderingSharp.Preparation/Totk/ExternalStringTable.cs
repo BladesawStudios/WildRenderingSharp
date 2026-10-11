@@ -43,7 +43,7 @@ public sealed class ExternalStringTable
     // Loads the ROM's table for Lookup to use until the returned scope is disposed, then goes back to the previous table.
     public static IDisposable Use(IRomAccess rom)
     {
-        byte[] table = Mcpk.ToBfres(rom.ReadAllBytesDirectSpan(TablePath).ToArray(), TablePath);
+        byte[] table = Mcpk.ToBfres(rom.ReadAllBytesDirectSpan(TablePath), TablePath);
         var previous = Current.Value;
         Current.Value = new ExternalStringTable(table);
         return new Scope(previous);
