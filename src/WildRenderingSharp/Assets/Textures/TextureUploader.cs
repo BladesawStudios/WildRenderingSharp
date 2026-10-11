@@ -112,7 +112,7 @@ sealed class TextureUploader(GL gl)
         _ => GLEnum.Alpha,
     };
 
-    // Maps an NVN wrap mode name to GL, where null means repeat. Every clamp variant, including border-colour clamps and the MirrorOnce ones, collapses to clamp-to-edge.
+    // Maps the manifest's wrap mode name (BfresLibrary's GX2-style enum names) to GL, where null means repeat. Anything that is not repeat or mirror clamps to the edge.
     static GLEnum MapWrapMode(string? wrap) => wrap switch
     {
         null or "Wrap" => GLEnum.Repeat,
