@@ -26,6 +26,9 @@
          the CPU to plain RGBA instead of gambling on hardware support. BC1/3/4/5/7 stay on the
          GPU-native compressed-upload path, which desktop GL supports universally. -->
     <PackageReference Include="AstcSharp" Version="3.1.0" />
+    <PackageReference Include="SkiaSharp" Version="4.153.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.153.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="4.153.1" />
     <PackageReference Include="TotkCommon" Version="1.3.3" />
   </ItemGroup>
 
