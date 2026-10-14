@@ -1,3 +1,4 @@
+using WildRenderingSharp.Imaging;
 namespace WildRenderingSharp.RenderRegression;
 
 /// <summary>How far a render is from its baseline: the mean per-channel difference out of 255, and the share of pixels that differ visibly.</summary>
