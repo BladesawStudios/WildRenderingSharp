@@ -21,7 +21,7 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
         var cam = CameraData.From(frame.Camera, frame.Targets.Width, frame.Targets.Height);
         var flipped = cam.FlippedY();
         var sunWorld = SunDirection.FromElevationAzimuth(lighting.SunElevation, lighting.SunAzimuth);
-        var sunView = Vector3.Transform(sunWorld, cam.View);
+        var sunView = SunDirection.ToView(sunWorld, cam.View);
         bool gameOrigin = ClipOrigin.Supported(services.Gl);
 
         var (casting, groups, opaque) = BuildGroups(frame);
