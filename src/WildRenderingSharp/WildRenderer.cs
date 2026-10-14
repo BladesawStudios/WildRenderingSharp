@@ -12,6 +12,7 @@ using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Terrain;
+using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
 using WildRenderingSharp.Rendering.Lighting;
 using WildRenderingSharp.Rom;
@@ -61,6 +62,7 @@ public sealed class WildRenderer : IDisposable
 
     public WildRenderer(GL gl, CacheLayout cache, IRomAccess? rom, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
     {
+        GLDebug.GLInit(gl);
         if (!cache.HasSystemAssets)
             throw new InvalidOperationException(
                 $"The cache at '{cache.Root}' has no system assets yet. Run IModelPreparer.EnsureSystemAssetsAsync against the romfs first.");
