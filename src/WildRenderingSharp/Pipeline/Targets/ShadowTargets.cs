@@ -48,8 +48,10 @@ sealed class ShadowTargets : IDisposable
 
     public void BindCascade(int cascade)
     {
+        // Read first: the framebuffer is created along with the array, on first use.
+        uint cascades = Cascades.Handle;
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _cascadeFramebuffer);
-        _gl.FramebufferTextureLayer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, Cascades.Handle, 0, cascade);
+        _gl.FramebufferTextureLayer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, cascades, 0, cascade);
         _gl.DrawBuffer(DrawBufferMode.None);
         _gl.ReadBuffer(ReadBufferMode.None);
         _gl.Viewport(0, 0, CascadeSize, CascadeSize);
