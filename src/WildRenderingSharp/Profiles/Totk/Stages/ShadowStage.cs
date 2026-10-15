@@ -116,6 +116,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var viewProj = new Matrix4x4[count];
         var texelWorld = new float[count];
         var bias = new float[count];
+        var invRange = new float[count];
         long actorSignature = ShadowSignatures.ActorSignature(request.Actors);
         bool drew = false;
 
@@ -148,6 +149,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             // a little over one texel.
             float biasMetres = MathF.Max(request.ShadowBias, CascadeBiasTexels * texelWorld[c]);
             bias[c] = biasMetres / (lightRadius * 5f - 0.01f);
+            invRange[c] = 1f / (lightRadius * 5f - 0.01f);
         }
 
         if (drew)
@@ -156,7 +158,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             frame.Stats.Shadow = services.Drawer.TakeCounts();
             Resources.BindCamera(FrameUniformKeys.SceneCamera);
         }
-        return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias);
+        return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias, invRange);
     }
 
     static long CascadeSignature(FrameContext frame, int cascade, ShadowFocus focus, long actorSignature)

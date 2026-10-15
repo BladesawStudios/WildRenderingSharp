@@ -12,7 +12,7 @@ uniform vec2 uPix;              // one texel of the depth buffer, in uv
 uniform sampler2DArrayShadow tex_cascades;
 uniform int uCascadeCount;
 uniform mat4 uCascadeViewProj[4];
-uniform vec4 uCascadeParams[4];   // x: texel size in metres, y: bias in light depth, z: PCF radius in texels
+uniform vec4 uCascadeParams[4];   // x: texel size in metres, y: bias in light depth, z: PCF radius in texels, w: light depth per metre
 uniform float uCascadeTexel;
 in vec2 vUV; out vec4 fragColor;
 
@@ -82,7 +82,12 @@ void main() {
             float margin = uCascadeTexel * (prm.z + 2.0);
             if (any(lessThan(scC.xy, vec2(margin))) || any(greaterThan(scC.xy, vec2(1.0 - margin))) || scC.z >= 1.0)
                 continue;
-            float refC = clamp(scC.z - prm.y, 0.0, 1.0);
+            // A surface seen edge-on by the light changes depth a long way across one texel - the tangent of the angle between its normal and
+            // the light, per texel - so the filter's taps, which all compare against one depth, fall either side of the stored surface. The
+            // bias has to reach as far as the filter does, in the same terms. Surfaces turned from the light are dark by their own N.L.
+            float tanT = ndl > 0.0 ? min(sqrt(max(1.0 - ndl * ndl, 0.0)) / max(ndl, 0.06), 16.0) : 0.0;
+            float slopeBias = (prm.z + 1.0) * prm.x * tanT * prm.w;
+            float refC = clamp(scC.z - prm.y - slopeBias, 0.0, 1.0);
             const vec2 discC[8] = vec2[8](
                 vec2(-0.94201624, -0.39906216), vec2( 0.94558609, -0.76890725),
                 vec2(-0.09418410, -0.92938870), vec2( 0.34495938,  0.29387760),
