@@ -64,6 +64,9 @@ void main() {
 
     float graze = grazeMask(vUV, p);
 
+    // A sun below the horizon lights nothing: every surface is out of its direct light, whatever a shadow map taken from under the ground says.
+    if (uSunWorld.y <= 0.0) { fragColor = vec4(0.0, 0.0, graze, 0.0); return; }
+
     float ndl = dot(nWorld, uSunWorld);
 
     if (uCascadeCount > 0) {
