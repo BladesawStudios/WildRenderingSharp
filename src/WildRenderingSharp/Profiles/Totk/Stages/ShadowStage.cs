@@ -1,4 +1,5 @@
 using System.Numerics;
+using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
@@ -182,10 +183,16 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var groups = ActorGroups(frame);
         foreach (var batch in frame.Instances.Where(b => b.Shadow.Cascade(cascade).Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
+
+        // Depth is clamped, not clipped, so a caster nearer the sun than the cascade's near plane still shadows it: with a low sun the
+        // mountain that shades a valley is far toward the sun, and a cascade can only reach so far.
+        var gl = services.Gl;
+        gl.Enable(EnableCap.DepthClamp);
         _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
             terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
+        gl.Disable(EnableCap.DepthClamp);
     }
 
     // The placed actors' casters, without the shapes that read the scene colour.
