@@ -15,6 +15,9 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 /// <summary>Draws the sun's shadow map, or its cascades.</summary>
 internal sealed class ShadowStage(StageServices services, TerrainRenderer terrain) : IFrameStage
 {
+    // The bias a cascade is given at least, in its own texels: the 0.0015 m an actor scene uses over its 0.00125 m texels.
+    const float CascadeBiasTexels = 1.2f;
+
     readonly ShadowPass _shadow = new(services.Gl);
 
     GLResourceCache Resources => services.Resources;
@@ -137,7 +140,13 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             cache.CascadeRadius[c] = focus.Radius;
             viewProj[c] = cache.CascadeLight[c].ViewProj;
             texelWorld[c] = 2f * lightRadius / RenderTargets.CascadeSize;
-            bias[c] = request.ShadowBias / (lightRadius * 5f - 0.01f);
+
+            // The request's bias is a fixed distance, which suits the finest cascade only: a cascade four times wider has texels
+            // four times larger, and a surface within a texel's reach of its own stored depth then shadows itself wherever the
+            // bias is smaller than that. So no cascade is given less than the bias a character-sized scene is tuned to, which is
+            // a little over one texel.
+            float biasMetres = MathF.Max(request.ShadowBias, CascadeBiasTexels * texelWorld[c]);
+            bias[c] = biasMetres / (lightRadius * 5f - 0.01f);
         }
 
         if (drew)
