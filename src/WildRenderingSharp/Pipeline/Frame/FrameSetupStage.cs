@@ -12,9 +12,6 @@ namespace WildRenderingSharp.Pipeline.Frame;
 /// <summary>Derives the camera, sun and draw groups for the frame and uploads the uniforms every pass shares.</summary>
 internal sealed class FrameSetupStage(StageServices services) : IFrameStage
 {
-    // The lowest the light is allowed to sit above the horizon, in radians: ten degrees.
-    const float MinLightElevation = 10f * MathF.PI / 180f;
-
     public void Run(FrameContext frame)
     {
         var profile = services.Profile;
@@ -25,15 +22,10 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
         var flipped = cam.FlippedY();
         var sunWorld = SunDirection.FromElevationAzimuth(lighting.SunElevation, lighting.SunAzimuth);
         var sunView = SunDirection.ToView(sunWorld, cam.View);
-
-        // The light follows the sun only while it is up. Below the horizon every surface faces away from it and the shadow maps are
-        // taken from underneath the ground, which lights and shadows the world as nothing real would; the sky keeps the true sun.
-        var lightWorld = SunDirection.FromElevationAzimuth(MathF.Max(lighting.SunElevation, MinLightElevation), lighting.SunAzimuth);
-        var lightView = SunDirection.ToView(lightWorld, cam.View);
         bool gameOrigin = ClipOrigin.Supported(services.Gl);
 
         var (casting, groups, opaque) = BuildGroups(frame);
-        frame.Setup = new FrameSetup(cam, flipped, gameOrigin, sunWorld, sunView, lightWorld, lightView,
+        frame.Setup = new FrameSetup(cam, flipped, gameOrigin, sunWorld, sunView,
             environment.SunColor, environment.HemiSky, environment.HemiGround, casting, groups, opaque);
 
         services.Resources.Bind(profile.Camera(FrameUniformKeys.SceneCamera, cam));
@@ -42,7 +34,7 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
     }
 
     static SceneLightingData BuildSceneLighting(FrameSetup setup, LightingContext lighting, EnvironmentLighting environment) =>
-        new(setup.LightView, setup.LightWorld, environment.SunColor, environment.HemiSky, environment.HemiGround,
+        new(setup.SunView, setup.SunWorld, environment.SunColor, environment.HemiSky, environment.HemiGround,
             environment.VolumeMaskColor, environment.VolumeMaskIntensity, RenderTargets.ShadowMapSize,
             lighting.MidScale, lighting.HighlightScale);
 

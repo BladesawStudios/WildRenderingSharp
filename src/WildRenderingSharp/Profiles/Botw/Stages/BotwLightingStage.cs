@@ -73,7 +73,7 @@ internal sealed class BotwLightingStage(StageServices services, BotwPasses passe
     void UploadConstants(FrameContext frame, Matrix4x4 viewToShadow)
     {
         float texel = 1f / RenderTargets.CascadeSize;
-        services.Resources.Bind(BotwUniforms.Environment(frame.Setup.LightView, frame.Setup.SunColor, frame.Setup.HemiSky, frame.Setup.HemiGround, frame.Setup.Cam.ViewInv, texel));
+        services.Resources.Bind(BotwUniforms.Environment(frame.Setup.SunView, frame.Setup.SunColor, frame.Setup.HemiSky, frame.Setup.HemiGround, frame.Setup.Cam.ViewInv, texel));
         services.Resources.Bind(BotwUniforms.CascadeCamera(ContextKey, frame.Setup.Cam, viewToShadow, 1e9f, 1e9f));
     }
 
@@ -126,7 +126,7 @@ internal sealed class BotwLightingStage(StageServices services, BotwPasses passe
         var resources = services.Resources;
         var request = frame.Request;
         var (lo, hi) = ShadowSignatures.CombinedBounds(request.Actors, frame.Instances);
-        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.LightWorld);
+        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
         frame.Shadow = new ShadowResult(light, lo, hi);
 
         resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
