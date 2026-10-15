@@ -26,7 +26,7 @@ internal sealed class ScreenSpaceLightingStage(StageServices services, LinearDep
         _shadowAoParams = new ScreenSpaceShadowAndAoPass.Params(
             ViewInv: cam.ViewInv, LightViewProj: frame.Shadow.Light.ViewProj,
             TanHalf: cam.TanHalf,
-            SunWorld: frame.Setup.SunWorld, SunView: frame.Setup.SunView,
+            SunWorld: frame.Setup.LightWorld, SunView: frame.Setup.LightView,
             Near: camera.NearPlane, Far: camera.FarPlane,
             ShadowBias: frame.Request.ShadowBias, ShadowTexel: 1f / RenderTargets.ShadowMapSize,
             ShadowTexelWorld: 2f * lightRadius / RenderTargets.ShadowMapSize, ShadowDepthRange: lightRadius * 5f - 0.01f,
@@ -39,7 +39,7 @@ internal sealed class ScreenSpaceLightingStage(StageServices services, LinearDep
         _lightPrePassParams = new LightPrePass.Params(
             ViewInv: cam.ViewInv, TanHalf: cam.TanHalf,
             Near: camera.NearPlane, Far: camera.FarPlane,
-            SunWorld: frame.Setup.SunWorld, SunColor: frame.Setup.SunColor, HemiSky: frame.Setup.HemiSky, HemiGround: frame.Setup.HemiGround,
+            SunWorld: frame.Setup.LightWorld, SunColor: frame.Setup.SunColor, HemiSky: frame.Setup.HemiSky, HemiGround: frame.Setup.HemiGround,
             Synthetic: frame.Lighting.SyntheticLightPrePass);
         _lightPrePass.Run(resources, targets, _lightPrePassParams);
         GLDiagnostics.CheckPass(services.Gl, "light pre-pass");

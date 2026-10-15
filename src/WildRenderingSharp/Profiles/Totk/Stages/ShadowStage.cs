@@ -58,7 +58,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     {
         var request = frame.Request;
         var cache = frame.ShadowCache;
-        return cache.ModelRowsPerActor is not null && cache.SunWorld == frame.Setup.SunWorld
+        return cache.ModelRowsPerActor is not null && cache.SunWorld == frame.Setup.LightWorld
             && ShadowSignatures.ActorRowsEqual(cache.ModelRowsPerActor, modelRowsPerActor)
             && ShadowSignatures.PosesEqual(cache.BonesPerActor, request.Actors)
             && cache.Focus == request.ShadowFocus
@@ -73,7 +73,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         (Vector3 lo, Vector3 hi) = request.ShadowFocus is { } focus
             ? (focus.Min, focus.Max)
             : ShadowSignatures.CombinedBounds(request.Actors, frame.Instances);
-        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
+        var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.LightWorld);
         frame.Shadow = new ShadowResult(light, lo, hi);
 
         if (frame.ShadowMapOverride is not null)
@@ -84,7 +84,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         GLDiagnostics.CheckPass(services.Gl, "shadow pass");
         Resources.BindCamera(FrameUniformKeys.SceneCamera);
 
-        cache.SunWorld = frame.Setup.SunWorld;
+        cache.SunWorld = frame.Setup.LightWorld;
         cache.ModelRowsPerActor = modelRowsPerActor;
         cache.BonesPerActor = request.Actors.Select(a => (Matrix4x4[]?)a.BoneWorldMatrices?.Clone()).ToArray();
         cache.Focus = request.ShadowFocus;
@@ -125,7 +125,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             var focus = cascades[c];
             var (lo, hi) = (focus.Min, focus.Max);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
-            var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
+            var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.LightWorld);
             var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
             var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
             foreach (var batch in frame.Instances)
@@ -164,7 +164,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     static long CascadeSignature(FrameContext frame, int cascade, ShadowFocus focus, long actorSignature)
     {
         var hash = new HashCode();
-        hash.Add(frame.Setup.SunWorld);
+        hash.Add(frame.Setup.LightWorld);
         hash.Add(focus);
         hash.Add(actorSignature);
         hash.Add(frame.TotkEnvironment().Terrain?.ShadowVersion ?? 0);
