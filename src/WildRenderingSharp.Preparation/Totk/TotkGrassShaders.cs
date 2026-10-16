@@ -14,7 +14,7 @@ namespace WildRenderingSharp.Preparation.Totk;
 /// The archive holds three programs for each kind of vegetation, the last of which is the one that fills the G-buffer. For each kind
 /// and stage <see cref="Export"/> writes a JSON file holding the decompiled GLSL as the translator wrote it, the constants the
 /// program's control shader bakes in, and the names of its uniform blocks (by slot) and samplers (by the translator's hex name), which
-/// is everything a host needs to spell the program for its own context. Nothing the program says is changed. The files go in a folder
+/// is everything a host needs to spell the program for its own context. The model's default material block, which every program reads as its own, is written beside them. Nothing the program says is changed. The files go in a folder
 /// named by a hash of the archive, so a different game version is exported again.
 /// </remarks>
 public static class TotkGrassShaders
@@ -34,6 +34,9 @@ public static class TotkGrassShaders
 
     static readonly string[] Stages = ["Vertex", "Fragment"];
 
+    /// <summary>The file the model's default material block is exported to: what the programs read as <c>Mat</c>, such as the alpha reference.</summary>
+    public const string MaterialFile = "GrassMaterial.bin";
+
     /// <summary>The file a kind's stage is exported to, inside the export folder.</summary>
     public static string FileName(string kind, string stage) => $"{kind}{stage}.json";
 
@@ -42,7 +45,7 @@ public static class TotkGrassShaders
     {
         archive = ReadArchive(rom);
         string folder = Path.Combine(cache.GrassShaders, Convert.ToHexString(SHA256.HashData(archive))[..16].ToLowerInvariant());
-        return (folder, Kinds.All(k => Stages.All(s => File.Exists(Path.Combine(folder, FileName(k.Kind, s))))));
+        return (folder, File.Exists(Path.Combine(folder, MaterialFile)) && Kinds.All(k => Stages.All(s => File.Exists(Path.Combine(folder, FileName(k.Kind, s))))));
     }
 
     /// <summary>Exports every kind's programs if the folder is not already complete, and returns the folder.</summary>
@@ -57,6 +60,8 @@ public static class TotkGrassShaders
         Directory.CreateDirectory(folder);
         foreach (var (kind, type) in Kinds)
             ExportKind(model, kind, type, folder);
+        var material = model.UniformBlocks["gsys_material"];
+        AtomicFile.WriteAllBytes(Path.Combine(folder, MaterialFile), material.DefaultBuffer ?? new byte[material.Size]);
         Log.Info($"[TotkGrassShaders] {Kinds.Length} kinds -> {folder}");
         return folder;
     }

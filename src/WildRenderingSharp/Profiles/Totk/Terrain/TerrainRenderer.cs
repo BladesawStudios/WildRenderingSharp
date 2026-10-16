@@ -68,7 +68,7 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         Gl.BindTextureAt(4, underDepth.Handle);
 
         ClipOrigin.Game(Gl, true);
-        host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default));
+        host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default, GBufferTargets: targets.GBuffer.Length));
         ClipOrigin.Game(Gl, false);
 
         ResetState();
