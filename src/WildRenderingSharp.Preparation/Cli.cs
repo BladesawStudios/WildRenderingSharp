@@ -51,9 +51,15 @@ static class Cli
             case "prepare":
                 return string.IsNullOrEmpty(options.Actor) ? BadUsage("prepare needs --actor <name>.") : Prepare(options, options.Actor, romfs, cache);
             case "prepare-batch":
-                return string.IsNullOrEmpty(options.List) || !File.Exists(options.List)
-                    ? BadUsage($"prepare-batch needs --list <file> naming an existing file (got '{options.List}').")
-                    : PrepareBatch(options, romfs, cache);
+                if (string.IsNullOrEmpty(options.List)) {
+                    return BadUsage("You must provide a text file with a list of files to be processed, using --list <file>.", true);
+                }
+
+                if (!File.Exists(options.List)) {
+                    return BadUsage($"The list file you specified ('{options.List}') doesn't exist.");
+                }
+                
+                return PrepareBatch(options, romfs, cache);
             case "prepare-bake":
                 return PrepareBake(options, romfs, cache);
             default:
@@ -90,7 +96,9 @@ static class Cli
         }
         catch (Exception ex)
         {
-            // Every name fails with the reason, instead of the batch dying and being retried.
+            protocol.Say("Failed to export system assets, no actor assets will be processed.");
+            // Print an explicit failure message for each actor, to make things
+            // easier for those parsing our output.
             string reason = string.Join(' ', ex.Message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
             foreach (string name in names)
                 protocol.Say($"WRS_FAIL {name}\t{reason}");
@@ -117,20 +125,26 @@ static class Cli
             TotkBake.BuildIndex(rom, dir, parallelism);
         Console.Out.Flush();
 
+        System.Diagnostics.Debug.Assert(options.List is not null);
+        System.Diagnostics.Debug.Assert(File.Exists(options.List));
+        
         var protocol = new ProtocolWriter(Console.Out);
-        var tiles = DistinctLines(options.List is not null && File.Exists(options.List) ? File.ReadAllLines(options.List) : []);
-        Parallel.ForEach(tiles, new ParallelOptions { MaxDegreeOfParallelism = parallelism }, tile =>
+        var files = DistinctLines(File.ReadAllLines(options.List));
+        Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = parallelism }, file =>
         {
-            protocol.Say($"WRS_BEGIN {tile}");
+            protocol.Say($"WRS_BEGIN {file}");
             try
             {
-                if (options.Force || !File.Exists(Path.Combine(dir, tile + ".json")))
-                    TotkBakeTile.Export(rom, tile, dir);
-                protocol.Say($"WRS_DONE {tile}\t{tile}");
+                string manifestFile = Path.Combine(dir, file + ".json");
+                if (options.Force || !File.Exists(manifestFile)) {
+                    TotkBakeTile.Export(rom, file, dir);
+                }
+
+                protocol.Say($"WRS_DONE {file}\t{file}");
             }
             catch (Exception ex)
             {
-                protocol.Say($"WRS_FAIL {tile}\t{ex.Message.ReplaceLineEndings(" ")}");
+                protocol.Say($"WRS_FAIL {file}\t{ex.Message.ReplaceLineEndings(" ")}");
             }
         });
         return 0;
@@ -149,7 +163,7 @@ static class Cli
 
     static void PrintUsage()
     {
-        Console.WriteLine("WildRenderingSharp.Preparation - prepares actors from a romfs into a WildRenderingSharp cache.");
+        Console.WriteLine("WildRenderingSharp.Preparation - unpacks actor assets from romfs to a format convenient for rendering in the cache folder.");
         Console.WriteLine();
         Console.WriteLine("  ensure-system --romfs <dir> [--cache <dir>]");
         Console.WriteLine("  prepare --romfs <dir> --actor <name> [--game totk|botw] [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]");
