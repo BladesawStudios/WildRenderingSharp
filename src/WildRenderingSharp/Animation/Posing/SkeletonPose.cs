@@ -13,11 +13,17 @@ namespace WildRenderingSharp.Animation.Posing;
 /// </summary>
 internal static class SkeletonPose
 {
+    // TODO: Rotation could be a 3x3 matrix or quaternion. Could this be easily changed?
     // A bone's resolved local transform for one frame - the inputs World composes.
     public readonly record struct BoneLocal(Vector3 Scale, Matrix4x4 Rotation, Vector3 Translation);
 
     static readonly ConditionalWeakTable<SkeletonManifest, Matrix4x4[]> BindPoses = new();
 
+    // TODO: Why would this be world space, wouldn't it make more sense to compute
+    // the model space bind pose? From a glance at the code, it seems to me like
+    // that's already happening, but the naming says otherwise.
+    // Please investigate this further. -- torf
+    
     // The bind pose of a skeleton, worked out once and shared: callers must not change it. BindPoseWorldMatrices gives a copy to pose.
     public static Matrix4x4[] SharedBindPoseWorld(SkeletonManifest skel) => BindPoses.GetValue(skel, BindPoseWorldMatrices);
 
@@ -102,6 +108,7 @@ internal static class SkeletonPose
 
     public static Matrix4x4 DescaleRows(Matrix4x4 m, Vector3 scale)
     {
+        // TODO: This can probably be done much simpler with built-in vector operations
         if (scale.X == 1f && scale.Y == 1f && scale.Z == 1f)
             return m;
         float ix = scale.X != 0f ? 1f / scale.X : 0f;

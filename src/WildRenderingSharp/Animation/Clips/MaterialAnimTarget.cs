@@ -3,28 +3,36 @@ using WildRenderingSharp.Animation.Posing;
 
 namespace WildRenderingSharp.Animation.Clips;
 
+// TODO: Rename this to MaterialAnimCurve or something like that -- torf
 /// <summary>
-/// One thing a material anim writes: four bytes at <c>byte_offset</c> within the shader parameter <c>param</c>, either from a curve
-/// or as a fixed value.
+/// Everything needed to evaluate & output the result of a material animation curve.
+/// The result is output directly to a shader parameter buffer, which can be a
+/// float or a 32-bit int.
 /// </summary>
 public sealed class MaterialAnimTarget
 {
     [JsonPropertyName("param")] public string Param { get; set; } = "";
-    // The BFRES ShaderParamType name, for display - the evaluation never needs it (a curve's own type says whether it produces
-    // int or float bits, and a constant is raw bits either way).
+    // The ShaderParamType name from the BFRES. Only used for display.
     [JsonPropertyName("param_type")] public string ParamType { get; set; } = "";
-    // Byte offset WITHIN the parameter (AnimCurve.AnimDataOffset): 0 for a plain float, 20 for a TexSrt's translate-Y, and so on.
+    // Destination offset in the shader parameter buffer
     [JsonPropertyName("byte_offset")] public int ByteOffset { get; set; }
 
-    // Set on a constant target - the raw 32 bits to store, needing no float/int interpretation because the shader's own reading of that byte decides.
+    // Used for "curves" that just output a constant value.
+    // Interpretation is determined by the shader (it may be float or int data)
     [JsonPropertyName("constant_bits")] public uint? ConstantBits { get; set; }
 
     [JsonPropertyName("is_int")] public bool IsInt { get; set; }
+    
+    // TODO: Make this an enum.
+    /// <summary>
+    /// See constants in the AnimCurveEval class.
+    /// </summary>
     [JsonPropertyName("curve_type")] public int CurveType { get; set; }
     [JsonPropertyName("start_frame")] public float StartFrame { get; set; }
     [JsonPropertyName("end_frame")] public float EndFrame { get; set; }
     [JsonPropertyName("scale")] public float Scale { get; set; } = 1f;
-    // The curve's base value. For an int curve this is its Int32 view (exported as a whole number); Bits reads it accordingly.
+    
+    // Added to the final scaled curve result (cast to int for int curves)
     [JsonPropertyName("offset")] public float Offset { get; set; }
     [JsonPropertyName("frames")] public float[] Frames { get; set; } = [];
     [JsonPropertyName("keys")] public float[][] Keys { get; set; } = [];

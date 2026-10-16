@@ -4,17 +4,25 @@ using System.Text.Json.Serialization;
 namespace WildRenderingSharp.Animation.Clips;
 
 /// <summary>
-/// Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.matanim.json</c> - a shader PARAMETER animation, which is the single mechanism
-/// behind BFRES's <c>_fsp</c> (shader param), <c>_fcl</c> (colour) and <c>_fts</c> (texture SRT) anims alike.
+/// Metadata for a material animation. These may animate texture SRT
+/// (scale/rotate/translate), color data, or shader parameters
+/// (i.e. BFRES <c>_fts</c>, <c>_fcl</c>, or <c>_fsp</c>).
+/// This is deserialized from <c>&lt;Model&gt;.&lt;AnimName&gt;.matanim.json</c> in the cache.
 /// </summary>
 public sealed class MaterialAnimManifest : IAnimClip
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
-    // "TexSrt" when every parameter this anim drives is an SRT type, else the BFRES bucket ("ShaderParam"/"Color"). Classified by what it actually
-    // touches, because BfresLibrary's own bucketing files _fts anims under ShaderParam.
+    
+    // TODO: Make this an enum
+    /// <summary>
+    /// "TexSrt", "ShaderParam", or "Color".
+    /// BfresLibrary marks TexSrt animations as ShaderParam, but we separate them.
+    /// </summary>
     [JsonPropertyName("kind")] public string Kind { get; set; } = "";
     [JsonPropertyName("frame_count")] public int FrameCount { get; set; }
     [JsonPropertyName("loop")] public bool Loop { get; set; }
+    
+    // There may be many curves outputting to many materials.
     [JsonPropertyName("materials")] public List<MaterialAnimMaterialEntry> Materials { get; set; } = [];
 
     public bool IsTextureSrt => string.Equals(Kind, "TexSrt", StringComparison.Ordinal);
