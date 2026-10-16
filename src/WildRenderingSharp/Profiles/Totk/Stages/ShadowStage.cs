@@ -1,4 +1,5 @@
 using System.Numerics;
+using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
@@ -15,6 +16,9 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 /// <summary>Draws the sun's shadow map, or its cascades.</summary>
 internal sealed class ShadowStage(StageServices services, TerrainRenderer terrain) : IFrameStage
 {
+    // The bias a cascade is given at least, in its own texels: the 0.0015 m an actor scene uses over its 0.00125 m texels.
+    const float CascadeBiasTexels = 1.2f;
+
     readonly ShadowPass _shadow = new(services.Gl);
 
     GLResourceCache Resources => services.Resources;
@@ -112,6 +116,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var viewProj = new Matrix4x4[count];
         var texelWorld = new float[count];
         var bias = new float[count];
+        var invRange = new float[count];
         long actorSignature = ShadowSignatures.ActorSignature(request.Actors);
         bool drew = false;
 
@@ -137,7 +142,14 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             cache.CascadeRadius[c] = focus.Radius;
             viewProj[c] = cache.CascadeLight[c].ViewProj;
             texelWorld[c] = 2f * lightRadius / RenderTargets.CascadeSize;
-            bias[c] = request.ShadowBias / (lightRadius * 5f - 0.01f);
+
+            // The request's bias is a fixed distance, which suits the finest cascade only: a cascade four times wider has texels
+            // four times larger, and a surface within a texel's reach of its own stored depth then shadows itself wherever the
+            // bias is smaller than that. So no cascade is given less than the bias a character-sized scene is tuned to, which is
+            // a little over one texel.
+            float biasMetres = MathF.Max(request.ShadowBias, CascadeBiasTexels * texelWorld[c]);
+            bias[c] = biasMetres / (lightRadius * 5f - 0.01f);
+            invRange[c] = 1f / (lightRadius * 5f - 0.01f);
         }
 
         if (drew)
@@ -146,7 +158,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             frame.Stats.Shadow = services.Drawer.TakeCounts();
             Resources.BindCamera(FrameUniformKeys.SceneCamera);
         }
-        return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias);
+        return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias, invRange);
     }
 
     static long CascadeSignature(FrameContext frame, int cascade, ShadowFocus focus, long actorSignature)
@@ -173,10 +185,16 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var groups = ActorGroups(frame);
         foreach (var batch in frame.Instances.Where(b => b.Shadow.Cascade(cascade).Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
+
+        // Depth is clamped, not clipped, so a caster nearer the sun than the cascade's near plane still shadows it: with a low sun the
+        // mountain that shades a valley is far toward the sun, and a cascade can only reach so far.
+        var gl = services.Gl;
+        gl.Enable(EnableCap.DepthClamp);
         _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
             terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
+        gl.Disable(EnableCap.DepthClamp);
     }
 
     // The placed actors' casters, without the shapes that read the scene colour.

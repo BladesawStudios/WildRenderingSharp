@@ -68,7 +68,7 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         Gl.BindTextureAt(4, underDepth.Handle);
 
         ClipOrigin.Game(Gl, true);
-        host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default));
+        host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default, GBufferTargets: targets.GBuffer.Length));
         ClipOrigin.Game(Gl, false);
 
         ResetState();
@@ -121,7 +121,9 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
     public void DrawShadow(ITerrainHost host, int cascade, Camera camera, ShadowFocus focus, ShadowPass.LightMatrices light, CameraData sceneCamera)
     {
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.TerrainLightCamera, sceneCamera.ForLight(light.View, light.Proj)));
-        host.DrawShadow(new TerrainDraw(Gl, camera.Eye, cascade, new Vector4(focus.Center, focus.Radius)));
+        // The light's view looks along -sun, so its third axis is the direction toward the sun; its half width is the box round the focus sphere.
+        var towardSun = new Vector3(light.View.M13, light.View.M23, light.View.M33);
+        host.DrawShadow(new TerrainDraw(Gl, camera.Eye, cascade, new Vector4(focus.Center, focus.Radius), towardSun, focus.Radius * MathF.Sqrt(3f)));
         Gl.UseProgram(0);
         Gl.BindVertexArray(0);
     }

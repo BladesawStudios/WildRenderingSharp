@@ -56,6 +56,8 @@ static class Cli
                     : PrepareBatch(options, romfs, cache);
             case "prepare-bake":
                 return PrepareBake(options, romfs, cache);
+            case "prepare-grass-shaders":
+                return PrepareGrassShaders(options, romfs, cache);
             default:
                 return BadUsage($"Unknown command '{options.Command}'.", showUsage: true);
         }
@@ -136,6 +138,15 @@ static class Cli
         return 0;
     }
 
+    static int PrepareGrassShaders(CliOptions options, string romfs, CacheLayout cache)
+    {
+        using var rom = TotkRom.Open(romfs);
+        string folder = TotkGrassShaders.Export(rom, cache, options.Force);
+        Console.Out.Flush();
+        Console.WriteLine(OutOfProcessPreparer.ResultPrefix + folder);
+        return 0;
+    }
+
     static List<string> DistinctLines(string[] lines) =>
         lines.Select(l => l.Trim()).Where(l => l.Length > 0).Distinct(StringComparer.Ordinal).ToList();
 
@@ -155,6 +166,7 @@ static class Cli
         Console.WriteLine("  prepare --romfs <dir> --actor <name> [--game totk|botw] [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]");
         Console.WriteLine("  prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]");
         Console.WriteLine("  prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]");
+        Console.WriteLine("  prepare-grass-shaders --romfs <dir> [--cache <dir>] [--force]");
         Console.WriteLine();
         Console.WriteLine($"  --cache defaults to {CacheLayout.DefaultRoot}");
     }
