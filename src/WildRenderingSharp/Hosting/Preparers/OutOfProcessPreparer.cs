@@ -82,6 +82,13 @@ public sealed class OutOfProcessPreparer : IModelPreparer
         return failed;
     }
 
+    // Exports the grass kinds' decompiled programs from the romfs, and returns the folder they are in.
+    public async Task<string> PrepareGrassShadersAsync(string romfsRoot, CacheLayout cache, Action<string>? log = null, CancellationToken cancellationToken = default)
+    {
+        string? folder = await RunForResultAsync(PreparerProtocol.PrepareGrassShaders(romfsRoot, cache.Root), log, cancellationToken).ConfigureAwait(false);
+        return folder ?? throw new InvalidOperationException("The preparer finished without naming the folder of the grass programs.");
+    }
+
     // Runs a command whose output is progress, with the model it names on a result line; a nonzero exit throws with the output's tail.
     async Task<string?> RunForResultAsync(IReadOnlyList<string> arguments, Action<string>? log, CancellationToken cancellationToken)
     {
