@@ -1,6 +1,5 @@
 using WildRenderingSharp.Preparation;
 
-// Prepares actors from a romfs into a cache; run with no arguments for the commands and exit codes. A batch killed partway leaves the names
-// it began but did not finish as the suspects.
-
+// Unpacks assets needed to render actors into a format convenient for rendering.
+// Run with no arguments for the help menu with a list of commands.
 return Cli.Run(args);
