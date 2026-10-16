@@ -10,16 +10,27 @@ namespace WildRenderingSharp.Preparation.Totk;
 /// </summary>
 public static class TotkModelPreparer
 {
-    public static string ResolveModelName(TotkRomfs romfs, string actorOrModelName) =>
-        TotkActorInfo.Resolve(romfs.Layered, actorOrModelName)?.ModelName ?? actorOrModelName;
+    public static string ResolveModelName(TotkRomfs romfs, string actorOrModelName)
+    {
+        using (var z = Profiler.BeginZone("TotkModelPreparer.ResolveModelName"))
+        {
+            return TotkActorInfo.Resolve(romfs.Layered, actorOrModelName)?.ModelName ?? actorOrModelName;
+        }
+    }
 
     public static string Prepare(TotkRomfs romfs, string actorOrModelName, CacheLayout cache, Action<string>? log, bool importAnims)
     {
         // Before recording starts: the shader archives come from the bare ROM and say nothing about which mods are active.
         string materialBfsha = TotkShaderArchives.Extract(romfs.Base, cache, "material");
         using var sources = romfs.Layered.Record();
-        string modelName = Export(romfs, materialBfsha, actorOrModelName, cache, log, importAnims);
-        TotkSourceStamp.Write(cache.ModelDirectory(modelName), romfs, sources.Files, log);
+        string modelName = "";
+        using (Profiler.BeginZone("TotkModelPreparer.Export")) {
+            modelName = Export(romfs, materialBfsha, actorOrModelName, cache, log, importAnims);
+        }
+
+        using (Profiler.BeginZone("TotkSourceStamp.Write")) {
+            TotkSourceStamp.Write(cache.ModelDirectory(modelName), romfs, sources.Files, log);
+        }
         return modelName;
     }
 
@@ -43,14 +54,24 @@ public static class TotkModelPreparer
         TotkSourceStamp.Delete(dataDirectory);
 
         log?.Invoke($"[prepare 1/3] geometry + textures + skeleton/anims for {modelName} -> {dataDirectory}");
-        ExportTestBench.ExportModel(assets, modelName, dataDirectory, importAnims ? AnimArchives(rom, actor, modelName) : []);
-        TotkPhysicsAssets.Extract(rom, actorOrModelName, modelName, dataDirectory, log);
+
+        using (Profiler.BeginZone("ExportTestBench.ExportModel")) {
+            ExportTestBench.ExportModel(assets, modelName, dataDirectory, importAnims ? AnimArchives(rom, actor, modelName) : []);
+        }
+
+        using (Profiler.BeginZone("TotkPhysicsAssets.Extract")) {
+            TotkPhysicsAssets.Extract(rom, actorOrModelName, modelName, dataDirectory, log);
+        }
 
         log?.Invoke($"[prepare 2/3] gsys_material UBOs for {modelName}");
-        BuildMaterialUbo.Run(materialBfsha, fres, Path.Combine(dataDirectory, "matubo"));
+        using (Profiler.BeginZone("BuildMaterialUbo.Run")) {
+            BuildMaterialUbo.Run(materialBfsha, fres, Path.Combine(dataDirectory, "matubo"));
+        }
 
         log?.Invoke($"[prepare 3/3] manifest + shader decompile for {modelName}");
-        ExportManifest.Run(assets, materialBfsha, modelName, dataDirectory, cache.Shaders);
+        using (Profiler.BeginZone("ExportManifest.Run")) {
+            ExportManifest.Run(assets, materialBfsha, modelName, dataDirectory, cache.Shaders);
+        }
 
         log?.Invoke($"[prepare] done - {modelName} is ready to load.");
         return modelName;

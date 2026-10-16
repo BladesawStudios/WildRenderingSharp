@@ -84,7 +84,11 @@ public static class ModelPreparer
             log?.Invoke($"[prepare] {modelName} is already prepared and up to date.");
             return modelName;
         }
-        return TotkModelPreparer.Prepare(romfs, actorOrModelName, cache, log, importAnims);
+
+        using (Profiler.BeginZone("TotkModelPreparer.Prepare"))
+        {
+            return TotkModelPreparer.Prepare(romfs, actorOrModelName, cache, log, importAnims);
+        }
     }
 
     static string OneLine(string message) => string.Join(' ', message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)).Trim();

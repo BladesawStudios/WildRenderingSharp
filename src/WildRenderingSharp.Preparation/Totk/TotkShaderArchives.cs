@@ -17,10 +17,13 @@ public static class TotkShaderArchives
         if (File.Exists(path) && new FileInfo(path).Length > 0)
             return path;
 
-        string plain = $"Shader/{name}{Suffix}";
-        string source = baseRom.Exists(plain) ? plain : plain + ".zs";
-        Log.Info($"[TotkShaderArchives] decompressing '{source}' -> {path}");
-        AtomicFile.WriteAllBytes(path, baseRom.ReadAllBytesNested(source));
-        return path;
+        using (Profiler.BeginZone("TotkShaderArchives.Extract"))
+        {
+            string plain = $"Shader/{name}{Suffix}";
+            string source = baseRom.Exists(plain) ? plain : plain + ".zs";
+            Log.Info($"[TotkShaderArchives] decompressing '{source}' -> {path}");
+            AtomicFile.WriteAllBytes(path, baseRom.ReadAllBytesNested(source));
+            return path;
+        }
     }
 }

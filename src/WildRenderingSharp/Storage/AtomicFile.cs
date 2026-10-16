@@ -5,8 +5,10 @@ public static class AtomicFile
 {
     public static void WriteAllBytes(string path, ReadOnlySpan<byte> bytes)
     {
-        byte[] copy = bytes.ToArray();
-        Write(path, temp => File.WriteAllBytes(temp, copy));
+        using (var z = Profiler.BeginZone("AtomicFile.WriteAllBytes")) {
+            byte[] copy = bytes.ToArray();
+            Write(path, temp => File.WriteAllBytes(temp, copy));
+        }
     }
 
     public static void WriteAllText(string path, string text) => Write(path, temp => File.WriteAllText(temp, text));

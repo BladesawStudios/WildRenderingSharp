@@ -9,8 +9,20 @@ namespace WildRenderingSharp.Preparation;
 /// <summary>Runs one preparation command; the exit code is 0 for success, 1 for a failure, and 2 for a bad command line.</summary>
 static class Cli
 {
+    const bool overrideEnableTracyProfiler = true;
+
     public static int Run(string[] args)
     {
+        bool isDebug = false;
+#if DEBUG
+        isDebug = true;
+#endif
+        if (!isDebug && !overrideEnableTracyProfiler) {
+            Profiler.tracyDisabled = true;
+        }
+
+        Profiler.AppInfo("WildRenderingSharp.Preparation");
+        
         if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
         {
             PrintUsage();
@@ -86,7 +98,10 @@ static class Cli
 
         try
         {
-            ModelPreparer.EnsureSystemAssets(romfs, cache, options.Verbose ? Console.WriteLine : null);
+            using (var z = Profiler.BeginZone("ModelPreparer.EnsureSystemAssets"))
+            {
+                ModelPreparer.EnsureSystemAssets(romfs, cache, options.Verbose ? Console.WriteLine : null);
+            }
         }
         catch (Exception ex)
         {
