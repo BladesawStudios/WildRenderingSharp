@@ -90,7 +90,12 @@ internal static class MaterialAnimPose
         float sx = 1f, sy = 1f, rot = 0f, tx = 0f, ty = 0f;
         if (layout.TryGetEntry(paramName, out var entry) && entry.RawSrt is { Length: 6 } raw)
         {
-            mode = (int)raw[0]; sx = raw[1]; sy = raw[2]; rot = raw[3]; tx = raw[4]; ty = raw[5];
+            mode = (int)raw[0];
+            sx = raw[1];
+            sy = raw[2];
+            rot = raw[3];
+            tx = raw[4];
+            ty = raw[5];
         }
 
         foreach (var (fieldOffset, bits) in bitsByFieldOffset)

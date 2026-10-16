@@ -1,6 +1,6 @@
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>Every clip of one kind that is currently applied, each on its own clock.</summary>
+/// <summary>All currently playing animations (clips) of one kind, each on its own clock.</summary>
 public sealed class AnimChannel<T> where T : class, IAnimClip
 {
     readonly List<AnimSlot<T>> _slots = [];

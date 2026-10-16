@@ -5,19 +5,24 @@ using WildRenderingSharp.Assets.Manifests;
 namespace WildRenderingSharp.Animation.Clips;
 
 /// <summary>
-/// Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.anim.json</c>, written by
-/// <c>ShaderLibrary.CompileTool.ExportTestBench.ExportSkeletalAnim</c> from a <c>BfresLibrary.SkeletalAnim</c> (FSKA).
+/// A full skeletal animation.
+/// Corresponds to a BFRES FSKA, loaded from
+/// <c>&lt;Model&gt;.&lt;AnimName&gt;.anim.json</c> in the cache.
 /// </summary>
 public sealed class SkeletalAnimManifest : IAnimClip
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("frame_count")] public int FrameCount { get; set; }
     [JsonPropertyName("loop")] public bool Loop { get; set; }
-    // True when rotations are quaternions; otherwise BaseRotate and curve offsets 32/36/40 are Euler XYZ radians and W is unused.
+    
+    // If this is false, rotation values are Euler XYZ (radians) with W being unused.
     [JsonPropertyName("rotation_is_quaternion")] public bool RotationIsQuaternion { get; set; } = true;
-    // SkeletalAnim.FlagsScale, same encoding as SkeletonScalingMode. Carried for completeness; the hierarchy walk uses the SKELETON's mode, which is
-    // what SkeletonObj::CalculateWorldMtx reads.
+    
+    // How bone scaling is applied throughout the bone hierarchy.
+    // In practice this is unused and just gets read from the skeleton itself.
     [JsonPropertyName("scaling_mode")] public SkeletonScalingMode ScalingMode { get; set; } = SkeletonScalingMode.Standard;
+    
+    // All animation curves for all bones being animated.
     [JsonPropertyName("bone_anims")] public List<BoneAnimManifestEntry> BoneAnims { get; set; } = [];
 
     static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

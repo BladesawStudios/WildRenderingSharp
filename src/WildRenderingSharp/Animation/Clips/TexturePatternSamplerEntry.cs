@@ -2,14 +2,15 @@ using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>One sampler of one material, and the step curve of texture indices driving it.</summary>
+/// <summary>Animation data for which texture to use on which frames.</summary>
 public sealed class TexturePatternSamplerEntry
 {
     [JsonPropertyName("sampler")] public string Sampler { get; set; } = "";
     [JsonPropertyName("start_frame")] public float StartFrame { get; set; }
     [JsonPropertyName("end_frame")] public float EndFrame { get; set; }
     [JsonPropertyName("frames")] public float[] Frames { get; set; } = [];
-    // Index into the anim's own Textures, already including the curve's integer Offset.
+    
+    // Indices into the set of textures available to the animation
     [JsonPropertyName("values")] public int[] Values { get; set; } = [];
 
     public int Evaluate(float frame)

@@ -6,8 +6,11 @@ namespace WildRenderingSharp.Animation.Posing;
 /// </summary>
 internal static class TexSrtBake
 {
+    // TODO: Pass data using our existing vector & matrix types
     public static void Bake(int mode, float sx, float sy, float rot, float tx, float ty, Span<float> outM0, Span<float> outM1)
     {
+        // TODO: This is all heavily heavily scalar math, it would probably be
+        // simpler using vector operations.
         float cos = MathF.Cos(rot);
         float sin = MathF.Sin(rot);
 
