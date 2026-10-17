@@ -105,7 +105,7 @@ internal sealed unsafe partial class MergedDrawing
     {
         if (_handles is not null)
             return;
-        _handles = new BindlessHandles(_gl);
+        _handles = new BindlessHandles(_gl, Residency);
         _geometry = new GeometryArena(_gl);
         _materials = new MergedMaterials(_gl, _sync);
         _textures = new MergedTextures(_gl, _handles, _defaultBake);

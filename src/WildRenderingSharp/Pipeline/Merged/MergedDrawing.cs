@@ -42,6 +42,9 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
         _vertexArrays = new VertexArrays(gl);
     }
 
+    // Which handles of this renderer's are resident, shared with the textures so that deleting one lets go of its handles first.
+    public TextureResidency Residency { get; set; } = new();
+
     // Whether shapes are drawn this way: the viewer's choice, and the context able to.
     public bool Enabled { get; set; }
 

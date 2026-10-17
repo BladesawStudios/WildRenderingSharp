@@ -78,6 +78,7 @@ public sealed class WildRenderer : IDisposable
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
+            SharedTextures.Residency = Pipeline.Drawer.Merged.Residency;
             _models = new ModelFactory(gl, Pipeline.Programs, cache, ExternalTextures, SharedTextures, Totk, Pipeline.Drawer.Merged);
             _bakes = new BakeAttachment(gl, cache);
             // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
@@ -256,6 +257,8 @@ public sealed class WildRenderer : IDisposable
     public void Dispose()
     {
         using var _ = GLHostState.Enter(_gl);
+        // Ahead of everything that deletes a texture: handles still resident then keep their textures on the card.
+        Pipeline.Drawer.Merged.Residency.ReleaseAll(_gl);
         foreach (var actor in _actors)
             actor.Dispose();
         _actors.Clear();

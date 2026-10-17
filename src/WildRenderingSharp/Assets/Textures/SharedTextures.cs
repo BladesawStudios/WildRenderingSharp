@@ -13,6 +13,9 @@ public sealed class SharedTextures : IDisposable
 
     public SharedTextures(GL gl) => _gl = gl;
 
+    // Set by the renderer that takes handles from these textures.
+    internal IResidency? Residency { get; set; }
+
     public int Count => _byKey.Count;
 
     internal static string Key(SamplerBinding s, bool srgb) =>
@@ -65,6 +68,7 @@ public sealed class SharedTextures : IDisposable
         }
         _byKey.Remove(key);
         _keyOf.Remove(texture);
+        Residency?.Release(_gl, texture.Handle);
         _gl.DeleteTexture(texture.Handle);
         GpuMemory.Texture(-texture.Bytes);
     }
@@ -73,6 +77,7 @@ public sealed class SharedTextures : IDisposable
     {
         foreach (var (texture, _) in _byKey.Values)
         {
+            Residency?.Release(_gl, texture.Handle);
             _gl.DeleteTexture(texture.Handle);
             GpuMemory.Texture(-texture.Bytes);
         }

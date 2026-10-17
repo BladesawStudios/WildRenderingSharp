@@ -9,7 +9,7 @@ namespace WildRenderingSharp.Pipeline.Merged;
 /// A handle is kept with the texture it was taken from, not under the texture's GL name, which is handed out again once a texture is deleted. A texture the
 /// host has since swapped for another has a new name, which is what makes its handle be taken again.
 /// </remarks>
-internal sealed class BindlessHandles(GL gl)
+internal sealed class BindlessHandles(GL gl, TextureResidency residency)
 {
     sealed class Taken(uint texture, ulong handle)
     {
@@ -28,6 +28,7 @@ internal sealed class BindlessHandles(GL gl)
         var bindless = MergedSupport.Bindless(gl);
         ulong handle = bindless.GetTextureHandle(texture.Handle);
         bindless.MakeTextureHandleResident(handle);
+        residency.Add(texture.Handle, handle);
         _taken.AddOrUpdate(texture, new Taken(texture.Handle, handle));
         return handle;
     }
