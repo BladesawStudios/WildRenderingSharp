@@ -20,8 +20,17 @@ public static class TotkTextures
         return null;
     }
 
-    public static TextureHandle? Handle(IRomAccess rom, string name) =>
-        Find(rom, name) is { } path ? new TextureHandle(surfaces => Load(rom, path, surfaces)) : null;
+    // A texture's header (size, format, channel select) is asked for by every model that uses it, and thousands share a few thousand textures, so it is read
+    // once per ROM. Only the header is kept: a request for pixel data is read from the ROM as before.
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IRomAccess, System.Collections.Concurrent.ConcurrentDictionary<string, TxtgTexture>> Headers = new();
+
+    public static TextureHandle? Handle(IRomAccess rom, string name)
+    {
+        if (Find(rom, name) is not { } path)
+            return null;
+        var headers = Headers.GetOrCreateValue(rom);
+        return new TextureHandle(surfaces => surfaces == 0 ? headers.GetOrAdd(path, p => Load(rom, p, 0)) : Load(rom, path, surfaces));
+    }
 
     public static TxtgTexture Load(IRomAccess rom, string path, int surfaces = int.MaxValue)
     {
