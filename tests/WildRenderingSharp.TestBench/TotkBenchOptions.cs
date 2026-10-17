@@ -6,7 +6,7 @@ namespace WildRenderingSharp.TestBench;
 static class TotkBenchOptions
 {
     public const string Usage = "[--palette <name>] [--atmosphere <x>] [--tint <0-1>] [--haze <0-1>] [--fog <x>] [--cloud-brightness <x>] " +
-        "[--flare-threshold <x>] [--cloud-weather <0-2>] [--cloud-layers <e.g. 101>] [--lowfog <0-1>] [--volumemask 0|1] [--nofog 1] [--nohaze 1] [--noclouds 1] [--static-clouds 1] [--noflare 1] [--nobodies 1] [--list-palettes 1] [--palette-info 1]";
+        "[--flare-threshold <x>] [--cloud-weather <0-2>] [--cloud-layers <e.g. 101>] [--lowfog <0-1>] [--volumemask 0|1] [--nofog 1] [--nohaze 1] [--merged 0|1] [--noclouds 1] [--static-clouds 1] [--noflare 1] [--nobodies 1] [--list-palettes 1] [--palette-info 1]";
 
     public static void Apply(WildRenderer renderer, IReadOnlyDictionary<string, string> options)
     {
@@ -43,6 +43,8 @@ static class TotkBenchOptions
             totk.ShadowSlopeOffset = float.Parse(slope);
         if (options.ContainsKey("nohaze"))
             totk.UseFieldHaze = false;
+        if (options.TryGetValue("merged", out var merged))
+            totk.MergedDraws = merged != "0";
         if (options.ContainsKey("nofog"))
             totk.UseFog = false;
         if (options.ContainsKey("noclouds"))

@@ -71,9 +71,10 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             (layout, stride, vertexBytes) = VertexCompactor.Compact(layout, stride, vertexBytes, used);
         }
 
+        byte[] indexBytes = File.ReadAllBytes(Path.Combine(dataDirectory, sh.IndexFile));
         uint vbo = GLBuffer.Create(gl, BufferTargetARB.ArrayBuffer, vertexBytes);
-        uint ibo = GLBuffer.Create(gl, BufferTargetARB.ElementArrayBuffer, File.ReadAllBytes(Path.Combine(dataDirectory, sh.IndexFile)));
-        return new ShapeBuffers(layout, stride, vbo, ibo, constantSkin);
+        uint ibo = GLBuffer.Create(gl, BufferTargetARB.ElementArrayBuffer, indexBytes);
+        return new ShapeBuffers(layout, stride, vbo, ibo, constantSkin, vertexBytes.Length, indexBytes.Length);
     }
 
     LoadedShape Assemble(ShapeManifestEntry sh, ShapePrograms shapePrograms, ShapeBuffers buffers)
@@ -89,6 +90,7 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             AlphaTest = sh.AlphaTest,
             Blend = sh.RenderState.Blend,
             RenderState = sh.RenderState,
+            Buffers = buffers,
             VertexBuffer = buffers.Vbo,
             IndexBuffer = buffers.Ibo,
             IndexCount = sh.IndexCount,

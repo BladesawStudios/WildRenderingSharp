@@ -4,6 +4,7 @@ using WildRenderingSharp.Animation.Posing;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Baking;
 using WildRenderingSharp.Assets.Textures;
+using WildRenderingSharp.Pipeline.Merged;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
 
@@ -63,6 +64,12 @@ public sealed class InstanceBatch : IDisposable
 
     public bool IncludeBlended { get; set; } = true;
 
+    // What the merged draw holds of the batch, made the first time it is drawn that way.
+    internal MergedBatch? Merged { get; set; }
+
+    // The table of atlas rectangles the batch's baked instances look up, as uploaded, or null when none of them is baked.
+    internal Vector4[]? BakeTableData { get; private set; }
+
     public int[]? BakeAtlasOfInstance { get; private set; }
 
     public IReadOnlyList<LoadedTexture> BakeAtlases { get; private set; } = [];
@@ -94,10 +101,37 @@ public sealed class InstanceBatch : IDisposable
         }
         BakeAtlasOfInstance = bake.Atlases.Count > 0 ? bake.AtlasOfInstance : null;
         BakeAtlases = bake.Atlases;
+        BakeTableData = bake.Atlases.Count > 0 ? bake.Table : null;
+        Merged?.Refresh(this);
+    }
+
+    // The batch's instances as the merged draw reads them: each gets a vec4 for the bindless handle of its baked-lighting atlas ahead of its palette, and the
+    // table index in its baked-lighting row names its place in the merged table (bakeShift moves it there).
+    internal Vector4[] MergedRecords(Func<Assets.Textures.LoadedTexture, ulong> handleOf, int bakeShift)
+    {
+        int stride = Stride + 1;
+        var records = new Vector4[Math.Max(1, Count) * stride];
+        for (int i = 0; i < Count; i++)
+        {
+            int from = i * Stride, to = i * stride;
+            _data.AsSpan(from, PaletteOffset).CopyTo(records.AsSpan(to, PaletteOffset));
+            _data.AsSpan(from + PaletteOffset, Stride - PaletteOffset).CopyTo(records.AsSpan(to + MergedLayout.PaletteOffset, Stride - PaletteOffset));
+            ref Vector4 row8 = ref records[to + Row8Offset];
+            int bits = BitConverter.SingleToInt32Bits(row8.Y);
+            if ((bits & 0x40000000) != 0)
+                row8.Y = BitConverter.Int32BitsToSingle(0x40000000 | ((bits & 0xFFFFF) + bakeShift));
+            if (BakeAtlasOfInstance is { } atlasOf && atlasOf[i] >= 0)
+            {
+                ulong handle = handleOf(BakeAtlases[atlasOf[i]]);
+                records[to + MergedLayout.AtlasOffset] = new Vector4(BitConverter.UInt32BitsToSingle((uint)handle), BitConverter.UInt32BitsToSingle((uint)(handle >> 32)), 0, 0);
+            }
+        }
+        return records;
     }
 
     public void Dispose()
     {
+        Merged?.Release(this);
         _gl.DeleteBuffer(Buffer);
         if (BakeTable != 0)
             _gl.DeleteBuffer(BakeTable);

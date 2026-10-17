@@ -53,6 +53,8 @@ internal readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vect
         var runs = Runs!;
         if (runs.Count == 0)
             return;
+        if (drawer.Merged.TryAdd(which, shape, batch, runs))
+            return;
         EnsureInstancedPrograms(drawer.Programs, shape);
         uint instanced = which switch { ShapeProgram.ZOnly => shape.InstancedZOnlyProgram, ShapeProgram.Forward => shape.InstancedForwardProgram, _ => shape.InstancedGBufferProgram };
         drawer.DrawInstanced(instanced, vao, shape, samplers, batch, runs);

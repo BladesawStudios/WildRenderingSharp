@@ -52,6 +52,7 @@ internal sealed class ShadowPass
         _gl.DepthMask(true);
 
         // Depth only: a shape with a Z-only program uses it (the game's own cheap variant, still alpha-testing cutouts), the rest fall back to the G-buffer program.
+        drawer.Merged.BeginCollecting();
         foreach (var group in groups)
         {
             group.BindUbos(resources);
@@ -60,5 +61,6 @@ internal sealed class ShadowPass
                 group.Draw(drawer, sh, sh.HasZOnly ? ShapeProgram.ZOnly : ShapeProgram.GBuffer);
             }
         }
+        drawer.Merged.Flush();
     }
 }

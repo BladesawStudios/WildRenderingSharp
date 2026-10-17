@@ -56,6 +56,7 @@ public sealed class LoadedModel : IDisposable
     {
         foreach (var shape in Shapes)
         {
+            shape.Merged?.Release(shape);
             _gl.DeleteVertexArray(shape.GBufferVao);
             if (shape.ZOnlyVao != 0) _gl.DeleteVertexArray(shape.ZOnlyVao);
             if (shape.ForwardVao != 0) _gl.DeleteVertexArray(shape.ForwardVao);

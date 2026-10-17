@@ -6,6 +6,11 @@ namespace WildRenderingSharp.Assets.Materials;
 /// <summary>A material's <c>gsys_material</c> uniform block: its authored bytes and the padded GL buffer they are shown through.</summary>
 internal sealed class MaterialBlock : IDisposable
 {
+    // Told of every change to the buffer, by the offset it starts at, so a copy of the block kept elsewhere stays the same.
+    public delegate void Mirror(int offset, ReadOnlySpan<byte> bytes);
+
+    public Mirror? Copy { get; set; }
+
     // Large enough for any shading model's declared block size.
     public const int BufferSize = 65536;
 
@@ -66,5 +71,6 @@ internal sealed class MaterialBlock : IDisposable
         fixed (byte* ptr = bytes)
             _gl.BufferSubData(BufferTargetARB.UniformBuffer, offset, (nuint)bytes.Length, ptr);
         _gl.BindBuffer(BufferTargetARB.UniformBuffer, 0);
+        Copy?.Invoke(offset, bytes);
     }
 }

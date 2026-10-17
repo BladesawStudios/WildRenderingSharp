@@ -1,3 +1,4 @@
+using WildRenderingSharp.Assets.Loading;
 using WildRenderingSharp.Assets.Manifests;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Assets.Textures;
@@ -16,6 +17,12 @@ public sealed class LoadedShape
     internal RenderState RenderState { get; init; } = null!;
 
     public required int VertexSkinCount { get; init; }
+
+    // The buffers the shape was built into, with the layout of the vertices in them.
+    internal ShapeBuffers Buffers { get; init; } = null!;
+
+    // What the merged draw holds of the shape, made the first time it is drawn that way.
+    internal IShapeCopy? Merged { get; set; }
 
     public required uint VertexBuffer { get; init; }
     public required uint IndexBuffer { get; init; }

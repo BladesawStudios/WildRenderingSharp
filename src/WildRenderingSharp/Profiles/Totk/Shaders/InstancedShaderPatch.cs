@@ -7,9 +7,9 @@ namespace WildRenderingSharp.Profiles.Totk.Shaders;
 /// <summary>Makes a decompiled game vertex shader draw many placements in one instanced call, without changing anything it computes.</summary>
 internal static class InstancedShaderPatch
 {
-    static readonly Regex MainSignature = new(@"\bvoid\s+main\s*\(\s*\)", RegexOptions.Compiled);
+    internal static readonly Regex MainSignature = new(@"\bvoid\s+main\s*\(\s*\)", RegexOptions.Compiled);
 
-    static Regex BlockDeclaration(string blockName) => new(
+    internal static Regex BlockDeclaration(string blockName) => new(
         @"layout\s*\([^)]*\)\s*uniform\s+" + Regex.Escape(blockName) + @"\s*\{[^}]*\}\s*(\w+)\s*;",
         RegexOptions.Compiled);
 
@@ -38,7 +38,7 @@ internal static class InstancedShaderPatch
         return source.TrimEnd() + "\n\n" + wrapper;
     }
 
-    static int EndOfDirectives(string source)
+    internal static int EndOfDirectives(string source)
     {
         int pos = 0;
         while (pos < source.Length)
@@ -57,7 +57,7 @@ internal static class InstancedShaderPatch
 
     static readonly string Wrapper = GlslFiles.Load("Totk/Shaders/InstancedShaderPatch/Wrapper.glsl");
 
-    static string RemoveBlock(string source, string blockName, out string? instanceName)
+    internal static string RemoveBlock(string source, string blockName, out string? instanceName)
     {
         Match m = BlockDeclaration(blockName).Match(source);
         if (!m.Success)
@@ -69,7 +69,7 @@ internal static class InstancedShaderPatch
         return source.Remove(m.Index, m.Length);
     }
 
-    static string RedirectReads(string source, string instanceName, string function)
+    internal static string RedirectReads(string source, string instanceName, string function)
     {
         string token = instanceName + ".data[";
         var sb = new StringBuilder(source.Length);

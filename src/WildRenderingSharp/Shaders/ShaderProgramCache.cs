@@ -99,8 +99,40 @@ internal sealed class ShaderProgramCache : IDisposable
         return program;
     }
 
+    readonly Dictionary<string, uint> _mergedPrograms = new(StringComparer.Ordinal);
+
+    // The program that draws any shape of any batch from one multi-draw, or 0 when this one cannot be (or did not compile) and is drawn the ordinary way.
+    public uint LoadMerged(string baseName)
+    {
+        lock (_sync)
+        {
+            if (_mergedPrograms.TryGetValue(baseName, out uint cached))
+                return cached;
+
+            string vertex = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
+            string fragment = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+            uint program = 0;
+            if (_sources.Merge(vertex, fragment) is var (mergedVertex, mergedFragment))
+            {
+                try
+                {
+                    program = GLProgramBuilder.Build(_gl, mergedVertex, mergedFragment, baseName + "_merged");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    WildRenderingSharp.Logging.Log.Warning($"[merged] {baseName} is drawn the ordinary way: {ex.Message.ReplaceLineEndings(" ")[..Math.Min(ex.Message.Length, 200)]}");
+                }
+            }
+            return _mergedPrograms[baseName] = program;
+        }
+    }
+
     public void Dispose()
     {
+        foreach (uint program in _mergedPrograms.Values)
+            if (program != 0)
+                _gl.ReleaseProgram(program);
+        _mergedPrograms.Clear();
         foreach (uint program in _programs.Values)
             _gl.ReleaseProgram(program);
         _programs.Clear();
