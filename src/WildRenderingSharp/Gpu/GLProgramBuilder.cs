@@ -37,6 +37,20 @@ internal static class GLProgramBuilder
                 return 0;
             if (TryLoadBinary(gl, path) is uint cached)
                 return cached;
+
+            // Kept by name before the files were compressed.
+            string uncompressed = Path.ChangeExtension(path, ".bin");
+            if (File.Exists(uncompressed))
+            {
+                try
+                {
+                    AtomicFile.WriteAllBytes(path, Compress(File.ReadAllBytes(uncompressed)));
+                    File.Delete(uncompressed);
+                    if (TryLoadBinary(gl, path) is uint taken)
+                        return taken;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            }
         }
 
         if (make() is not var (vertex, fragment))
@@ -46,13 +60,15 @@ internal static class GLProgramBuilder
             return 0;
         }
 
-        // A binary from the days of the cache that was keyed by source, taken over by moving it.
+        // A binary from the days of the cache that was keyed by source, taken over: compressed under its name, and the old file let go.
         string? bySource = BinaryCachePath(gl, vertex, fragment);
         if (path is not null && bySource is not null && File.Exists(bySource))
         {
             try
             {
-                File.Move(bySource, path, overwrite: true);
+                byte[] old = File.ReadAllBytes(bySource);
+                AtomicFile.WriteAllBytes(path, Compress(old));
+                File.Delete(bySource);
                 if (TryLoadBinary(gl, path) is uint moved)
                     return moved;
             }
@@ -77,7 +93,7 @@ internal static class GLProgramBuilder
             return null;
 
         byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes($"{cache.DriverIdentity}\0named\0{identity}"));
-        return Path.Combine(directory, "n" + Convert.ToHexString(key) + ".bin");
+        return Path.Combine(directory, "n" + Convert.ToHexString(key) + ".zbin");
     }
 
     static uint BuildUnkept(GL gl, string vertexSource, string fragmentSource, string label, bool retrievable)
@@ -170,12 +186,28 @@ internal static class GLProgramBuilder
         return Path.Combine(directory, Convert.ToHexString(key) + ".bin");
     }
 
+    // A kept binary's file is zstd-compressed where it is kept by name: a driver's program binaries are mostly alike from one program to the next and shrink to a third or less,
+    // which is half a gigabyte of a whole map's programs saved, for a decompression that costs a fraction of reading the larger file.
+    static byte[] Compress(byte[] file)
+    {
+        using var compressor = new ZstdSharp.Compressor(6);
+        return compressor.Wrap(file).ToArray();
+    }
+
     static uint? TryLoadBinary(GL gl, string path)
     {
         byte[] file;
-        try { file = File.ReadAllBytes(path); }
+        try
+        {
+            file = File.ReadAllBytes(path);
+            if (path.EndsWith(".zbin", StringComparison.Ordinal))
+            {
+                using var decompressor = new ZstdSharp.Decompressor();
+                file = decompressor.Unwrap(file).ToArray();
+            }
+        }
         // No cached binary, or one that cannot be read, is compiled from source instead.
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ZstdSharp.ZstdException) { return null; }
         if (file.Length <= 4)
             return null;
 
@@ -211,7 +243,8 @@ internal static class GLProgramBuilder
                 return;
             BitConverter.TryWriteBytes(file.AsSpan(0, 4), (uint)format);
 
-            AtomicFile.WriteAllBytes(path, file.AsSpan(0, (int)written + 4));
+            byte[] whole = file.AsSpan(0, (int)written + 4).ToArray();
+            AtomicFile.WriteAllBytes(path, path.EndsWith(".zbin", StringComparison.Ordinal) ? Compress(whole) : whole);
         }
         // Only a cache - the program itself is fine.
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
