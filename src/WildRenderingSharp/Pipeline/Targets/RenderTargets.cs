@@ -154,7 +154,9 @@ public sealed class RenderTargets : IDisposable
 
     public void BindShadowTarget() => _shadow.BindMap();
 
-    public void BindShadowCascadeTarget(int cascade) => _shadow.BindCascade(cascade);
+    public void BindShadowCascadeTarget(int cascade, bool statics = false) => _shadow.BindCascade(cascade, statics);
+
+    public void CopyStaticShadowCascade(int cascade) => _shadow.CopyStaticToLive(cascade);
 
     public Vector4 ReadPixel(GpuTexture target, int x, int y) => _readback.Pixel(target, x, y);
 

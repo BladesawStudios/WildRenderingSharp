@@ -11,8 +11,8 @@ sealed class ShadowTargets : IDisposable
     readonly GL _gl;
     readonly TargetTextureFactory _textures;
     readonly uint _mapFramebuffer;
-    uint _cascadeFramebuffer;
-    GpuTexture? _cascades;
+    uint _cascadeFramebuffer, _staticFramebuffer;
+    GpuTexture? _cascades, _staticCascades;
 
     public ShadowTargets(GL gl, TargetTextureFactory textures)
     {
@@ -33,6 +33,14 @@ sealed class ShadowTargets : IDisposable
 
     public GpuTexture Cascades => _cascades ??= CreateCascades();
 
+    // What each cascade holds of the things that do not move, kept apart so the moving ones can be drawn over a copy of it every frame.
+    GpuTexture StaticCascades => _staticCascades ??= CreateStaticCascades();
+
+    // Puts a cascade's static depth into the cascade the resolve reads.
+    public void CopyStaticToLive(int cascade) =>
+        _gl.CopyImageSubData(StaticCascades.Handle, CopyImageSubDataTarget.Texture2DArray, 0, 0, 0, cascade,
+            Cascades.Handle, CopyImageSubDataTarget.Texture2DArray, 0, 0, 0, cascade, CascadeSize, CascadeSize, 1);
+
     // Reports an incomplete shadow map framebuffer, for checking it is still complete once the viewport targets exist.
     public void Validate(string label)
     {
@@ -46,11 +54,12 @@ sealed class ShadowTargets : IDisposable
         _gl.Viewport(0, 0, MapSize, MapSize);
     }
 
-    public void BindCascade(int cascade)
+    // Draws into a cascade of the array the resolve reads, or into the same cascade of the array that keeps what does not move.
+    public void BindCascade(int cascade, bool statics = false)
     {
         // Read first: the framebuffer is created along with the array, on first use.
-        uint cascades = Cascades.Handle;
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _cascadeFramebuffer);
+        uint cascades = statics ? StaticCascades.Handle : Cascades.Handle;
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, statics ? _staticFramebuffer : _cascadeFramebuffer);
         _gl.FramebufferTextureLayer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, cascades, 0, cascade);
         _gl.DrawBuffer(DrawBufferMode.None);
         _gl.ReadBuffer(ReadBufferMode.None);
@@ -66,6 +75,17 @@ sealed class ShadowTargets : IDisposable
             _gl.DeleteTexture(cascades.Handle);
             _gl.DeleteFramebuffer(_cascadeFramebuffer);
         }
+        if (_staticCascades is { } statics)
+        {
+            _gl.DeleteTexture(statics.Handle);
+            _gl.DeleteFramebuffer(_staticFramebuffer);
+        }
+    }
+
+    GpuTexture CreateStaticCascades()
+    {
+        _staticFramebuffer = _gl.GenFramebuffer();
+        return _textures.ShadowCascadeArray(CascadeSize, MaxCascades);
     }
 
     GpuTexture CreateCascades()

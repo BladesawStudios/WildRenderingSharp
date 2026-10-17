@@ -34,14 +34,19 @@ internal sealed class ShadowPass
         return new LightMatrices(view, proj, view * proj);
     }
 
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer, int cascade = -1)
+    // statics draws into the cascade's array of unmoving casters; clear false draws over what the target holds.
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer, int cascade = -1,
+        bool statics = false, bool clear = true)
     {
         if (cascade >= 0)
-            targets.BindShadowCascadeTarget(cascade);
+            targets.BindShadowCascadeTarget(cascade, statics);
         else
             targets.BindShadowTarget();
-        _gl.ClearDepth(1.0);
-        _gl.Clear(ClearBufferMask.DepthBufferBit);
+        if (clear)
+        {
+            _gl.ClearDepth(1.0);
+            _gl.Clear(ClearBufferMask.DepthBufferBit);
+        }
         _gl.Enable(EnableCap.DepthTest);
         _gl.DepthFunc(DepthFunction.Less);
         _gl.DepthMask(true);

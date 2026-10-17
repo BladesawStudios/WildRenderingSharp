@@ -15,6 +15,9 @@ public class GLDebug {
     /// </summary>
     /// <param name="gl">The OpenGL context</param>
     public static void GLInit(GL gl) {
+        // The driver reports through a synchronous callback once this is on, which keeps it from queueing work ahead of the thread and costs every call after it.
+        if (Environment.GetEnvironmentVariable("PRISM_GLDEBUG") is null && Environment.GetEnvironmentVariable("WRS_GLDEBUG") is null)
+            return;
         gl.DebugMessageCallback(DebugProcCallback, IntPtr.Zero);
         gl.Enable(EnableCap.DebugOutput);
         gl.Enable(EnableCap.DebugOutputSynchronous);

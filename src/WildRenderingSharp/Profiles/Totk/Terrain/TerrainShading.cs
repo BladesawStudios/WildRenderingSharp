@@ -33,7 +33,10 @@ public sealed partial class TerrainShading : IDisposable
         _bindings = bindings;
     }
 
-    public bool Available => File.Exists(Path.Combine(_shadersDir, "terrain_prog2_extracted.frag"));
+    bool _available;
+
+    // Once the programs are there they stay; asking the disk every frame costs more than the rest of the question.
+    public bool Available => _available || (_available = File.Exists(Path.Combine(_shadersDir, "terrain_prog2_extracted.frag")));
 
     public uint LinkGBufferProgram(string hostVertexSource, int program = 2)
     {

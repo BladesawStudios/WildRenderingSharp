@@ -18,6 +18,7 @@ sealed unsafe class IndirectStream : IDisposable
     readonly byte* _mapped;
     readonly nint[] _fences = new nint[Chunks];
     int _offset, _chunk;
+    bool _bound;
 
     public IndirectStream(GL gl)
     {
@@ -34,11 +35,15 @@ sealed unsafe class IndirectStream : IDisposable
             gl.BufferData(BufferTargetARB.DrawIndirectBuffer, (nuint)Capacity, null, BufferUsageARB.StreamDraw);
     }
 
+    // The buffer is bound again before the next draw: something outside the renderer may have bound another in the meantime.
+    public void Invalidate() => _bound = false;
+
     // Draws the commands as one multi-draw and empties the list.
     public void Draw(List<DrawCommand> commands)
     {
         if (commands.Count == 0)
             return;
+        DrawStatistics.Call(commands.Count);
         nint offset = Upload(CollectionsMarshal.AsSpan(commands));
         _gl.MultiDrawElementsIndirect(PrimitiveType.Triangles, DrawElementsType.UnsignedInt, (void*)offset, (uint)commands.Count, (uint)sizeof(DrawCommand));
         commands.Clear();
@@ -60,7 +65,11 @@ sealed unsafe class IndirectStream : IDisposable
     nint Upload(ReadOnlySpan<DrawCommand> commands)
     {
         int bytes = commands.Length * sizeof(DrawCommand);
-        _gl.BindBuffer(BufferTargetARB.DrawIndirectBuffer, _buffer);
+        if (!_bound)
+        {
+            _gl.BindBuffer(BufferTargetARB.DrawIndirectBuffer, _buffer);
+            _bound = true;
+        }
         if (_mapped is null)
             UploadCopy(commands, bytes);
         else

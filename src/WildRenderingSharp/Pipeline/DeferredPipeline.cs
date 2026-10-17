@@ -41,6 +41,15 @@ public sealed class DeferredPipeline : IDisposable
 
     public (long Triangles, long Instances) ShadowCounts { get; private set; }
 
+    // The frame's actor draw calls, the commands in them, the texture binds and the program switches.
+    public (long Calls, long Commands, long TextureBinds, long ProgramSwitches) DrawCounts { get; private set; }
+
+    // How many frames the main shadow cache has seen, and how many times each cascade has been redrawn over them.
+    // How many redraws were because the sun, the cascade's region, the ground or the casters changed.
+    public IReadOnlyList<long> CascadeCauses => _mainShadowCache.CascadeCauses;
+
+    public (long Frames, IReadOnlyList<long> Redraws) CascadeRedraws => (_mainShadowCache.FrameCount, _mainShadowCache.CascadeRedraws);
+
     public ExposureMeter.Result? LastExposureMeasurement => _exposure.Last;
 
     internal DeferredPipeline(GL gl, string decompiledDirectory, int width, int height,
@@ -87,6 +96,8 @@ public sealed class DeferredPipeline : IDisposable
     {
         Timer.BeginFrame();
         Drawer.TakeCounts();
+        Drawer.BeginFrame();
+        DrawStatistics.Take();
         ShadowCounts = default;
         PrepareEnvironment(request.Environment);
 
@@ -105,6 +116,7 @@ public sealed class DeferredPipeline : IDisposable
 
         GBufferCounts = frame.Stats.GBuffer;
         ShadowCounts = frame.Stats.Shadow;
+        DrawCounts = DrawStatistics.Take();
         Timer.Mark("post");
         return frame.Result;
     }

@@ -31,8 +31,9 @@ internal readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vect
     public void BindUbos(GLResourceCache resources)
     {
         resources.Bind(Uniforms);
-        foreach (var block in ZeroedBlocks ?? [])
-            resources.BindZeroed(block);
+        if (ZeroedBlocks is { } zeroed)
+            for (int i = 0; i < zeroed.Count; i++)
+                resources.BindZeroed(zeroed[i]);
         if (Batch is not null)
             BindInstanceBuffer(resources);
     }
