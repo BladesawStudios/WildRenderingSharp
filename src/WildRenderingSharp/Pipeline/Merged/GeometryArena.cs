@@ -59,8 +59,9 @@ internal sealed class GeometryChunk(GL gl, int id, string key, ShapeBuffers form
 /// <summary>Copies shapes' vertices and indices into shared chunks, one set of chunks for each vertex layout, so shapes of any model can be drawn by one call.</summary>
 internal sealed class GeometryArena(GL gl) : IDisposable
 {
-    // A chunk is this many bytes of vertices; a shape larger than that gets a chunk of its own.
-    const long ChunkVertexBytes = 64L << 20;
+    // The first chunk of a vertex layout holds this many bytes of vertices and each one after it twice the one before, up to the largest; a shape larger than
+    // that gets a chunk of its own. A scene uses a few dozen layouts and most hold little, so chunks that were all the largest size held gigabytes of nothing.
+    const long FirstChunkVertexBytes = 4L << 20, LargestChunkVertexBytes = 64L << 20;
 
     readonly Dictionary<string, List<GeometryChunk>> _chunks = new(StringComparer.Ordinal);
     int _nextId;
@@ -77,7 +78,8 @@ internal sealed class GeometryArena(GL gl) : IDisposable
             if (Place(chunk, shape, vertices, indices) is { } slice)
                 return slice;
 
-        int capacity = (int)Math.Max(ChunkVertexBytes / format.Stride, vertices);
+        long chunkBytes = Math.Min(LargestChunkVertexBytes, FirstChunkVertexBytes << Math.Min(list.Count, 8));
+        int capacity = (int)Math.Max(chunkBytes / format.Stride, vertices);
         var made = new GeometryChunk(gl, _nextId++, key, format, capacity, Math.Max(capacity * 3, indices));
         list.Add(made);
         return Place(made, shape, vertices, indices) ?? throw new InvalidOperationException("A new chunk has no room for the shape that made it.");
