@@ -19,7 +19,7 @@ internal sealed unsafe partial class MergedDrawing
         var giveUp = new List<LoadedShape>();
         foreach (var shape in model.Shapes)
         {
-            if (shape.Buffers is null)
+            if (shape.Buffers is null || IsLeftToTheOrdinaryDraw(shape))
                 continue;
             var merged = MergedOf(shape);
             if (merged.Excluded)

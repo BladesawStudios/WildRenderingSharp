@@ -59,10 +59,15 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
         return counts;
     }
 
+    // A shape that samples baked lighting belongs to the map's own static objects: overlapping surfaces that the order the ordinary draw sorts them into decides
+    // between, and baked lighting that has looked different drawn from the merged buffers. Those stay with the ordinary draw, in every pass, so that a shape is never
+    // drawn by one of the two in its prepass and the other in its main draw. It is a property of the shape, so it holds before a batch's baked lighting has arrived too.
+    internal static bool IsLeftToTheOrdinaryDraw(LoadedShape shape) => shape.GBufferSamplers.Any(s => s.Key == "bake0");
+
     // Queues the visible runs of the shape's batch; false when the shape is left to be drawn the ordinary way.
     public bool TryAdd(ShapeProgram which, LoadedShape shape, InstanceBatch batch, List<(int First, int Count, int Lod)> runs)
     {
-        if (!Usable || shape.SamplerOverrides is not null || shape.Buffers is null || which == ShapeProgram.Forward)
+        if (!Usable || shape.SamplerOverrides is not null || shape.Buffers is null || which == ShapeProgram.Forward || IsLeftToTheOrdinaryDraw(shape))
             return false;
         var merged = MergedOf(shape);
         uint program = merged.Excluded ? 0 : ProgramOf(shape, merged, which);
@@ -80,7 +85,7 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
     // Queues the stamp of a shape's silhouette in the pass-ID mask, whose program is its own and which needs of the shape only its skin count and the pass it belongs to.
     public bool TryAddPassId(uint program, LoadedShape shape, InstanceBatch batch, List<(int First, int Count, int Lod)> runs, int passValue)
     {
-        if (!Usable || shape.Buffers is null || program == 0)
+        if (!Usable || shape.Buffers is null || program == 0 || IsLeftToTheOrdinaryDraw(shape))
             return false;
         var merged = MergedOf(shape);
         var records = batch.Merged ?? AddBatch(batch)!;
