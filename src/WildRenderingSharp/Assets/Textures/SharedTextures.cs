@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Gpu;
 
 namespace WildRenderingSharp.Assets.Textures;
 
@@ -65,12 +66,16 @@ public sealed class SharedTextures : IDisposable
         _byKey.Remove(key);
         _keyOf.Remove(texture);
         _gl.DeleteTexture(texture.Handle);
+        GpuMemory.Texture(-texture.Bytes);
     }
 
     public void Dispose()
     {
         foreach (var (texture, _) in _byKey.Values)
+        {
             _gl.DeleteTexture(texture.Handle);
+            GpuMemory.Texture(-texture.Bytes);
+        }
         _byKey.Clear();
         _keyOf.Clear();
     }

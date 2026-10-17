@@ -12,4 +12,7 @@ public sealed class LoadedTexture
     public required int Height { get; init; }
 
     public required string Name { get; init; }
+
+    /// <summary>What the texture takes on the card, counted as uploaded.</summary>
+    public long Bytes { get; init; }
 }

@@ -42,7 +42,10 @@ internal sealed class MaterialBlock : IDisposable
         get
         {
             if (_handle == 0)
+            {
                 _handle = GLBuffer.Create(_gl, BufferTargetARB.UniformBuffer, Padded(_shown ?? _authored), BufferUsageARB.DynamicDraw);
+                GpuMemory.Material(BufferSize);
+            }
             return _handle;
         }
     }
@@ -92,7 +95,10 @@ internal sealed class MaterialBlock : IDisposable
     public void Dispose()
     {
         if (_handle != 0)
+        {
             _gl.DeleteBuffer(_handle);
+            GpuMemory.Material(-BufferSize);
+        }
         _handle = 0;
     }
 

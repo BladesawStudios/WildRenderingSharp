@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Logging;
 
 namespace WildRenderingSharp.Assets.Textures;
@@ -48,7 +49,10 @@ internal sealed class TextureCache : IDisposable
             if (_shared is not null && _shared.Owns(tex))
                 _shared.Release(tex);
             else
+            {
                 _gl.DeleteTexture(tex.Handle);
+                GpuMemory.Texture(-tex.Bytes);
+            }
         }
         _byTextureName.Clear();
         if (_white is { } white)

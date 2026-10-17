@@ -25,6 +25,14 @@ internal sealed class GeometryChunk(GL gl, int id, string key, ShapeBuffers form
 
     public uint Ibo { get; } = GLBufferOf(gl, BufferTargetARB.ElementArrayBuffer, (long)indexCapacity * sizeof(uint));
 
+    long Bytes { get; } = Counted((long)vertexCapacity * format.Stride + (long)indexCapacity * sizeof(uint));
+
+    static long Counted(long bytes)
+    {
+        Gpu.GpuMemory.Merged(bytes);
+        return bytes;
+    }
+
     public RegionAllocator Vertices { get; } = new(vertexCapacity);
 
     public RegionAllocator Indices { get; } = new(indexCapacity);
@@ -36,6 +44,7 @@ internal sealed class GeometryChunk(GL gl, int id, string key, ShapeBuffers form
     {
         gl.DeleteBuffer(Vbo);
         gl.DeleteBuffer(Ibo);
+        Gpu.GpuMemory.Merged(-Bytes);
     }
 
     static unsafe uint GLBufferOf(GL gl, BufferTargetARB target, long bytes)

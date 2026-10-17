@@ -17,17 +17,19 @@ sealed class TextureUploader(GL gl)
         GLDiagnostics.CheckPending(gl, $"uploading texture '{s.Texture}'");
         uint handle = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, handle);
-        int levels = UploadLevels(s, info, raw, srgb);
+        int levels = UploadLevels(s, info, raw, srgb, out long bytes);
         GLDiagnostics.Check(gl, $"uploading texture '{s.Texture}' ({s.Format}, {s.Width}x{s.Height}, {raw.Length} bytes)");
 
         ApplySwizzle(s);
         ApplySampling(s, levels);
-        return new LoadedTexture { Handle = handle, Width = s.Width, Height = s.Height, Name = s.Texture };
+        GpuMemory.Texture(bytes);
+        return new LoadedTexture { Handle = handle, Width = s.Width, Height = s.Height, Name = s.Texture, Bytes = bytes };
     }
 
     // The file is the mip chain back to back, or mip 0 alone from an older cache; levels are read for as long as another whole one remains.
-    int UploadLevels(SamplerBinding s, CompressedTextureFormat.Info info, byte[] raw, bool srgb)
+    int UploadLevels(SamplerBinding s, CompressedTextureFormat.Info info, byte[] raw, bool srgb, out long bytes)
     {
+        bytes = 0;
         var internalFormat = srgb ? info.FormatSrgb : info.Format;
         int levels = 0;
         for (int offset = 0, w = s.Width, h = s.Height; ; w = Math.Max(1, w / 2), h = Math.Max(1, h / 2))
@@ -38,6 +40,7 @@ sealed class TextureUploader(GL gl)
             UploadLevel(levels, internalFormat, new ReadOnlySpan<byte>(raw, offset, length), w, h, info, srgb);
             levels++;
             offset += length;
+            bytes += info.AstcFootprint is null ? length : (long)w * h * 4;
             if (w == 1 && h == 1)
                 break;
         }
