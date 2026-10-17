@@ -36,8 +36,17 @@ internal sealed class GBufferPass(GL gl)
     }
 
     // A z-prepass pays only where the z-only program discards: that shape's G-buffer program takes its cutout from the prepass depth.
-    static bool NeedsPrepass(ShapeDrawer drawer, LoadedShape shape) =>
-        shape.HasZOnly && shape.RenderState.DepthWriteEnabled && drawer.Programs.FragmentDiscards(shape.ZOnlyShaderName);
+    // Asked of every shape every frame, so what the program source said is remembered here rather than looked up under the cache's lock.
+    readonly Dictionary<string, bool> _discards = new(StringComparer.Ordinal);
+
+    bool NeedsPrepass(ShapeDrawer drawer, LoadedShape shape)
+    {
+        if (!shape.HasZOnly || !shape.RenderState.DepthWriteEnabled)
+            return false;
+        if (!_discards.TryGetValue(shape.ZOnlyShaderName, out bool discards))
+            _discards[shape.ZOnlyShaderName] = discards = drawer.Programs.FragmentDiscards(shape.ZOnlyShaderName);
+        return discards;
+    }
 
     void DrawStages(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
     {

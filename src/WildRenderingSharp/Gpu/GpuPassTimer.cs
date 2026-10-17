@@ -19,6 +19,7 @@ public sealed class GpuPassTimer : IDisposable
     readonly List<(string Name, double Ms)> _cpu = [];
     readonly System.Diagnostics.Stopwatch _clock = new();
     double _lastCpuMark;
+    long _lastCalls;
     readonly Stack<uint> _free = new();
     int _slot = -1;
 
@@ -111,8 +112,11 @@ public sealed class GpuPassTimer : IDisposable
         _gl.QueryCounter(q, QueryCounterTarget.Timestamp);
         _frames[_slot].Add((pass, q));
         double now = _clock.Elapsed.TotalMilliseconds;
+        long calls = Pipeline.Drawing.DrawStatistics.Calls;
+        long made = calls >= _lastCalls ? calls - _lastCalls : calls;
+        _lastCalls = calls;
         if (pass != "start")
-            _cpu.Add((pass, now - _lastCpuMark));
+            _cpu.Add((made > 0 ? $"{pass} ({made:N0} calls)" : pass, now - _lastCpuMark));
         _lastCpuMark = now;
     }
 

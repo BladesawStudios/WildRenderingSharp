@@ -120,26 +120,79 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var texelWorld = new float[count];
         var bias = new float[count];
         var invRange = new float[count];
-        long actorSignature = ShadowSignatures.ActorSignature(request.Actors);
         bool drew = false;
+        cache.FrameCount++;
+
+        // New targets hold no cascades, so every one of them has to be drawn.
+        int targetsId = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(targets);
+        if (cache.TargetsId != targetsId)
+        {
+            Array.Clear(cache.CascadeSignature);
+            Array.Clear(cache.CascadeHasActors);
+            cache.TargetsId = targetsId;
+        }
+
+        // A cascade that has changed is drawn at most one a frame, the one waiting longest, and one never drawn at all always is: redrawing every changed cascade at
+        // once costs tens of milliseconds as the camera moves, while a cascade left a frame or two behind is still a consistent map under its own light matrices.
+        var lights = new ShadowPass.LightMatrices[count];
+        var signatures = new long[count];
+        var suns = new Vector3[count];
+        var parts = new (int Sun, int Focus, int Terrain, int Runs)[count];
+        int oldest = -1;
+        for (int c = 0; c < count; c++)
+        {
+            var focus = cascades[c];
+            var (lo, hi) = (focus.Min, focus.Max);
+            suns[c] = HeldSun(cache, c, frame.Setup.SunWorld);
+            lights[c] = ShadowPass.BuildLightMatrices(lo, hi, suns[c]);
+            var light = lights[c];
+            var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
+            var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
+            foreach (var batch in frame.Instances)
+                batch.Shadow.UpdateCascade(c, focus, right, up, (hi - lo).Length() * 0.5f + 1e-4f);
+
+            parts[c] = SignatureParts(frame, c, focus, suns[c]);
+            signatures[c] = Combine(parts[c]);
+            if (cache.CascadeSignature[c] != signatures[c] && cache.CascadeSignature[c] != 0 && (oldest < 0 || cache.CascadeDrawnAt[c] < cache.CascadeDrawnAt[oldest]))
+                oldest = c;
+        }
+
+        // What moves is drawn over a copy of the cascade's unmoving casters every frame, so it never changes what the cascade keeps and a creature walking about does
+        // not make every cascade redraw its whole map.
+        var movers = ActorGroups(frame);
+        bool hasMovers = movers.Any(g => g.Shapes.Count > 0);
 
         for (int c = 0; c < count; c++)
         {
             var focus = cascades[c];
             var (lo, hi) = (focus.Min, focus.Max);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
-            var light = ShadowPass.BuildLightMatrices(lo, hi, frame.Setup.SunWorld);
-            var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
-            var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
-            foreach (var batch in frame.Instances)
-                batch.Shadow.UpdateCascade(c, focus, right, up, lightRadius);
-
-            long signature = CascadeSignature(frame, c, focus, actorSignature);
-            if (cache.CascadeSignature[c] != signature)
+            bool redrawn = cache.CascadeSignature[c] == 0 || c == oldest;
+            if (redrawn)
             {
-                DrawCascade(frame, c, focus, light);
-                cache.CascadeSignature[c] = signature;
-                cache.CascadeLight[c] = light;
+                if (cache.CascadeSignature[c] != 0)
+                {
+                    var was = cache.CascadeParts[c];
+                    if (was.Sun != parts[c].Sun) cache.CascadeCauses[0]++;
+                    if (was.Focus != parts[c].Focus) cache.CascadeCauses[1]++;
+                    if (was.Terrain != parts[c].Terrain) cache.CascadeCauses[2]++;
+                    if (was.Runs != parts[c].Runs) cache.CascadeCauses[3]++;
+                }
+                cache.CascadeParts[c] = parts[c];
+                cache.CascadeSun[c] = suns[c];
+                DrawCascade(frame, c, focus, lights[c]);
+                cache.CascadeSignature[c] = signatures[c];
+                cache.CascadeLight[c] = lights[c];
+                cache.CascadeDrawnAt[c] = cache.FrameCount;
+                cache.CascadeRedraws[c]++;
+                drew = true;
+            }
+            if (redrawn || hasMovers || cache.CascadeHasActors[c])
+            {
+                targets.CopyStaticShadowCascade(c);
+                if (hasMovers)
+                    DrawMovers(frame, c, cache.CascadeLight[c], movers);
+                cache.CascadeHasActors[c] = hasMovers;
                 drew = true;
             }
             cache.CascadeRadius[c] = focus.Radius;
@@ -164,28 +217,41 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias, invRange);
     }
 
-    static long CascadeSignature(FrameContext frame, int cascade, ShadowFocus focus, long actorSignature)
+    // How far the sun may move, in degrees, before a cascade is drawn again under the new direction: a cascade's texels are large for the height of what casts into
+    // them, so a sun a fraction of a degree off puts a shadow well inside a texel of where it should be, and the finer the cascade the less it can take.
+    static readonly float[] SunToleranceDegrees = [0.1f, 0.2f, 0.5f, 1f];
+
+    // The sun the cascade is drawn under: the one it was last drawn under, until the real one has moved past the cascade's tolerance.
+    static Vector3 HeldSun(ShadowCache cache, int cascade, Vector3 sun)
     {
-        var hash = new HashCode();
-        hash.Add(frame.Setup.SunWorld);
-        hash.Add(focus);
-        hash.Add(actorSignature);
-        hash.Add(frame.TotkEnvironment().Terrain?.ShadowVersion ?? 0);
-        hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(frame.Targets));
+        Vector3 held = cache.CascadeSun[cascade];
+        if (held == default)
+            return sun;
+        float cosine = Vector3.Dot(Vector3.Normalize(held), Vector3.Normalize(sun));
+        return cosine < MathF.Cos(SunToleranceDegrees[Math.Min(cascade, SunToleranceDegrees.Length - 1)] * MathF.PI / 180f) ? sun : held;
+    }
+
+    static (int Sun, int Focus, int Terrain, int Runs) SignatureParts(FrameContext frame, int cascade, ShadowFocus focus, Vector3 sun)
+    {
+        var runs = new HashCode();
+        runs.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(frame.Targets));
         foreach (var batch in frame.Instances)
         {
-            hash.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(batch));
+            runs.Add(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(batch));
             foreach (var run in batch.Shadow.Cascade(cascade))
-                hash.Add(run);
+                runs.Add(run);
         }
-        return (uint)hash.ToHashCode() | (1L << 40);
+        return (sun.GetHashCode(), focus.GetHashCode(), (frame.TotkEnvironment().Terrain?.ShadowVersionNear(focus.Center, focus.Radius) ?? 0).GetHashCode(), runs.ToHashCode());
     }
+
+    static long Combine((int Sun, int Focus, int Terrain, int Runs) parts) =>
+        (uint)HashCode.Combine(parts.Sun, parts.Focus, parts.Terrain, parts.Runs) | (1L << 40);
 
     void DrawCascade(FrameContext frame, int cascade, ShadowFocus focus, ShadowPass.LightMatrices light)
     {
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
 
-        var groups = ActorGroups(frame);
+        var groups = new List<ActorDrawGroup>();
         foreach (var batch in frame.Instances.Where(b => b.Shadow.Cascade(cascade).Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
 
@@ -200,10 +266,24 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         float slope = frame.TotkEnvironment().Settings.ShadowSlopeOffset;
         gl.Enable(EnableCap.PolygonOffsetFill);
         gl.PolygonOffset(slope, slope > 0f ? ConstantOffset : 0f);
-        _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
+        _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade, statics: true);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
             terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
+        gl.Disable(EnableCap.PolygonOffsetFill);
+        gl.Disable(EnableCap.DepthClamp);
+    }
+
+    // The placed actors that move, drawn into a cascade over the copy of what it keeps, under the light matrices that copy was drawn with.
+    void DrawMovers(FrameContext frame, int cascade, ShadowPass.LightMatrices light, List<ActorDrawGroup> movers)
+    {
+        Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
+        var gl = services.Gl;
+        gl.Enable(EnableCap.DepthClamp);
+        float slope = frame.TotkEnvironment().Settings.ShadowSlopeOffset;
+        gl.Enable(EnableCap.PolygonOffsetFill);
+        gl.PolygonOffset(slope, slope > 0f ? ConstantOffset : 0f);
+        _shadow.Run(Resources, frame.Targets, movers, services.Drawer, cascade, clear: false);
         gl.Disable(EnableCap.PolygonOffsetFill);
         gl.Disable(EnableCap.DepthClamp);
     }

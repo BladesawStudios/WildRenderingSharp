@@ -33,6 +33,9 @@ internal sealed unsafe class ShapeDrawer : IDisposable
 
     public DefaultBake DefaultBake { get; }
 
+    // At the start of a frame, before anything the host draws can have changed what is bound.
+    public void BeginFrame() => _stream.Invalidate();
+
     // Between these, a bind that matches the last one is skipped, so nothing else may bind these slots in the meantime.
     public void BeginStateCache() => _bound.Begin();
 
@@ -47,10 +50,13 @@ internal sealed unsafe class ShapeDrawer : IDisposable
             return;
 
         _bound.Invalidate();
+        DrawStatistics.ProgramSwitch();
+        DrawStatistics.Call(1);
         _gl.UseProgram(program);
         _gl.BindBufferBase(BufferTargetARB.UniformBuffer, Programs.Bindings.Material, material.Handle);
-        foreach (var (unit, key, texture) in samplers)
+        for (int i = 0; i < samplers.Count; i++)
         {
+            var (unit, key, texture) = samplers[i];
             var bound = DefaultBake.Substitute(key, Overridden(overrides, key, texture));
             _gl.ActiveTexture(TextureUnit.Texture0 + unit);
             _gl.BindTexture(bound.Target, bound.Handle);
@@ -114,6 +120,7 @@ internal sealed unsafe class ShapeDrawer : IDisposable
     {
         if (!_bound.Needs(DrawBindingCache.Slot.Program, program))
             return;
+        DrawStatistics.ProgramSwitch();
         _gl.UseProgram(program);
         if (!_uniforms.TryGetValue(program, out _current))
             _uniforms[program] = _current = InstanceUniforms.Find(_gl, program);
@@ -137,8 +144,9 @@ internal sealed unsafe class ShapeDrawer : IDisposable
     {
         int[]? atlasOf = shape.HasBakeRegion ? batch.BakeAtlasOfInstance : null;
         BakeSlot? bake = null;
-        foreach (var (unit, key, texture) in samplers)
+        for (int i = 0; i < samplers.Count; i++)
         {
+            var (unit, key, texture) = samplers[i];
             if (atlasOf is not null && key == "bake0")
             {
                 bake = new BakeSlot(unit, DefaultBake.Substitute(key, texture), atlasOf);

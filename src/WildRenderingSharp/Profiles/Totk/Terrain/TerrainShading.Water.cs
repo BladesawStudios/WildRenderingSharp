@@ -28,9 +28,11 @@ public sealed partial class TerrainShading
     uint _waterAlb, _waterNrm, _waterEmm;
     Task<WaterTextures?>? _waterLoad;
 
-    public bool WaterAvailable =>
+    bool _waterAvailable;
+
+    public bool WaterAvailable => _waterAvailable || (_waterAvailable =
         File.Exists(Path.Combine(_shadersDir, "terrain_water_textures.json"))
-        && File.Exists(Path.Combine(_shadersDir, WaterProgramName + "_extracted.frag"));
+        && File.Exists(Path.Combine(_shadersDir, WaterProgramName + "_extracted.frag")));
 
     public uint LinkWaterProgram(string hostSource)
     {
