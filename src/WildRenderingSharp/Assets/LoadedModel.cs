@@ -41,8 +41,6 @@ public sealed class LoadedModel : IDisposable
             build();
     }
 
-    public required IReadOnlyList<Vector3> VertexPositions { get; init; }
-
     public Vector3 BoundsCenter => (BoundsMin + BoundsMax) * 0.5f;
     public float BoundsRadius => (BoundsMax - BoundsMin).Length() * 0.5f;
 

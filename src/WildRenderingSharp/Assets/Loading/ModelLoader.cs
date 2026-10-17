@@ -36,7 +36,6 @@ internal sealed class ModelLoader(GL gl, ShaderProgramCache programs, string dat
             Shapes = shapes,
             BoundsMin = builder.Bounds.Min,
             BoundsMax = builder.Bounds.Max,
-            VertexPositions = builder.Bounds.Positions,
             Skeleton = skeleton,
             DataDirectory = dataDirectory,
             AvailableAnims = SkeletalAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),

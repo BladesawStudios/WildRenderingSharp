@@ -157,7 +157,7 @@ internal sealed class GBufferPass(GL gl)
                 {
                     ActorDrawGroup.EnsureInstancedPrograms(drawer.Programs, shape);
                     uint program = which == ShapeProgram.ZOnly ? shape.InstancedZOnlyProgram : shape.InstancedGBufferProgram;
-                    key = (1UL << 63) | ((ulong)program << 32) | shape.MaterialBlock.Handle;
+                    key = (1UL << 63) | ((ulong)program << 32) | (uint)shape.MaterialBlock.Id;
                 }
                 _items.Add((key, g, shape));
             }
