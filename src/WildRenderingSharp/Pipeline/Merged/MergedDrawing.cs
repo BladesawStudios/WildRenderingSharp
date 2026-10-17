@@ -65,7 +65,9 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
     // A shape that samples baked lighting belongs to the map's own static objects: overlapping surfaces that the order the ordinary draw sorts them into decides
     // between, and baked lighting that has looked different drawn from the merged buffers. Those stay with the ordinary draw, in every pass, so that a shape is never
     // drawn by one of the two in its prepass and the other in its main draw. It is a property of the shape, so it holds before a batch's baked lighting has arrived too.
-    internal static bool IsLeftToTheOrdinaryDraw(LoadedShape shape) => shape.GBufferSamplers.Any(s => s.Key == "bake0");
+    // So does a _Far stand-in, whose lighting looked wrong drawn from the merged buffers in the map where it looks right drawn the ordinary way. The cause is not found; these
+    // are a few hundred cheap models, and drawing them as they were drawn is the safe side of not knowing.
+    internal static bool IsLeftToTheOrdinaryDraw(LoadedShape shape) => shape.IsFarStandIn || shape.GBufferSamplers.Any(s => s.Key == "bake0");
 
     // Queues the visible runs of the shape's batch; false when the shape is left to be drawn the ordinary way.
     public bool TryAdd(ShapeProgram which, LoadedShape shape, InstanceBatch batch, List<(int First, int Count, int Lod)> runs)

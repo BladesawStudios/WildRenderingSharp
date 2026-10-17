@@ -121,6 +121,9 @@ public sealed class LoadedShape
     // A vertex array is made for each program the shape has, so these ask the program, which does not make the shape's buffers first.
     public bool HasZOnly => ZOnlyProgram != 0;
 
+    // Whether the shape belongs to a _Far stand-in, the cheap model the game places where the real one is too far to be worth drawing.
+    internal bool IsFarStandIn { get; init; }
+
     public bool Hidden { get; init; }
 
     public bool CastsShadow { get; init; } = true;
