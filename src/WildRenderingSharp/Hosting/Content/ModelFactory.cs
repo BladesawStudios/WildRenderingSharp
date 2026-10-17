@@ -4,6 +4,7 @@ using WildRenderingSharp.Assets.Loading;
 using WildRenderingSharp.Assets.Textures;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Drawing;
+using WildRenderingSharp.Pipeline.Merged;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Shaders;
 using WildRenderingSharp.Storage;
@@ -12,7 +13,7 @@ namespace WildRenderingSharp.Hosting.Content;
 
 /// <summary>Loads prepared models from a cache into GL objects, on the render thread or on a worker with the vertex arrays left for the render thread.</summary>
 internal sealed class ModelFactory(GL gl, ShaderProgramCache programs, CacheLayout cache, ExternalTextures externalTextures,
-    SharedTextures sharedTextures, TotkSettings totk)
+    SharedTextures sharedTextures, TotkSettings totk, MergedDrawing merged)
 {
     public bool CompactVertices { get; set; }
 
@@ -28,6 +29,7 @@ internal sealed class ModelFactory(GL gl, ShaderProgramCache programs, CacheLayo
         var model = NewLoader(resolvedModelName, deferVertexArrays: true).Load(resolvedModelName, totk.EnableKnownMaterialFixes);
         foreach (var shape in model.Shapes)
             ActorDrawGroup.EnsureInstancedPrograms(programs, shape);
+        merged.Prepare(model);
         gl.Finish();
         return model;
     }

@@ -78,7 +78,7 @@ public sealed class WildRenderer : IDisposable
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
-            _models = new ModelFactory(gl, Pipeline.Programs, cache, ExternalTextures, SharedTextures, Totk);
+            _models = new ModelFactory(gl, Pipeline.Programs, cache, ExternalTextures, SharedTextures, Totk, Pipeline.Drawer.Merged);
             _bakes = new BakeAttachment(gl, cache);
             // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
             Pipeline.PrepareEnvironment(Environment.Resolve(Totk));
@@ -125,6 +125,7 @@ public sealed class WildRenderer : IDisposable
         // Linked now, while the host is loading: a link that misses the program binary cache costs 100-500 ms and would hitch the first visible frame.
         foreach (var shape in model.Shapes)
             ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
+        Pipeline.Drawer.Merged.Prepare(batch);
         _instances.Add(batch);
         if (updateScene)
             SceneChanged();

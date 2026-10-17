@@ -10,6 +10,54 @@ internal sealed unsafe partial class MergedDrawing
 {
     readonly Dictionary<MergedDrawList.Bucket, int> _baseOf = [];
 
+    // Gets a model's shapes into the buffers and links their programs, which a loader does on its own thread while the model is made, so that drawing it
+    // finds all of that done and never waits for a link.
+    public void Prepare(LoadedModel model)
+    {
+        if (!MergedSupport.Available(_gl))
+            return;
+        foreach (var shape in model.Shapes)
+        {
+            if (shape.Buffers is null)
+                continue;
+            var merged = MergedOf(shape);
+            if (merged.Excluded)
+                continue;
+            ProgramOf(shape, merged, ShapeProgram.GBuffer);
+            ProgramOf(shape, merged, ShapeProgram.ZOnly);
+            TexturesOf(shape, merged, ShapeProgram.GBuffer);
+            if (shape.ZOnlyShaderName.Length > 0)
+                TexturesOf(shape, merged, ShapeProgram.ZOnly);
+        }
+    }
+
+    // Gets a batch's instances into the merged buffers, as they are made, so that drawing it finds that done.
+    public void Prepare(InstanceBatch batch)
+    {
+        if (MergedSupport.Available(_gl))
+            AddBatch(batch);
+    }
+
+    MergedBatch? AddBatch(InstanceBatch batch)
+    {
+        lock (_sync)
+        {
+            Ensure();
+            return batch.Merged ?? _batches!.Add(batch);
+        }
+    }
+
+    MergedShape MergedOf(LoadedShape shape)
+    {
+        if (shape.Merged is MergedShape held)
+            return held;
+        lock (_sync)
+        {
+            Ensure();
+            return shape.Merged as MergedShape ?? Register(shape);
+        }
+    }
+
     // Makes the buffers the first time something is drawn this way.
     void Ensure()
     {
@@ -17,9 +65,9 @@ internal sealed unsafe partial class MergedDrawing
             return;
         _handles = new BindlessHandles(_gl);
         _geometry = new GeometryArena(_gl);
-        _materials = new MergedMaterials(_gl);
+        _materials = new MergedMaterials(_gl, _sync);
         _textures = new MergedTextures(_gl, _handles, _defaultBake);
-        _batches = new MergedInstances(_gl, _handles);
+        _batches = new MergedInstances(_gl, _handles, _sync);
         _white = WhiteTexture();
     }
 
@@ -37,15 +85,21 @@ internal sealed unsafe partial class MergedDrawing
     uint ProgramOf(LoadedShape shape, MergedShape merged, ShapeProgram which)
     {
         if (which == ShapeProgram.ZOnly)
-            return merged.ZOnlyProgram ??= shape.HasZOnly && shape.ZOnlyShaderName.Length > 0 ? _programs.LoadMerged(shape.ZOnlyShaderName) : 0;
+            return merged.ZOnlyProgram ??= shape.ZOnlyShaderName.Length > 0 ? _programs.LoadMerged(shape.ZOnlyShaderName) : 0;
         return merged.GBufferProgram ??= shape.GBufferShaderName.Length > 0 ? _programs.LoadMerged(shape.GBufferShaderName) : 0;
     }
 
     int TexturesOf(LoadedShape shape, MergedShape merged, ShapeProgram which)
     {
-        if (which == ShapeProgram.ZOnly)
-            return merged.ZOnlyTextures = merged.ZOnlyTextures >= 0 ? merged.ZOnlyTextures : _textures!.Add(shape.ZOnlySamplers, _white!);
-        return merged.GBufferTextures = merged.GBufferTextures >= 0 ? merged.GBufferTextures : _textures!.Add(shape.GBufferSamplers, _white!);
+        int held = which == ShapeProgram.ZOnly ? merged.ZOnlyTextures : merged.GBufferTextures;
+        if (held >= 0)
+            return held;
+        lock (_sync)
+        {
+            if (which == ShapeProgram.ZOnly)
+                return merged.ZOnlyTextures = merged.ZOnlyTextures >= 0 ? merged.ZOnlyTextures : _textures!.Add(shape.ZOnlySamplers, _white!);
+            return merged.GBufferTextures = merged.GBufferTextures >= 0 ? merged.GBufferTextures : _textures!.Add(shape.GBufferSamplers, _white!);
+        }
     }
 
     // One command for each stretch of consecutive instances at one level of detail, as the ordinary draw merges them.
@@ -91,13 +145,13 @@ internal sealed unsafe partial class MergedDrawing
             _baseOf[bucket] = _records.Count;
             _records.AddRange(bucket.Records);
         }
-        if (_draws == 0)
-            _draws = _gl.GenBuffer();
-        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _draws);
         var span = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_records);
-        fixed (DrawRecord* p = span)
-            _gl.BufferData(BufferTargetARB.ShaderStorageBuffer, (nuint)(span.Length * sizeof(DrawRecord)), p, BufferUsageARB.StreamDraw);
+        nint at = _stream.Upload<DrawRecord>(span, RecordAlignment);
+        _gl.BindBufferRange(BufferTargetARB.ShaderStorageBuffer, MergedLayout.DrawBinding, _stream.Buffer, at, (nuint)(span.Length * sizeof(DrawRecord)));
     }
+
+    // Storage buffers may be bound from offsets that are multiples of this, which no context needs more than.
+    const int RecordAlignment = 256;
 
     void Bind(uint binding, uint buffer) => _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, binding, buffer);
 

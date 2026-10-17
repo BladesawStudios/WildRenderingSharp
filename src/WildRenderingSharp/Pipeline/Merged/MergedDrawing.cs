@@ -14,6 +14,8 @@ namespace WildRenderingSharp.Pipeline.Merged;
 /// </remarks>
 internal sealed unsafe partial class MergedDrawing : IDisposable
 {
+    // Held while anything of the merged buffers is changed, which models loading on another thread do.
+    readonly object _sync = new();
     readonly GL _gl;
     readonly ShaderProgramCache _programs;
     readonly IndirectStream _stream;
@@ -26,8 +28,6 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
     readonly VertexArrays _vertexArrays;
     bool? _supported;
     long _triangles, _instances;
-    uint _draws;
-    int _drawCapacity;
 
     BindlessHandles? _handles;
     GeometryArena? _geometry;
@@ -64,13 +64,12 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
     {
         if (!Usable || shape.SamplerOverrides is not null || shape.Buffers is null || which == ShapeProgram.Forward)
             return false;
-        Ensure();
-        var merged = shape.Merged as MergedShape ?? Register(shape);
+        var merged = MergedOf(shape);
         uint program = merged.Excluded ? 0 : ProgramOf(shape, merged, which);
         if (program == 0)
             return false;
 
-        var records = batch.Merged ?? _batches!.Add(batch);
+        var records = batch.Merged ?? AddBatch(batch)!;
         int textures = TexturesOf(shape, merged, which);
         int flags = shape.HasBakeRegion && batch.BakeAtlasOfInstance is not null ? MergedLayout.UsesInstanceAtlas : 0;
         var record = new DrawRecord(records.InstanceBase, records.Stride, batch.PaletteVec4s, batch.PaletteRepeats ? 1 : 0, merged.MaterialBase, textures, flags, 0);
@@ -83,9 +82,8 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
     {
         if (!Usable || shape.Buffers is null || program == 0)
             return false;
-        Ensure();
-        var merged = shape.Merged as MergedShape ?? Register(shape);
-        var records = batch.Merged ?? _batches!.Add(batch);
+        var merged = MergedOf(shape);
+        var records = batch.Merged ?? AddBatch(batch)!;
         AddRuns(shape, merged, program, new DrawRecord(records.InstanceBase, records.Stride, batch.PaletteVec4s, batch.PaletteRepeats ? 1 : 0, passValue, 0, 0, shape.VertexSkinCount), runs);
         return true;
     }
@@ -96,13 +94,15 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
         Collecting = false;
         if (_list.IsEmpty)
             return;
-        _textures!.Refresh();
-        UploadRecords();
-        Bind(0, _batches!.BakeTable.Handle);
-        Bind(MergedLayout.MaterialBinding, _materials!.Buffer.Handle);
-        Bind(MergedLayout.HandleBinding, _textures.Buffer.Handle);
-        Bind(MergedLayout.DrawBinding, _draws);
-        Bind(InstancingContract.InstanceBinding, _batches.Instances.Handle);
+        lock (_sync)
+        {
+            _textures!.Refresh();
+            UploadRecords();
+            Bind(0, _batches!.BakeTable.Handle);
+            Bind(MergedLayout.MaterialBinding, _materials!.Buffer.Handle);
+            Bind(MergedLayout.HandleBinding, _textures.Buffer.Handle);
+            Bind(InstancingContract.InstanceBinding, _batches.Instances.Handle);
+        }
 
         foreach (var bucket in _list.Buckets)
         {
@@ -118,14 +118,21 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
 
     public void Release(LoadedShape shape, MergedShape merged)
     {
-        _geometry!.Release(merged.Geometry);
-        _materials!.Remove(shape.MaterialBlock, merged.MaterialBase);
-        if (merged.GBufferTextures >= 0) _textures!.Remove(merged.GBufferTextures);
-        if (merged.ZOnlyTextures >= 0) _textures!.Remove(merged.ZOnlyTextures);
-        shape.Merged = null;
+        lock (_sync)
+        {
+            _geometry!.Release(merged.Geometry);
+            _materials!.Remove(shape.MaterialBlock, merged.MaterialBase);
+            if (merged.GBufferTextures >= 0) _textures!.Remove(merged.GBufferTextures);
+            if (merged.ZOnlyTextures >= 0) _textures!.Remove(merged.ZOnlyTextures);
+            shape.Merged = null;
+        }
     }
 
-    public void Release(InstanceBatch batch) => _batches?.Remove(batch);
+    public void Release(InstanceBatch batch)
+    {
+        lock (_sync)
+            _batches?.Remove(batch);
+    }
 
     public void Dispose()
     {
@@ -133,8 +140,6 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
         _materials?.Dispose();
         _textures?.Dispose();
         _batches?.Dispose();
-        if (_draws != 0)
-            _gl.DeleteBuffer(_draws);
         foreach (uint array in _arrays.Values)
             _gl.DeleteVertexArray(array);
     }

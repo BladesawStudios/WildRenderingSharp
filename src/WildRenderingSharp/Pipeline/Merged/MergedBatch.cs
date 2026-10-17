@@ -31,10 +31,11 @@ internal sealed class MergedInstances : IDisposable
     readonly RegionAllocator _instances = new(1 << 16);
     readonly RegionAllocator _table = new(1 << 12);
     readonly BindlessHandles _handles;
+    readonly object _sync;
 
-    public MergedInstances(GL gl, BindlessHandles handles)
+    public MergedInstances(GL gl, BindlessHandles handles, object sync)
     {
-        _handles = handles;
+        (_handles, _sync) = (handles, sync);
         Instances = new GrowingBuffer(gl, 16, 1 << 16);
         BakeTable = new GrowingBuffer(gl, 16, 1 << 12);
         _table.Allocate(TableHead);
@@ -46,38 +47,47 @@ internal sealed class MergedInstances : IDisposable
 
     public MergedBatch Add(InstanceBatch batch)
     {
-        int stride = batch.Stride + 1;
-        int at = Allocate(_instances, Instances, Math.Max(1, batch.Count) * stride);
-        var merged = new MergedBatch(this, at, stride);
-        batch.Merged = merged;
-        Refresh(batch, merged);
-        return merged;
+        lock (_sync)
+        {
+            int stride = batch.Stride + 1;
+            int at = Allocate(_instances, Instances, Math.Max(1, batch.Count) * stride);
+            var merged = new MergedBatch(this, at, stride);
+            batch.Merged = merged;
+            Refresh(batch, merged);
+            return merged;
+        }
     }
 
     public void Remove(InstanceBatch batch)
     {
-        if (batch.Merged is not { } merged)
-            return;
-        _instances.Free(merged.InstanceBase, Math.Max(1, batch.Count) * merged.Stride);
-        if (merged.BakeBase >= 0)
-            _table.Free(merged.BakeBase, merged.BakeLength);
-        batch.Merged = null;
+        lock (_sync)
+        {
+            if (batch.Merged is not { } merged)
+                return;
+            _instances.Free(merged.InstanceBase, Math.Max(1, batch.Count) * merged.Stride);
+            if (merged.BakeBase >= 0)
+                _table.Free(merged.BakeBase, merged.BakeLength);
+            batch.Merged = null;
+        }
     }
 
     public void Refresh(InstanceBatch batch, MergedBatch merged)
     {
-        if (merged.BakeBase >= 0)
-            _table.Free(merged.BakeBase, merged.BakeLength);
-        merged.BakeBase = -1;
-        merged.BakeLength = 0;
-        if (batch.BakeTableData is { } table && table.Length > TableHead)
+        lock (_sync)
         {
-            merged.BakeLength = table.Length - TableHead;
-            merged.BakeBase = Allocate(_table, BakeTable, merged.BakeLength);
-            BakeTable.Write<Vector4>(merged.BakeBase, table.AsSpan(TableHead));
+            if (merged.BakeBase >= 0)
+                _table.Free(merged.BakeBase, merged.BakeLength);
+            merged.BakeBase = -1;
+            merged.BakeLength = 0;
+            if (batch.BakeTableData is { } table && table.Length > TableHead)
+            {
+                merged.BakeLength = table.Length - TableHead;
+                merged.BakeBase = Allocate(_table, BakeTable, merged.BakeLength);
+                BakeTable.Write<Vector4>(merged.BakeBase, table.AsSpan(TableHead));
+            }
+            int shift = merged.BakeBase >= 0 ? merged.BakeBase - TableHead : 0;
+            Instances.Write<Vector4>(merged.InstanceBase, batch.MergedRecords(_handles.Of, shift));
         }
-        int shift = merged.BakeBase >= 0 ? merged.BakeBase - TableHead : 0;
-        Instances.Write<Vector4>(merged.InstanceBase, batch.MergedRecords(_handles.Of, shift));
     }
 
     public void Dispose()

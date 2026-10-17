@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Contracts;
@@ -56,22 +57,15 @@ internal sealed class ShaderProgramCache : IDisposable
         return program;
     }
 
-    readonly Dictionary<string, bool> _discards = new(StringComparer.Ordinal);
+    readonly ConcurrentDictionary<string, bool> _discards = new(StringComparer.Ordinal);
 
-    // Whether a program's fragment stage can discard, read once from its source. An unreadable program counts as discarding.
-    public bool FragmentDiscards(string baseName)
+    // Whether a program's fragment stage can discard, read once from its source. An unreadable program counts as discarding. It takes no lock of the cache's, which a
+    // link on another thread can hold for half a second.
+    public bool FragmentDiscards(string baseName) => _discards.GetOrAdd(baseName, name =>
     {
-        lock (_sync)
-        {
-            if (!_discards.TryGetValue(baseName, out bool discards))
-            {
-                string path = Path.Combine(_decompiledDir, baseName + ".frag");
-                discards = !File.Exists(path) || File.ReadAllText(path).Contains("discard", StringComparison.Ordinal);
-                _discards[baseName] = discards;
-            }
-            return discards;
-        }
-    }
+        string path = Path.Combine(_decompiledDir, name + ".frag");
+        return !File.Exists(path) || File.ReadAllText(path).Contains("discard", StringComparison.Ordinal);
+    });
 
     readonly Dictionary<string, uint> _instancedPrograms = new(StringComparer.Ordinal);
 
@@ -99,39 +93,34 @@ internal sealed class ShaderProgramCache : IDisposable
         return program;
     }
 
-    readonly Dictionary<string, uint> _mergedPrograms = new(StringComparer.Ordinal);
+    readonly ConcurrentDictionary<string, Lazy<uint>> _mergedPrograms = new(StringComparer.Ordinal);
 
-    // The program that draws any shape of any batch from one multi-draw, or 0 when this one cannot be (or did not compile) and is drawn the ordinary way.
-    public uint LoadMerged(string baseName)
+    // The program that draws any shape of any batch from one multi-draw, or 0 when this one cannot be (or did not compile) and is drawn the ordinary way. Each is
+    // linked once, by whichever thread asks first, and the cache's lock is not held while it is, so asking for one already linked never waits on another's link.
+    public uint LoadMerged(string baseName) => _mergedPrograms.GetOrAdd(baseName, name => new Lazy<uint>(() => BuildMerged(name))).Value;
+
+    uint BuildMerged(string baseName)
     {
-        lock (_sync)
+        string vertex = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
+        string fragment = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+        if (_sources.Merge(vertex, fragment) is not var (mergedVertex, mergedFragment))
+            return 0;
+        try
         {
-            if (_mergedPrograms.TryGetValue(baseName, out uint cached))
-                return cached;
-
-            string vertex = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-            string fragment = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
-            uint program = 0;
-            if (_sources.Merge(vertex, fragment) is var (mergedVertex, mergedFragment))
-            {
-                try
-                {
-                    program = GLProgramBuilder.Build(_gl, mergedVertex, mergedFragment, baseName + "_merged");
-                }
-                catch (InvalidOperationException ex)
-                {
-                    WildRenderingSharp.Logging.Log.Warning($"[merged] {baseName} is drawn the ordinary way: {ex.Message.ReplaceLineEndings(" ")[..Math.Min(ex.Message.Length, 200)]}");
-                }
-            }
-            return _mergedPrograms[baseName] = program;
+            return GLProgramBuilder.Build(_gl, mergedVertex, mergedFragment, baseName + "_merged");
+        }
+        catch (InvalidOperationException ex)
+        {
+            WildRenderingSharp.Logging.Log.Warning($"[merged] {baseName} is drawn the ordinary way: {ex.Message.ReplaceLineEndings(" ")[..Math.Min(ex.Message.Length, 200)]}");
+            return 0;
         }
     }
 
     public void Dispose()
     {
-        foreach (uint program in _mergedPrograms.Values)
-            if (program != 0)
-                _gl.ReleaseProgram(program);
+        foreach (var program in _mergedPrograms.Values)
+            if (program.IsValueCreated && program.Value != 0)
+                _gl.ReleaseProgram(program.Value);
         _mergedPrograms.Clear();
         foreach (uint program in _programs.Values)
             _gl.ReleaseProgram(program);

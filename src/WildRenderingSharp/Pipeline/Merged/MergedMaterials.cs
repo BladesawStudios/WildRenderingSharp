@@ -7,8 +7,13 @@ namespace WildRenderingSharp.Pipeline.Merged;
 internal sealed class MergedMaterials : IDisposable
 {
     readonly RegionAllocator _slots = new(MergedLayout.MaterialVec4s * 256);
+    readonly object _sync;
 
-    public MergedMaterials(GL gl) => Buffer = new GrowingBuffer(gl, 16, MergedLayout.MaterialVec4s * 256);
+    public MergedMaterials(GL gl, object sync)
+    {
+        _sync = sync;
+        Buffer = new GrowingBuffer(gl, 16, MergedLayout.MaterialVec4s * 256);
+    }
 
     public GrowingBuffer Buffer { get; }
 
@@ -29,8 +34,11 @@ internal sealed class MergedMaterials : IDisposable
         Buffer.WriteBytes((long)at * 16, slot);
         block.Copy = (offset, data) =>
         {
-            if (offset < bytes)
-                Buffer.WriteBytes((long)at * 16 + offset, data[..Math.Min(data.Length, bytes - offset)]);
+            lock (_sync)
+            {
+                if (offset < bytes)
+                    Buffer.WriteBytes((long)at * 16 + offset, data[..Math.Min(data.Length, bytes - offset)]);
+            }
         };
         return at;
     }
