@@ -40,13 +40,14 @@ internal readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vect
 
     public void Draw(ShapeDrawer drawer, LoadedShape shape, ShapeProgram which)
     {
-        uint vao = which switch { ShapeProgram.ZOnly => shape.ZOnlyVao, ShapeProgram.Forward => shape.ForwardVao, _ => shape.GBufferVao };
+        // Asked for only where it is used: a shape given up for the merged draw has its vertex arrays made again by being asked.
+        uint Vao() => which switch { ShapeProgram.ZOnly => shape.ZOnlyVao, ShapeProgram.Forward => shape.ForwardVao, _ => shape.GBufferVao };
         var samplers = which switch { ShapeProgram.ZOnly => shape.ZOnlySamplers, ShapeProgram.Forward => shape.ForwardSamplers, _ => shape.GBufferSamplers };
 
         if (Batch is not { } batch)
         {
             uint program = which switch { ShapeProgram.ZOnly => shape.ZOnlyProgram, ShapeProgram.Forward => shape.ForwardProgram, _ => shape.GBufferProgram };
-            drawer.Draw(program, vao, shape.MaterialBlock, samplers, shape.IndexCount, shape.SamplerOverrides);
+            drawer.Draw(program, Vao(), shape.MaterialBlock, samplers, shape.IndexCount, shape.SamplerOverrides);
             return;
         }
 
@@ -57,7 +58,7 @@ internal readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vect
             return;
         EnsureInstancedPrograms(drawer.Programs, shape);
         uint instanced = which switch { ShapeProgram.ZOnly => shape.InstancedZOnlyProgram, ShapeProgram.Forward => shape.InstancedForwardProgram, _ => shape.InstancedGBufferProgram };
-        drawer.DrawInstanced(instanced, vao, shape, samplers, batch, runs);
+        drawer.DrawInstanced(instanced, Vao(), shape, samplers, batch, runs);
     }
 
     internal static void EnsureInstancedPrograms(ShaderProgramCache programs, LoadedShape shape)

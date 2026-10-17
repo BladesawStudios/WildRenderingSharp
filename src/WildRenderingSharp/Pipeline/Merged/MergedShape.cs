@@ -14,6 +14,8 @@ internal sealed class MergedShape(MergedDrawing owner, GeometrySlice geometry, i
 
     public void Release(LoadedShape shape) => Owner.Release(shape, this);
 
+    public void Restore(LoadedShape shape) => Owner.Restore(shape, this);
+
     // The first vec4 of the shape's material in the merged buffer.
     public int MaterialBase { get; } = materialBase;
 

@@ -4,4 +4,7 @@ namespace WildRenderingSharp.Assets;
 internal interface IShapeCopy
 {
     void Release(LoadedShape shape);
+
+    // Makes the shape's own buffers and vertex arrays again from the copy, for a draw that cannot be made from it.
+    void Restore(LoadedShape shape);
 }

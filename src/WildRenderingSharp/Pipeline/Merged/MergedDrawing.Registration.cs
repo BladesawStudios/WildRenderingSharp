@@ -16,6 +16,7 @@ internal sealed unsafe partial class MergedDrawing
     {
         if (!MergedSupport.Available(_gl))
             return;
+        var giveUp = new List<LoadedShape>();
         foreach (var shape in model.Shapes)
         {
             if (shape.Buffers is null)
@@ -23,12 +24,53 @@ internal sealed unsafe partial class MergedDrawing
             var merged = MergedOf(shape);
             if (merged.Excluded)
                 continue;
-            ProgramOf(shape, merged, ShapeProgram.GBuffer);
-            ProgramOf(shape, merged, ShapeProgram.ZOnly);
+            uint gBuffer = ProgramOf(shape, merged, ShapeProgram.GBuffer);
+            uint zOnly = ProgramOf(shape, merged, ShapeProgram.ZOnly);
             TexturesOf(shape, merged, ShapeProgram.GBuffer);
             if (shape.ZOnlyShaderName.Length > 0)
                 TexturesOf(shape, merged, ShapeProgram.ZOnly);
+            // Drawn from the copy in every pass it takes part in, so its own buffers would only be a second copy of the same vertices.
+            if (gBuffer != 0 && (shape.ZOnlyShaderName.Length == 0 || zOnly != 0) && !shape.Blend)
+                giveUp.Add(shape);
         }
+
+        void Demote()
+        {
+            foreach (var shape in giveUp)
+                shape.Demote(_gl);
+        }
+        // The vertex arrays are made on the renderer's thread for a model loaded on another, and are what the buffers are given up after.
+        if (model.PendingVertexArrays is null)
+            Demote();
+        else
+            model.AfterVertexArrays = Demote;
+    }
+
+    // Makes a demoted shape's own buffers and vertex arrays again from its place in the merged geometry.
+    public void Restore(LoadedShape shape, MergedShape merged)
+    {
+        var slice = merged.Geometry;
+        var chunk = slice.Chunk;
+        long vertexBytes = (long)slice.VertexCount * chunk.Stride, indexBytes = (long)slice.IndexCount * sizeof(uint);
+        uint vbo = Remake(chunk.Vbo, BufferTargetARB.ArrayBuffer, (long)slice.BaseVertex * chunk.Stride, vertexBytes);
+        uint ibo = Remake(chunk.Ibo, BufferTargetARB.ElementArrayBuffer, (long)slice.FirstIndex * sizeof(uint), indexBytes);
+        var buffers = shape.Buffers with { Vbo = vbo, Ibo = ibo };
+        var arrays = new Assets.Loading.VertexArrays(_gl);
+        shape.Rebuilt(vbo, ibo, arrays.ForProgram(shape.GBufferProgram, buffers),
+            shape.ZOnlyProgram != 0 ? arrays.ForProgram(shape.ZOnlyProgram, buffers) : 0,
+            shape.ForwardProgram != 0 ? arrays.ForProgram(shape.ForwardProgram, buffers) : 0,
+            arrays.ForPassId(buffers));
+    }
+
+    uint Remake(uint source, BufferTargetARB kind, long at, long bytes)
+    {
+        uint buffer = _gl.GenBuffer();
+        _gl.BindBuffer(kind, buffer);
+        _gl.BufferData(kind, (nuint)bytes, null, BufferUsageARB.StaticDraw);
+        _gl.BindBuffer(BufferTargetARB.CopyReadBuffer, source);
+        _gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, buffer);
+        _gl.CopyBufferSubData(CopyBufferSubDataTarget.CopyReadBuffer, CopyBufferSubDataTarget.CopyWriteBuffer, (nint)at, 0, (nuint)bytes);
+        return buffer;
     }
 
     // Gets a batch's instances into the merged buffers, as they are made, so that drawing it finds that done.
