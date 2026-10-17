@@ -39,6 +39,8 @@ Hosting.Views.AntiAliasingMode
 Hosting.Views.SceneView
 Hosting.Views.SceneViewMode
 Imaging.HdrWriter
+Imaging.Image
+Imaging.PngReader
 Imaging.PngWriter
 Logging.Log
 Logging.LogLevel
@@ -60,6 +62,7 @@ Profiles.Totk.Atmosphere.Clouds.CloudPostFxLayer
 Profiles.Totk.Atmosphere.Clouds.CloudPostFxShared
 Profiles.Totk.Atmosphere.Clouds.CloudWeather
 Profiles.Totk.Atmosphere.Clouds.CloudWeatherValue
+Profiles.Totk.Atmosphere.HdrComposeParam
 Profiles.Totk.Atmosphere.Palettes.ColorCorrectionPostFx
 Profiles.Totk.Atmosphere.Palettes.EnvPalette
 Profiles.Totk.Atmosphere.Palettes.EnvPaletteLibrary
@@ -67,12 +70,16 @@ Profiles.Totk.Atmosphere.Palettes.SkyPostFx
 Profiles.Totk.Atmosphere.RenderEnvironment
 Profiles.Totk.Atmosphere.TotkEnvironment
 Profiles.Totk.Atmosphere.TotkSettings
+Profiles.Totk.Effects.FieldHazeLevel
+Profiles.Totk.Effects.FieldHazeManifest
+Profiles.Totk.Effects.ParticleEmitterManifest
 Profiles.Totk.Sky.Clouds.CloudMasks
 Profiles.Totk.Terrain.CaveShading
 Profiles.Totk.Terrain.ITerrainHost
 Profiles.Totk.Terrain.TerrainDraw
 Profiles.Totk.Terrain.TerrainShading
 Rendering.Cameras.Camera
+Rendering.GLDebug
 Rendering.Lighting.BackgroundMode
 Rendering.Lighting.LightingContext
 Rom.Games.BotwRom

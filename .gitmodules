@@ -16,3 +16,6 @@
 [submodule "vendor/Yaz0Sharp"]
 	path = vendor/Yaz0Sharp
 	url = https://github.com/BladesawStudios/Yaz0Sharp
+[submodule "vendor/PtclSharp"]
+	path = vendor/PtclSharp
+	url = https://github.com/BladesawStudios/PtclSharp

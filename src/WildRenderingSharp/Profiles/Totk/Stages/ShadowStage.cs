@@ -19,6 +19,9 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     // The bias a cascade is given at least, in its own texels: the 0.0015 m an actor scene uses over its 0.00125 m texels.
     const float CascadeBiasTexels = 1.2f;
 
+    // The constant part of the cascades' polygon offset, in the depth buffer's own units, which goes with the slope-scaled part the settings hold.
+    const float ConstantOffset = 2f;
+
     readonly ShadowPass _shadow = new(services.Gl);
 
     GLResourceCache Resources => services.Resources;
@@ -190,10 +193,18 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         // mountain that shades a valley is far toward the sun, and a cascade can only reach so far.
         var gl = services.Gl;
         gl.Enable(EnableCap.DepthClamp);
+
+        // The game renders its cascades with a depth offset that grows with the slope of the surface to the light, which a flat bias cannot stand in for: a
+        // surface the sun meets at a graze changes depth by many texels across one, and without the offset it shadows itself in thin dark lines along the terminator.
+        // TODO: the game's own offset for its cascades is not known, so the slope-scaled part is a setting, left at zero until a value is fitted.
+        float slope = frame.TotkEnvironment().Settings.ShadowSlopeOffset;
+        gl.Enable(EnableCap.PolygonOffsetFill);
+        gl.PolygonOffset(slope, slope > 0f ? ConstantOffset : 0f);
         _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
             terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
+        gl.Disable(EnableCap.PolygonOffsetFill);
         gl.Disable(EnableCap.DepthClamp);
     }
 

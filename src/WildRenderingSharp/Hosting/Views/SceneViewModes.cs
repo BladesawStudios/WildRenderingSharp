@@ -10,7 +10,8 @@ static class SceneViewModes
     // Whether the output's first row is the top of the image, which the raw views draw and the graded ones do not.
     public static bool IsTopDown(this SceneViewMode mode) => mode is SceneViewMode.Albedo or SceneViewMode.Normal or SceneViewMode.Shadow
         or SceneViewMode.AmbientOcclusion or SceneViewMode.Emission or SceneViewMode.GBuffer0 or SceneViewMode.GBuffer2 or SceneViewMode.GBuffer4
-        or SceneViewMode.LinearDepth or SceneViewMode.FieldLightLayer0 or SceneViewMode.FieldLightLayer1 or SceneViewMode.CharaLightLayer0;
+        or SceneViewMode.LinearDepth or SceneViewMode.FieldLightLayer0 or SceneViewMode.FieldLightLayer1 or SceneViewMode.CharaLightLayer0 or SceneViewMode.VolumeMask
+        or SceneViewMode.PreFog or SceneViewMode.HalfLinearDepth;
 
     // The modes that capture the frame between passes.
     public static bool NeedsStageSnapshots(this SceneViewMode mode) =>

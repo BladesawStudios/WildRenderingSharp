@@ -75,7 +75,53 @@ public sealed class SceneView : IDisposable
 
     // The exact values of every input the deferred resolve reads, and what it wrote, at the middle of the frame. Set ProbeEnabled and
     // ResolvePassIndex first.
-    public string ProbeCentre() => LastFrame is null ? "" : FrameProbe.Describe(_gl, Pipeline, Targets);
+    public string ProbeCentre()
+    {
+        if (LastFrame is null)
+            return "";
+
+        // The readbacks bind a framebuffer of their own, and the host draws on with whatever is bound when this returns.
+        Span<int> draw = stackalloc int[1], read = stackalloc int[1], viewport = stackalloc int[4];
+        _gl.GetInteger(GetPName.DrawFramebufferBinding, draw);
+        _gl.GetInteger(GetPName.ReadFramebufferBinding, read);
+        _gl.GetInteger(GetPName.Viewport, viewport);
+        try
+        {
+            string text = FrameProbe.Describe(_gl, Pipeline, Targets);
+            DrawProbeMarker();
+            return text;
+        }
+        finally
+        {
+            _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, (uint)draw[0]);
+            _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)read[0]);
+            _gl.Viewport(viewport[0], viewport[1], (uint)viewport[2], (uint)viewport[3]);
+        }
+    }
+
+    // A box round the place the probe chose, in the view's own picture, so it can be seen where that is.
+    void DrawProbeMarker()
+    {
+        if (FrameProbe.Marker is not var (x, y, width, height))
+            return;
+        int px = (int)((long)x * Width / width), py = Height - 1 - (int)((long)y * Height / height);
+        const int Reach = 14, Thick = 2;
+        bool scissor = _gl.IsEnabled(EnableCap.ScissorTest);
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _output.Framebuffer);
+        _gl.Enable(EnableCap.ScissorTest);
+        _gl.ClearColor(1f, 0f, 1f, 1f);
+        void Bar(int left, int bottom, int barWidth, int barHeight)
+        {
+            _gl.Scissor(Math.Max(left, 0), Math.Max(bottom, 0), (uint)Math.Max(barWidth, 0), (uint)Math.Max(barHeight, 0));
+            _gl.Clear(ClearBufferMask.ColorBufferBit);
+        }
+        Bar(px - Reach, py - Reach, 2 * Reach + 1, Thick);
+        Bar(px - Reach, py + Reach - Thick + 1, 2 * Reach + 1, Thick);
+        Bar(px - Reach, py - Reach, Thick, 2 * Reach + 1);
+        Bar(px + Reach - Thick + 1, py - Reach, Thick, 2 * Reach + 1);
+        if (!scissor)
+            _gl.Disable(EnableCap.ScissorTest);
+    }
 
     public Vector4? ProbeHdr(Vector2 uvTopLeft)
     {

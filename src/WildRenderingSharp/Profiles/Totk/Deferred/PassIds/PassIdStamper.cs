@@ -3,11 +3,12 @@ using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
+using WildRenderingSharp.Profiles.Totk.Terrain;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 
 /// <summary>Fills the pass-ID mask: first from each shape's named pass, then from the material IDs the G-buffer programs wrote.</summary>
-internal sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene scene) : IDisposable
+internal sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene scene, TerrainRenderer terrain) : IDisposable
 {
     readonly PassIdMaskPass _byShape = new(gl, drawer);
     readonly MaterialIdPass _byMaterialId = new(gl);
@@ -18,9 +19,10 @@ internal sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene sce
 
     public void Run(GLResourceCache resources, FrameContext frame)
     {
-        _byShape.Run(resources, frame.Targets, frame.Setup.Groups, scene.PassNames, frame.Setup.Cam.ViewProj,
+        _byShape.Run(resources, frame.Targets, frame.Setup.Groups, scene.PassNames, scene.PassOf, frame.Setup.Cam.ViewProj,
             frame.Camera.NearPlane, frame.Camera.FarPlane, ClaimPass(frame));
-        _byMaterialId.Run(resources, frame.Targets, scene.MaterialIdPasses());
+        // The host's draws leave the layers they do not write as the shapes behind them left them, so the IDs under what they covered are stale.
+        _byMaterialId.Run(resources, frame.Targets, scene.MaterialIdPasses(), terrain.GBufferDrawn, frame.Camera.NearPlane, frame.Camera.FarPlane);
     }
 
     public void Dispose()

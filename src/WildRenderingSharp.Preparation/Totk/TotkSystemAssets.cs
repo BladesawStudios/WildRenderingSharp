@@ -1,5 +1,6 @@
 using ShaderLibrary.CompileTool;
 using WildRenderingSharp.Logging;
+using WildRenderingSharp.Preparation.Totk.Effects;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
 using WildRenderingSharp.Storage;
 
@@ -34,6 +35,16 @@ public static class TotkSystemAssets
         {
             if (!TotkTerrainWater.IsExported(cache.Shaders))
                 TotkTerrainWater.Export(romfs.Base, cache.Shaders);
+        });
+        Step("field haze", () =>
+        {
+            if (!TotkFieldHazeEffect.IsExported(cache))
+                TotkFieldHazeEffect.Export(romfs.Base, cache);
+        });
+        Step("volume mask effect", () =>
+        {
+            if (!TotkVolumeMaskEffect.IsExported(cache))
+                TotkVolumeMaskEffect.Export(romfs.Base, cache);
         });
         Step("terrain shaders", () => Export(romfs, TotkShaderExports.Terrain, cache));
         Step("cave shaders", () => Export(romfs, TotkShaderExports.Cave, cache));

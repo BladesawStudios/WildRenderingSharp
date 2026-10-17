@@ -46,6 +46,9 @@ internal sealed class GLResourceCache : IDisposable
         BindBase(spec.Binding, handle);
     }
 
+    // The bytes last uploaded under the key, kept on the CPU, so a pass can start from a block without reading it back.
+    public ReadOnlyMemory<byte>? Held(string key) => _ubos.TryGetValue(key, out var buffer) ? buffer.Contents : null;
+
     // Binds a block uploaded earlier; nothing happens when there is none under that key.
     public void BindUbo(string key, uint binding)
     {
@@ -115,6 +118,8 @@ internal sealed class GLResourceCache : IDisposable
         byte[] _contents = [];
 
         public uint Handle { get; } = handle;
+
+        public ReadOnlyMemory<byte> Contents => _contents;
 
         public bool Holds(ReadOnlySpan<byte> bytes) => bytes.SequenceEqual(_contents);
 

@@ -8,7 +8,7 @@ public static class TotkSourceStamp
     public const string FileName = "romfs_sources.json";
 
     // Models prepared under a lower version are prepared again; bump it when preparation produces something new.
-    const int PreparationVersion = 5;
+    const int PreparationVersion = 6;
 
     sealed record Entry(string? Path, long Size, long MTime);
 

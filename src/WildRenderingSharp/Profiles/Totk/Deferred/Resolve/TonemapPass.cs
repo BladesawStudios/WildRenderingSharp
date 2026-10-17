@@ -9,32 +9,22 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 
 /// <summary>
-/// Exposure, highlight compression, the game's <c>agl_hdr_compose</c> (loaded through <see cref="ShaderProgramCache"/> like any
-/// decompiled game shader), then the bloom add.
+/// Exposure, then the game's <c>agl_hdr_compose</c> (loaded through <see cref="ShaderProgramCache"/> like any decompiled game shader) over the scene and
+/// the bloom. The compose is the game's tonemap, so the HDR reaches it, and the bloom's bright pass, as the game's does, uncompressed.
 /// </summary>
 internal sealed class TonemapPass : IDisposable
 {
     readonly GL _gl;
-    readonly uint _exposureProgram, _compressProgram;
+    readonly uint _exposureProgram;
     uint _hdrQuadVbo, _hdrQuadVao;
     uint _hdrQuadVaoProgram;
 
-    // The compression asymptotes to HdrCompressCeil, the brightest value that can leave this pass, so nothing needs clipping later.
-    // Clipping the dominant channel at present would shift the hue.
-    public const float HdrCompressKnee = 0.8f;
-    public const float HdrCompressCeil = 1.0f;
-
     static readonly string ExposureFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Exposure.frag");
-
-    // Compresses on the brightest channel and scales the colour as a whole, because per-channel compression desaturates.
-    // Scaling by compressed/max keeps every channel ratio, so hue and saturation survive.
-    static readonly string CompressFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Compress.frag");
 
     public TonemapPass(GL gl)
     {
         _gl = gl;
         _exposureProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, ExposureFragmentSource, "exposure");
-        _compressProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, CompressFragmentSource, "hdr_compress");
 
         // hdr_compose's vertex shader is attribute-driven, unlike the fullscreen-triangle passes above: in_attr0 is a half-size position it
         // doubles into clip space, in_attr1 the UV.
@@ -50,7 +40,8 @@ internal sealed class TonemapPass : IDisposable
 
     static ReadOnlySpan<byte> MemoryMarshalBytes(float[] values) => System.Runtime.InteropServices.MemoryMarshal.AsBytes<float>(values);
 
-    public GpuTexture RunExposureAndCompress(GLResourceCache resources, RenderTargets targets, float exposure)
+    // The frame's HDR with the exposure applied.
+    public GpuTexture RunExposure(GLResourceCache resources, RenderTargets targets, float exposure)
     {
         _gl.Disable(EnableCap.DepthTest);
         GpuTexture hdrInput = targets.Final;
@@ -63,14 +54,7 @@ internal sealed class TonemapPass : IDisposable
             resources.DrawFullscreenTriangle();
             hdrInput = targets.Exposed;
         }
-
-        _gl.UseProgram(_compressProgram);
-        targets.BindColorTarget(targets.Compressed);
-        _gl.BindTextureUniform(_compressProgram, "t", 0, hdrInput.Handle);
-        _gl.SetFloat(_compressProgram, "uKnee", HdrCompressKnee);
-        _gl.SetFloat(_compressProgram, "uCeil", HdrCompressCeil);
-        resources.DrawFullscreenTriangle();
-        return targets.Compressed;
+        return hdrInput;
     }
 
     public void RunHdrComposite(GLResourceCache resources, RenderTargets targets, uint hdrComposeProgram, GpuTexture hdrSource, GpuTexture bloomSource, Ubo hdrComposeParams)
@@ -121,7 +105,6 @@ internal sealed class TonemapPass : IDisposable
     public void Dispose()
     {
         _gl.ReleaseProgram(_exposureProgram);
-        _gl.ReleaseProgram(_compressProgram);
         _gl.DeleteBuffer(_hdrQuadVbo);
         if (_hdrQuadVao != 0)
             _gl.DeleteVertexArray(_hdrQuadVao);

@@ -14,6 +14,7 @@ uniform int uCascadeCount;
 uniform mat4 uCascadeViewProj[4];
 uniform vec4 uCascadeParams[4];   // x: texel size in metres, y: bias in light depth, z: PCF radius in texels, w: light depth per metre
 uniform float uCascadeTexel;
+uniform vec2 uFarFade;           // view depths where shadows start to fade to lit and where they are gone
 in vec2 vUV; out vec4 fragColor;
 
 vec3 viewPos(vec2 uv) {
@@ -103,6 +104,7 @@ void main() {
                 visC += texture(tex_cascades, vec4(scC.xy + s, float(c), refC));
             }
             visC *= 0.125;
+            visC = mix(visC, 1.0, clamp((-p.z - uFarFade.x) / (uFarFade.y - uFarFade.x), 0.0, 1.0));
             fragColor = vec4(visC, 0.0, graze, visC);
             return;
         }

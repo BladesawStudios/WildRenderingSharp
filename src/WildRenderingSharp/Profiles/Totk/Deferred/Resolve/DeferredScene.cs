@@ -15,6 +15,8 @@ internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDir
 
     public const string WaterPass = "field_water";
 
+    const string CharacterPassPrefix = "chara_";
+
     readonly List<string> _hostPasses = [];
 
     IReadOnlyList<LoadedModel> _models = [];
@@ -33,11 +35,19 @@ internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDir
 
     public int PassIndex(string pass) => _passNames.IndexOf(pass);
 
+    // The pass that lights a shape. Its G-buffer program's own material IDs decide it, and the game lights ID 0 with the field pass, so a
+    // shape named for a character pass whose program writes no ID is lit by the field pass, as every placed wall and cliff is.
+    public string PassOf(LoadedShape shape)
+    {
+        string named = shape.DeferredPass();
+        return named.StartsWith(CharacterPassPrefix, StringComparison.Ordinal) && MaterialIds(shape).Count == 0 ? DefaultPass : named;
+    }
+
     public void Set(IReadOnlyList<LoadedModel> models)
     {
         _models = models;
         var shapes = models.SelectMany(m => m.Shapes).ToList();
-        var passNames = PassIdMaskPass.DistinctPasses(shapes);
+        var passNames = shapes.Select(PassOf).Where(p => p.Length > 0).Distinct().Order(StringComparer.Ordinal).ToList();
         // The passes the shapes' own G-buffer programs say light them, which may not be the ones their materials are named for.
         _passByPriority = DeferredPassPriorities.ByPriority(directories.DeferredMaterials);
         foreach (int id in shapes.SelectMany(MaterialIds).Distinct())

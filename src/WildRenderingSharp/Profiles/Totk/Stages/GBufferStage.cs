@@ -2,21 +2,24 @@ using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Draws the opaque shapes, then the host's terrain, into the G-buffer.</summary>
-internal sealed class GBufferStage(StageServices services, DeferredScene scene, TerrainRenderer terrain) : IFrameStage
+internal sealed class GBufferStage(StageServices services, DeferredScene scene, TerrainRenderer terrain) : IFrameStage, IDisposable
 {
     readonly GBufferPass _gbuffer = new(services.Gl);
+    readonly GBufferControlInputs _control = new(services.Gl);
 
     public void Run(FrameContext frame)
     {
         var gl = services.Gl;
 
         ClipOrigin.Game(gl, true);
+        _control.Bind();
         _gbuffer.Run(services.Resources, frame.Targets, frame.Setup.OpaqueGroups, services.Drawer);
         ClipOrigin.Game(gl, false);
         GLDiagnostics.CheckPass(gl, "G-buffer pass");
@@ -32,4 +35,6 @@ internal sealed class GBufferStage(StageServices services, DeferredScene scene, 
         // Every later pass reads the unflipped projection.
         services.Resources.BindCamera(FrameUniformKeys.SceneCamera);
     }
+
+    public void Dispose() => _control.Dispose();
 }

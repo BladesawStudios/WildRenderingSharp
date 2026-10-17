@@ -1,3 +1,4 @@
+using System.Numerics;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
 
@@ -17,6 +18,23 @@ static class TotkCameraUniforms
         var block = Context(camera);
         block.SetInt(TotkContextLayout.ScreenSize, 2, columns);
         block.SetInt(TotkContextLayout.ScreenSize, 3, rows);
+        return block.ToUbo(key);
+    }
+
+    // The camera block of the pre-shading passes, which pick a cascade by view depth and read its view-to-shadow-texture matrix from the block.
+    // The field pass draws its screen as a grid of one tile and is flagged as such.
+    public static Ubo BuildCascaded(string key, in CameraData camera, ReadOnlySpan<Matrix4x4> viewToShadow, Vector3 splits, bool field)
+    {
+        var block = Context(camera);
+        if (field)
+        {
+            block.SetInt(TotkContextLayout.ScreenSize, 2, 1);
+            block.SetInt(TotkContextLayout.ScreenSize, 3, 1);
+            block.Set(TotkContextLayout.FieldPreShadingFlag, 3, 1f);
+        }
+        for (int c = 0; c < viewToShadow.Length; c++)
+            block.Set(new UboMatrix(TotkContextLayout.ShadowCascadeMatrices + c * TotkContextLayout.ShadowCascadeRows, TotkContextLayout.ShadowCascadeRows), viewToShadow[c]);
+        block.Set(TotkContextLayout.ShadowCascadeSplits, splits, 0f);
         return block.ToUbo(key);
     }
 

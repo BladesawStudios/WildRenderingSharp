@@ -16,6 +16,7 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
     {
         var profile = services.Profile;
         var lighting = frame.Lighting;
+        services.Drawer.DefaultBake.Strength = lighting.DefaultBakeStrength;
         var environment = frame.Environment.ResolveLighting(lighting);
 
         var cam = CameraData.From(frame.Camera, frame.Targets.Width, frame.Targets.Height);

@@ -17,9 +17,11 @@ static class TotkContextLayout
     public const int PrevProj = 28;                           // decl 13, 4 rows                       [DERIVED]
     public const int PrevViewInv = 32;                        // decl 14, 3 rows                       [DERIVED]
     public const int FrustumPlanes = 35;                      // decl 15, 6 rows                       [DERIVED]
+    public const int FieldPreShadingFlag = FrustumPlanes + 2; // row 37 of the planes, which nothing writes: .w is 1 for the field pre-shading  [DERIVED]
     public const int Unknown16 = 41;                          // decl 16
-    public const int ShadowCascadeMatrices = 42;              // decl 17, 16 rows                      [DERIVED]
-    public const int Unknown18 = 58;                          // decl 18
+    public const int ShadowCascadeMatrices = 42;              // decl 17, 16 rows: four view-to-shadow-texture matrices of four rows  [DERIVED]
+    public const int ShadowCascadeSplits = 58;                // decl 18: the view depths where the second, third and fourth cascades take over, in .xyz  [DERIVED]
+    public const int ShadowCascadeRows = 4;
     public const int Unknown19 = 59;                          // decl 19
     public const int Unknown20 = 60;                          // decl 20, 4 rows
     public const int Unknown21 = 64;                          // decl 21

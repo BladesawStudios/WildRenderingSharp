@@ -52,33 +52,39 @@ internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameSta
 
     // The game's sky shader sampling the baked atmosphere, scaled by the palette's sky brightness (relative to 5) and by SkyGain.
     // The shader mixes the ground colour in unscaled, so it arrives pre-scaled.
-    const float SkyGain = 0.6f;
+    // Measured against a TotK screenshot at the game's exposure: the sky is 1.4 times too bright with the previous 0.6, which was set at an exposure 2.2 times lower.
+    const float SkyGain = 0.43f;
 
-    void DrawSky(FrameContext frame)
+    // The brightness the sky and the fog that fades the scene into it share.
+    internal static float Intensity(FrameContext frame) =>
+        frame.TotkEnvironment().Settings.AtmosphereIntensity * frame.Lighting.SceneGain * SkyGain * frame.TotkEnvironment().Palette.BgDifIntensity / 5.0f;
+
+    SkyPostFxPass.Look SkyLook(FrameContext frame)
     {
-        var lighting = frame.Lighting;
         var environment = frame.TotkEnvironment();
         var settings = environment.Settings;
         var palette = environment.Palette;
-        var cam = frame.Setup.Cam;
 
-        float skyUnit = lighting.SceneGain * SkyGain * palette.BgDifIntensity / 5.0f;
-        float intensity = settings.AtmosphereIntensity * skyUnit;
+        float intensity = Intensity(frame);
         Vector3 hazeColor = palette.FogColor * intensity;
         var fog = settings.UseSkyFog
             ? SkyPostFxPass.Resolve(palette, environment.SkyPostFx, intensity, settings.SkyFogStrength, settings.SkyFogNormaliseHue)
             : default;
+        return new SkyPostFxPass.Look(environment.SkyPostFx, intensity, hazeColor, settings.SkyHorizonHaze, fog);
+    }
 
-        _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter, SkyView.From(cam), frame.Setup.SunWorld,
-            new SkyPostFxPass.Look(environment.SkyPostFx, intensity, hazeColor, settings.SkyHorizonHaze, fog));
+    static Vector3 GroundColour(FrameContext frame) =>
+        frame.Setup.HemiGround * frame.Lighting.SceneGain * frame.TotkEnvironment().Palette.BgDifIntensity / 5.0f;
+
+    void DrawSky(FrameContext frame)
+    {
+        _skyPostFx.Run(services.Resources, frame.Targets, frame.Targets.Final, bake.BakedInscatter, SkyView.From(frame.Setup.Cam), frame.Setup.SunWorld, SkyLook(frame));
         GLDiagnostics.CheckPass(services.Gl, "real sky postfx");
     }
 
     void DrawGround(FrameContext frame)
     {
-        var cam = frame.Setup.Cam;
-        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, SkyView.From(cam),
-            frame.Setup.HemiGround * frame.Lighting.SceneGain * frame.TotkEnvironment().Palette.BgDifIntensity / 5.0f);
+        _ground.Run(services.Resources, frame.Targets, frame.Targets.Final, SkyView.From(frame.Setup.Cam), GroundColour(frame));
         GLDiagnostics.CheckPass(services.Gl, "sky ground");
     }
 

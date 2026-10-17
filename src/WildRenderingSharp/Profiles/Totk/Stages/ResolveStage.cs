@@ -13,9 +13,9 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 /// <summary>Lights the G-buffer one deferred pass at a time.</summary>
 internal sealed class ResolveStage(
     StageServices services, DeferredScene scene, TerrainRenderer terrain,
-    ScreenSpaceLightingStage screenSpaceLighting, PassIdStamper stamper) : IFrameStage, IDisposable
+    ScreenSpaceLightingStage screenSpaceLighting, PassIdStamper stamper, CubeEnvironment cubeEnvironment) : IFrameStage, IDisposable
 {
-    readonly DeferredResolvePass _resolve = new(services.Gl);
+    readonly DeferredResolvePass _resolve = new(services.Gl, cubeEnvironment);
     readonly SceneColorShapePass _sceneColorShapes = new(services.Gl);
 
     (string Pass, string Path)? _pendingTrace;
@@ -30,6 +30,7 @@ internal sealed class ResolveStage(
         var resources = services.Resources;
         var targets = frame.Targets;
         StartPendingTrace(targets);
+        cubeEnvironment.Set(frame.Setup.HemiSky, frame.Setup.HemiGround);
 
         bool hasSceneColorShapes = SceneColorShapePass.Any(frame.Setup.Groups);
         var sceneColorPasses = hasSceneColorShapes
@@ -46,7 +47,6 @@ internal sealed class ResolveStage(
         }
 
         bool twoHalves = hasSceneColorShapes || waterHost is not null;
-        _resolve.SetEnvironment(frame.Setup.HemiSky, frame.Setup.HemiGround);
 
         // The pass that lights the terrain, which no actor stamps, in whichever half it runs in.
         int defaultPass = stamper.ClaimPass(frame);
@@ -89,9 +89,9 @@ internal sealed class ResolveStage(
         resources.BindCamera(FrameUniformKeys.SceneCamera);
         GLDiagnostics.CheckPass(gl, "scene-colour shapes");
 
-        // The G-buffer under those pixels just changed, so the screen-space inputs are derived again.
-        screenSpaceLighting.Repeat(frame);
+        // The G-buffer under those pixels just changed, so the mask and the screen-space inputs are derived again.
         stamper.Run(resources, frame);
+        screenSpaceLighting.Repeat(frame);
         if (waterHost is not null)
         {
             terrain.DrawWater(waterHost, targets, frame.Camera, stamp: true);

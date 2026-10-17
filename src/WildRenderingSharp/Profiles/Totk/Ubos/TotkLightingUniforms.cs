@@ -26,6 +26,11 @@ static class TotkLightingUniforms
         block.Set(Unknown70, 2, 1f);
         block.Set(VolumeMaskTint, lighting.VolumeMaskColor, lighting.VolumeMaskIntensity);
 
+        // The entrance's resolve pass blends the ambient from above and below by the normal's height, as its pre-shading pass does; left zero, the entrance
+        // is lit by nothing but the sun.
+        block.Set(EntranceSkyLight, lighting.HemiSky, 0f);
+        block.Set(EntranceGroundLight, lighting.HemiGround, 0f);
+
         block.Set(ShadowDepthBias, 1, 0.0005f);
         block.SetInt(ShadowMapDimensions, 0, lighting.ShadowMapSize);
         block.SetInt(ShadowMapDimensions, 1, lighting.ShadowMapSize);

@@ -26,6 +26,10 @@
     <Error Code="WRS0001" Text="WildRenderingSharp.Preparation builds against the ShaderLibrary submodule, and $(WrsShaderLibraryDir) is empty. Run: git submodule update --init --recursive" />
   </Target>
 
+  <Target Name="WrsCheckPtclSharp" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(MSBuildThisFileDirectory)..\..\vendor\PtclSharp\lib\ZstdSharp\src\ZstdSharp\ZstdSharp.csproj')">
+    <Error Code="WRS0002" Text="WildRenderingSharp.Preparation builds against the PtclSharp submodule and the libraries it reads effect files with, and they are empty. Run: git submodule update --init vendor/PtclSharp; git -C vendor/PtclSharp submodule update --init lib/ZstdSharp lib/BymlSharp lib/Yaz0Sharp" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Lib.Harmony" Version="2.4.2" />
   </ItemGroup>
@@ -40,9 +44,17 @@
     <Reference Include="BfresLibrary">
       <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\BfresLibrary.dll</HintPath>
     </Reference>
+    <Reference Include="Syroot.Maths">
+      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\Syroot.Maths.dll</HintPath>
+    </Reference>
     <Reference Include="Syroot.BinaryData">
       <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\Syroot.BinaryData.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <!-- The VFXB/ESETB reader particle effects are read through. Its BFRES-dependent half (PtclSharp.Models) stays out: ShaderLibrary's BfresLibrary build is the one in this process. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\vendor\PtclSharp\src\PtclSharp\PtclSharp.csproj" />
   </ItemGroup>
 
   <!-- The managed BNTX reader, with its own Tegra deswizzle. -->

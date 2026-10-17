@@ -10,6 +10,9 @@ namespace WildRenderingSharp.Pipeline.Passes;
 /// <summary>Depth prepass (z-only, where a material has one) followed by the real G-buffer draw.</summary>
 internal sealed class GBufferPass(GL gl)
 {
+    // The offset toward the camera of the main draw after a prepass: the share of the surface's depth slope, and units of the depth buffer's own steps.
+    const float MainDrawSlopeOffset = -2f, MainDrawConstantOffset = -4f;
+
     readonly List<(ulong Key, int Group, LoadedShape Shape)> _items = [];
 
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
@@ -48,9 +51,15 @@ internal sealed class GBufferPass(GL gl)
             targets.SetGBufferColorMask(true);
             timer?.Mark("G-buffer z-prepass");
 
-            gl.DepthFunc(DepthFunction.Equal);
+            // The main draw's vertex program is compiled apart from the prepass's, so the two can land a few ULPs apart, and far from the origin a surface seen at a
+            // graze changes depth by several steps across one pixel: an equality test then loses the pixels along such an edge, and what is behind shows through in
+            // thin lines. The test passes at the prepass depth or nearer, and the offset, which grows with the surface's slope, covers the difference.
+            gl.DepthFunc(DepthFunction.Lequal);
             gl.DepthMask(false);
+            gl.Enable(EnableCap.PolygonOffsetFill);
+            gl.PolygonOffset(MainDrawSlopeOffset, MainDrawConstantOffset);
             DrawSorted(resources, groups, drawer, Prepassed, ShapeProgram.GBuffer, "");
+            gl.Disable(EnableCap.PolygonOffsetFill);
             gl.DepthMask(true);
             timer?.Mark("G-buffer main");
         }

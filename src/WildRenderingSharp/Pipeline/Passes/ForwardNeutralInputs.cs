@@ -3,9 +3,14 @@ using WildRenderingSharp.Gpu;
 
 namespace WildRenderingSharp.Pipeline.Passes;
 
+/// <summary>The sky inputs of a frame that the forward programs' fog reads: the environment cube, the baked inscatter table and the screen-space volume mask.</summary>
+internal sealed record ForwardSkyInputs(uint CubeEnvironment, uint SkyInscatter, uint VolumeMask);
+
 /// <summary>The textures the forward programs sample that the frame has no real source for: neutral values, plus the game's noise volume when it was extracted.</summary>
 internal sealed class ForwardNeutralInputs : IDisposable
 {
+    const int CubeEnvironmentUnit = 8, VolumeMaskUnit = 10, SkyInscatterUnit = 11;
+
     static readonly int[] WhiteUnits = [7, 11, 13, 14, 15, 31];
 
     readonly GL _gl;
@@ -21,12 +26,21 @@ internal sealed class ForwardNeutralInputs : IDisposable
         _shadowCascades = NoShadowCascades();
     }
 
+    // What the frame has for the sky inputs the forward programs' own fog reads; null leaves them neutral.
+    public ForwardSkyInputs? Sky { get; set; }
+
     public void Bind()
     {
         foreach (int unit in WhiteUnits)
             _gl.BindTextureAt(unit, _white);
-        _gl.BindTextureAt(10, _volumeMask);
+        _gl.BindTextureAt(VolumeMaskUnit, _volumeMask);
         _gl.BindTextureAt(9, _noise3D, TextureTarget.Texture3D);
+        if (Sky is { } sky)
+        {
+            _gl.BindTextureAt(CubeEnvironmentUnit, sky.CubeEnvironment, TextureTarget.TextureCubeMap);
+            _gl.BindTextureAt(SkyInscatterUnit, sky.SkyInscatter);
+            _gl.BindTextureAt(VolumeMaskUnit, sky.VolumeMask);
+        }
         _gl.BindTextureAt(29, _arrayWhite, TextureTarget.Texture2DArray);
         _gl.BindTextureAt(6, _shadowCascades, TextureTarget.Texture2DArray);
     }

@@ -4,8 +4,9 @@ using WildRenderingSharp.Pipeline.Targets;
 
 namespace WildRenderingSharp.Pipeline.Frame;
 
-/// <summary>Linear depth, screen-space shadow and ambient occlusion, and the light pre-pass.</summary>
-internal sealed class ScreenSpaceLightingStage(StageServices services, LinearDepthPass linearDepth) : IFrameStage, IDisposable
+/// <summary>Linear depth, screen-space shadow and ambient occlusion, the light pre-pass, and the game's own pre-shading where a profile has it.</summary>
+internal sealed class ScreenSpaceLightingStage(StageServices services, LinearDepthPass linearDepth, IPreShadingOverride? gamePreShading = null)
+    : IFrameStage, IDisposable
 {
     readonly ScreenSpaceShadowAndAoPass _shadowAo = new(services.Gl);
     readonly LightPrePass _lightPrePass = new(services.Gl);
@@ -43,6 +44,9 @@ internal sealed class ScreenSpaceLightingStage(StageServices services, LinearDep
             Synthetic: frame.Lighting.SyntheticLightPrePass);
         _lightPrePass.Run(resources, targets, _lightPrePassParams);
         GLDiagnostics.CheckPass(services.Gl, "light pre-pass");
+
+        gamePreShading?.Run(frame);
+        _shadowAo.FilterPreShadow(resources, targets);
     }
 
     public void Repeat(FrameContext frame)
@@ -50,6 +54,8 @@ internal sealed class ScreenSpaceLightingStage(StageServices services, LinearDep
         linearDepth.Run(services.Resources, frame.Targets, frame.Camera.NearPlane, frame.Camera.FarPlane);
         _shadowAo.Run(services.Resources, frame.Targets, _shadowAoParams);
         _lightPrePass.Run(services.Resources, frame.Targets, _lightPrePassParams);
+        gamePreShading?.Run(frame);
+        _shadowAo.FilterPreShadow(services.Resources, frame.Targets);
     }
 
     public void Dispose()

@@ -19,6 +19,8 @@ public sealed record CacheLayout(string Root)
 
     public string GrassShaders => Path.Combine(Root, "_grass_shaders");
 
+    public string Effects => Path.Combine(Root, "_effects");
+
 
     public string Bake => Path.Combine(Root, "_bake");
 

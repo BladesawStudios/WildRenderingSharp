@@ -24,11 +24,14 @@ internal sealed unsafe class ShapeDrawer : IDisposable
     {
         _gl = gl;
         Programs = programs;
+        DefaultBake = new DefaultBake(gl);
         _stream = new IndirectStream(gl);
         _runs = new InstancedRunWriter(gl, _stream, _bound);
     }
 
     public ShaderProgramCache Programs { get; }
+
+    public DefaultBake DefaultBake { get; }
 
     // Between these, a bind that matches the last one is skipped, so nothing else may bind these slots in the meantime.
     public void BeginStateCache() => _bound.Begin();
@@ -48,7 +51,7 @@ internal sealed unsafe class ShapeDrawer : IDisposable
         _gl.BindBufferBase(BufferTargetARB.UniformBuffer, Programs.Bindings.Material, material.Handle);
         foreach (var (unit, key, texture) in samplers)
         {
-            var bound = Overridden(overrides, key, texture);
+            var bound = DefaultBake.Substitute(key, Overridden(overrides, key, texture));
             _gl.ActiveTexture(TextureUnit.Texture0 + unit);
             _gl.BindTexture(bound.Target, bound.Handle);
         }
@@ -98,7 +101,11 @@ internal sealed unsafe class ShapeDrawer : IDisposable
         return true;
     }
 
-    public void Dispose() => _stream.Dispose();
+    public void Dispose()
+    {
+        DefaultBake.Dispose();
+        _stream.Dispose();
+    }
 
     static LoadedTexture Overridden(IReadOnlyDictionary<string, LoadedTexture>? overrides, string key, LoadedTexture texture) =>
         overrides is not null && overrides.TryGetValue(key, out var replacement) ? replacement : texture;
@@ -134,10 +141,10 @@ internal sealed unsafe class ShapeDrawer : IDisposable
         {
             if (atlasOf is not null && key == "bake0")
             {
-                bake = new BakeSlot(unit, texture, atlasOf);
+                bake = new BakeSlot(unit, DefaultBake.Substitute(key, texture), atlasOf);
                 continue;
             }
-            var bound = Overridden(shape.SamplerOverrides, key, texture);
+            var bound = DefaultBake.Substitute(key, Overridden(shape.SamplerOverrides, key, texture));
             _bound.BindTexture(_gl, unit, bound.Target, bound.Handle);
         }
         return bake;

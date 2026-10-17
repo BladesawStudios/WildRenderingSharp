@@ -10,6 +10,7 @@ using WildRenderingSharp.Preparation;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
 using WildRenderingSharp.Rendering.Lighting;
+using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Rom;
 using WildRenderingSharp.Rom.Games;
 using WildRenderingSharp.Storage;
@@ -46,6 +47,8 @@ if (game == "botw")
 IModelPreparer preparer = new InProcessPreparer();
 await preparer.EnsureSystemAssetsAsync(romfs, cache, Console.WriteLine);
 string model = await preparer.PrepareAsync(new PrepareRequest(romfs, actorName, cache), Console.WriteLine);
+string? behindModel = options.TryGetValue("behind", out var behindActor)
+    ? await preparer.PrepareAsync(new PrepareRequest(romfs, behindActor, cache), Console.WriteLine) : null;
 Console.WriteLine($"prepared: {model}");
 
 var window = Window.Create(WindowOptions.Default with
@@ -58,6 +61,20 @@ window.Initialize();
 using var gl = GL.GetApi(window.GLContext);
 Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
+if (options.ContainsKey("check-water-shader"))
+{
+    // Compiles the game's terrain water fragment stage as the renderer patches it, for a host-less check of the patch.
+    var patch = typeof(WildRenderer).Assembly.GetType("WildRenderingSharp.Profiles.Totk.Terrain.TerrainShading")!
+        .GetMethod("PatchedWaterFragment", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+    string source = (string)patch.Invoke(null, [Path.Combine(cache.Root, "_shaders")])!;
+    uint shader = gl.CreateShader(ShaderType.FragmentShader);
+    gl.ShaderSource(shader, source);
+    gl.CompileShader(shader);
+    gl.GetShader(shader, ShaderParameterName.CompileStatus, out int compiled);
+    Console.WriteLine(compiled != 0 ? "water fragment: compiles" : "water fragment: FAILED " + gl.GetShaderInfoLog(shader));
+    return compiled != 0 ? 0 : 1;
+}
+
 using var rom = TotkRom.Open(romfs);
 var renderer = new WildRenderer(gl, cache, rom, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
@@ -66,13 +83,15 @@ if (instanceCount == 0)
     renderer.AddActor(model);
 if (game == "totk")
     TotkBenchOptions.Apply(renderer, options);
+if (options.TryGetValue("bloom", out var bloom))
+    renderer.Lighting.BloomIntensity = float.Parse(bloom);
 if (options.TryGetValue("azimuth", out var azimuth))
     renderer.Lighting.SunAzimuth = float.Parse(azimuth);
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
 var camera = new Camera { FovDegrees = 38f };
 var (center, radius) = instanceCount > 0
-    ? InstanceGrid.Add(renderer, model, instanceCount, float.Parse(Option("spacing", "0.5")))
+    ? InstanceGrid.Add(renderer, model, instanceCount, float.Parse(Option("spacing", "0.5")), ParseOrigin(Option("world", "0,0,0")), Option("bake", "0") is var bakeText && bakeText != "0" ? Convert.ToUInt64(bakeText.Replace("0x", ""), 16) : 0UL)
     : renderer.FrameFor(camera);
 if (instanceCount > 0)
 {
@@ -81,6 +100,17 @@ if (instanceCount > 0)
 }
 camera.Target = center;
 camera.Eye = center + SceneFramingCalculator.DefaultViewDirection * radius * 3.5f;
+
+// A second actor behind the first, for what reads the lit scene behind it: its own centre moved away from the camera and down.
+if (behindModel is not null)
+{
+    var behind = renderer.LoadModel(behindModel);
+    var away = -SceneFramingCalculator.DefaultViewDirection;
+    var at = center + away * radius * float.Parse(Option("behind-distance", "3")) + Vector3.UnitY * float.Parse(Option("behind-drop", "0"));
+    var batch = renderer.AddInstances(behind, [[new Vector4(1, 0, 0, at.X), new Vector4(0, 1, 0, at.Y), new Vector4(0, 0, 1, at.Z)]]);
+    batch.ShowAll();
+}
+
 
 if (options.TryGetValue("lookup", out var lookup))
 {
@@ -97,6 +127,17 @@ if (options.TryGetValue("altitude", out var altitude))
 if (options.TryGetValue("exposure", out var exposure))
     renderer.Lighting.Exposure = float.Parse(exposure);
 
+if (options.ContainsKey("cascades"))
+{
+    // The host's shadow cascades, as a map draws them: each four times the reach of the last, centred half a reach ahead of the camera.
+    var forward = Vector3.Normalize(camera.Target - camera.Eye);
+    renderer.ShadowCascades = new[] { 64f, 256f, 1024f, 4096f }
+        .Select(reach => new ShadowFocus(camera.Eye + forward * reach * 0.5f, reach)).ToArray();
+}
+
+if (options.TryGetValue("view", out var view))
+    renderer.View.Mode = Enum.Parse<WildRenderingSharp.Hosting.Views.SceneViewMode>(view, ignoreCase: true);
+
 // Several frames: the sky bake, shadow cache and exposure probe settle over the first few.
 for (int i = 0; i < 4; i++)
     renderer.Render(camera, size, size, 1f / 60f);
@@ -112,6 +153,9 @@ if (options.ContainsKey("probe"))
     foreach (float v in new[] { 0.05f, 0.2f, 0.4f, 0.6f, 0.62f, 0.64f, 0.66f, 0.68f, 0.7f, 0.75f })
         Console.WriteLine($"HDR v={v:F2}: {renderer.View.ProbeHdr(new Vector2(float.Parse(Option("probe-x", "0.85")), v))}");
 
+if (options.ContainsKey("centre"))
+    Console.WriteLine(renderer.View.ProbeCentre());
+
 byte[] rgba = renderer.View.ReadOutputRgba8();
 PngWriter.WriteRgba(outPath, size, size, rgba);
 
@@ -122,3 +166,9 @@ Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, mean luminance
 renderer.Dispose();
 window.Dispose();
 return errors.Count > 0 ? 5 : distinct < 64 ? 4 : 0;
+
+static Vector3 ParseOrigin(string text)
+{
+    var parts = text.Split(',').Select(float.Parse).ToArray();
+    return new Vector3(parts[0], parts[1], parts[2]);
+}

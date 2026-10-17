@@ -29,13 +29,8 @@ internal static class AmbientLighting
         return (hue * (AmbientSkyScale * scale), postfx.GroundColor * (AmbientGroundScale * scale));
     }
 
-    public static Vector3 SunColor(EnvPalette palette)
-    {
-        Vector3 hue = palette.SkySunColorNoUse ? Normalize(palette.BgDifColor) : Normalize(palette.SkySunColor);
-        var bg = palette.BgDifColor;
-        float magnitude = MathF.Max(bg.X, MathF.Max(bg.Y, bg.Z)) * palette.BgDifIntensity;
-        return hue * magnitude;
-    }
+    // The directional light is the palette's background diffuse colour at its intensity; the sky's sun colour tints the scattering and is blue at sunrise.
+    public static Vector3 SunColor(EnvPalette palette) => palette.BgDifColor * palette.BgDifIntensity;
 
     public static Vector3 SkyHue(EnvPalette palette, SkyPostFx? postfx = null)
     {
@@ -54,6 +49,15 @@ internal static class AmbientLighting
             return rayleigh; // a palette that scatters neither still needs a sky to bounce off
 
         return Normalize((rayleigh * wRayleigh + mie * wMie) / total);
+    }
+
+    // The share of the sun's light that sunlit ground throws back up into the shade, in the greenish white the ground gives it. The game's environment probe sees
+    // that ground; this stands in for it as an addition to the ground colour the ambient light reads.
+    // TODO: the share and the hue are fitted to one screenshot of a grassy field, not read from the game, whose probe sees the real ground under the camera.
+    public static Vector3 GroundBounce(Vector3 sunColor, float sunElevation, float strength)
+    {
+        float lit = MathF.Max(0f, MathF.Sin(sunElevation));
+        return new Vector3(0.61f, 1f, 0.83f) * (MathF.Max(sunColor.X, MathF.Max(sunColor.Y, sunColor.Z)) * lit * strength);
     }
 
     public static Vector3 NormaliseHue(Vector3 c) => Normalize(c);

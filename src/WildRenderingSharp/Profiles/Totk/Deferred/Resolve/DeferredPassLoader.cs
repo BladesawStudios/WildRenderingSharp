@@ -52,7 +52,8 @@ static class DeferredPassLoader
         return null;
     }
 
-    static string? Find(string decompiledDir, string name) =>
+    // The program a pass is extracted as, by its file name without the extension, or null when it was not extracted.
+    public static string? Find(string decompiledDir, string name) =>
         name.Length == 0 ? null
             : Directory.EnumerateFiles(decompiledDir, $"deferred_{name}_prog*_extracted.frag")
                 .OrderBy(f => f, StringComparer.Ordinal).Select(Path.GetFileNameWithoutExtension).FirstOrDefault();
