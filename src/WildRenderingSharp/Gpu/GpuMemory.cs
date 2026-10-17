@@ -3,7 +3,7 @@ namespace WildRenderingSharp.Gpu;
 /// <summary>What the renderer has put on the card, by kind, counted as it is made and let go of, so a log line can say where the memory went.</summary>
 public static class GpuMemory
 {
-    static long _textures, _shapeBuffers, _arena, _materialBlocks, _textureCount, _shapeCount;
+    static long _textures, _shapeBuffers, _arena, _arenaUsed, _materialBlocks, _textureCount, _shapeCount;
 
     public static long Textures => Interlocked.Read(ref _textures);
 
@@ -26,6 +26,8 @@ public static class GpuMemory
     }
 
     internal static void Merged(long bytes) => Interlocked.Add(ref _arena, bytes);
+
+    internal static void MergedUsed(long bytes) => Interlocked.Add(ref _arenaUsed, bytes);
 
     internal static void Material(long bytes) => Interlocked.Add(ref _materialBlocks, bytes);
 
@@ -53,6 +55,6 @@ public static class GpuMemory
     public static string Summary()
     {
         static string Mb(long bytes) => $"{bytes / (1024.0 * 1024.0):N0} MB";
-        return $"textures {Mb(Textures)} ({Interlocked.Read(ref _textureCount):N0}), shapes' own buffers {Mb(ShapeBuffers)} ({Interlocked.Read(ref _shapeCount):N0}), merged geometry {Mb(Arena)}, material blocks {Mb(MaterialBlocks)}";
+        return $"textures {Mb(Textures)} ({Interlocked.Read(ref _textureCount):N0}), shapes' own buffers {Mb(ShapeBuffers)} ({Interlocked.Read(ref _shapeCount):N0}), merged geometry {Mb(Interlocked.Read(ref _arenaUsed))} used of {Mb(Arena)}, material blocks {Mb(MaterialBlocks)}";
     }
 }

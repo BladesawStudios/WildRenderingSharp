@@ -61,7 +61,7 @@ internal sealed class GeometryArena(GL gl) : IDisposable
 {
     // The first chunk of a vertex layout holds this many bytes of vertices and each one after it twice the one before, up to the largest; a shape larger than
     // that gets a chunk of its own. A scene uses a few dozen layouts and most hold little, so chunks that were all the largest size held gigabytes of nothing.
-    const long FirstChunkVertexBytes = 4L << 20, LargestChunkVertexBytes = 64L << 20;
+    const long FirstChunkVertexBytes = 2L << 20, LargestChunkVertexBytes = 16L << 20;
 
     readonly Dictionary<string, List<GeometryChunk>> _chunks = new(StringComparer.Ordinal);
     int _nextId;
@@ -87,6 +87,7 @@ internal sealed class GeometryArena(GL gl) : IDisposable
 
     public void Release(GeometrySlice slice)
     {
+        Gpu.GpuMemory.MergedUsed(-((long)slice.VertexCount * slice.Chunk.Stride + (long)slice.IndexCount * sizeof(uint)));
         slice.Chunk.Vertices.Free(slice.BaseVertex, slice.VertexCount);
         slice.Chunk.Indices.Free(slice.FirstIndex, slice.IndexCount);
     }
@@ -112,6 +113,7 @@ internal sealed class GeometryArena(GL gl) : IDisposable
 
         Copy(shape.VertexBuffer, BufferTargetARB.ArrayBuffer, chunk.Vbo, (long)baseVertex * chunk.Stride, (long)vertices * chunk.Stride);
         Copy(shape.IndexBuffer, BufferTargetARB.ElementArrayBuffer, chunk.Ibo, (long)firstIndex * sizeof(uint), (long)indices * sizeof(uint));
+        Gpu.GpuMemory.MergedUsed((long)vertices * chunk.Stride + (long)indices * sizeof(uint));
         return new GeometrySlice(chunk, baseVertex, firstIndex, vertices, indices);
     }
 
