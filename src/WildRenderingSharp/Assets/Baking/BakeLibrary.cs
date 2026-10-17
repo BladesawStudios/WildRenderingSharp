@@ -13,8 +13,11 @@ namespace WildRenderingSharp.Assets.Baking;
 /// </summary>
 public sealed class BakeLibrary : IDisposable
 {
+    readonly GL _gl;
     readonly string _dir;
     readonly TextureCache _textures;
+    // Each atlas's own sampling, as uploaded, and whether the finest-level-only setting is on it now.
+    readonly Dictionary<uint, (int MaxLevel, int MinFilter, bool FinestOnly)> _sampling = [];
     ulong[] _hashes = [];
     int[] _tileOfHash = [];
     string[] _tiles = [];
@@ -25,8 +28,41 @@ public sealed class BakeLibrary : IDisposable
 
     public BakeLibrary(GL gl, string bakeDirectory)
     {
+        _gl = gl;
         _dir = bakeDirectory;
         _textures = new TextureCache(gl, bakeDirectory);
+    }
+
+    /// <summary>
+    /// Whether the atlases are sampled at their finest level only. A mesh edge where the bake coordinates jump gives the pixels beside it derivatives that pick
+    /// the coarsest level, which averages the whole atlas into a dark line along the edge.
+    /// </summary>
+    public bool SamplesFinestLevelOnly { get; set; }
+
+    /// <summary>Puts <see cref="SamplesFinestLevelOnly"/> on every atlas loaded so far, which has to be called on the render thread.</summary>
+    public void ApplySampling()
+    {
+        lock (_sync)
+            foreach (var texture in _loaded.Values.Where(t => t is not null).SelectMany(t => t!.Textures).OfType<LoadedTexture>())
+                ApplySampling(texture.Handle);
+    }
+
+    void ApplySampling(uint handle)
+    {
+        if (_sampling.TryGetValue(handle, out var known) && known.FinestOnly == SamplesFinestLevelOnly)
+            return;
+
+        _gl.BindTexture(TextureTarget.Texture2D, handle);
+        if (known == default)
+        {
+            _gl.GetTexParameter(TextureTarget.Texture2D, (GetTextureParameter)GLEnum.TextureMaxLevel, out int maxLevel);
+            _gl.GetTexParameter(TextureTarget.Texture2D, GetTextureParameter.TextureMinFilter, out int minFilter);
+            known = (maxLevel, minFilter, false);
+        }
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, SamplesFinestLevelOnly ? 0 : known.MaxLevel);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, SamplesFinestLevelOnly ? (int)GLEnum.Linear : known.MinFilter);
+        _sampling[handle] = (known.MaxLevel, known.MinFilter, SamplesFinestLevelOnly);
+        _gl.BindTexture(TextureTarget.Texture2D, 0);
     }
 
     public bool HasIndex => File.Exists(Path.Combine(_dir, "index.bin"));

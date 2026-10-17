@@ -3,6 +3,7 @@ using WildRenderingSharp.Graphics;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Profiles.Totk;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Stages;
 using WildRenderingSharp.Profiles.Totk.Ubos;
 using WildRenderingSharp.Shaders;
@@ -55,7 +56,7 @@ public class UboSnapshotTests
     }
 
     [Fact]
-    public void HdrComposeParams_default() => Snapshot.Verify("hdrcompose_default", TonemapStage.HdrComposeParams());
+    public void HdrComposeParams_default() => Snapshot.Verify("hdrcompose_default", TonemapStage.HdrComposeParams(HdrComposeParam.Default));
 
     [Fact]
     public void SupportBuffer_block() => Snapshot.Verify("support_buffer", SupportBuffer.Block);

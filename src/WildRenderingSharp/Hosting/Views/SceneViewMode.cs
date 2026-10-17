@@ -19,6 +19,9 @@ public enum SceneViewMode
     FieldLightLayer0,
     FieldLightLayer1,
     CharaLightLayer0,
+    VolumeMask,
+    PreFog,
+    HalfLinearDepth,
 
     // What the last deferred resolve pass wrote, before it was composited (scaled down).
     LastResolve,

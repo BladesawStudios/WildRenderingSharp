@@ -55,15 +55,8 @@ internal sealed class PassIdMaskPass : IDisposable
         return -1;
     }
 
-    public static List<string> DistinctPasses(IEnumerable<LoadedShape> shapes) =>
-        shapes.Select(s => s.DeferredPass())
-              .Where(p => !string.IsNullOrEmpty(p))
-              .Distinct()
-              .OrderBy(p => p, StringComparer.Ordinal)
-              .ToList();
-
     public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
-        Matrix4x4 viewProj, float near, float far, int claimPass = -1)
+        Func<LoadedShape, string> passOf, Matrix4x4 viewProj, float near, float far, int claimPass = -1)
     {
         targets.BindPassIdTarget();
         _gl.ClearColor(0, 0, 0, 1);
@@ -90,9 +83,9 @@ internal sealed class PassIdMaskPass : IDisposable
 
             foreach (var sh in group.Shapes)
             {
-                if (string.IsNullOrEmpty(sh.DeferredPass()))
+                if (string.IsNullOrEmpty(passOf(sh)))
                     continue;
-                int index = IndexOf(passes, sh.DeferredPass());
+                int index = IndexOf(passes, passOf(sh));
                 if (index < 0 || index == claimPass)
                     continue;
                 _gl.Uniform1(idLocation, (index + 1) / 255f);
@@ -101,12 +94,12 @@ internal sealed class PassIdMaskPass : IDisposable
                 _gl.DrawElements(PrimitiveType.Triangles, (uint)sh.IndexCount, DrawElementsType.UnsignedInt, null);
             }
         }
-        RunInstanced(resources, targets, groups, passes, viewProj, claimPass);
+        RunInstanced(resources, targets, groups, passes, passOf, viewProj, claimPass);
         _gl.Disable(EnableCap.DepthTest);
     }
 
     unsafe void RunInstanced(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, IReadOnlyList<string> passes,
-        Matrix4x4 viewProj, int claimPass)
+        Func<LoadedShape, string> passOf, Matrix4x4 viewProj, int claimPass)
     {
         if (!groups.Any(g => g.Batch is { Visible.Count: > 0 }))
             return;
@@ -135,9 +128,9 @@ internal sealed class PassIdMaskPass : IDisposable
 
             foreach (var sh in group.Shapes)
             {
-                if (string.IsNullOrEmpty(sh.DeferredPass()))
+                if (string.IsNullOrEmpty(passOf(sh)))
                     continue;
-                int index = IndexOf(passes, sh.DeferredPass());
+                int index = IndexOf(passes, passOf(sh));
                 if (index < 0 || index == claimPass)
                     continue;
                 _gl.Uniform1(id, (index + 1) / 255f);

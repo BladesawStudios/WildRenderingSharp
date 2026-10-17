@@ -17,7 +17,35 @@ public sealed class TotkSettings
 
     public bool UseRealSkyShader { get; set; } = true;
 
-    public bool UseSkyFog { get; set; }
+    public bool UseSkyFog { get; set; } = true;
+
+    // The scatter and ad hoc fog the pre-shading passes apply to the lit scene.
+    public bool UseFog { get; set; } = true;
+
+    // How much of the screen the fog volume mask covers, 0 to 1. The game's pre-shading applies the palette's low fog (YFog) and volume tint only where its
+    // volume mask says so, and what that mask holds out of doors is not known: 0 is neither, and 1 is the whole scene in both.
+    public float VolumeFogMask { get; set; } = 1f;
+
+    // Whether the volume mask is the game's own cylinder of fog drawn around the camera, in place of the one share above. It needs the effect prepared.
+    public bool UseVolumeMaskEffect { get; set; } = true;
+
+    // Whether the game's field haze, the pale warm veil over the distance, is laid over the image. It needs the effect prepared.
+    public bool UseFieldHaze { get; set; } = true;
+
+    // How much thicker the haze is than the sprites' own numbers make it, fitted to a screenshot of the game.
+    public float FieldHazeStrength { get; set; } = 0.8f;
+
+    // The power the haze's optical depth is raised to, below one so that near haze is thicker for a given far haze: 1 is the plain exponential of the sprites' own numbers.
+    public float FieldHazeFalloff { get; set; } = 0.4f;
+
+    // How much of the haze reaches the sky, 0 to 1: the game leaves the sky out, but a little of it softens the horizon.
+    public float FieldHazeSkyInfluence { get; set; } = 0.05f;
+
+    // How much of the sun's light the ground throws back up as ambient light, in units of the sun's own: 0 leaves the ambient ground colour as the palette gives it.
+    public float GroundBounce { get; set; } = 0.015f;
+
+    // How far the sun shadow cascades push a caster back by the slope of its surface to the light, so a surface the sun meets at a graze does not shadow itself.
+    public float ShadowSlopeOffset { get; set; }
 
     public float SkyFogStrength { get; set; } = 1f;
 

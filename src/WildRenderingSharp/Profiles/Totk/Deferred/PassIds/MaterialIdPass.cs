@@ -23,7 +23,7 @@ internal sealed class MaterialIdPass : IDisposable
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "material_id");
     }
 
-    public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<(int Priority, int PassIndex)> passes)
+    public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<(int Priority, int PassIndex)> passes, bool hostDrew, float near, float far)
     {
         if (passes.Count == 0)
             return;
@@ -46,6 +46,9 @@ internal sealed class MaterialIdPass : IDisposable
         _gl.UseProgram(_program);
         _gl.BindTextureUniform(_program, "tex_material_id", 0, targets.GBuffer[0].Handle);
         _gl.BindTextureUniform(_program, "tex_gbuf_depth", 1, targets.GBufferDepth.Handle);
+        _gl.BindTextureUniform(_program, "tex_before_host", 2, hostDrew ? targets.TerrainUnderCopies().Depth.Handle : 0);
+        _gl.SetInt(_program, "uHostDrew", hostDrew ? 1 : 0);
+        _gl.SetVec2(_program, "uNearFar", new System.Numerics.Vector2(near, far));
         _gl.SetInt(_program, "uCount", count);
         _gl.Uniform1(_gl.UniformLocation(_program, "uPriority"), (uint)count, priorities);
         _gl.Uniform1(_gl.UniformLocation(_program, "uPassId"), (uint)count, ids);

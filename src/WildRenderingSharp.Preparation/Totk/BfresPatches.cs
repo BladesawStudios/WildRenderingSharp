@@ -13,7 +13,8 @@ namespace WildRenderingSharp.Preparation.Totk;
 /// <remarks>
 /// These Harmony prefixes replace the three steps of the BfresLibrary loader that fail on V10 materials. A material with no boolean shader
 /// options gets an empty bit-flag array, a duplicate dictionary key is skipped instead of throwing, and names stored as 64-bit keys are
-/// resolved through <see cref="ExternalStringTable"/>. <see cref="EnsureApplied"/> is safe to call repeatedly and must run before any BFRES is parsed.
+/// resolved through <see cref="ExternalStringTable"/>. A material that carries no shader information, as the models of effect files do, is left empty
+/// instead of failing the whole file. <see cref="EnsureApplied"/> is safe to call repeatedly and must run before any BFRES is parsed.
 /// </remarks>
 public static class BfresPatches
 {
@@ -37,6 +38,9 @@ public static class BfresPatches
             Patch(harmony, typeof(MaterialParserV10.ShaderInfo), "SetupOptionBooleans", [typeof(int)], nameof(SetupOptionBooleansPrefix));
             Patch(harmony, typeof(ResDict), "Add", [typeof(string), typeof(IResData)], nameof(ResDictAddPrefix));
             Patch(harmony, typeof(ResFileSwitchLoader), "LoadString", [typeof(System.Text.Encoding)], nameof(LoadStringPrefix));
+            var materialLoad = typeof(MaterialParserV10).GetMethod("Load", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException("MaterialParserV10.Load not found; BfresLibrary changed.");
+            harmony.Patch(materialLoad, finalizer: new HarmonyMethod(typeof(BfresPatches).GetMethod(nameof(MaterialLoadFinalizer), BindingFlags.NonPublic | BindingFlags.Static)!));
             _applied = true;
         }
     }
@@ -80,4 +84,7 @@ public static class BfresPatches
         __result = ExternalStringTable.Lookup(unchecked((ulong)offset)) ?? "";
         return false;
     }
+
+    // The V10 material loader dereferences shader information an effect model's empty material does not have.
+    static Exception? MaterialLoadFinalizer(Exception? __exception) => __exception is NullReferenceException ? null : __exception;
 }

@@ -14,6 +14,9 @@ namespace WildRenderingSharp.Pipeline.Passes;
 /// </summary>
 internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neutral)
 {
+    // The forward programs' own inputs go on units the rest of the frame binds once and relies on, so the bindings are put back afterwards.
+    readonly TextureBindingSnapshot _bindings = new();
+
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
     {
         var forwardGroups = groups
@@ -23,6 +26,7 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
         if (forwardGroups.Count == 0)
             return;
 
+        _bindings.Capture(gl);
         Begin(resources, targets);
         foreach (var (group, shapes) in forwardGroups)
         {
@@ -31,6 +35,7 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
                 DrawShape(group, shape, drawer);
         }
         End(resources, targets);
+        _bindings.Restore(gl);
     }
 
     // Draws into the scene in the G-buffer's flipped orientation, against the G-buffer's depth, with a copy of the scene behind for cTex_ColorBuffer.

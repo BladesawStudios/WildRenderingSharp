@@ -4,6 +4,7 @@ using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
+using WildRenderingSharp.Profiles.Totk.Deferred.PreShading;
 using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 using WildRenderingSharp.Profiles.Totk.Sky.Precompute;
 using WildRenderingSharp.Profiles.Totk.Stages;
@@ -30,35 +31,41 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     {
         var linearDepth = Own(new LinearDepthPass(services.Gl));
         var flip = Own(new FlipBlit(services.Gl));
-        var forward = new ForwardPass(services.Gl, flip, Own(new ForwardNeutralInputs(services.Gl, services.Directories.SystemTextures)));
+        var forwardInputs = Own(new ForwardNeutralInputs(services.Gl, services.Directories.SystemTextures));
+        var forward = new ForwardPass(services.Gl, flip, forwardInputs);
         Terrain = Own(new TerrainShading(services.Gl, services.Directories.Decompiled, services.Profile.Bindings));
         Cave = Own(new CaveShading(services.Gl, services.Directories.Decompiled));
         _scene = Own(new DeferredScene(services.Gl, services.Programs, services.Directories));
-        var stamper = Own(new PassIdStamper(services.Gl, services.Drawer, _scene));
-        _skyBake = Own(new SkyBake(services));
         var terrain = new TerrainRenderer(services, Terrain, linearDepth, _scene);
-        var screenSpaceLighting = Own(new ScreenSpaceLightingStage(services, linearDepth));
-        _resolve = Own(new ResolveStage(services, _scene, terrain, screenSpaceLighting, stamper));
+        var stamper = Own(new PassIdStamper(services.Gl, services.Drawer, _scene, terrain));
+        _skyBake = Own(new SkyBake(services));
+        var cubeEnvironment = Own(new CubeEnvironment(services.Gl));
+        var gamePreShading = Own(new GamePreShading(services, _scene, stamper, cubeEnvironment, _skyBake));
+        var screenSpaceLighting = Own(new ScreenSpaceLightingStage(services, linearDepth, gamePreShading));
+        _resolve = Own(new ResolveStage(services, _scene, terrain, screenSpaceLighting, stamper, cubeEnvironment));
 
         _stages =
         [
             new FrameSetupStage(services),
             Own(new TotkFrameConstantsStage(services)),
-            new GBufferStage(services, _scene, terrain),
+            Own(new GBufferStage(services, _scene, terrain)),
             new ShadowStage(services, terrain),
-            screenSpaceLighting,
+            // Before the screen-space lighting, whose game pre-shading draws only where the mask names a pass.
             new PassIdMaskStage(services, stamper),
+            screenSpaceLighting,
             Own(new SkyStage(services, _skyBake)),
             _resolve,
             new SnapshotStage(0),
             Own(new GridStage(services, flip)),
             Own(new KnownMaterialFixesStage(services, _scene, flip)),
+            new ForwardSkyStage(forwardInputs, gamePreShading),
             new ForwardStage(services, forward),
             new SnapshotStage(1),
             new ExposureMeasureStage(services),
             Own(new LensFlareStage(services)),
             new SnapshotStage(2),
             Own(new TonemapStage(services)),
+            Own(new FieldHazeStage(services)),
             Own(new ColorCorrectionStage(services)),
             Own(new HighlightStage(services)),
         ];

@@ -45,10 +45,13 @@ public sealed class RenderTargets : IDisposable
     public GpuTexture LinearDepthHalf { get; private set; }
 
     // Shadow and SSAO scratch.
+    // The pre-shading buffers are half the frame's size, as the game's are; its resolve programs pick among their texels by depth.
     public GpuTexture PreShadow { get; private set; }
-    public GpuTexture PreShadowHalf0 { get; private set; }
-    public GpuTexture PreShadowHalf1 { get; private set; }
+    public GpuTexture PreShadowScratch { get; private set; }
     public GpuTexture PreMisc { get; private set; }
+    public GpuTexture VolumeMask { get; private set; }
+    public GpuTexture PreFog { get; private set; }
+    public GpuTexture PreFogHalf { get; private set; }
     public GpuTexture AoRaw { get; private set; }
     public GpuTexture AoTmp { get; private set; }
 
@@ -64,7 +67,6 @@ public sealed class RenderTargets : IDisposable
     public GpuTexture ResolvePass { get; private set; }
     public GpuTexture Final { get; private set; }
     public GpuTexture Exposed { get; private set; }
-    public GpuTexture Compressed { get; private set; }
     public GpuTexture Bloom { get; private set; }
     public GpuTexture Ldr { get; private set; }
 
@@ -210,14 +212,17 @@ public sealed class RenderTargets : IDisposable
         LinearDepth = _textures.Color(width, height, InternalFormat.R32f);
         LinearDepthHalf = _textures.Color(width / 2, height / 2, InternalFormat.R32f);
 
-        PreShadow = _textures.Color(width, height, InternalFormat.Rgba16f);
-        PreShadowHalf0 = _textures.Color(Math.Max(1, width / 2), Math.Max(1, height / 2), InternalFormat.Rgba16f, repeat: false);
-        PreShadowHalf1 = _textures.Color(Math.Max(1, width / 2), Math.Max(1, height / 2), InternalFormat.Rgba16f, repeat: false);
-        PreMisc = _textures.Color(width, height, InternalFormat.Rgba16f);
+        int halfWidth = Math.Max(1, width / 2), halfHeight = Math.Max(1, height / 2);
+        PreShadow = _textures.Color(halfWidth, halfHeight, InternalFormat.Rgba16f);
+        PreShadowScratch = _textures.Color(halfWidth, halfHeight, InternalFormat.Rgba16f);
+        PreMisc = _textures.Color(halfWidth, halfHeight, InternalFormat.Rgba16f);
+        PreFog = _textures.Color(width, height, InternalFormat.Rgba16f);
+        VolumeMask = _textures.Color(width, height, InternalFormat.Rgba8);
+        PreFogHalf = _textures.Color(halfWidth, halfHeight, InternalFormat.Rgba16f);
         AoRaw = _textures.Color(width, height, InternalFormat.Rgba16f);
         AoTmp = _textures.Color(width, height, InternalFormat.Rgba16f);
-        LightPrePassArray = _textures.ColorArray(width, height, InternalFormat.Rgba16f, layers: 2);
-        FieldLightPrePassArray = _textures.ColorArray(width, height, InternalFormat.Rgba16f, layers: 2);
+        LightPrePassArray = _textures.ColorArray(halfWidth, halfHeight, InternalFormat.Rgba16f, layers: 2);
+        FieldLightPrePassArray = _textures.ColorArray(halfWidth, halfHeight, InternalFormat.Rgba16f, layers: 2);
     }
 
     void CreatePassIdMask(int width, int height)
@@ -236,7 +241,6 @@ public sealed class RenderTargets : IDisposable
         ResolvePass = _textures.Color(width, height, InternalFormat.Rgba16f);
         Final = _textures.Color(width, height, InternalFormat.Rgba16f);
         Exposed = _textures.Color(width, height, InternalFormat.Rgba16f);
-        Compressed = _textures.Color(width, height, InternalFormat.Rgba16f);
         Bloom = _textures.Color(width, height, InternalFormat.Rgba16f);
         Ldr = _textures.Color(width, height, InternalFormat.Rgba16f);
 

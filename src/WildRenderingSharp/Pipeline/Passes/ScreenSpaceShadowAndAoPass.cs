@@ -2,6 +2,7 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Resources;
+using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Shaders;
 
@@ -24,8 +25,6 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
     static readonly string AoFragmentSource = GlslFiles.Load("Pipeline/ScreenSpaceShadowAndAo/Ao.frag");
     static readonly string BlurFragmentSource = GlslFiles.Load("Pipeline/ScreenSpaceShadowAndAo/Blur.frag");
     static readonly string PreshadingFilterFragmentSource = GlslFiles.Load("Pipeline/ScreenSpaceShadowAndAo/PreshadingFilter.frag");
-    static readonly string PreshadingReduceFilterFragmentSource = GlslFiles.Load("Pipeline/ScreenSpaceShadowAndAo/PreshadingReduceFilter.frag");
-    static readonly string PreshadingUpsampleFragmentSource = GlslFiles.Load("Pipeline/ScreenSpaceShadowAndAo/PreshadingUpsample.frag");
 
     public readonly record struct Params(
         Matrix4x4 ViewInv, Matrix4x4 LightViewProj, Vector2 TanHalf, Vector3 SunWorld, Vector3 SunView,
@@ -37,15 +36,13 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
     public sealed record CascadeParams(uint Texture, Matrix4x4[] ViewProj, float[] TexelWorld, float[] Bias, float[] InvDepthRange);
 
     readonly GL _gl;
-    readonly uint _preshadowProgram, _preshadingFilterProgram, _preshadingReduceProgram, _preshadingUpsampleProgram, _aoProgram, _blurProgram;
+    readonly uint _preshadowProgram, _preshadingFilterProgram, _aoProgram, _blurProgram;
 
     public ScreenSpaceShadowAndAoPass(GL gl)
     {
         _gl = gl;
         _preshadowProgram = Build("preshadow", PreshadowFragmentSource);
         _preshadingFilterProgram = Build("preshading_filter", PreshadingFilterFragmentSource);
-        _preshadingReduceProgram = Build("preshading_reduce", PreshadingReduceFilterFragmentSource);
-        _preshadingUpsampleProgram = Build("preshading_upsample", PreshadingUpsampleFragmentSource);
         _aoProgram = Build("ao", AoFragmentSource);
         _blurProgram = Build("ao_blur", BlurFragmentSource);
     }
@@ -55,16 +52,20 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
         _gl.Disable(EnableCap.DepthTest);
 
         DrawPreShadow(resources, targets, p);
-        // The game's two-tier filter smooths PreShadow into a penumbra: rgb gets the half-res reduce blur and w the full-res 3-tap Gaussian.
-        RunPreshadingFilter(resources, targets, targets.PreShadow, targets.AoTmp);
-
         DrawAo(resources, targets, p);
         RunSeparableBlur(resources, targets, targets.AoRaw, targets.AoTmp, targets.PreMisc, p.Near, p.Far, p.AoRadius);
     }
 
+    // The game's filter smooths PreShadow with one separable 3-tap Gaussian, as its shadow pre-pass is configured (a blur of width 1, repeated once).
+    public void FilterPreShadow(GLResourceCache resources, RenderTargets targets)
+    {
+        _gl.Disable(EnableCap.DepthTest);
+        BlurPreShadow(resources, targets, targets.PreShadow, targets.PreShadowScratch);
+    }
+
     public void Dispose()
     {
-        foreach (uint program in new[] { _preshadowProgram, _preshadingFilterProgram, _preshadingReduceProgram, _preshadingUpsampleProgram, _aoProgram, _blurProgram })
+        foreach (uint program in new[] { _preshadowProgram, _preshadingFilterProgram, _aoProgram, _blurProgram })
             _gl.ReleaseProgram(program);
     }
 
@@ -86,6 +87,7 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
         _gl.SetFloat(program, "uTexelWorld", p.ShadowTexelWorld);
         _gl.SetFloat(program, "uDepthRange", p.ShadowDepthRange);
         _gl.SetVec2(program, "uPix", new Vector2(1f / targets.Width, 1f / targets.Height));
+        _gl.SetVec2(program, "uFarFade", new Vector2(SunShadowFade.Start, SunShadowFade.End));
         targets.BindColorTarget(targets.PreShadow);
         _gl.BindTextureUniform(program, "tex_nld", 0, targets.LinearDepth.Handle);
         _gl.BindTextureUniform(program, "tex_shadow", 1, p.ShadowTexture);
@@ -131,56 +133,20 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
         resources.DrawFullscreenTriangle();
     }
 
-    void RunPreshadingFilter(GLResourceCache resources, RenderTargets targets, GpuTexture preShadow, GpuTexture tmp)
-    {
-        FullResolutionBlur(resources, targets, preShadow, tmp);
-        HalfResolutionBlur(resources, targets, preShadow);
-    }
-
-    // Tier 1: the full-resolution anti-aliasing blur, horizontal into the scratch target and vertical straight back, for both rgb and w.
-    void FullResolutionBlur(GLResourceCache resources, RenderTargets targets, GpuTexture preShadow, GpuTexture tmp)
+    // Horizontal into the scratch target and vertical straight back.
+    void BlurPreShadow(GLResourceCache resources, RenderTargets targets, GpuTexture preShadow, GpuTexture tmp)
     {
         _gl.UseProgram(_preshadingFilterProgram);
         targets.BindColorTarget(tmp);
         _gl.BindTextureUniform(_preshadingFilterProgram, "tex_src", 0, preShadow.Handle);
-        _gl.SetVec2(_preshadingFilterProgram, "uStep", new Vector2(FilterTapOffset / targets.Width, 0f));
+        _gl.BindTextureUniform(_preshadingFilterProgram, "tex_depth", 1, targets.LinearDepthHalf.Handle);
+        _gl.SetVec2(_preshadingFilterProgram, "uStep", new Vector2(FilterTapOffset / preShadow.Width, 0f));
         resources.DrawFullscreenTriangle();
 
         targets.BindColorTarget(preShadow);
         _gl.BindTextureUniform(_preshadingFilterProgram, "tex_src", 0, tmp.Handle);
-        _gl.SetVec2(_preshadingFilterProgram, "uStep", new Vector2(0f, FilterTapOffset / targets.Height));
+        _gl.SetVec2(_preshadingFilterProgram, "uStep", new Vector2(0f, FilterTapOffset / preShadow.Height));
         resources.DrawFullscreenTriangle();
-    }
-
-    // Tier 2: a bilinear 2x2 downsample to half resolution, a two-tap character blur there, and a linear upsample back into rgb only,
-    // so w keeps tier 1's full-resolution Gaussian (the game's uStack_364 = 7).
-    void HalfResolutionBlur(GLResourceCache resources, RenderTargets targets, GpuTexture preShadow)
-    {
-        var half0 = targets.PreShadowHalf0;
-        var half1 = targets.PreShadowHalf1;
-
-        _gl.UseProgram(_preshadingUpsampleProgram);
-        targets.BindColorTarget(half0);
-        _gl.BindTextureUniform(_preshadingUpsampleProgram, "tex_src", 0, preShadow.Handle);
-        resources.DrawFullscreenTriangle();
-
-        _gl.UseProgram(_preshadingReduceProgram);
-        targets.BindColorTarget(half1);
-        _gl.BindTextureUniform(_preshadingReduceProgram, "tex_src", 0, half0.Handle);
-        _gl.SetVec2(_preshadingReduceProgram, "uStep", new Vector2(1.0f / half0.Width, 0f));
-        resources.DrawFullscreenTriangle();
-
-        targets.BindColorTarget(half0);
-        _gl.BindTextureUniform(_preshadingReduceProgram, "tex_src", 0, half1.Handle);
-        _gl.SetVec2(_preshadingReduceProgram, "uStep", new Vector2(0f, 1.0f / half0.Height));
-        resources.DrawFullscreenTriangle();
-
-        _gl.UseProgram(_preshadingUpsampleProgram);
-        targets.BindColorTarget(preShadow);
-        _gl.BindTextureUniform(_preshadingUpsampleProgram, "tex_src", 0, half0.Handle);
-        _gl.ColorMask(true, true, true, false);
-        resources.DrawFullscreenTriangle();
-        _gl.ColorMask(true, true, true, true);
     }
 
     void RunSeparableBlur(GLResourceCache resources, RenderTargets targets, GpuTexture src, GpuTexture tmp, GpuTexture dst, float near, float far, float radius)

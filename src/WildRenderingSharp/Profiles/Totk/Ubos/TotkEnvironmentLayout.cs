@@ -26,9 +26,25 @@ static class TotkEnvironmentLayout
     public const int LightDir0World = 23;                     // +368                                   <- read
     public const int LightDir1World = 24;                     // +384
     public const int Unknown25 = 25;                          // +400  one further declaration, type not recovered
+    public const int ScatterFogRamp = 26;                     // .x and .y: scale and bias of the ramp over view distance                       <- read by preshading_*
+    public const int ScatterFogShape = 27;                    // .x attenuation, .y horizontal exponent, .z density                              <- read
+    public const int AdhocFogRamp = 28;                       // .x and .y: scale and bias of the ramp over view distance                       <- read
+    public const int AdhocFogShape = 29;                      // .x ground attenuation; .z sky attenuation, .w the share it removes at the zenith <- read
+    public const int AdhocFogColor = 30;                      // .xyz the colour; .w the density                                                 <- read
+    public const int LeafFogRamp = 67;                        // .x and .y the distances where the leaf pass's two blends start, .z where both are complete <- read by preshading_field_leaf
+    public const int EntranceSkyLight = 74;                   // .xyz the ambient from above, the entrance pass blends it with the next by the normal's height <- read by preshading_field_entrance
+    public const int EntranceGroundLight = 75;                // .xyz the ambient from below                                                                  <- read
+    public const int EntranceHazeColor = 76;                  // .xyz the colour of the haze it adds, .w its strength                                          <- read
+    public const int EntranceHazeShape = 77;                  // .xy scale and bias of its ramp, .z the exponent                                                <- read
+    public const int HeightFade = 44;                        // .xy and .zw: scale and bias of two world-height ramps      <- read by preshading_chara
+    public const int DarknessMapTransform = 45;               // the Depths darkness map's UV transform                    <- read
+    public const int DarknessBlend = 46;                      // .x keeps the surface lit; .y and .z bound the darkness map <- read
+    public const int ShadowFarFade = 48;                      // .xy for the nearer cascades, .zw for the last: scale and bias of the fade to lit  <- read
     public const int AmbientHeightAttenuation = 47;
-    public const int ShadowDepthBias = 50;
+    public const int ShadowDepthBias = 50;                    // .x the tangent offset at grazing light, in metres; .y the depth bias <- read
     public const int ShadowMapDimensions = 52;
+    public const int ShadowTexel = 56;                        // .xy one cascade texel in uv                                <- read
+    public const int ShadowNormalBlend = 57;                  // .x the G-buffer normal's share, .y the depth-derived one's, .z the grazing exponent <- read
     public const int Unknown70 = 70;
     public const int VolumeMaskTint = 81;
 

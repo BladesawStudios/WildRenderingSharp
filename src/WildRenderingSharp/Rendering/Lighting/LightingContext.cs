@@ -12,7 +12,8 @@ public class LightingContext
     public float SunElevation { get; set; } = 0.6f;
     public float SunAzimuth { get; set; }
 
-    public float Exposure { get; set; } = 2.5f;
+    // SceneGain scales the lit scene by 1/5.5, so 5.5 would be the game's own exposure of 1; comparing against the game by eye, 4.72 matches it better.
+    public float Exposure { get; set; } = 4.72f;
 
     public float AmbientScale { get; set; } = 1.0f;
     public float MidScale { get; set; } = 1.0f;
@@ -25,6 +26,9 @@ public class LightingContext
     public float BloomIntensity { get; set; } = 1.0f;
 
     public bool SyntheticLightPrePass { get; set; }
+
+    // The baked lighting of every static object that has none of its own, 0 to 1. The game's is 1.
+    public float DefaultBakeStrength { get; set; } = 1.0f;
 
     public bool ShowGrid { get; set; } = true;
 }

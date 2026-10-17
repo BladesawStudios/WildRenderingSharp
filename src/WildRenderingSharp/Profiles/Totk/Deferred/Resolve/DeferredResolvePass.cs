@@ -22,21 +22,20 @@ internal sealed class DeferredResolvePass : IDisposable
 
     readonly GL _gl;
     readonly uint _composeProgram;
-    readonly uint _texPreFog, _texVolumeMask;
+    readonly uint _texVolumeMask;
     readonly CubeEnvironment _cubeEnvironment;
     readonly TileFlagsBuffer _tileFlags;
 
     string? _tracePass;
     Func<ResolvedDeferredPass, ResolveTrace>? _traceStart;
 
-    public DeferredResolvePass(GL gl)
+    public DeferredResolvePass(GL gl, CubeEnvironment cubeEnvironment)
     {
         _gl = gl;
         _composeProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, ComposeFragmentSource, "mask_compose");
-        _texPreFog = ConstantTextures.Rgba(gl, 0f, 0f, 0f, 0f);
         _texVolumeMask = ConstantTextures.Rgba(gl, 0f, 0f, 0f, 0f);
-        _cubeEnvironment = new CubeEnvironment(gl);
-        _tileFlags = new TileFlagsBuffer(gl);
+        _cubeEnvironment = cubeEnvironment;
+        _tileFlags = new TileFlagsBuffer(gl, TileFlagsBuffer.ResolveWord);
     }
 
     // The pass whose own output is kept for the debug views, or -1.
@@ -47,8 +46,6 @@ internal sealed class DeferredResolvePass : IDisposable
         _tracePass = pass;
         _traceStart = start;
     }
-
-    public void SetEnvironment(Vector3 sky, Vector3 ground) => _cubeEnvironment.Set(sky, ground);
 
     public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ResolvedDeferredPass> passes,
         float emissionScale, float sceneGain, float exposure, Func<string, bool>? include = null, int claimEmptyPass = -1)
@@ -70,9 +67,7 @@ internal sealed class DeferredResolvePass : IDisposable
     public void Dispose()
     {
         _gl.ReleaseProgram(_composeProgram);
-        _gl.DeleteTexture(_texPreFog);
         _gl.DeleteTexture(_texVolumeMask);
-        _cubeEnvironment.Dispose();
         _tileFlags.Dispose();
     }
 
@@ -147,7 +142,7 @@ internal sealed class DeferredResolvePass : IDisposable
         _gl.BindTextureAt(5, targets.LinearDepthHalf.Handle);  // cTex_HalfNormalizedLinearDepth
         _gl.BindTextureAt(11, _texVolumeMask);                 // cTex_VolumeMask (neutral; Env[81] carries the palette's real tint)
         _gl.BindTextureAt(16, targets.PreShadow.Handle);       // cTex_PreShadow (synthesised)
-        _gl.BindTextureAt(17, _texPreFog);                     // cTex_PreFog (neutral; no aerial perspective)
+        _gl.BindTextureAt(17, targets.PreFog.Handle);          // cTex_PreFog (black unless the game's pre-shading wrote it)
         _gl.BindTextureAt(18, targets.PreMisc.Handle);         // cTex_PreMisc (synthesised)
         _gl.BindTextureAt(28, targets.LightPrePassArray.Handle, TextureTarget.Texture2DArray); // cTex_DeferredLightPrePass
         _gl.BindTextureAt(CubeEnvMapUnit, _cubeEnvironment.Handle, TextureTarget.TextureCubeMap); // cTex_CubeEnvMap (field_water)

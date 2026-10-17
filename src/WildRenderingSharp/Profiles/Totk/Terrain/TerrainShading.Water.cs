@@ -34,10 +34,63 @@ public sealed partial class TerrainShading
 
     public uint LinkWaterProgram(string hostSource)
     {
-        string frag = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.frag")));
+        string frag = PatchedWaterFragment(_shadersDir);
+        return GLProgramBuilder.Build(_gl, WaterVertex(hostSource), frag, WaterProgramName);
+    }
+
+    // The game reads the half-resolution depth three times with a filtered fetch: at the pixel, for how thick the water is there, and at the point it refracts
+    // to, for whether that point is behind it and how thick. Across a silhouette the filter mixes the near surface's depth into the pixels of the water
+    // beside it, and somewhere along that ramp the mixed depth equals the water's own, where the water reads as thin and clear and shows the seabed
+    // under it as it was before the water, pale: a line a pixel or two wide along every silhouette. The fetch here leaves out any texel that is nearer than the water, which is
+    // an occluder that hides the water where it is, and filters the rest as before.
+    const string FilteredHalfDepth = @"texture\(cTex_HalfNormalizedLinearDepth, vec2\(([^()]*)\)\)\.x";
+
+    const string HalfDepthBehindWater = @"
+// The half-resolution depth at uv, filtered over the texels that are not nearer than the water at waterZ (view space, negative) by more than a metre.
+float wrs_half_depth(vec2 uv, float waterZ)
+{
+    ivec2 size = textureSize(cTex_HalfNormalizedLinearDepth, 0);
+    vec2 st = uv * vec2(size) - 0.5;
+    ivec2 first = ivec2(floor(st));
+    vec2 f = st - vec2(first);
+    float sum = 0.0, weights = 0.0, farthest = 0.0;
+    for (int dy = 0; dy < 2; dy++)
+    {
+        for (int dx = 0; dx < 2; dx++)
+        {
+            float v = texelFetch(cTex_HalfNormalizedLinearDepth, clamp(first + ivec2(dx, dy), ivec2(0), size - 1), 0).x;
+            float w = (dx == 0 ? 1.0 - f.x : f.x) * (dy == 0 ? 1.0 - f.y : f.y);
+            farthest = max(farthest, v);
+            if (fma(v, fp_c4.data[16].x, fp_c4.data[14].x) >= -waterZ - 1.0)
+            {
+                sum += v * w;
+                weights += w;
+            }
+        }
+    }
+    return weights > 1e-4 ? sum / weights : farthest;
+}
+";
+
+    static string FilterHalfDepthBehindWater(string frag)
+    {
+        var fetch = new Regex(FilteredHalfDepth);
+        if (fetch.Matches(frag).Count != 3)
+            throw new InvalidOperationException($"{WaterProgramName}: expected three half-resolution depth fetches.");
+        frag = fetch.Replace(frag, "wrs_half_depth(vec2($1), temp_2)");
+        int main = frag.IndexOf("void main()", StringComparison.Ordinal);
+        return frag[..main] + HalfDepthBehindWater + "\n" + frag[main..];
+    }
+
+    // The patched fragment stage, for a check that it compiles.
+    internal static string PatchedWaterFragment(string shadersDir) => PatchWaterFragment(
+        TotkGlsl.Clean(File.ReadAllText(Path.Combine(shadersDir, WaterProgramName + "_extracted.frag"))));
+
+    static string PatchWaterFragment(string frag)
+    {
         // The game counts the water types it saw in a buffer of its own; here binding 0 is the bake table.
         frag = Regex.Replace(frag, @"fp_s0\.data\[[^\]]*\]\s*=\s*[^;]+;", "");
-        return GLProgramBuilder.Build(_gl, WaterVertex(hostSource), frag, WaterProgramName);
+        return FilterHalfDepthBehindWater(frag);
     }
 
     public uint LinkWaterStampProgram(string hostSource) =>

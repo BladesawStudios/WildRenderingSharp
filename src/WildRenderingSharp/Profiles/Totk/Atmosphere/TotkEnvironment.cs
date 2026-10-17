@@ -14,7 +14,7 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 public sealed class TotkEnvironment(
     EnvPalette palette, SkyPostFx? skyPostFx = null, CloudPostFx? cloudPostFx = null,
     ColorCorrectionPostFx? colorCorrection = null, ITerrainHost? terrain = null,
-    TotkSettings? settings = null, CloudWeather? cloudWeather = null) : IFrameEnvironment
+    TotkSettings? settings = null, CloudWeather? cloudWeather = null, HdrComposeParam? hdrCompose = null) : IFrameEnvironment
 {
     public ITerrainHost? Terrain { get; } = terrain;
 
@@ -23,6 +23,7 @@ public sealed class TotkEnvironment(
     public SkyPostFx SkyPostFx { get; } = skyPostFx ?? SkyPostFx.Default;
     public CloudPostFx CloudPostFx { get; } = cloudPostFx ?? CloudPostFx.Default;
     public CloudWeather CloudWeather { get; } = cloudWeather ?? CloudWeather.Empty;
+    public HdrComposeParam HdrCompose { get; } = hdrCompose ?? HdrComposeParam.Default;
     public ColorCorrectionPostFx ColorCorrection { get; } = colorCorrection ?? ColorCorrectionPostFx.Default;
 
     public EnvironmentLighting ResolveLighting(LightingContext lighting)
@@ -33,7 +34,9 @@ public sealed class TotkEnvironment(
         Vector3 volumeMaskColor = Palette.VolumeMaskColorNoUse ? Vector3.Zero : Palette.VolumeMaskColor;
         float volumeMaskIntensity = Palette.VolumeMaskColorNoUse ? 0f : Palette.VolumeMaskIntensity;
 
-        return new EnvironmentLighting(AmbientLighting.SunColor(Palette), hemiSky, hemiGround, volumeMaskColor, volumeMaskIntensity);
+        Vector3 sun = AmbientLighting.SunColor(Palette);
+        hemiGround += AmbientLighting.GroundBounce(sun, lighting.SunElevation, Settings.GroundBounce);
+        return new EnvironmentLighting(sun, hemiSky, hemiGround, volumeMaskColor, volumeMaskIntensity);
     }
 
     public bool HasOwnGeometry => Terrain is not null;
