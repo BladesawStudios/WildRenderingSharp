@@ -41,6 +41,15 @@ public static class GpuMemory
         return $"card {free / 1024:N0} of {dedicated / 1024:N0} MB free, {evictions:N0} evictions moving {evicted / 1024:N0} MB out";
     }
 
+    /// <summary>The card's own video memory in megabytes, or 0 when it does not say (NVIDIA only).</summary>
+    public static int DedicatedMegabytes(Silk.NET.OpenGL.GL gl)
+    {
+        if (!gl.IsExtensionPresent("GL_NVX_gpu_memory_info"))
+            return 0;
+        gl.GetInteger((Silk.NET.OpenGL.GLEnum)0x9047, out int dedicated);
+        return dedicated / 1024;
+    }
+
     public static string Summary()
     {
         static string Mb(long bytes) => $"{bytes / (1024.0 * 1024.0):N0} MB";
