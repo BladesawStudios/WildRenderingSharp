@@ -124,6 +124,11 @@ internal sealed unsafe partial class MergedDrawing
         return merged;
     }
 
+    // A shape's prepass and its main draw are made by the same kind of program or neither is merged: the main draw is tested against the depth the prepass left, and
+    // two programs made apart disagree by more than the offset covers where one of them is a different form of the same source.
+    bool BothFormsMerge(LoadedShape shape, MergedShape merged) =>
+        ProgramOf(shape, merged, ShapeProgram.GBuffer) != 0 && (shape.ZOnlyShaderName.Length == 0 || ProgramOf(shape, merged, ShapeProgram.ZOnly) != 0);
+
     uint ProgramOf(LoadedShape shape, MergedShape merged, ShapeProgram which)
     {
         if (which == ShapeProgram.ZOnly)

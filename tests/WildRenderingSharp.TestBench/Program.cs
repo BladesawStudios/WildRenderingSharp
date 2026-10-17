@@ -65,6 +65,28 @@ window.Initialize();
 using var gl = GL.GetApi(window.GLContext);
 Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
+if (options.TryGetValue("bindless-limit", out var limitText))
+{
+    // How many bindless handles the driver will keep resident at once, and whether each stays so.
+    var bindless = gl.TryGetExtension(out Silk.NET.OpenGL.Extensions.ARB.ArbBindlessTexture ext) ? ext : throw new InvalidOperationException("no bindless");
+    int count = int.Parse(limitText), notResident = 0, firstFail = -1, glFaults = 0;
+    var handles = new ulong[count];
+    for (int i = 0; i < count; i++)
+    {
+        uint tex = gl.GenTexture();
+        gl.BindTexture(Silk.NET.OpenGL.TextureTarget.Texture2D, tex);
+        gl.TexImage2D(Silk.NET.OpenGL.TextureTarget.Texture2D, 0, Silk.NET.OpenGL.InternalFormat.Rgba8, 16, 16, 0, Silk.NET.OpenGL.PixelFormat.Rgba, Silk.NET.OpenGL.PixelType.UnsignedByte, (ReadOnlySpan<byte>)new byte[16 * 16 * 4]);
+        gl.TexParameter(Silk.NET.OpenGL.TextureTarget.Texture2D, Silk.NET.OpenGL.TextureParameterName.TextureMinFilter, (int)Silk.NET.OpenGL.TextureMinFilter.Linear);
+        handles[i] = bindless.GetTextureHandle(tex);
+        bindless.MakeTextureHandleResident(handles[i]);
+        if (gl.GetError() != Silk.NET.OpenGL.GLEnum.NoError) { glFaults++; if (firstFail < 0) firstFail = i; }
+    }
+    for (int i = 0; i < count; i++)
+        if (!bindless.IsTextureHandleResident(handles[i])) { notResident++; if (firstFail < 0) firstFail = i; }
+    Console.WriteLine($"bindless handles: {count} made, {notResident} not resident, {glFaults} GL errors, first problem at {firstFail}");
+    return 0;
+}
+
 if (options.ContainsKey("check-merged"))
     return MergedCheck.Run(gl, cache, int.Parse(options["check-merged"]));
 

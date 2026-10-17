@@ -76,7 +76,7 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
             return false;
         var merged = MergedOf(shape);
         uint program = merged.Excluded ? 0 : ProgramOf(shape, merged, which);
-        if (program == 0)
+        if (program == 0 || !BothFormsMerge(shape, merged))
             return false;
 
         var records = batch.Merged ?? AddBatch(batch)!;
