@@ -4,13 +4,18 @@ using WildRenderingSharp.Assets.Manifests;
 
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>Deserialized <c>&lt;Model&gt;.&lt;AnimName&gt;.texpat.json</c>, the texture pattern anim exported from a BFRES.</summary>
+/// <summary>
+/// A complete texture pattern animation, which can swap textures on several
+/// materials via the animation system.
+/// Loaded from <c>&lt;Model&gt;.&lt;AnimName&gt;.texpat.json</c> in the cache
+/// </summary>
 public sealed class TexturePatternAnimManifest : IAnimClip
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("frame_count")] public int FrameCount { get; set; }
     [JsonPropertyName("loop")] public bool Loop { get; set; }
-    // The anim's own texture list - Values indexes into this.
+    
+    // All the textures the animation may select.
     [JsonPropertyName("textures")] public List<TexturePatternTextureEntry> Textures { get; set; } = [];
     [JsonPropertyName("materials")] public List<TexturePatternMaterialEntry> Materials { get; set; } = [];
 

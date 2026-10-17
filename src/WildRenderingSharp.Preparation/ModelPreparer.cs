@@ -6,7 +6,7 @@ using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Preparation;
 
-/// <summary>The TotK preparation pipeline in-process. Each call opens the romfs it is given with any mods layered over it.</summary>
+/// <summary>Exports TotK assets to a render-ready format. Allows for layered mod folders overriding RomFS.</summary>
 public static class ModelPreparer
 {
     public static void EnsureSystemAssets(string romfsRoot, CacheLayout cache, Action<string>? log = null)

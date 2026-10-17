@@ -1,13 +1,13 @@
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>One clip and where it currently is: the frame, and whether it is running.</summary>
+/// <summary>The playback state of a single animation</summary>
 public sealed class AnimSlot<T> where T : class, IAnimClip
 {
     public AnimSlot(T clip, bool stepped)
     {
         Clip = clip;
         Stepped = stepped;
-        // A one-frame clip is a plain "use this instead" swap, not something to loop at 30 Hz.
+        // A one-frame clip doesn't make sense to loop
         Playing = !stepped && clip.FrameCount > 1;
     }
 

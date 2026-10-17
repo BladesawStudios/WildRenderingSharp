@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>Every sampler of one material that this anim drives.</summary>
+/// <summary>All texture pattern animation curves for a material</summary>
 public sealed class TexturePatternMaterialEntry
 {
     // The material name, matched against Material - one material can back several shapes, and the swap applies to all of them.

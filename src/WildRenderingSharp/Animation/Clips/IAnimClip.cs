@@ -1,6 +1,9 @@
 namespace WildRenderingSharp.Animation.Clips;
 
-/// <summary>What every playable animation manifest has in common, so one playback clock and one browser UI can drive all four kinds.</summary>
+/// <summary>
+/// A generic animation. Types loaded from BFRES are skeletal,
+/// material parameter, and texture pattern animations.
+/// </summary>
 public interface IAnimClip
 {
     string Name { get; }

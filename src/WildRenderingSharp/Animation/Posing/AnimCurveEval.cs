@@ -1,8 +1,9 @@
 namespace WildRenderingSharp.Animation.Posing;
 
-/// <summary>Evaluates a BFRES curve, the one implementation that skeletal, texture pattern and shader parameter animations share.</summary>
+/// <summary>Evaluates a BFRES curve, shared by all animation types.</summary>
 internal static class AnimCurveEval
 {
+    // TODO: Make this an enum.
     public const int Cubic = 0x00;
     public const int Linear = 0x10;
     public const int BakedFloat = 0x20;
