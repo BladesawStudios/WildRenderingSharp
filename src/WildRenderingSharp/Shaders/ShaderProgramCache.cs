@@ -39,12 +39,36 @@ internal sealed class ShaderProgramCache : IDisposable
     // Held for any use of the caches: a host may load models on a worker thread with a context of its own.
     readonly object _sync = new();
 
+    // The version of the code that makes the sources these programs are built from: the cleaning, the corrections and the instanced and merged patches. A program kept by name is
+    // good until this changes, so it is changed whenever any of them does. (Also the revision of the files themselves: a program is kept with their sizes and times.)
+    const string SourceRevision = "1";
+
+    // What the program's source files are now, for the identity a kept program is found by. Throws when they are missing, as reading them does.
+    string Stamp(string baseName)
+    {
+        var vert = new FileInfo(Path.Combine(_decompiledDir, baseName + ".vert"));
+        var frag = new FileInfo(Path.Combine(_decompiledDir, baseName + ".frag"));
+        return $"{SourceRevision}|{baseName}|{vert.Length}:{vert.LastWriteTimeUtc.Ticks}|{frag.Length}:{frag.LastWriteTimeUtc.Ticks}";
+    }
+
     uint LoadLocked(string baseName, bool isForwardProgram,
         Func<string, string>? patchVertex, Func<string, string>? patchFragment)
     {
         bool patched = patchVertex is not null || patchFragment is not null;
         if (!patched && _programs.TryGetValue(baseName, out uint cached))
             return cached;
+
+        if (!patched)
+        {
+            uint kept = GLProgramBuilder.BuildNamed(_gl, $"plain|{isForwardProgram}|{Stamp(baseName)}", () =>
+            {
+                string vert = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
+                string raw = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+                return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
+            }, baseName);
+            _programs[baseName] = kept;
+            return kept;
+        }
 
         string vertSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
         string rawFragSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
@@ -81,16 +105,16 @@ internal sealed class ShaderProgramCache : IDisposable
         if (_instancedPrograms.TryGetValue(key, out uint cached))
             return cached;
 
-        string vertSource = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert"))), _gl.SupportsBaseInstance()) ?? "";
-        uint program = 0;
-        if (vertSource.Length > 0)
+        uint keptProgram = GLProgramBuilder.BuildNamed(_gl, $"instanced|{isForwardProgram}|{_gl.SupportsBaseInstance()}|{Stamp(baseName)}", () =>
         {
-            string rawFragSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
-            string fragSource = isForwardProgram ? _sources.CorrectForwardFragment(rawFragSource) : rawFragSource;
-            program = GLProgramBuilder.Build(_gl, vertSource, fragSource, baseName + "_instanced");
-        }
-        _instancedPrograms[key] = program;
-        return program;
+            string vert = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert"))), _gl.SupportsBaseInstance()) ?? "";
+            if (vert.Length == 0)
+                return null;
+            string raw = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+            return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
+        }, baseName + "_instanced");
+        _instancedPrograms[key] = keptProgram;
+        return keptProgram;
     }
 
     readonly ConcurrentDictionary<string, Lazy<uint>> _mergedPrograms = new(StringComparer.Ordinal);
@@ -101,13 +125,14 @@ internal sealed class ShaderProgramCache : IDisposable
 
     uint BuildMerged(string baseName)
     {
-        string vertex = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-        string fragment = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
-        if (_sources.Merge(vertex, fragment) is not var (mergedVertex, mergedFragment))
-            return 0;
         try
         {
-            return GLProgramBuilder.Build(_gl, mergedVertex, mergedFragment, baseName + "_merged");
+            return GLProgramBuilder.BuildNamed(_gl, $"merged|{Stamp(baseName)}", () =>
+            {
+                string v = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
+                string f = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+                return _sources.Merge(v, f);
+            }, baseName + "_merged");
         }
         catch (InvalidOperationException ex)
         {
