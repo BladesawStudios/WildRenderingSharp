@@ -18,13 +18,13 @@ internal sealed class TextureCache : IDisposable
     bool _ownsExternal;
     LoadedTexture? _white;
 
-    public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null)
+    public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null, int maxTextureSize = 0)
     {
         _gl = gl;
         _dataDirectory = dataDirectory;
         _external = external;
         _shared = shared;
-        _uploader = new TextureUploader(gl);
+        _uploader = new TextureUploader(gl, maxTextureSize);
     }
 
     public List<ShapeSampler> Resolve(IEnumerable<SamplerBinding> samplers)

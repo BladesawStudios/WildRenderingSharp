@@ -17,6 +17,8 @@ internal sealed class ModelFactory(GL gl, ShaderProgramCache programs, CacheLayo
 {
     public bool CompactVertices { get; set; }
 
+    public int TextureMaxSize { get; set; }
+
     public LoadedModel Load(string resolvedModelName)
     {
         using var _ = GLHostState.Enter(gl);
@@ -38,6 +40,7 @@ internal sealed class ModelFactory(GL gl, ShaderProgramCache programs, CacheLayo
         new(gl, programs, cache.ModelDirectory(resolvedModelName), externalTextures)
         {
             CompactVertices = CompactVertices,
+            TextureMaxSize = TextureMaxSize,
             SharedTextures = sharedTextures,
             DeferVertexArrays = deferVertexArrays,
         };

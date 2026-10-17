@@ -91,6 +91,13 @@ public sealed class WildRenderer : IDisposable
         set => _models.CompactVertices = value;
     }
 
+    /// <summary>The largest a model's texture may be in pixels on its longest side, the levels above it left out of the card; 0 for no limit. Applies to models loaded after it is set.</summary>
+    public int TextureMaxSize
+    {
+        get => _models.TextureMaxSize;
+        set => _models.TextureMaxSize = value;
+    }
+
     public BakeLibrary Bakes => _bakes.Library;
 
     public IReadOnlyList<string> AttachBake(InstanceBatch batch, IReadOnlyList<ulong> hashes) => _bakes.Attach(batch, hashes);

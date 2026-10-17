@@ -13,12 +13,15 @@ internal sealed class ModelLoader(GL gl, ShaderProgramCache programs, string dat
 
     public bool CompactVertices { get; init; }
 
+    // The largest a texture's top level may be, in pixels; 0 for no limit.
+    public int TextureMaxSize { get; init; }
+
     public bool DeferVertexArrays { get; init; }
 
     public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
     {
         var manifest = ModelManifest.Load(Path.Combine(dataDirectory, $"{modelName}.manifest.json"));
-        var textures = new TextureCache(gl, dataDirectory, external, SharedTextures);
+        var textures = new TextureCache(gl, dataDirectory, external, SharedTextures, TextureMaxSize);
 
         string skeletonPath = Path.Combine(dataDirectory, $"{modelName}.skeleton.json");
         SkeletonManifest? skeleton = File.Exists(skeletonPath) ? SkeletonManifest.Load(skeletonPath) : null;

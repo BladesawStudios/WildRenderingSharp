@@ -11,8 +11,9 @@ internal sealed class MaterialBlock : IDisposable
 
     public Mirror? Copy { get; set; }
 
-    // Large enough for any shading model's declared block size.
-    public const int BufferSize = 65536;
+    // Larger than any game program reads: they index the block with constants, none past the 42nd vec4, and what they read past the authored bytes is zero. A buffer the size
+    // a block may be declared at took 64 KiB for each shape of a whole map for a few hundred bytes of block.
+    public const int BufferSize = 4096;
 
     static int _nextId;
 
@@ -107,8 +108,10 @@ internal sealed class MaterialBlock : IDisposable
         if (_handle != 0)
         {
             _gl.BindBuffer(BufferTargetARB.UniformBuffer, _handle);
+            int length = Math.Min(bytes.Length, BufferSize - offset);
             fixed (byte* ptr = bytes)
-                _gl.BufferSubData(BufferTargetARB.UniformBuffer, offset, (nuint)bytes.Length, ptr);
+                if (length > 0)
+                    _gl.BufferSubData(BufferTargetARB.UniformBuffer, offset, (nuint)length, ptr);
             _gl.BindBuffer(BufferTargetARB.UniformBuffer, 0);
         }
         Copy?.Invoke(offset, bytes);
