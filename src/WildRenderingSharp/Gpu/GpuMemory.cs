@@ -29,6 +29,18 @@ public static class GpuMemory
 
     internal static void Material(long bytes) => Interlocked.Add(ref _materialBlocks, bytes);
 
+    /// <summary>What the card says about its own memory (NVIDIA only): free now, and how much it has had to move out of video memory to make room, which is the sign of a scene that does not fit.</summary>
+    public static string Card(Silk.NET.OpenGL.GL gl)
+    {
+        if (!gl.IsExtensionPresent("GL_NVX_gpu_memory_info"))
+            return "card memory unknown";
+        gl.GetInteger((Silk.NET.OpenGL.GLEnum)0x9047, out int dedicated);
+        gl.GetInteger((Silk.NET.OpenGL.GLEnum)0x9049, out int free);
+        gl.GetInteger((Silk.NET.OpenGL.GLEnum)0x904A, out int evictions);
+        gl.GetInteger((Silk.NET.OpenGL.GLEnum)0x904B, out int evicted);
+        return $"card {free / 1024:N0} of {dedicated / 1024:N0} MB free, {evictions:N0} evictions moving {evicted / 1024:N0} MB out";
+    }
+
     public static string Summary()
     {
         static string Mb(long bytes) => $"{bytes / (1024.0 * 1024.0):N0} MB";

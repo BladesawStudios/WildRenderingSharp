@@ -20,6 +20,11 @@ internal static partial class MergedShaderPatch
     [GeneratedRegex(@"layout\s*\(\s*binding\s*=\s*(\d+)\s*\)\s*uniform\s+(sampler\w+)\s+(cTexture\w*)\s*;")]
     private static partial Regex ShapeSampler();
 
+    // The game keeps an instance's place in the baked-lighting table in the low twenty bits of its row 8, which is room for a million entries; the merged table
+    // holds every batch's entries and passes that in a whole map, so the index is read through the thirty bits below the flag.
+    [GeneratedRegex(@"(floatBitsToInt\(\s*wrs_shp\(\s*(?:int\()?8\)?\s*\)\.y\s*\))\s*&\s*0xFFFFF")]
+    private static partial Regex WidenBakeIndex();
+
     [GeneratedRegex(@"layout\s*\(\s*binding\s*=\s*\d+\s*\)\s*uniform\s+sampler\w+\s+(cVtxTexture\w*)\s*;")]
     private static partial Regex VertexShapeSampler();
 
@@ -48,7 +53,8 @@ internal static partial class MergedShaderPatch
         source = InstancedShaderPatch.RemoveBlock(source, "_ShpMtx", out string? shapeName);
         source = InstancedShaderPatch.RemoveBlock(source, "_Mtx", out string? paletteName);
         source = InstancedShaderPatch.RemoveBlock(source, "_Mat", out string? materialName);
-        if (shapeName is not null) source = InstancedShaderPatch.RedirectReads(source, shapeName, "wrs_shp");
+        if (shapeName is not null)
+            source = WidenBakeIndex().Replace(InstancedShaderPatch.RedirectReads(source, shapeName, "wrs_shp"), "$1 & 0x3FFFFFFF");
         if (paletteName is not null) source = InstancedShaderPatch.RedirectReads(source, paletteName, "wrs_mtx");
         if (materialName is not null)
         {

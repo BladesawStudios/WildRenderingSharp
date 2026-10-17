@@ -53,6 +53,17 @@ public sealed class MergedShaderPatchTests
     }
 
     [Fact]
+    public void TheBakedLightingIndexIsReadWiderThanTheGamesTwentyBitsSoAWholeMapsTableFits()
+    {
+        string baked = Vertex.Replace("vec4 row = vp_c7.data[0];", "vec4 row = vp_c7.data[0]; int t = floatBitsToInt(vp_c7.data[8].y) & 0xFFFFF;");
+
+        var (vertex, _) = MergedShaderPatch.Apply(baked, Fragment)!.Value;
+
+        Assert.Contains(".y) & 0x3FFFFFFF", vertex);
+        Assert.DoesNotContain("0xFFFFF;", vertex);
+    }
+
+    [Fact]
     public void TheFragmentStageTakesItsShapeTexturesFromHandlesAndLeavesTheFramesAlone()
     {
         var (_, fragment) = MergedShaderPatch.Apply(Vertex, Fragment)!.Value;
