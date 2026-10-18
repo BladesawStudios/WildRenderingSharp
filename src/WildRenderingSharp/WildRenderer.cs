@@ -242,7 +242,6 @@ public sealed class WildRenderer : IDisposable
         if (!_actors.Any(a => a.Visible) && !_instances.Any(b => b.Visible.Count > 0) && Terrain is null)
             return null;
 
-        Debug.ResidencyLog.Maybe(_instances);
         using var _ = GLHostState.Enter(_gl);
         var request = BuildRequest(camera, deltaSeconds);
         View.Render(request, width, height);
