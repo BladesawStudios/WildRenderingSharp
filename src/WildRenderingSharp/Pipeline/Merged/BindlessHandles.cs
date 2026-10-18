@@ -27,7 +27,6 @@ internal sealed class BindlessHandles(GL gl, TextureResidency residency)
 
         var bindless = MergedSupport.Bindless(gl);
         ulong handle = bindless.GetTextureHandle(texture.Handle);
-        bindless.MakeTextureHandleResident(handle);
         residency.Add(texture.Handle, handle);
         _taken.AddOrUpdate(texture, new Taken(texture.Handle, handle));
         return handle;
