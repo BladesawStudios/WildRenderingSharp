@@ -48,6 +48,25 @@ internal sealed class PassIdMaskPass : IDisposable
         _instancedProgram = GLProgramBuilder.Build(gl, instanced, FragmentSource, "pass_id_mask_instanced");
     }
 
+    // The pass index of each shape, worked out once: it is a name looked up in a list, and a frame asked it of every shape of every group.
+    readonly Dictionary<LoadedShape, int> _passIndex = new(ReferenceEqualityComparer.Instance);
+    IReadOnlyList<string>? _passIndexFor;
+
+    int PassIndexOf(LoadedShape shape, IReadOnlyList<string> passes, Func<LoadedShape, string> passOf)
+    {
+        if (!ReferenceEquals(_passIndexFor, passes))
+        {
+            _passIndex.Clear();
+            _passIndexFor = passes;
+        }
+        if (_passIndex.TryGetValue(shape, out int index))
+            return index;
+        string name = passOf(shape);
+        index = string.IsNullOrEmpty(name) ? -1 : IndexOf(passes, name);
+        _passIndex[shape] = index;
+        return index;
+    }
+
     static int IndexOf(IReadOnlyList<string> list, string value)
     {
         for (int i = 0; i < list.Count; i++)
@@ -84,9 +103,7 @@ internal sealed class PassIdMaskPass : IDisposable
 
             foreach (var sh in group.Shapes)
             {
-                if (string.IsNullOrEmpty(passOf(sh)))
-                    continue;
-                int index = IndexOf(passes, passOf(sh));
+                int index = PassIndexOf(sh, passes, passOf);
                 if (index < 0 || index == claimPass)
                     continue;
                 _gl.Uniform1(idLocation, (index + 1) / 255f);
@@ -131,9 +148,7 @@ internal sealed class PassIdMaskPass : IDisposable
 
             foreach (var sh in group.Shapes)
             {
-                if (string.IsNullOrEmpty(passOf(sh)))
-                    continue;
-                int index = IndexOf(passes, passOf(sh));
+                int index = PassIndexOf(sh, passes, passOf);
                 if (index < 0 || index == claimPass)
                     continue;
                 if (_drawer.Merged.TryAddPassId(merged, sh, batch, batch.Visible, index + 1))
