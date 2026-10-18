@@ -100,6 +100,23 @@ public sealed class BackgroundLoader : IDisposable
         _context.Clear();
     }
 
+    // How long loading took, for the log: how many jobs, and how long they ran and then waited on the card, summed, reported every ten seconds.
+    long _jobsSince, _runTicks, _finishTicks, _lastReport = System.Diagnostics.Stopwatch.GetTimestamp();
+
+    void Note(long run, long finish)
+    {
+        _jobsSince++;
+        _runTicks += run;
+        _finishTicks += finish;
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        double frequency = System.Diagnostics.Stopwatch.Frequency;
+        if (now - _lastReport < frequency * 10)
+            return;
+        double msEach = 1000.0 / frequency / _jobsSince;
+        _log?.Invoke($"[loader] {_jobsSince} models in {(now - _lastReport) / frequency:F1} s: {_runTicks * msEach:F0} ms each loading, {_finishTicks * msEach:F0} ms each waiting for the card");
+        (_jobsSince, _runTicks, _finishTicks, _lastReport) = (0, 0, 0, now);
+    }
+
     // Applies what the loader has finished, on the render thread. True when anything was added to the scene.
     public bool ApplyFinished(object? currentOwner, Action<Exception>? applyFailed = null)
     {
