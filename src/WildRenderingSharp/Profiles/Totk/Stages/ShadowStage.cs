@@ -30,6 +30,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     {
         var request = frame.Request;
         var cache = frame.ShadowCache;
+        InstanceShadowRuns.BeginFrame(3.0);
 
         if (request.ShadowFocus is { } shadowFocus)
             foreach (var batch in frame.Instances)

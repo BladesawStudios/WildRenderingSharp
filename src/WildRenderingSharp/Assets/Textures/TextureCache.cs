@@ -1,3 +1,4 @@
+using WildRenderingSharp.Storage;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Manifests;
 using WildRenderingSharp.Gpu;
@@ -90,13 +91,13 @@ internal sealed class TextureCache : IDisposable
             return _byTextureName[s.Texture] = held;
 
         string path = Path.Combine(_dataDirectory, s.File);
-        if (!File.Exists(path))
+        if (!CacheFiles.Exists(path))
         {
             Log.Warning($"[TextureCache] SKIPPED '{s.Texture}': missing file '{s.File}'");
             return null;
         }
 
-        var loaded = _uploader.Upload(s, info, File.ReadAllBytes(path));
+        var loaded = _uploader.Upload(s, info, CacheFiles.ReadAllBytes(path));
         _byTextureName[s.Texture] = loaded;
         if (sharedKey is not null)
             _shared!.Add(sharedKey, loaded);

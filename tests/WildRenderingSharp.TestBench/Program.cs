@@ -118,6 +118,21 @@ if (options.TryGetValue("azimuth", out var azimuth))
     renderer.Lighting.SunAzimuth = float.Parse(azimuth);
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
+if (options.TryGetValue("load-bench", out var loadBench))
+{
+    // How long a host's loader thread takes per model: the prepared models of the cache, loaded one after another as World view's loader loads them.
+    renderer.CompactModelVertices = true;
+    renderer.TextureMaxSize = 512;
+    var names = Directory.EnumerateDirectories(cache.Root).Select(Path.GetFileName).Where(n => n is not null && !n.StartsWith('_') && cache.IsPrepared(n)).Order().ToList();
+    int count = Math.Min(int.Parse(loadBench), names.Count);
+    var clock = System.Diagnostics.Stopwatch.StartNew();
+    for (int i = 0; i < count; i++)
+        renderer.LoadModelOnWorker(names[i]!);
+    gl.Finish();
+    Console.WriteLine($"loaded {count} models in {clock.Elapsed.TotalSeconds:F1} s = {count / clock.Elapsed.TotalSeconds:F1} models/s ({clock.Elapsed.TotalMilliseconds / count:F0} ms each)");
+    return 0;
+}
+
 var camera = new Camera { FovDegrees = 38f };
 var (center, radius) = mixModels.Count > 0
     ? InstanceGrid.AddRow(renderer, [model, .. mixModels], Math.Max(instanceCount, 1), float.Parse(Option("cell", "4")))
