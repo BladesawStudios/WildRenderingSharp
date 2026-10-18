@@ -24,9 +24,7 @@ public sealed class InstanceShadowRuns(IReadOnlyList<Vector4[]> placements, floa
 
     public List<(int First, int Count, int Lod)> Visible { get; } = [];
 
-    // Finding runs again is cheap for one batch and a long time for four thousand of them, which is what happens when the region they were found for moves: sixty
-    // milliseconds in one frame. So a frame has a little time to spend on it, and a batch that finds the time gone keeps the runs it has, a frame or two stale, and
-    // is found again in the next. A batch that has none yet is always found, so nothing is left out of a map altogether.
+    // A frame has a little time to find runs again, and a batch that finds it gone keeps its runs a frame or two stale. A batch with no runs yet is always found.
     static long _deadline;
 
     public static void BeginFrame(double milliseconds) =>

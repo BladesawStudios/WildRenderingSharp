@@ -3,26 +3,25 @@ using System.Text.Json;
 namespace WildRenderingSharp.Preparation.Totk;
 
 /// <summary>Records which romfs file supplied each source of a prepared model, so it is prepared again when a mod toggle or file change alters what wins.</summary>
+/// <remarks>
+/// A model's preparation is made of parts that each have a version: Geometry (vertex, index, texture, skeleton and animation files, and everything after it when stale),
+/// Material (the material uniform blocks, which makes the manifest stale) and Manifest (the manifest and the shader programs it names). Packing the files (CacheFiles.Pack)
+/// is a fourth part, and the stamp notes whether animations were imported. A stamp that carries a single Version applies it to every part.
+/// </remarks>
 public static class TotkSourceStamp
 {
     public const string FileName = "romfs_sources.json";
 
-    // What a model's preparation is made of, each with its own version, so a change to one part is redone without redoing the ones it did not touch. Bump the
-    // version of the part whose output changed:
-    //   Geometry - vertex, index, texture, skeleton and animation files; anything stale here makes every later part stale too
-    //   Material - the material uniform blocks; makes the manifest stale
-    //   Manifest - the manifest and the shader programs it names
-    // Models prepared before the parts were versioned carry one number for all of them (6), which is what each part starts at.
+    // Bump the version of the part whose output changed.
     const int GeometryVersion = 6, MaterialVersion = 6, ManifestVersion = 6;
 
-    // The packing of a model's files (CacheFiles.Pack); a model prepared before there was one is packed in place, not exported again.
     const int PackVersion = 1;
 
     sealed record Entry(string? Path, long Size, long MTime);
 
     sealed record Stamp(string Romfs, List<string> Mods, Dictionary<string, Entry> Files, int Version = 0, int Geometry = 0, int Material = 0, int Manifest = 0, int Packed = 0, bool? Animations = null);
 
-    /// <summary>The parts of a model's preparation that have to be done again.</summary>
+    // The parts of a model's preparation that have to be done again.
     [Flags]
     public enum Stages { None = 0, Manifest = 1, Material = 2, Geometry = 4, Pack = 8, All = Manifest | Material | Geometry | Pack }
 
@@ -32,7 +31,7 @@ public static class TotkSourceStamp
     {
         var entries = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
         bool? keptAnimations = null;
-        // A part redone alone read only some of the sources, so the others stay as they were recorded.
+        // A part redone alone reads only some of the sources, so the others stay as they were recorded.
         if (keepEarlier && Read(dataDirectory) is { } earlier)
         {
             foreach (var (path, entry) in earlier.Files)
@@ -59,11 +58,18 @@ public static class TotkSourceStamp
         string stampPath = Path.Combine(dataDirectory, FileName);
         if (!File.Exists(stampPath))
             return null;
-        try { return JsonSerializer.Deserialize<Stamp>(File.ReadAllText(stampPath)); }
-        catch { return null; }
+        try
+        {
+            return JsonSerializer.Deserialize<Stamp>(File.ReadAllText(stampPath));
+        }
+        catch (Exception ex) when (ex is JsonException or IOException)
+        {
+            // A stamp that cannot be read counts as no stamp, so the model is prepared again.
+            return null;
+        }
     }
 
-    /// <summary>Which parts of the model's preparation are out of date: all of them when a source file changed or there is no usable stamp, otherwise those whose version is older.</summary>
+    // Which parts of the model's preparation are out of date: all of them when a source file changed or there is no usable stamp, otherwise those whose version is older.
     public static Stages Stale(TotkRomfs romfs, string dataDirectory, bool animations)
     {
         if (!File.Exists(Path.Combine(dataDirectory, FileName)))
@@ -71,7 +77,7 @@ public static class TotkSourceStamp
         if (Read(dataDirectory) is not { } stamp)
             return Stages.All;
 
-        // A stamp from before the parts were versioned has one number for all of them.
+        // A stamp with one Version for every part gives each part that number.
         int geometry = stamp.Geometry != 0 ? stamp.Geometry : stamp.Version;
         int material = stamp.Material != 0 ? stamp.Material : stamp.Version;
         int manifest = stamp.Manifest != 0 ? stamp.Manifest : stamp.Version;
@@ -88,7 +94,7 @@ public static class TotkSourceStamp
         if (geometry != GeometryVersion)
             return Stages.All;
 
-        // A model prepared without its animations is prepared again when they are asked for. Before this was recorded every preparation imported them.
+        // A model prepared without its animations is prepared again when they are asked for.
         if (animations && stamp.Animations == false)
             return Stages.All;
         if (material != MaterialVersion)
@@ -97,7 +103,7 @@ public static class TotkSourceStamp
         return stamp.Packed != PackVersion ? stale | Stages.Pack : stale;
     }
 
-    /// <summary>Records that the model's files have been packed, leaving the rest of its stamp as it was.</summary>
+    // Records that the model's files have been packed, leaving the rest of its stamp as it was.
     public static void MarkPacked(string dataDirectory)
     {
         if (Read(dataDirectory) is not { } stamp)

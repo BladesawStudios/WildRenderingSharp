@@ -6,10 +6,7 @@ namespace WildRenderingSharp.Storage;
 /// </summary>
 public sealed record CacheLayout(string Root)
 {
-    /// <summary>
-    /// Where <see cref="Default"/> keeps the cache. An app that wants the cache in its own folder sets this once, before anything reads <see cref="Default"/>; the environment variable
-    /// <c>WRS_CACHE</c> names a folder for a run without changing the app. Left alone it is the library's own folder in the user's application data.
-    /// </summary>
+    // Where Default keeps the cache: set once by an app that wants its own folder, or named by WRS_CACHE; otherwise the library's folder in the user's application data.
     public static string DefaultRoot
     {
         get => _defaultRoot ??= Environment.GetEnvironmentVariable("WRS_CACHE") is { Length: > 0 } fromEnvironment
@@ -20,10 +17,9 @@ public sealed record CacheLayout(string Root)
 
     static string? _defaultRoot;
 
-    /// <summary>The cache at <see cref="DefaultRoot"/>.</summary>
     public static CacheLayout Default => new(DefaultRoot);
 
-    /// <summary>Where the textures of every prepared model are kept, once each (see <see cref="CacheFiles"/>).</summary>
+    // Where the textures of every prepared model are kept, once each.
     public string Textures => Path.Combine(Root, CacheFiles.TextureFolder);
 
     public string Shaders => Path.Combine(Root, "_shaders");

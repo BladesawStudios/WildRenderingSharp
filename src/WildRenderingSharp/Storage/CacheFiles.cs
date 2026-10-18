@@ -3,18 +3,15 @@ using System.Security.Cryptography;
 
 namespace WildRenderingSharp.Storage;
 
-/// <summary>
-/// Reads and packs the big binary files of a prepared model: vertices, indices, material blocks and textures. A packed file is compressed with zstd, and a texture is kept once for
-/// the whole cache, however many models use it. Everything that reads one of these files goes through <see cref="ReadAllBytes"/>, which takes either form, so a cache that is part
-/// packed, or packed while a host is reading it, works.
-/// </summary>
+/// <summary>Reads and packs the big binary files of a prepared model: vertices, indices, material blocks and textures.</summary>
 /// <remarks>
-/// A file <c>X</c> packed in place becomes <c>X.zst</c>. A texture becomes <c>_textures/&lt;hash&gt;.zst</c> in the cache root, and the model's folder keeps a small
-/// <c>textures.idx</c> that says which hash each of its texture files was. JSON and text files stay as they are: they are small, and other tools read them.
+/// A file <c>X</c> packed in place becomes <c>X.zst</c>, compressed with zstd. A texture becomes <c>_textures/&lt;hash&gt;.zst</c> in the cache root, kept once however many
+/// models use it, and the model's folder keeps a small <c>textures.idx</c> saying which hash each of its texture files was. JSON and text files stay as they are.
+/// Everything that reads one of these files goes through <see cref="ReadAllBytes"/>, which takes either form, so a cache that is part packed, or packed while a host reads it, works.
 /// </remarks>
 public static class CacheFiles
 {
-    /// <summary>The folder of the cache root that holds every texture once.</summary>
+    // The folder of the cache root that holds every texture once.
     public const string TextureFolder = "_textures";
 
     const string Suffix = ".zst";
@@ -26,18 +23,30 @@ public static class CacheFiles
     [ThreadStatic] static ZstdSharp.Compressor? _compressor;
     [ThreadStatic] static ZstdSharp.Decompressor? _decompressor;
 
-    /// <summary>Whether the file is there, in whichever form.</summary>
+    // Whether the file is there, in whichever form.
     public static bool Exists(string path) => File.Exists(path) || File.Exists(path + Suffix) || SharedTexture(path) is not null;
 
-    /// <summary>The file's bytes, from the plain file, the compressed one beside it, or the cache's shared copy of a texture.</summary>
+    // The file's bytes, from the plain file, the compressed one beside it, or the cache's shared copy of a texture.
     public static byte[] ReadAllBytes(string path)
     {
         // The plain file may be deleted between the check and the read by a pack running beside the reader, so each form is tried, not asked about.
-        try { return File.ReadAllBytes(path); }
-        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { }
+        try
+        {
+            return File.ReadAllBytes(path);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // Not stored plain: the packed form is tried next.
+        }
 
-        try { return Unpack(File.ReadAllBytes(path + Suffix)); }
-        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { }
+        try
+        {
+            return Unpack(File.ReadAllBytes(path + Suffix));
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // Not packed beside it either: a shared texture is tried next.
+        }
 
         if (SharedTexture(path) is { } shared)
             return Unpack(File.ReadAllBytes(shared));
@@ -47,10 +56,8 @@ public static class CacheFiles
     // The textures written into a model's folder by WriteBytes, by folder, until Pack writes the folder's index.
     static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string>> PendingIndex = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Writes one of a model's binary files straight into its packed form, as an exporter hands it over: compressed beside where it would have been, or, for a texture, into the shared
-    /// folder with its place in the model's index kept for <see cref="Pack"/> to write. Nothing is written plain and read back.
-    /// </summary>
+    // Writes one of a model's binary files straight into its packed form: compressed beside where it would have been, or, for a texture, into the shared folder with its
+    // place in the model's index kept for Pack to write.
     public static void WriteBytes(string path, byte[] bytes)
     {
         string full = Path.GetFullPath(path);
@@ -78,11 +85,8 @@ public static class CacheFiles
             File.Delete(full);
     }
 
-    /// <summary>
-    /// Reads a file and throws the bytes away, so the system has it in memory when the real read comes. A cold file costs a few milliseconds to open and read whatever its size,
-    /// and a model is dozens of files, so loading them one after another from a cache that is not in memory waits on the disk the whole time; many of these at once is fast, as
-    /// the disk answers many requests at a time as quickly as one.
-    /// </summary>
+    // Reads a file and throws the bytes away, so the system has it in memory when the real read comes. Many of these at once cost no more than one, since a disk answers
+    // many requests at a time.
     public static void WarmFile(string path)
     {
         try
@@ -98,10 +102,13 @@ public static class CacheFiles
                 System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A file that cannot be read is simply not warmed, and is read when it is wanted.
+        }
     }
 
-    /// <summary>Warms every file of a model's folder, and the shared textures its index names.</summary>
+    // Warms every file of a model's folder, and the shared textures its index names.
     public static void WarmModel(string modelDirectory)
     {
         try
@@ -115,16 +122,17 @@ public static class CacheFiles
                 foreach (string hash in ReadIndex(index).Values.Distinct())
                     WarmFile(Path.Combine(root, TextureFolder, hash + Suffix));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A model whose folder cannot be listed is not warmed.
+        }
     }
 
-    /// <summary>The hash a texture written to a model's folder by <see cref="WriteBytes"/> went into the shared folder under, or null.</summary>
+    // The hash a texture written to a model's folder by WriteBytes went into the shared folder under, or null.
     public static string? WrittenHash(string modelDirectory, string fileName) =>
         PendingIndex.TryGetValue(Path.GetFullPath(modelDirectory), out var written) && written.TryGetValue(fileName, out string? hash) ? hash : null;
 
-    /// <summary>
-    /// Gives a model's folder a texture that is already in the shared folder, as if it had been written: nothing is read or compressed. False when the shared folder does not have it.
-    /// </summary>
+    // Gives a model's folder a texture that is already in the shared folder, as if it had been written. False when the shared folder does not have it.
     public static bool LinkTexture(string modelDirectory, string fileName, string hash)
     {
         string directory = Path.GetFullPath(modelDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -137,10 +145,8 @@ public static class CacheFiles
         return true;
     }
 
-    /// <summary>
-    /// Packs a model's folder: compresses its vertex, index, shape, context and material-block files in place, and moves its textures into the shared folder. Safe to run again, and
-    /// to run while the model is being read.
-    /// </summary>
+    // Packs a model's folder: compresses its vertex, index, shape, context and material-block files in place, and moves its textures into the shared folder. Safe to run
+    // again, and while the model is being read.
     public static void Pack(string modelDirectory)
     {
         string directory = Path.GetFullPath(modelDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -221,7 +227,10 @@ public static class CacheFiles
                     index[line[..tab]] = line[(tab + 1)..];
             }
         }
-        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // A folder with no index has no shared textures, which is an empty index.
+        }
         return index;
     }
 
