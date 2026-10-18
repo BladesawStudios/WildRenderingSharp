@@ -1,3 +1,4 @@
+using WildRenderingSharp.Storage;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Manifests;
 using WildRenderingSharp.Assets.Materials;
@@ -36,7 +37,7 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             return null;
         }
 
-        byte[] vertexBytes = File.ReadAllBytes(Path.Combine(dataDirectory, sh.VertexFile));
+        byte[] vertexBytes = CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.VertexFile));
         Bounds.Add(vertexBytes, manifest.VertexStride);
 
         var shapePrograms = LinkPrograms(sh);
@@ -71,7 +72,7 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             (layout, stride, vertexBytes) = VertexCompactor.Compact(layout, stride, vertexBytes, used);
         }
 
-        byte[] indexBytes = File.ReadAllBytes(Path.Combine(dataDirectory, sh.IndexFile));
+        byte[] indexBytes = CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.IndexFile));
         uint vbo = GLBuffer.Create(gl, BufferTargetARB.ArrayBuffer, vertexBytes);
         uint ibo = GLBuffer.Create(gl, BufferTargetARB.ElementArrayBuffer, indexBytes);
         GpuMemory.Shape(vertexBytes.Length + indexBytes.Length);
@@ -113,7 +114,7 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             ForwardShaderName = shapePrograms.Forward != 0 ? sh.MaterialShader : "",
             ReadsSceneColor = gl.UniformLocation(shapePrograms.GBuffer, "cTex_ColorBuffer") >= 0,
             IsFarStandIn = Path.GetFileName(dataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)).StartsWith("Far_", StringComparison.Ordinal),
-            MaterialBlock = new MaterialBlock(gl, File.ReadAllBytes(Path.Combine(dataDirectory, sh.MaterialFile))),
+            MaterialBlock = new MaterialBlock(gl, CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.MaterialFile))),
             MaterialParams = MaterialParamLayout.TryLoadBeside(dataDirectory, sh.MaterialFile),
         };
     }

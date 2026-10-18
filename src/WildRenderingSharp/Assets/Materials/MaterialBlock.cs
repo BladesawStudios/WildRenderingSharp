@@ -1,3 +1,4 @@
+using WildRenderingSharp.Storage;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
 
@@ -57,7 +58,7 @@ internal sealed class MaterialBlock : IDisposable
     public bool IsPatched { get; private set; }
 
     // A block read from an exported file; a missing file is an all-zero block.
-    public static MaterialBlock FromFile(GL gl, string path) => new(gl, File.Exists(path) ? File.ReadAllBytes(path) : []);
+    public static MaterialBlock FromFile(GL gl, string path) => new(gl, CacheFiles.Exists(path) ? CacheFiles.ReadAllBytes(path) : []);
 
     internal static byte[] Padded(ReadOnlySpan<byte> authored)
     {

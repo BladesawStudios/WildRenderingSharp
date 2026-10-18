@@ -79,12 +79,26 @@ public static class ModelPreparer
     static string PrepareIfNeeded(TotkRomfs romfs, string actorOrModelName, CacheLayout cache, Action<string>? log, bool importAnims, bool force)
     {
         string modelName = TotkModelPreparer.ResolveModelName(romfs, actorOrModelName);
-        if (!force && cache.IsPrepared(modelName) && TotkSourceStamp.IsUpToDate(romfs, cache.ModelDirectory(modelName)))
+        var stages = force || !cache.IsPrepared(modelName)
+            ? TotkSourceStamp.Stages.All
+            : TotkSourceStamp.Stale(romfs, cache.ModelDirectory(modelName));
+        if (stages == TotkSourceStamp.Stages.None)
         {
             log?.Invoke($"[prepare] {modelName} is already prepared and up to date.");
             return modelName;
         }
-        return TotkModelPreparer.Prepare(romfs, actorOrModelName, cache, log, importAnims);
+        string directory = cache.ModelDirectory(modelName);
+        if (stages == TotkSourceStamp.Stages.Pack)
+        {
+            // Exported before files were packed: compress them in place, which reads and writes only those files.
+            CacheFiles.Pack(directory);
+            TotkSourceStamp.MarkPacked(directory);
+            log?.Invoke($"[prepare] {modelName}: packed.");
+            return modelName;
+        }
+        if (stages != TotkSourceStamp.Stages.All)
+            log?.Invoke($"[prepare] {modelName}: redoing only {stages}.");
+        return TotkModelPreparer.Prepare(romfs, actorOrModelName, cache, log, importAnims, stages);
     }
 
     static string OneLine(string message) => string.Join(' ', message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)).Trim();

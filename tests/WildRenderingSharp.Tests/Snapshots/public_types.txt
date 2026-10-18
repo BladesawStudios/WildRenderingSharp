@@ -91,5 +91,6 @@ Rom.RomExtensions
 Rom.RomRecording
 Scene.RenderActor
 Storage.AtomicFile
+Storage.CacheFiles
 Storage.CacheLayout
 WildRenderer

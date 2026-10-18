@@ -17,6 +17,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Preparing allocates over a hundred megabytes a model across a dozen threads; one heap per core paused it a fifth less. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
     <Description>Prepares Breath of the Wild / Tears of the Kingdom actors from a romfs into a WildRenderingSharp cache.</Description>
     <!-- The vendored ShaderLibrary is the default; point this at another checkout to build against that. -->
     <WrsShaderLibraryDir Condition="'$(WrsShaderLibraryDir)' == ''">$(MSBuildThisFileDirectory)..\..\vendor\ShaderLibrary</WrsShaderLibraryDir>
