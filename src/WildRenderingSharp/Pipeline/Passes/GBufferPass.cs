@@ -119,6 +119,7 @@ internal sealed class GBufferPass(GL gl)
         Func<LoadedShape, bool> include, ShapeProgram which, string detailPrefix)
     {
         CollectItems(groups, drawer, include, which);
+        drawer.Merged.BeginCollecting();
 
         var timer = GpuPassTimer.On(gl);
         bool detailed = timer?.Detailed == true;
@@ -140,6 +141,7 @@ internal sealed class GBufferPass(GL gl)
             if (detailed)
                 timer!.Detail(detailPrefix + group.Label);
         }
+        drawer.Merged.Flush();
     }
 
     void CollectItems(IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer, Func<LoadedShape, bool> include, ShapeProgram which)
@@ -155,7 +157,7 @@ internal sealed class GBufferPass(GL gl)
                 {
                     ActorDrawGroup.EnsureInstancedPrograms(drawer.Programs, shape);
                     uint program = which == ShapeProgram.ZOnly ? shape.InstancedZOnlyProgram : shape.InstancedGBufferProgram;
-                    key = (1UL << 63) | ((ulong)program << 32) | shape.MaterialBlock.Handle;
+                    key = (1UL << 63) | ((ulong)program << 32) | (uint)shape.MaterialBlock.Id;
                 }
                 _items.Add((key, g, shape));
             }

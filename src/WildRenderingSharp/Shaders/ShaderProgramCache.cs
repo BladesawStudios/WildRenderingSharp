@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Contracts;
@@ -38,12 +39,36 @@ internal sealed class ShaderProgramCache : IDisposable
     // Held for any use of the caches: a host may load models on a worker thread with a context of its own.
     readonly object _sync = new();
 
+    // The version of the code that makes the sources these programs are built from: the cleaning, the corrections and the instanced and merged patches. A program kept by name is
+    // good until this changes, so it is changed whenever any of them does. (Also the revision of the files themselves: a program is kept with their sizes and times.)
+    const string SourceRevision = "1";
+
+    // What the program's source files are now, for the identity a kept program is found by. Throws when they are missing, as reading them does.
+    string Stamp(string baseName)
+    {
+        var vert = new FileInfo(Path.Combine(_decompiledDir, baseName + ".vert"));
+        var frag = new FileInfo(Path.Combine(_decompiledDir, baseName + ".frag"));
+        return $"{SourceRevision}|{baseName}|{vert.Length}:{vert.LastWriteTimeUtc.Ticks}|{frag.Length}:{frag.LastWriteTimeUtc.Ticks}";
+    }
+
     uint LoadLocked(string baseName, bool isForwardProgram,
         Func<string, string>? patchVertex, Func<string, string>? patchFragment)
     {
         bool patched = patchVertex is not null || patchFragment is not null;
         if (!patched && _programs.TryGetValue(baseName, out uint cached))
             return cached;
+
+        if (!patched)
+        {
+            uint kept = GLProgramBuilder.BuildNamed(_gl, $"plain|{isForwardProgram}|{Stamp(baseName)}", () =>
+            {
+                string vert = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
+                string raw = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+                return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
+            }, baseName);
+            _programs[baseName] = kept;
+            return kept;
+        }
 
         string vertSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
         string rawFragSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
@@ -56,22 +81,15 @@ internal sealed class ShaderProgramCache : IDisposable
         return program;
     }
 
-    readonly Dictionary<string, bool> _discards = new(StringComparer.Ordinal);
+    readonly ConcurrentDictionary<string, bool> _discards = new(StringComparer.Ordinal);
 
-    // Whether a program's fragment stage can discard, read once from its source. An unreadable program counts as discarding.
-    public bool FragmentDiscards(string baseName)
+    // Whether a program's fragment stage can discard, read once from its source. An unreadable program counts as discarding. It takes no lock of the cache's, which a
+    // link on another thread can hold for half a second.
+    public bool FragmentDiscards(string baseName) => _discards.GetOrAdd(baseName, name =>
     {
-        lock (_sync)
-        {
-            if (!_discards.TryGetValue(baseName, out bool discards))
-            {
-                string path = Path.Combine(_decompiledDir, baseName + ".frag");
-                discards = !File.Exists(path) || File.ReadAllText(path).Contains("discard", StringComparison.Ordinal);
-                _discards[baseName] = discards;
-            }
-            return discards;
-        }
-    }
+        string path = Path.Combine(_decompiledDir, name + ".frag");
+        return !File.Exists(path) || File.ReadAllText(path).Contains("discard", StringComparison.Ordinal);
+    });
 
     readonly Dictionary<string, uint> _instancedPrograms = new(StringComparer.Ordinal);
 
@@ -87,20 +105,48 @@ internal sealed class ShaderProgramCache : IDisposable
         if (_instancedPrograms.TryGetValue(key, out uint cached))
             return cached;
 
-        string vertSource = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert"))), _gl.SupportsBaseInstance()) ?? "";
-        uint program = 0;
-        if (vertSource.Length > 0)
+        uint keptProgram = GLProgramBuilder.BuildNamed(_gl, $"instanced|{isForwardProgram}|{_gl.SupportsBaseInstance()}|{Stamp(baseName)}", () =>
         {
-            string rawFragSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
-            string fragSource = isForwardProgram ? _sources.CorrectForwardFragment(rawFragSource) : rawFragSource;
-            program = GLProgramBuilder.Build(_gl, vertSource, fragSource, baseName + "_instanced");
+            string vert = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert"))), _gl.SupportsBaseInstance()) ?? "";
+            if (vert.Length == 0)
+                return null;
+            string raw = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+            return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
+        }, baseName + "_instanced");
+        _instancedPrograms[key] = keptProgram;
+        return keptProgram;
+    }
+
+    readonly ConcurrentDictionary<string, Lazy<uint>> _mergedPrograms = new(StringComparer.Ordinal);
+
+    // The program that draws any shape of any batch from one multi-draw, or 0 when this one cannot be (or did not compile) and is drawn the ordinary way. Each is
+    // linked once, by whichever thread asks first, and the cache's lock is not held while it is, so asking for one already linked never waits on another's link.
+    public uint LoadMerged(string baseName) => _mergedPrograms.GetOrAdd(baseName, name => new Lazy<uint>(() => BuildMerged(name))).Value;
+
+    uint BuildMerged(string baseName)
+    {
+        try
+        {
+            return GLProgramBuilder.BuildNamed(_gl, $"merged|{Stamp(baseName)}", () =>
+            {
+                string v = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
+                string f = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+                return _sources.Merge(v, f);
+            }, baseName + "_merged");
         }
-        _instancedPrograms[key] = program;
-        return program;
+        catch (InvalidOperationException ex)
+        {
+            WildRenderingSharp.Logging.Log.Warning($"[merged] {baseName} is drawn the ordinary way: {ex.Message.ReplaceLineEndings(" ")[..Math.Min(ex.Message.Length, 200)]}");
+            return 0;
+        }
     }
 
     public void Dispose()
     {
+        foreach (var program in _mergedPrograms.Values)
+            if (program.IsValueCreated && program.Value != 0)
+                _gl.ReleaseProgram(program.Value);
+        _mergedPrograms.Clear();
         foreach (uint program in _programs.Values)
             _gl.ReleaseProgram(program);
         _programs.Clear();

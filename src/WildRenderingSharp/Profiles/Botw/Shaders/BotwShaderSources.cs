@@ -26,4 +26,6 @@ internal sealed partial class BotwShaderSources : IShaderSources
     public string CorrectForwardFragment(string fragmentSource) => fragmentSource;
 
     public string? Instance(string cleanedVertexSource, bool baseInstance) => null;
+
+    public (string Vertex, string Fragment)? Merge(string cleanedVertexSource, string cleanedFragmentSource) => null;
 }

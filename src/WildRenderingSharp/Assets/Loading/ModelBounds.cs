@@ -10,8 +10,6 @@ sealed class ModelBounds
 
     public Vector3 Max { get; private set; } = new(float.MinValue);
 
-    public List<Vector3> Positions { get; } = [];
-
     // Reads the position from the first twelve bytes of each vertex.
     public void Add(ReadOnlySpan<byte> vertexBytes, int stride)
     {
@@ -20,7 +18,6 @@ sealed class ModelBounds
             var position = MemoryMarshal.Cast<byte, Vector3>(vertexBytes.Slice(i * stride, 12))[0];
             Min = Vector3.Min(Min, position);
             Max = Vector3.Max(Max, position);
-            Positions.Add(position);
         }
     }
 }

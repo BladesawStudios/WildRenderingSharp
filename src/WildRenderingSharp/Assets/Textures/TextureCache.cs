@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Logging;
 
 namespace WildRenderingSharp.Assets.Textures;
@@ -17,13 +18,13 @@ internal sealed class TextureCache : IDisposable
     bool _ownsExternal;
     LoadedTexture? _white;
 
-    public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null)
+    public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null, int maxTextureSize = 0)
     {
         _gl = gl;
         _dataDirectory = dataDirectory;
         _external = external;
         _shared = shared;
-        _uploader = new TextureUploader(gl);
+        _uploader = new TextureUploader(gl, maxTextureSize);
     }
 
     public List<ShapeSampler> Resolve(IEnumerable<SamplerBinding> samplers)
@@ -48,7 +49,10 @@ internal sealed class TextureCache : IDisposable
             if (_shared is not null && _shared.Owns(tex))
                 _shared.Release(tex);
             else
+            {
                 _gl.DeleteTexture(tex.Handle);
+                GpuMemory.Texture(-tex.Bytes);
+            }
         }
         _byTextureName.Clear();
         if (_white is { } white)

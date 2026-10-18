@@ -8,4 +8,7 @@ internal interface IShaderSources
     string CorrectForwardFragment(string fragmentSource);
 
     string? Instance(string cleanedVertexSource, bool baseInstance);
+
+    // The pair made to draw any shape of any batch from one multi-draw, or null when this pair cannot be.
+    (string Vertex, string Fragment)? Merge(string cleanedVertexSource, string cleanedFragmentSource);
 }

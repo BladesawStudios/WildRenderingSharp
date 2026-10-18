@@ -49,6 +49,41 @@ sealed unsafe class IndirectStream : IDisposable
         commands.Clear();
     }
 
+    public uint Buffer => _buffer;
+
+    // Puts the items in the ring at an offset that is a multiple of the alignment and returns it, for the buffer to be bound from there as something other than commands.
+    public nint Upload<T>(ReadOnlySpan<T> items, int alignment) where T : unmanaged
+    {
+        int bytes = items.Length * sizeof(T);
+        _offset = (_offset + alignment - 1) / alignment * alignment;
+        if (_mapped is null)
+        {
+            _gl.BindBuffer(BufferTargetARB.DrawIndirectBuffer, _buffer);
+            _bound = true;
+            if (_offset + bytes > Capacity)
+            {
+                _gl.BufferData(BufferTargetARB.DrawIndirectBuffer, (nuint)Capacity, null, BufferUsageARB.StreamDraw);
+                _offset = 0;
+            }
+            fixed (T* p = items)
+                _gl.BufferSubData(BufferTargetARB.DrawIndirectBuffer, _offset, (nuint)bytes, p);
+        }
+        else
+        {
+            if (bytes > ChunkSize)
+                throw new InvalidOperationException($"{items.Length} items in one upload");
+            if (_offset + bytes > (_chunk + 1) * ChunkSize)
+            {
+                AdvanceChunk();
+                _offset = (_offset + alignment - 1) / alignment * alignment;
+            }
+            items.CopyTo(new Span<T>(_mapped + _offset, items.Length));
+        }
+        nint at = _offset;
+        _offset += bytes;
+        return at;
+    }
+
     public void Dispose()
     {
         if (_mapped is not null)

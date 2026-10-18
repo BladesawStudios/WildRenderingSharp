@@ -5,7 +5,7 @@ using WildRenderingSharp.Gpu;
 namespace WildRenderingSharp.Assets.Textures;
 
 /// <summary>Uploads one exported texture, its mip chain and its sampling state, to a new GL texture.</summary>
-sealed class TextureUploader(GL gl)
+sealed class TextureUploader(GL gl, int maxSize = 0)
 {
     bool? _anisotropy;
 
@@ -17,29 +17,50 @@ sealed class TextureUploader(GL gl)
         GLDiagnostics.CheckPending(gl, $"uploading texture '{s.Texture}'");
         uint handle = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, handle);
-        int levels = UploadLevels(s, info, raw, srgb);
+        int levels = UploadLevels(s, info, raw, srgb, out long bytes, out int width, out int height);
         GLDiagnostics.Check(gl, $"uploading texture '{s.Texture}' ({s.Format}, {s.Width}x{s.Height}, {raw.Length} bytes)");
 
         ApplySwizzle(s);
         ApplySampling(s, levels);
-        return new LoadedTexture { Handle = handle, Width = s.Width, Height = s.Height, Name = s.Texture };
+        GpuMemory.Texture(bytes);
+        return new LoadedTexture { Handle = handle, Width = width, Height = height, Name = s.Texture, Bytes = bytes };
     }
 
     // The file is the mip chain back to back, or mip 0 alone from an older cache; levels are read for as long as another whole one remains.
-    int UploadLevels(SamplerBinding s, CompressedTextureFormat.Info info, byte[] raw, bool srgb)
+    // A cap on the size, when there is one, leaves out the levels above it, which are most of a mip chain's bytes: each level is three times the ones below it put together.
+    // The last level is never left out, so a texture with no smaller ones goes up whole.
+    int UploadLevels(SamplerBinding s, CompressedTextureFormat.Info info, byte[] raw, bool srgb, out long bytes, out int width, out int height)
     {
+        bytes = 0;
+        width = s.Width;
+        height = s.Height;
         var internalFormat = srgb ? info.FormatSrgb : info.Format;
-        int levels = 0;
+
+        var chain = new List<(int Offset, int Length, int W, int H)>();
         for (int offset = 0, w = s.Width, h = s.Height; ; w = Math.Max(1, w / 2), h = Math.Max(1, h / 2))
         {
             int length = CompressedTextureFormat.ComputeDataLength(info, w, h);
             if (offset + length > raw.Length)
                 break;
-            UploadLevel(levels, internalFormat, new ReadOnlySpan<byte>(raw, offset, length), w, h, info, srgb);
-            levels++;
+            chain.Add((offset, length, w, h));
             offset += length;
             if (w == 1 && h == 1)
                 break;
+        }
+
+        int first = 0;
+        while (maxSize > 0 && first < chain.Count - 1 && Math.Max(chain[first].W, chain[first].H) > maxSize)
+            first++;
+
+        int levels = 0;
+        for (int i = first; i < chain.Count; i++)
+        {
+            var (offset, length, w, h) = chain[i];
+            if (levels == 0)
+                (width, height) = (w, h);
+            UploadLevel(levels, internalFormat, new ReadOnlySpan<byte>(raw, offset, length), w, h, info, srgb);
+            levels++;
+            bytes += info.AstcFootprint is null ? length : (long)w * h * 4;
         }
         return levels;
     }

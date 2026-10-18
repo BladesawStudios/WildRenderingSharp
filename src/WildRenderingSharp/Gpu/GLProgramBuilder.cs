@@ -20,6 +20,107 @@ internal static class GLProgramBuilder
     // Keeps compiled programs in the directory for this context, unless it already has one.
     public static void UseBinaryCache(GL gl, string directory) => ContextState<BinaryCache>.For(gl).Directory ??= directory;
 
+    /// <summary>
+    /// A program kept under a name, so that a program already built needs none of the work of making its source: no reading it, no cleaning it, no patching it and no hashing it.
+    /// Returns 0 when <paramref name="make"/> says there is no such program (a pair that cannot be made merged, say), which is remembered too.
+    /// </summary>
+    /// <remarks>
+    /// The identity has to say everything the source depends on: the program's name, which form of it this is, the files it came from as they stood, and the version of the code
+    /// that patches them. A binary already kept under the hash of the source it came to is taken over, so a cache from before this one is not built again.
+    /// </remarks>
+    public static uint BuildNamed(GL gl, string identity, Func<(string Vertex, string Fragment)?> make, string label)
+    {
+        string? path = NamedPath(gl, identity);
+        if (path is not null)
+        {
+            if (File.Exists(path + ".none"))
+                return 0;
+            if (TryLoadBinary(gl, path) is uint cached)
+                return cached;
+
+            // Kept by name before the files were compressed.
+            string uncompressed = Path.ChangeExtension(path, ".bin");
+            if (File.Exists(uncompressed))
+            {
+                try
+                {
+                    AtomicFile.WriteAllBytes(path, Compress(File.ReadAllBytes(uncompressed)));
+                    File.Delete(uncompressed);
+                    if (TryLoadBinary(gl, path) is uint taken)
+                        return taken;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            }
+        }
+
+        if (make() is not var (vertex, fragment))
+        {
+            if (path is not null)
+                try { File.WriteAllBytes(path + ".none", []); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            return 0;
+        }
+
+        // A binary from the days of the cache that was keyed by source, taken over: compressed under its name, and the old file let go.
+        string? bySource = BinaryCachePath(gl, vertex, fragment);
+        if (path is not null && bySource is not null && File.Exists(bySource))
+        {
+            try
+            {
+                byte[] old = File.ReadAllBytes(bySource);
+                AtomicFile.WriteAllBytes(path, Compress(old));
+                File.Delete(bySource);
+                if (TryLoadBinary(gl, path) is uint moved)
+                    return moved;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
+
+        uint program = BuildUnkept(gl, vertex, fragment, label, retrievable: path is not null);
+        if (path is not null)
+            SaveBinary(gl, program, path);
+        return program;
+    }
+
+    static string? NamedPath(GL gl, string identity)
+    {
+        var cache = ContextState<BinaryCache>.For(gl);
+        if (cache.Directory is not { } directory)
+            return null;
+        cache.DriverIdentity ??= gl.GetInteger(GetPName.NumProgramBinaryFormats) > 0
+            ? $"{gl.GetStringS(StringName.Vendor)}\n{gl.GetStringS(StringName.Renderer)}\n{gl.GetStringS(StringName.Version)}"
+            : "";
+        if (cache.DriverIdentity.Length == 0)
+            return null;
+
+        byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes($"{cache.DriverIdentity}\0named\0{identity}"));
+        return Path.Combine(directory, "n" + Convert.ToHexString(key) + ".zbin");
+    }
+
+    static uint BuildUnkept(GL gl, string vertexSource, string fragmentSource, string label, bool retrievable)
+    {
+        uint vs = CompileShader(gl, ShaderType.VertexShader, vertexSource, label + ".vert");
+        uint fs = CompileShader(gl, ShaderType.FragmentShader, fragmentSource, label + ".frag");
+
+        uint program = gl.CreateProgram();
+        gl.AttachShader(program, vs);
+        gl.AttachShader(program, fs);
+        if (retrievable)
+            gl.ProgramParameter(program, ProgramParameterPName.BinaryRetrievableHint, 1);
+        gl.LinkProgram(program);
+        gl.GetProgram(program, ProgramPropertyARB.LinkStatus, out int linked);
+        gl.DetachShader(program, vs);
+        gl.DetachShader(program, fs);
+        gl.DeleteShader(vs);
+        gl.DeleteShader(fs);
+        if (linked == 0)
+        {
+            string log = gl.GetProgramInfoLog(program);
+            gl.ReleaseProgram(program);
+            throw new InvalidOperationException($"Failed to link shader program '{label}':\n{log}");
+        }
+        return program;
+    }
+
     public static uint Build(GL gl, string vertexSource, string fragmentSource, string label = "")
     {
         string? cachePath = BinaryCachePath(gl, vertexSource, fragmentSource);
@@ -85,12 +186,28 @@ internal static class GLProgramBuilder
         return Path.Combine(directory, Convert.ToHexString(key) + ".bin");
     }
 
+    // A kept binary's file is zstd-compressed where it is kept by name: a driver's program binaries are mostly alike from one program to the next and shrink to a third or less,
+    // which is half a gigabyte of a whole map's programs saved, for a decompression that costs a fraction of reading the larger file.
+    static byte[] Compress(byte[] file)
+    {
+        using var compressor = new ZstdSharp.Compressor(6);
+        return compressor.Wrap(file).ToArray();
+    }
+
     static uint? TryLoadBinary(GL gl, string path)
     {
         byte[] file;
-        try { file = File.ReadAllBytes(path); }
+        try
+        {
+            file = File.ReadAllBytes(path);
+            if (path.EndsWith(".zbin", StringComparison.Ordinal))
+            {
+                using var decompressor = new ZstdSharp.Decompressor();
+                file = decompressor.Unwrap(file).ToArray();
+            }
+        }
         // No cached binary, or one that cannot be read, is compiled from source instead.
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ZstdSharp.ZstdException) { return null; }
         if (file.Length <= 4)
             return null;
 
@@ -126,7 +243,8 @@ internal static class GLProgramBuilder
                 return;
             BitConverter.TryWriteBytes(file.AsSpan(0, 4), (uint)format);
 
-            AtomicFile.WriteAllBytes(path, file.AsSpan(0, (int)written + 4));
+            byte[] whole = file.AsSpan(0, (int)written + 4).ToArray();
+            AtomicFile.WriteAllBytes(path, path.EndsWith(".zbin", StringComparison.Ordinal) ? Compress(whole) : whole);
         }
         // Only a cache - the program itself is fine.
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }

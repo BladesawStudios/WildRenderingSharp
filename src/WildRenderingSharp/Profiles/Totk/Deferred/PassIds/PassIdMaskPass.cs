@@ -3,6 +3,7 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Pipeline.Drawing;
+using WildRenderingSharp.Pipeline.Merged;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Totk.Deferred;
@@ -105,6 +106,8 @@ internal sealed class PassIdMaskPass : IDisposable
             return;
 
         uint program = _instancedProgram;
+        uint merged = MergedProgram();
+        _drawer.Merged.BeginCollecting();
         _gl.UseProgram(program);
         _gl.SetMat4(program, "uViewProj", viewProj);
         _gl.BindTextureUniform(program, "tex_gbuf_depth", 0, targets.GBufferDepth.Handle);
@@ -133,6 +136,8 @@ internal sealed class PassIdMaskPass : IDisposable
                 int index = IndexOf(passes, passOf(sh));
                 if (index < 0 || index == claimPass)
                     continue;
+                if (_drawer.Merged.TryAddPassId(merged, sh, batch, batch.Visible, index + 1))
+                    continue;
                 _gl.Uniform1(id, (index + 1) / 255f);
                 _gl.Uniform1(skin, sh.VertexSkinCount);
                 _gl.BindVertexArray(sh.PassIdVao);
@@ -151,10 +156,49 @@ internal sealed class PassIdMaskPass : IDisposable
                 }
             }
         }
+
+        if (merged != 0)
+            SetStampUniforms(merged, targets, viewProj);
+        _drawer.Merged.Flush();
+    }
+
+    uint _mergedProgram;
+    bool _mergedFailed;
+
+    // The stamp's program in the form that draws shapes of any batch together, built the first time it is wanted; 0 when it is not wanted or will not build.
+    uint MergedProgram()
+    {
+        if (_mergedFailed || !_drawer.Merged.Enabled || !MergedSupport.Available(_gl))
+            return 0;
+        if (_mergedProgram == 0)
+        {
+            try
+            {
+                var (vertex, fragment) = MergedShaderPatch.PassId(VertexSource, FragmentSource);
+                _mergedProgram = GLProgramBuilder.Build(_gl, vertex, fragment, "pass_id_mask_merged");
+            }
+            catch (InvalidOperationException ex)
+            {
+                _mergedFailed = true;
+                WildRenderingSharp.Logging.Log.Warning($"[merged] the pass-ID stamp is drawn the ordinary way: {ex.Message}");
+            }
+        }
+        return _mergedProgram;
+    }
+
+    void SetStampUniforms(uint program, RenderTargets targets, Matrix4x4 viewProj)
+    {
+        _gl.UseProgram(program);
+        _gl.SetMat4(program, "uViewProj", viewProj);
+        _gl.BindTextureUniform(program, "tex_gbuf_depth", 0, targets.GBufferDepth.Handle);
+        _gl.SetVec2(program, "uInvViewport", new Vector2(1f / targets.Width, 1f / targets.Height));
+        _gl.SetVec2(program, "uNearFar", new Vector2(_near, _far));
     }
 
     public void Dispose()
     {
+        if (_mergedProgram != 0)
+            _gl.ReleaseProgram(_mergedProgram);
         _gl.ReleaseProgram(_program);
         _gl.ReleaseProgram(_instancedProgram);
     }

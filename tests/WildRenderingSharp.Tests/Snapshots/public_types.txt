@@ -23,6 +23,7 @@ Assets.Textures.ExternalTextures
 Assets.Textures.LoadedTexture
 Assets.Textures.SharedTextures
 Gpu.GLHostState
+Gpu.GpuMemory
 Gpu.GpuPassTimer
 Gpu.GpuTexture
 Graphics.Contracts.EnvironmentLighting

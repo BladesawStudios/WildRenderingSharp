@@ -18,6 +18,7 @@ internal sealed class GBufferStage(StageServices services, DeferredScene scene, 
     {
         var gl = services.Gl;
 
+        services.Drawer.Merged.Enabled = frame.TotkEnvironment().Settings.MergedDraws;
         ClipOrigin.Game(gl, true);
         _control.Bind();
         _gbuffer.Run(services.Resources, frame.Targets, frame.Setup.OpaqueGroups, services.Drawer);

@@ -47,6 +47,9 @@ public sealed class TotkSettings
     // How far the sun shadow cascades push a caster back by the slope of its surface to the light, so a surface the sun meets at a graze does not shadow itself.
     public float ShadowSlopeOffset { get; set; }
 
+    // Whether the placed actors' shapes are drawn from shared buffers, one multi-draw for each program, in place of one draw for each shape.
+    public bool MergedDraws { get; set; }
+
     public float SkyFogStrength { get; set; } = 1f;
 
     public bool SkyFogNormaliseHue { get; set; } = true;

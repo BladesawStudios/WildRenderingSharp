@@ -78,7 +78,8 @@ public sealed class WildRenderer : IDisposable
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
-            _models = new ModelFactory(gl, Pipeline.Programs, cache, ExternalTextures, SharedTextures, Totk);
+            SharedTextures.Residency = Pipeline.Drawer.Merged.Residency;
+            _models = new ModelFactory(gl, Pipeline.Programs, cache, ExternalTextures, SharedTextures, Totk, Pipeline.Drawer.Merged);
             _bakes = new BakeAttachment(gl, cache);
             // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
             Pipeline.PrepareEnvironment(Environment.Resolve(Totk));
@@ -89,6 +90,13 @@ public sealed class WildRenderer : IDisposable
     {
         get => _models.CompactVertices;
         set => _models.CompactVertices = value;
+    }
+
+    /// <summary>The largest a model's texture may be in pixels on its longest side, the levels above it left out of the card; 0 for no limit. Applies to models loaded after it is set.</summary>
+    public int TextureMaxSize
+    {
+        get => _models.TextureMaxSize;
+        set => _models.TextureMaxSize = value;
     }
 
     public BakeLibrary Bakes => _bakes.Library;
@@ -125,6 +133,7 @@ public sealed class WildRenderer : IDisposable
         // Linked now, while the host is loading: a link that misses the program binary cache costs 100-500 ms and would hitch the first visible frame.
         foreach (var shape in model.Shapes)
             ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
+        Pipeline.Drawer.Merged.Prepare(batch);
         _instances.Add(batch);
         if (updateScene)
             SceneChanged();
@@ -248,6 +257,8 @@ public sealed class WildRenderer : IDisposable
     public void Dispose()
     {
         using var _ = GLHostState.Enter(_gl);
+        // Ahead of everything that deletes a texture: handles still resident then keep their textures on the card.
+        Pipeline.Drawer.Merged.Residency.ReleaseAll(_gl);
         foreach (var actor in _actors)
             actor.Dispose();
         _actors.Clear();

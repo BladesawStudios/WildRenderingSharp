@@ -3,6 +3,7 @@ using WildRenderingSharp.Assets;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Assets.Textures;
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Pipeline.Merged;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Pipeline.Drawing;
@@ -27,7 +28,11 @@ internal sealed unsafe class ShapeDrawer : IDisposable
         DefaultBake = new DefaultBake(gl);
         _stream = new IndirectStream(gl);
         _runs = new InstancedRunWriter(gl, _stream, _bound);
+        Merged = new MergedDrawing(gl, programs, _stream, DefaultBake, _bound.Invalidate);
     }
+
+    // Draws the shapes of batches from shared buffers, a pass at a time, when the viewer has asked for it.
+    public MergedDrawing Merged { get; }
 
     public ShaderProgramCache Programs { get; }
 
@@ -41,7 +46,12 @@ internal sealed unsafe class ShapeDrawer : IDisposable
 
     public void EndStateCache() => _bound.End();
 
-    public (long Triangles, long Instances) TakeCounts() => _runs.TakeCounts();
+    public (long Triangles, long Instances) TakeCounts()
+    {
+        var (triangles, instances) = _runs.TakeCounts();
+        var merged = Merged.TakeCounts();
+        return (triangles + merged.Triangles, instances + merged.Instances);
+    }
 
     public void Draw(uint program, uint vao, MaterialBlock material, IReadOnlyList<ShapeSampler> samplers, int indexCount,
         IReadOnlyDictionary<string, LoadedTexture>? overrides = null)
@@ -109,6 +119,7 @@ internal sealed unsafe class ShapeDrawer : IDisposable
 
     public void Dispose()
     {
+        Merged.Dispose();
         DefaultBake.Dispose();
         _stream.Dispose();
     }

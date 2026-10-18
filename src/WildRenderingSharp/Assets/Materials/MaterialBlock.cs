@@ -6,20 +6,50 @@ namespace WildRenderingSharp.Assets.Materials;
 /// <summary>A material's <c>gsys_material</c> uniform block: its authored bytes and the padded GL buffer they are shown through.</summary>
 internal sealed class MaterialBlock : IDisposable
 {
-    // Large enough for any shading model's declared block size.
-    public const int BufferSize = 65536;
+    // Told of every change to the buffer, by the offset it starts at, so a copy of the block kept elsewhere stays the same.
+    public delegate void Mirror(int offset, ReadOnlySpan<byte> bytes);
+
+    public Mirror? Copy { get; set; }
+
+    // Larger than any game program reads: they index the block with constants, none past the 42nd vec4, and what they read past the authored bytes is zero. A buffer the size
+    // a block may be declared at took 64 KiB for each shape of a whole map for a few hundred bytes of block.
+    public const int BufferSize = 4096;
+
+    static int _nextId;
 
     readonly GL _gl;
     byte[] _authored;
+
+    // The buffer is made when something first binds it. The merged draws read a shape's block from their own arena, so a scene drawn that way never makes
+    // one, which would otherwise be 64 KiB of buffer for each of thousands of shapes whose authored block is a few hundred bytes.
+    uint _handle;
+
+    // What the block shows in place of the authored bytes, kept until the buffer exists to show it in.
+    byte[]? _shown;
 
     public MaterialBlock(GL gl, ReadOnlySpan<byte> authored)
     {
         _gl = gl;
         _authored = authored.ToArray();
-        Handle = GLBuffer.Create(gl, BufferTargetARB.UniformBuffer, Padded(authored), BufferUsageARB.DynamicDraw);
+        Id = Interlocked.Increment(ref _nextId);
     }
 
-    public uint Handle { get; }
+    /// <summary>Tells blocks apart without making a buffer, for ordering draws.</summary>
+    public int Id { get; }
+
+    /// <summary>The GL buffer, made on the first use.</summary>
+    public uint Handle
+    {
+        get
+        {
+            if (_handle == 0)
+            {
+                _handle = GLBuffer.Create(_gl, BufferTargetARB.UniformBuffer, Padded(_shown ?? _authored), BufferUsageARB.DynamicDraw);
+                GpuMemory.Material(BufferSize);
+            }
+            return _handle;
+        }
+    }
 
     public ReadOnlySpan<byte> Authored => _authored;
 
@@ -39,6 +69,8 @@ internal sealed class MaterialBlock : IDisposable
     // Shows bytes in place of the authored ones, leaving the rest of the padded buffer alone.
     public void Show(ReadOnlySpan<byte> bytes)
     {
+        if (_handle == 0)
+            _shown = bytes.ToArray();
         Upload(0, bytes);
         IsPatched = true;
     }
@@ -47,6 +79,7 @@ internal sealed class MaterialBlock : IDisposable
     {
         if (!IsPatched)
             return;
+        _shown = null;
         Upload(0, _authored);
         IsPatched = false;
     }
@@ -55,16 +88,32 @@ internal sealed class MaterialBlock : IDisposable
     public void SetAuthored(int offset, int value)
     {
         BitConverter.TryWriteBytes(_authored.AsSpan(offset, 4), value);
+        if (_shown is not null && offset + 4 <= _shown.Length)
+            BitConverter.TryWriteBytes(_shown.AsSpan(offset, 4), value);
         Upload(offset, _authored.AsSpan(offset, 4));
     }
 
-    public void Dispose() => _gl.DeleteBuffer(Handle);
+    public void Dispose()
+    {
+        if (_handle != 0)
+        {
+            _gl.DeleteBuffer(_handle);
+            GpuMemory.Material(-BufferSize);
+        }
+        _handle = 0;
+    }
 
     unsafe void Upload(int offset, ReadOnlySpan<byte> bytes)
     {
-        _gl.BindBuffer(BufferTargetARB.UniformBuffer, Handle);
-        fixed (byte* ptr = bytes)
-            _gl.BufferSubData(BufferTargetARB.UniformBuffer, offset, (nuint)bytes.Length, ptr);
-        _gl.BindBuffer(BufferTargetARB.UniformBuffer, 0);
+        if (_handle != 0)
+        {
+            _gl.BindBuffer(BufferTargetARB.UniformBuffer, _handle);
+            int length = Math.Min(bytes.Length, BufferSize - offset);
+            fixed (byte* ptr = bytes)
+                if (length > 0)
+                    _gl.BufferSubData(BufferTargetARB.UniformBuffer, offset, (nuint)length, ptr);
+            _gl.BindBuffer(BufferTargetARB.UniformBuffer, 0);
+        }
+        Copy?.Invoke(offset, bytes);
     }
 }

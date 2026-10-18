@@ -32,16 +32,23 @@ public sealed class LoadedModel : IDisposable
 
     internal List<Action>? PendingVertexArrays { get; set; }
 
+    // Run once the shapes' vertex arrays exist, which is when they can be given up for the merged draw's copy.
+    internal Action? AfterVertexArrays { get; set; }
+
     public void FinishOnRenderThread()
     {
-        if (PendingVertexArrays is not { } pending)
-            return;
-        PendingVertexArrays = null;
-        foreach (var build in pending)
-            build();
+        if (PendingVertexArrays is { } pending)
+        {
+            PendingVertexArrays = null;
+            foreach (var build in pending)
+                build();
+        }
+        if (AfterVertexArrays is { } after)
+        {
+            AfterVertexArrays = null;
+            after();
+        }
     }
-
-    public required IReadOnlyList<Vector3> VertexPositions { get; init; }
 
     public Vector3 BoundsCenter => (BoundsMin + BoundsMax) * 0.5f;
     public float BoundsRadius => (BoundsMax - BoundsMin).Length() * 0.5f;
@@ -56,12 +63,8 @@ public sealed class LoadedModel : IDisposable
     {
         foreach (var shape in Shapes)
         {
-            _gl.DeleteVertexArray(shape.GBufferVao);
-            if (shape.ZOnlyVao != 0) _gl.DeleteVertexArray(shape.ZOnlyVao);
-            if (shape.ForwardVao != 0) _gl.DeleteVertexArray(shape.ForwardVao);
-            _gl.DeleteVertexArray(shape.PassIdVao);
-            _gl.DeleteBuffer(shape.VertexBuffer);
-            _gl.DeleteBuffer(shape.IndexBuffer);
+            shape.Merged?.Release(shape);
+            shape.DeleteGl(_gl);
             shape.MaterialBlock.Dispose();
         }
         Textures.Dispose();

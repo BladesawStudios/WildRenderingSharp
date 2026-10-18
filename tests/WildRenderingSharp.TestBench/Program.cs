@@ -47,6 +47,10 @@ if (game == "botw")
 IModelPreparer preparer = new InProcessPreparer();
 await preparer.EnsureSystemAssetsAsync(romfs, cache, Console.WriteLine);
 string model = await preparer.PrepareAsync(new PrepareRequest(romfs, actorName, cache), Console.WriteLine);
+var mixModels = new List<string>();
+if (options.TryGetValue("mix", out var mixNames))
+    foreach (string name in mixNames.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        mixModels.Add(await preparer.PrepareAsync(new PrepareRequest(romfs, name, cache), Console.WriteLine));
 string? behindModel = options.TryGetValue("behind", out var behindActor)
     ? await preparer.PrepareAsync(new PrepareRequest(romfs, behindActor, cache), Console.WriteLine) : null;
 Console.WriteLine($"prepared: {model}");
@@ -60,6 +64,31 @@ var window = Window.Create(WindowOptions.Default with
 window.Initialize();
 using var gl = GL.GetApi(window.GLContext);
 Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
+
+if (options.TryGetValue("bindless-limit", out var limitText))
+{
+    // How many bindless handles the driver will keep resident at once, and whether each stays so.
+    var bindless = gl.TryGetExtension(out Silk.NET.OpenGL.Extensions.ARB.ArbBindlessTexture ext) ? ext : throw new InvalidOperationException("no bindless");
+    int count = int.Parse(limitText), notResident = 0, firstFail = -1, glFaults = 0;
+    var handles = new ulong[count];
+    for (int i = 0; i < count; i++)
+    {
+        uint tex = gl.GenTexture();
+        gl.BindTexture(Silk.NET.OpenGL.TextureTarget.Texture2D, tex);
+        gl.TexImage2D(Silk.NET.OpenGL.TextureTarget.Texture2D, 0, Silk.NET.OpenGL.InternalFormat.Rgba8, 16, 16, 0, Silk.NET.OpenGL.PixelFormat.Rgba, Silk.NET.OpenGL.PixelType.UnsignedByte, (ReadOnlySpan<byte>)new byte[16 * 16 * 4]);
+        gl.TexParameter(Silk.NET.OpenGL.TextureTarget.Texture2D, Silk.NET.OpenGL.TextureParameterName.TextureMinFilter, (int)Silk.NET.OpenGL.TextureMinFilter.Linear);
+        handles[i] = bindless.GetTextureHandle(tex);
+        bindless.MakeTextureHandleResident(handles[i]);
+        if (gl.GetError() != Silk.NET.OpenGL.GLEnum.NoError) { glFaults++; if (firstFail < 0) firstFail = i; }
+    }
+    for (int i = 0; i < count; i++)
+        if (!bindless.IsTextureHandleResident(handles[i])) { notResident++; if (firstFail < 0) firstFail = i; }
+    Console.WriteLine($"bindless handles: {count} made, {notResident} not resident, {glFaults} GL errors, first problem at {firstFail}");
+    return 0;
+}
+
+if (options.ContainsKey("check-merged"))
+    return MergedCheck.Run(gl, cache, int.Parse(options["check-merged"]));
 
 if (options.ContainsKey("check-water-shader"))
 {
@@ -79,7 +108,7 @@ using var rom = TotkRom.Open(romfs);
 var renderer = new WildRenderer(gl, cache, rom, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
 int instanceCount = int.Parse(Option("instances", "0"));
-if (instanceCount == 0)
+if (instanceCount == 0 && mixModels.Count == 0)
     renderer.AddActor(model);
 if (game == "totk")
     TotkBenchOptions.Apply(renderer, options);
@@ -90,10 +119,12 @@ if (options.TryGetValue("azimuth", out var azimuth))
 if (options.TryGetValue("sun", out var sun))
     renderer.Lighting.SunElevation = float.Parse(sun);
 var camera = new Camera { FovDegrees = 38f };
-var (center, radius) = instanceCount > 0
+var (center, radius) = mixModels.Count > 0
+    ? InstanceGrid.AddRow(renderer, [model, .. mixModels], Math.Max(instanceCount, 1), float.Parse(Option("cell", "4")))
+    : instanceCount > 0
     ? InstanceGrid.Add(renderer, model, instanceCount, float.Parse(Option("spacing", "0.5")), ParseOrigin(Option("world", "0,0,0")), Option("bake", "0") is var bakeText && bakeText != "0" ? Convert.ToUInt64(bakeText.Replace("0x", ""), 16) : 0UL)
     : renderer.FrameFor(camera);
-if (instanceCount > 0)
+if (instanceCount > 0 || mixModels.Count > 0)
 {
     var framing = SceneFramingCalculator.ForModelRadius(radius);
     (camera.NearPlane, camera.FarPlane) = (framing.Near, framing.Far);
@@ -158,6 +189,9 @@ if (options.ContainsKey("centre"))
 
 byte[] rgba = renderer.View.ReadOutputRgba8();
 PngWriter.WriteRgba(outPath, size, size, rgba);
+
+var draws = renderer.Pipeline.DrawCounts;
+Console.WriteLine($"actor draws: {draws.Calls} calls with {draws.Commands} commands, {draws.TextureBinds} texture binds, {draws.ProgramSwitches} program switches");
 
 int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
 double luma = Enumerable.Range(0, rgba.Length / 4).Average(i => (rgba[i * 4] + rgba[i * 4 + 1] + rgba[i * 4 + 2]) / 765.0);
