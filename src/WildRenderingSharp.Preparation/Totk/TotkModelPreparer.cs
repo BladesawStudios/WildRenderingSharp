@@ -10,6 +10,9 @@ namespace WildRenderingSharp.Preparation.Totk;
 /// </summary>
 public static class TotkModelPreparer
 {
+    // The exporters hand each binary file to the cache already packed, instead of writing it plain for Pack to read back.
+    static TotkModelPreparer() => ShaderLibrary.CompileTool.ExportOutput.WriteBytes = CacheFiles.WriteBytes;
+
     // TEMPORARY: with WRS_PREP_TIMING=1, the time each stage took summed over every model, printed when the process exits.
     static class Timing
     {

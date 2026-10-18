@@ -96,6 +96,9 @@ public sealed class LayeredRom : IRomAccess
             .Select(name => container + NestSeparator + name);
     }
 
+    // Files up to this size are read whole instead of mapped.
+    const long SmallFile = 4L << 20;
+
     ReadOnlySpan<byte> Read(string path, bool decompress)
     {
         Note(path);
@@ -103,8 +106,13 @@ public sealed class LayeredRom : IRomAccess
         ReadOnlySpan<byte> stored;
         if (inner is null)
         {
+            if (decompress && _decompressed.TryGet(path, out var held))
+                return held.Bytes;
             string file = LocateFile(container) ?? throw new FileNotFoundException($"'{path}' is in none of the ROM folders.");
-            stored = _mapped.GetOrAdd(file, f => new MappedFile(f)).Span;
+
+            // A map costs more to make and to hold than reading the file does, until the file is large; a map is also kept for the life of the ROM, and a map of every
+            // model and texture file of a map's worth of preparing is thousands of open handles.
+            stored = new FileInfo(file).Length <= SmallFile ? File.ReadAllBytes(file) : _mapped.GetOrAdd(file, f => new MappedFile(f)).Span;
         }
         else
         {

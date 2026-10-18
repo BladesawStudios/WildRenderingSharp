@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 
 namespace WildRenderingSharp.Storage;
@@ -43,6 +44,40 @@ public static class CacheFiles
         throw new FileNotFoundException($"'{path}' is not in the cache, plain, compressed or shared.", path);
     }
 
+    // The textures written into a model's folder by WriteBytes, by folder, until Pack writes the folder's index.
+    static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string>> PendingIndex = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Writes one of a model's binary files straight into its packed form, as an exporter hands it over: compressed beside where it would have been, or, for a texture, into the shared
+    /// folder with its place in the model's index kept for <see cref="Pack"/> to write. Nothing is written plain and read back.
+    /// </summary>
+    public static void WriteBytes(string path, byte[] bytes)
+    {
+        string full = Path.GetFullPath(path);
+        string directory = Path.GetDirectoryName(full)!;
+        string name = Path.GetFileName(full);
+        bool material = string.Equals(Path.GetFileName(directory), "matubo", StringComparison.OrdinalIgnoreCase);
+
+        if (material || IsGeometryPart(name) || !name.EndsWith(".bin", StringComparison.Ordinal))
+        {
+            File.WriteAllBytes(full + Suffix, Compress(bytes));
+        }
+        else
+        {
+            string folder = Path.Combine(Path.GetDirectoryName(directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))!, TextureFolder);
+            Directory.CreateDirectory(folder);
+            string hash = Convert.ToHexString(SHA256.HashData(bytes), 0, 16);
+            string target = Path.Combine(folder, hash + Suffix);
+            if (!File.Exists(target))
+                AtomicFile.WriteAllBytes(target, Compress(bytes));
+            PendingIndex.GetOrAdd(directory, _ => new(StringComparer.Ordinal))[name] = hash;
+        }
+
+        // A plain file from an earlier preparation of this folder would be read in preference to what was just written.
+        if (File.Exists(full))
+            File.Delete(full);
+    }
+
     /// <summary>
     /// Packs a model's folder: compresses its vertex, index, shape, context and material-block files in place, and moves its textures into the shared folder. Safe to run again, and
     /// to run while the model is being read.
@@ -53,10 +88,14 @@ public static class CacheFiles
         string shared = Path.Combine(Path.GetDirectoryName(directory)!, TextureFolder);
 
         var textures = Directory.EnumerateFiles(directory, "*.bin").Where(f => !IsGeometryPart(f)).ToList();
-        if (textures.Count > 0)
+        PendingIndex.TryRemove(directory, out var written);
+        if (textures.Count > 0 || written is { Count: > 0 })
         {
             Directory.CreateDirectory(shared);
             var index = ReadIndex(Path.Combine(directory, TextureIndex));
+            if (written is not null)
+                foreach (var (file, hash) in written)
+                    index[file] = hash;
             foreach (string file in textures)
             {
                 byte[] bytes = File.ReadAllBytes(file);
