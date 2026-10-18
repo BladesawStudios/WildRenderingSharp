@@ -78,6 +78,46 @@ public static class CacheFiles
             File.Delete(full);
     }
 
+    /// <summary>
+    /// Reads a file and throws the bytes away, so the system has it in memory when the real read comes. A cold file costs a few milliseconds to open and read whatever its size,
+    /// and a model is dozens of files, so loading them one after another from a cache that is not in memory waits on the disk the whole time; many of these at once is fast, as
+    /// the disk answers many requests at a time as quickly as one.
+    /// </summary>
+    public static void WarmFile(string path)
+    {
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.SequentialScan);
+            byte[] buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(1 << 16);
+            try
+            {
+                while (stream.Read(buffer, 0, buffer.Length) > 0) { }
+            }
+            finally
+            {
+                System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+
+    /// <summary>Warms every file of a model's folder, and the shared textures its index names.</summary>
+    public static void WarmModel(string modelDirectory)
+    {
+        try
+        {
+            foreach (string file in Directory.EnumerateFiles(modelDirectory, "*", SearchOption.AllDirectories))
+                WarmFile(file);
+
+            string index = Path.Combine(modelDirectory, TextureIndex);
+            string? root = Path.GetDirectoryName(Path.GetFullPath(modelDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (root is not null && File.Exists(index))
+                foreach (string hash in ReadIndex(index).Values.Distinct())
+                    WarmFile(Path.Combine(root, TextureFolder, hash + Suffix));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+
     /// <summary>The hash a texture written to a model's folder by <see cref="WriteBytes"/> went into the shared folder under, or null.</summary>
     public static string? WrittenHash(string modelDirectory, string fileName) =>
         PendingIndex.TryGetValue(Path.GetFullPath(modelDirectory), out var written) && written.TryGetValue(fileName, out string? hash) ? hash : null;
