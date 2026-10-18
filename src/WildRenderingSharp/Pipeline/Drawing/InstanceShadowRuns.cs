@@ -24,6 +24,23 @@ public sealed class InstanceShadowRuns(IReadOnlyList<Vector4[]> placements, floa
 
     public List<(int First, int Count, int Lod)> Visible { get; } = [];
 
+    // A reach around a point beyond which a placement casts nothing: the distance the host draws the model to, so the maps hold what is drawn and not every placement of the
+    // model within the light's square. A range of zero is no limit. The point is the host's to keep steady, since the runs are found again whenever it moves.
+    Vector3 _limitEye;
+    float _limitRange;
+
+    public void Limit(Vector3 eye, float range)
+    {
+        if (eye == _limitEye && range == _limitRange)
+            return;
+        (_limitEye, _limitRange) = (eye, range);
+        _focus = null;
+        Array.Clear(_cascadeFocus);
+    }
+
+    bool WithinLimit(Vector3 position) =>
+        _limitRange <= 0f || Vector3.DistanceSquared(position, _limitEye) <= _limitRange * _limitRange;
+
     // Which cascades the batch casts into; changing it makes every cascade recompute.
     public int CascadeMask
     {
@@ -121,6 +138,14 @@ public sealed class InstanceShadowRuns(IReadOnlyList<Vector4[]> placements, floa
         {
             int first = c * ChunkSize, last = Math.Min(first + ChunkSize, placements.Count);
             var settled = chunkTest(_chunkCentre[c], _chunkRadius![c]);
+            if (_limitRange > 0f && settled != Chunk.Outside)
+            {
+                float away = Vector3.Distance(_chunkCentre[c], _limitEye);
+                if (away - _chunkRadius![c] > _limitRange)
+                    settled = Chunk.Outside;
+                else if (away + _chunkRadius![c] > _limitRange)
+                    settled = Chunk.Partly;
+            }
             if (settled != Chunk.Partly)
             {
                 if (settled == Chunk.Inside && start < 0)
@@ -135,7 +160,8 @@ public sealed class InstanceShadowRuns(IReadOnlyList<Vector4[]> placements, floa
 
             for (int i = first; i < last; i++)
             {
-                bool passes = inside(new Vector3(placements[i][0].W, placements[i][1].W, placements[i][2].W));
+                var at = new Vector3(placements[i][0].W, placements[i][1].W, placements[i][2].W);
+                bool passes = WithinLimit(at) && inside(at);
                 if (passes && start < 0)
                 {
                     start = i;
