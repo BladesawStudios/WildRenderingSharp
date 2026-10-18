@@ -30,6 +30,9 @@ public sealed class TotkAssets(IRomAccess rom) : IGameAssets
 
     public IEnumerable<ResFile> AnimationArchives(string modelName, IReadOnlyList<string>? packNames)
     {
+        // Null is "no pack to ask" and guesses by the model's name; an empty list is a request for none, as a preparation that imports no animations makes.
+        if (packNames is { Count: 0 })
+            yield break;
         IEnumerable<string> paths = packNames is { Count: > 0 } ? NamedArchives(packNames) : ArchivesByPrefix(modelName);
         foreach (string path in paths)
             if (LoadArchive(path) is { } archive)

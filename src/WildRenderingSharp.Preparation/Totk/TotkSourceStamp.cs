@@ -20,7 +20,7 @@ public static class TotkSourceStamp
 
     sealed record Entry(string? Path, long Size, long MTime);
 
-    sealed record Stamp(string Romfs, List<string> Mods, Dictionary<string, Entry> Files, int Version = 0, int Geometry = 0, int Material = 0, int Manifest = 0, int Packed = 0);
+    sealed record Stamp(string Romfs, List<string> Mods, Dictionary<string, Entry> Files, int Version = 0, int Geometry = 0, int Material = 0, int Manifest = 0, int Packed = 0, bool? Animations = null);
 
     /// <summary>The parts of a model's preparation that have to be done again.</summary>
     [Flags]
@@ -28,13 +28,17 @@ public static class TotkSourceStamp
 
     public static void Delete(string dataDirectory) => File.Delete(Path.Combine(dataDirectory, FileName));
 
-    public static void Write(string dataDirectory, TotkRomfs romfs, IReadOnlyDictionary<string, string?> winners, Action<string>? log, bool keepEarlier = false)
+    public static void Write(string dataDirectory, TotkRomfs romfs, IReadOnlyDictionary<string, string?> winners, Action<string>? log, bool keepEarlier = false, bool? animations = null)
     {
         var entries = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
+        bool? keptAnimations = null;
         // A part redone alone read only some of the sources, so the others stay as they were recorded.
         if (keepEarlier && Read(dataDirectory) is { } earlier)
+        {
             foreach (var (path, entry) in earlier.Files)
                 entries[path] = entry;
+            keptAnimations = earlier.Animations;
+        }
         foreach (var (path, winner) in winners)
         {
             var info = winner is null ? null : new FileInfo(winner);
@@ -44,11 +48,11 @@ public static class TotkSourceStamp
         foreach (var (path, entry) in entries.Where(e => e.Value.Path is { } p && romfs.ModRoots.Any(m => p.StartsWith(m, StringComparison.OrdinalIgnoreCase))))
             log?.Invoke($"[prepare] mod file: {path} <- {entry.Path}");
 
-        var stamp = new Stamp(romfs.Root, romfs.ModRoots.ToList(), entries, 0, GeometryVersion, MaterialVersion, ManifestVersion, PackVersion);
+        var stamp = new Stamp(romfs.Root, romfs.ModRoots.ToList(), entries, 0, GeometryVersion, MaterialVersion, ManifestVersion, PackVersion, animations ?? keptAnimations);
         File.WriteAllText(Path.Combine(dataDirectory, FileName), JsonSerializer.Serialize(stamp, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    public static bool IsUpToDate(TotkRomfs romfs, string dataDirectory) => Stale(romfs, dataDirectory) == Stages.None;
+    public static bool IsUpToDate(TotkRomfs romfs, string dataDirectory) => Stale(romfs, dataDirectory, animations: false) == Stages.None;
 
     static Stamp? Read(string dataDirectory)
     {
@@ -60,7 +64,7 @@ public static class TotkSourceStamp
     }
 
     /// <summary>Which parts of the model's preparation are out of date: all of them when a source file changed or there is no usable stamp, otherwise those whose version is older.</summary>
-    public static Stages Stale(TotkRomfs romfs, string dataDirectory)
+    public static Stages Stale(TotkRomfs romfs, string dataDirectory, bool animations)
     {
         if (!File.Exists(Path.Combine(dataDirectory, FileName)))
             return romfs.ModRoots.Count == 0 ? Stages.None : Stages.All;
@@ -82,6 +86,10 @@ public static class TotkSourceStamp
         }
 
         if (geometry != GeometryVersion)
+            return Stages.All;
+
+        // A model prepared without its animations is prepared again when they are asked for. Before this was recorded every preparation imported them.
+        if (animations && stamp.Animations == false)
             return Stages.All;
         if (material != MaterialVersion)
             return Stages.Material | Stages.Manifest;

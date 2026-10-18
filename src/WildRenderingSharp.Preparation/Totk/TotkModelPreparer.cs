@@ -53,7 +53,8 @@ public static class TotkModelPreparer
         string materialBfsha = TotkShaderArchives.Extract(romfs.Base, cache, "material");
         using var sources = romfs.Layered.Record();
         string modelName = Export(romfs, materialBfsha, actorOrModelName, cache, log, importAnims, stages);
-        TotkSourceStamp.Write(cache.ModelDirectory(modelName), romfs, sources.Files, log, keepEarlier: !stages.HasFlag(TotkSourceStamp.Stages.Geometry) || !stages.HasFlag(TotkSourceStamp.Stages.Material));
+        TotkSourceStamp.Write(cache.ModelDirectory(modelName), romfs, sources.Files, log, keepEarlier: !stages.HasFlag(TotkSourceStamp.Stages.Geometry) || !stages.HasFlag(TotkSourceStamp.Stages.Material),
+            animations: stages.HasFlag(TotkSourceStamp.Stages.Geometry) ? importAnims : null);
         return modelName;
     }
 

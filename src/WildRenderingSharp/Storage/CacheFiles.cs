@@ -69,13 +69,32 @@ public static class CacheFiles
             string hash = Convert.ToHexString(SHA256.HashData(bytes), 0, 16);
             string target = Path.Combine(folder, hash + Suffix);
             if (!File.Exists(target))
-                AtomicFile.WriteAllBytes(target, Compress(bytes));
+                AtomicFile.WriteAllBytes(target, CompressTexture(bytes));
             PendingIndex.GetOrAdd(directory, _ => new(StringComparer.Ordinal))[name] = hash;
         }
 
         // A plain file from an earlier preparation of this folder would be read in preference to what was just written.
         if (File.Exists(full))
             File.Delete(full);
+    }
+
+    /// <summary>The hash a texture written to a model's folder by <see cref="WriteBytes"/> went into the shared folder under, or null.</summary>
+    public static string? WrittenHash(string modelDirectory, string fileName) =>
+        PendingIndex.TryGetValue(Path.GetFullPath(modelDirectory), out var written) && written.TryGetValue(fileName, out string? hash) ? hash : null;
+
+    /// <summary>
+    /// Gives a model's folder a texture that is already in the shared folder, as if it had been written: nothing is read or compressed. False when the shared folder does not have it.
+    /// </summary>
+    public static bool LinkTexture(string modelDirectory, string fileName, string hash)
+    {
+        string directory = Path.GetFullPath(modelDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (!File.Exists(Path.Combine(Path.GetDirectoryName(directory)!, TextureFolder, hash + Suffix)))
+            return false;
+        PendingIndex.GetOrAdd(directory, _ => new(StringComparer.Ordinal))[fileName] = hash;
+        string plain = Path.Combine(directory, fileName);
+        if (File.Exists(plain))
+            File.Delete(plain);
+        return true;
     }
 
     /// <summary>
@@ -167,6 +186,10 @@ public static class CacheFiles
     }
 
     static byte[] Compress(byte[] bytes) => (_compressor ??= new ZstdSharp.Compressor(Level)).Wrap(bytes).ToArray();
+
+    // Texture data is block-compressed already and gains little from more effort.
+    [ThreadStatic] static ZstdSharp.Compressor? _quickCompressor;
+    static byte[] CompressTexture(byte[] bytes) => (_quickCompressor ??= new ZstdSharp.Compressor(1)).Wrap(bytes).ToArray();
 
     static byte[] Unpack(byte[] bytes) => (_decompressor ??= new ZstdSharp.Decompressor()).Unwrap(bytes).ToArray();
 }

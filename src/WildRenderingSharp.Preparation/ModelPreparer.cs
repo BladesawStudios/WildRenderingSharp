@@ -81,7 +81,7 @@ public static class ModelPreparer
         string modelName = TotkModelPreparer.ResolveModelName(romfs, actorOrModelName);
         var stages = force || !cache.IsPrepared(modelName)
             ? TotkSourceStamp.Stages.All
-            : TotkSourceStamp.Stale(romfs, cache.ModelDirectory(modelName));
+            : TotkSourceStamp.Stale(romfs, cache.ModelDirectory(modelName), importAnims);
         if (stages == TotkSourceStamp.Stages.None)
         {
             log?.Invoke($"[prepare] {modelName} is already prepared and up to date.");
