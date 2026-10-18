@@ -24,6 +24,18 @@ public sealed class InstanceShadowRuns(IReadOnlyList<Vector4[]> placements, floa
 
     public List<(int First, int Count, int Lod)> Visible { get; } = [];
 
+    // Finding runs again is cheap for one batch and a long time for four thousand of them, which is what happens when the region they were found for moves: sixty
+    // milliseconds in one frame. So a frame has a little time to spend on it, and a batch that finds the time gone keeps the runs it has, a frame or two stale, and
+    // is found again in the next. A batch that has none yet is always found, so nothing is left out of a map altogether.
+    static long _deadline;
+
+    public static void BeginFrame(double milliseconds) =>
+        _deadline = System.Diagnostics.Stopwatch.GetTimestamp() + (long)(milliseconds * System.Diagnostics.Stopwatch.Frequency / 1000.0);
+
+    static bool OutOfTime => System.Diagnostics.Stopwatch.GetTimestamp() > _deadline;
+
+    bool _filledOnce;
+
     // A reach around a point beyond which a placement casts nothing: the distance the host draws the model to, so the maps hold what is drawn and not every placement of the
     // model within the light's square. A range of zero is no limit. The point is the host's to keep steady, since the runs are found again whenever it moves.
     Vector3 _limitEye;
@@ -58,9 +70,10 @@ public sealed class InstanceShadowRuns(IReadOnlyList<Vector4[]> placements, floa
 
     internal void Update(ShadowFocus focus)
     {
-        if (_focus == focus)
+        if (_focus == focus || (_filledOnce && OutOfTime))
             return;
         _focus = focus;
+        _filledOnce = true;
         float reach = focus.Radius + boundsRadius;
         FillRuns(Visible, ShadowLod, position =>
         {
@@ -80,6 +93,8 @@ public sealed class InstanceShadowRuns(IReadOnlyList<Vector4[]> placements, floa
     internal void UpdateCascade(int cascade, ShadowFocus focus, Vector3 right, Vector3 up, float halfExtent)
     {
         if (_cascadeFocus[cascade] == (focus, right, up) && _cascadeRuns[cascade] is not null)
+            return;
+        if (_cascadeRuns[cascade] is not null && OutOfTime)
             return;
         _cascadeFocus[cascade] = (focus, right, up);
         var runs = Cascade(cascade);
