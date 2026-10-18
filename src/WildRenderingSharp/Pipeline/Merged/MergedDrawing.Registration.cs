@@ -47,28 +47,31 @@ internal sealed unsafe partial class MergedDrawing
     }
 
     // Makes a demoted shape's own buffers and vertex arrays again from its place in the merged geometry.
+    // This runs in the middle of a draw, when the shape's vertex array is asked for, so it leaves the vertex array binding as nothing and says so to the draw's
+    // binding cache. A buffer bound as the element array while another shape's vertex array is bound would become that array's indices.
     public void Restore(LoadedShape shape, MergedShape merged)
     {
+        _gl.BindVertexArray(0);
         var slice = merged.Geometry;
         var chunk = slice.Chunk;
         long vertexBytes = (long)slice.VertexCount * chunk.Stride, indexBytes = (long)slice.IndexCount * sizeof(uint);
-        uint vbo = Remake(chunk.Vbo, BufferTargetARB.ArrayBuffer, (long)slice.BaseVertex * chunk.Stride, vertexBytes);
-        uint ibo = Remake(chunk.Ibo, BufferTargetARB.ElementArrayBuffer, (long)slice.FirstIndex * sizeof(uint), indexBytes);
+        uint vbo = Remake(chunk.Vbo, (long)slice.BaseVertex * chunk.Stride, vertexBytes);
+        uint ibo = Remake(chunk.Ibo, (long)slice.FirstIndex * sizeof(uint), indexBytes);
         var buffers = shape.Buffers with { Vbo = vbo, Ibo = ibo };
         var arrays = new Assets.Loading.VertexArrays(_gl);
         shape.Rebuilt(vbo, ibo, arrays.ForProgram(shape.GBufferProgram, buffers),
             shape.ZOnlyProgram != 0 ? arrays.ForProgram(shape.ZOnlyProgram, buffers) : 0,
             shape.ForwardProgram != 0 ? arrays.ForProgram(shape.ForwardProgram, buffers) : 0,
             arrays.ForPassId(buffers));
+        _invalidate();
     }
 
-    uint Remake(uint source, BufferTargetARB kind, long at, long bytes)
+    uint Remake(uint source, long at, long bytes)
     {
         uint buffer = _gl.GenBuffer();
-        _gl.BindBuffer(kind, buffer);
-        _gl.BufferData(kind, (nuint)bytes, null, BufferUsageARB.StaticDraw);
-        _gl.BindBuffer(BufferTargetARB.CopyReadBuffer, source);
         _gl.BindBuffer(BufferTargetARB.CopyWriteBuffer, buffer);
+        _gl.BufferData(BufferTargetARB.CopyWriteBuffer, (nuint)bytes, null, BufferUsageARB.StaticDraw);
+        _gl.BindBuffer(BufferTargetARB.CopyReadBuffer, source);
         _gl.CopyBufferSubData(CopyBufferSubDataTarget.CopyReadBuffer, CopyBufferSubDataTarget.CopyWriteBuffer, (nint)at, 0, (nuint)bytes);
         return buffer;
     }

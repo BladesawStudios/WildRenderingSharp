@@ -107,6 +107,7 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
         lock (_sync)
         {
             _textures!.Refresh();
+            Residency.MakeResident(_gl);
             UploadRecords();
             Bind(0, _batches!.BakeTable.Handle);
             Bind(MergedLayout.MaterialBinding, _materials!.Buffer.Handle);
