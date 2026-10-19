@@ -13,6 +13,7 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Description>Renders Breath of the Wild / Tears of the Kingdom models with the games' own decompiled shaders through a deferred OpenGL pipeline.</Description>
+    <WrsLibRoot Condition="'$(WrsLibRoot)' == ''">$(MSBuildThisFileDirectory)..\..\vendor</WrsLibRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,8 +43,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\vendor\AampSharp\src\AampSharp\AampSharp.csproj" />
-    <ProjectReference Include="..\..\vendor\Yaz0Sharp\src\Yaz0Sharp\Yaz0Sharp.csproj" />
+    <ProjectReference Include="$(WrsLibRoot)\AampSharp\src\AampSharp\AampSharp.csproj" />
+    <ProjectReference Include="$(WrsLibRoot)\Yaz0Sharp\src\Yaz0Sharp\Yaz0Sharp.csproj" />
   </ItemGroup>
 
 </Project>

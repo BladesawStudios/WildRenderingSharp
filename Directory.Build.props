@@ -4,6 +4,11 @@
     not see this file unless their own project sits under this directory, so nothing here may be
     something a host's build depends on - see build/WildRenderingSharp.targets for that.
   -->
+  <!-- A props file above this repository (one checking out several libraries side by side) still applies. -->
+  <PropertyGroup>
+    <WrsParentProps>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..'))</WrsParentProps>
+  </PropertyGroup>
+  <Import Project="$(WrsParentProps)" Condition="'$(WrsParentProps)' != ''" />
   <!-- BntxSharp, McSharp, PtclSharp, TxtgSharp and their TexSharp keep their own target frameworks and language settings. -->
   <PropertyGroup Condition="!$(MSBuildProjectFullPath.Contains('BntxSharp')) And !$(MSBuildProjectFullPath.Contains('McSharp')) And !$(MSBuildProjectFullPath.Contains('TexSharp')) And !$(MSBuildProjectFullPath.Contains('TxtgSharp')) And !$(MSBuildProjectFullPath.Contains('PtclSharp'))">
     <TargetFramework>net10.0</TargetFramework>
