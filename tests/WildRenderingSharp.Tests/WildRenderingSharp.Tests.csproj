@@ -3,6 +3,7 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <WrsLibRoot Condition="'$(WrsLibRoot)' == ''">$(MSBuildThisFileDirectory)..\..\vendor</WrsLibRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +16,7 @@
     <ProjectReference Include="..\..\src\WildRenderingSharp\WildRenderingSharp.csproj" />
     <ProjectReference Include="..\WildRenderingSharp.RenderRegression\WildRenderingSharp.RenderRegression.csproj" />
     <ProjectReference Include="..\..\src\WildRenderingSharp.Preparation\WildRenderingSharp.Preparation.csproj" />
-    <ProjectReference Include="..\..\vendor\ShaderLibrary\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
+    <ProjectReference Include="$(WrsLibRoot)\ShaderLibrary\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
   </ItemGroup>
 
   <ItemGroup>

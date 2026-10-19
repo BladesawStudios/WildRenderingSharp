@@ -20,15 +20,16 @@
     <!-- Preparing allocates over a hundred megabytes a model across a dozen threads; one heap per core paused it a fifth less. -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <Description>Prepares Breath of the Wild / Tears of the Kingdom actors from a romfs into a WildRenderingSharp cache.</Description>
-    <!-- The vendored ShaderLibrary is the default; point this at another checkout to build against that. -->
-    <WrsShaderLibraryDir Condition="'$(WrsShaderLibraryDir)' == ''">$(MSBuildThisFileDirectory)..\..\vendor\ShaderLibrary</WrsShaderLibraryDir>
+    <!-- The vendored libraries are the default; point WrsLibRoot, or WrsShaderLibraryDir alone, at other checkouts to build against those. -->
+    <WrsLibRoot Condition="'$(WrsLibRoot)' == ''">$(MSBuildThisFileDirectory)..\..\vendor</WrsLibRoot>
+    <WrsShaderLibraryDir Condition="'$(WrsShaderLibraryDir)' == ''">$(WrsLibRoot)\ShaderLibrary</WrsShaderLibraryDir>
   </PropertyGroup>
 
   <Target Name="WrsCheckShaderLibrary" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj')">
     <Error Code="WRS0001" Text="WildRenderingSharp.Preparation builds against the ShaderLibrary submodule, and $(WrsShaderLibraryDir) is empty. Run: git submodule update --init --recursive" />
   </Target>
 
-  <Target Name="WrsCheckPtclSharp" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(MSBuildThisFileDirectory)..\..\vendor\PtclSharp\lib\ZstdSharp\src\ZstdSharp\ZstdSharp.csproj')">
+  <Target Name="WrsCheckPtclSharp" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(WrsLibRoot)\PtclSharp\lib\ZstdSharp\src\ZstdSharp\ZstdSharp.csproj')">
     <Error Code="WRS0002" Text="WildRenderingSharp.Preparation builds against the PtclSharp submodule and the libraries it reads effect files with, and they are empty. Run: git submodule update --init vendor/PtclSharp; git -C vendor/PtclSharp submodule update --init lib/ZstdSharp lib/BymlSharp lib/Yaz0Sharp" />
   </Target>
 
@@ -56,12 +57,12 @@
 
   <!-- The VFXB/ESETB reader particle effects are read through. Its BFRES-dependent half (PtclSharp.Models) stays out: ShaderLibrary's BfresLibrary build is the one in this process. -->
   <ItemGroup>
-    <ProjectReference Include="..\..\vendor\PtclSharp\src\PtclSharp\PtclSharp.csproj" />
+    <ProjectReference Include="$(WrsLibRoot)\PtclSharp\src\PtclSharp\PtclSharp.csproj" />
   </ItemGroup>
 
   <!-- The managed BNTX reader, with its own Tegra deswizzle. -->
   <ItemGroup>
-    <ProjectReference Include="..\..\vendor\BntxSharp\src\BntxSharp\BntxSharp.csproj" />
+    <ProjectReference Include="$(WrsLibRoot)\BntxSharp\src\BntxSharp\BntxSharp.csproj" />
   </ItemGroup>
 
 </Project>
