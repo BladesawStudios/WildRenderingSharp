@@ -23,14 +23,17 @@
     <!-- The vendored libraries are the default; point WrsLibRoot, or WrsShaderLibraryDir alone, at other checkouts to build against those. -->
     <WrsLibRoot Condition="'$(WrsLibRoot)' == ''">$(MSBuildThisFileDirectory)..\..\vendor</WrsLibRoot>
     <WrsShaderLibraryDir Condition="'$(WrsShaderLibraryDir)' == ''">$(WrsLibRoot)\ShaderLibrary</WrsShaderLibraryDir>
+    <!-- Where PtclSharp reads ZstdSharp, BymlSharp and Yaz0Sharp from: its PtclLibRoot when one is set, its own lib otherwise. -->
+    <WrsPtclLibRoot>$(PtclLibRoot)</WrsPtclLibRoot>
+    <WrsPtclLibRoot Condition="'$(WrsPtclLibRoot)' == ''">$(WrsLibRoot)\PtclSharp\lib</WrsPtclLibRoot>
   </PropertyGroup>
 
   <Target Name="WrsCheckShaderLibrary" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj')">
     <Error Code="WRS0001" Text="WildRenderingSharp.Preparation builds against the ShaderLibrary submodule, and $(WrsShaderLibraryDir) is empty. Run: git submodule update --init --recursive" />
   </Target>
 
-  <Target Name="WrsCheckPtclSharp" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(WrsLibRoot)\PtclSharp\lib\ZstdSharp\src\ZstdSharp\ZstdSharp.csproj')">
-    <Error Code="WRS0002" Text="WildRenderingSharp.Preparation builds against the PtclSharp submodule and the libraries it reads effect files with, and they are empty. Run: git submodule update --init vendor/PtclSharp; git -C vendor/PtclSharp submodule update --init lib/ZstdSharp lib/BymlSharp lib/Yaz0Sharp" />
+  <Target Name="WrsCheckPtclSharp" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(WrsLibRoot)\PtclSharp\src\PtclSharp\PtclSharp.csproj') Or !Exists('$(WrsPtclLibRoot)\ZstdSharp\src\ZstdSharp\ZstdSharp.csproj')">
+    <Error Code="WRS0002" Text="WildRenderingSharp.Preparation builds against PtclSharp in $(WrsLibRoot)\PtclSharp and the libraries it reads effect files with in $(WrsPtclLibRoot), and one of them is empty. Run: git submodule update --init --recursive" />
   </Target>
 
   <ItemGroup>
