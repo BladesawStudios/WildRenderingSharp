@@ -24,6 +24,8 @@ internal sealed class FrameCompositor(GL gl) : IDisposable
 
         // The raw buffer views are stored top row first, the other way up from the finished frame.
         int top = view.OutputIsTopDown ? view.Height : 0, bottom = view.OutputIsTopDown ? 0 : view.Height;
+        // The G-buffer passes turn sRGB writes on; the finished frame is already encoded.
+        gl.Disable(EnableCap.FramebufferSrgb);
         gl.BlitFramebuffer(0, 0, view.Width, view.Height, 0, top, view.Width, bottom, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Nearest);
         gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)read);
     }

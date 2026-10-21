@@ -33,7 +33,8 @@ sealed class FrameSnapshots(GL gl, TargetTextureFactory textures)
     // Full-size copies of the albedo, normal and depth under the terrain, made when the terrain draws over what is already there.
     public (GpuTexture Albedo, GpuTexture Normal, GpuTexture Depth) TerrainUnderCopies(int width, int height)
     {
-        _underAlbedo ??= textures.Color(width, height, InternalFormat.Rgba8, repeat: false, filterNearest: true);
+        // Copied from the albedo attachment, so held the same way: sRGB.
+        _underAlbedo ??= textures.Color(width, height, InternalFormat.Srgb8Alpha8, repeat: false, filterNearest: true);
         _underNormal ??= textures.Color(width, height, InternalFormat.Rgba8, repeat: false, filterNearest: true);
         _underDepth ??= textures.Color(width, height, InternalFormat.R32f, repeat: false);
         return (_underAlbedo.Value, _underNormal.Value, _underDepth.Value);

@@ -37,6 +37,11 @@ Conclusions only, from the game binary (Ghidra), GPU captures (RenderDoc) and th
 - The fog colours in `Env[16]` and `Env[19]` do not leak into the forward result: every term that multiplies them is zero by construction.
 - The toon outline lives in the deferred programs. A forward redraw of an opaque shape overwrites it, so forcing the forward pass is a per-shape choice, not an automatic one.
 
+## G-buffer albedo
+
+- The G-buffer program writes the albedo it sampled (`cTexture0.xyz`, read through an sRGB view, so linear) straight to attachment 1, and the resolve programs read `cTex_GBuffAlbedo` and use it with no gamma of their own. Both only work if attachment 1 is an sRGB target, so the hardware encodes on write and decodes on read; `RenderTargets` makes it `SRGB8_ALPHA8` and turns `FRAMEBUFFER_SRGB` on while the G-buffer is bound. As a plain linear RGBA8 a dark albedo had a few levels per channel, and showed as coloured squares where its texture varies (the Giants' bodies, which are nearly black). The alpha is flag bits and is not encoded.
+- The terrain's copy of the albedo under it is the same format.
+
 ## Pre-shading passes
 
 - A G-buffer program writes a material ID into attachment 0's red byte. `g_buffer_expand_material_id` turns it into depth (`id * (1 - k) + k`, `k = Context[147].z`), and each deferred pass draws a full-screen quad at its priority's depth and depth-tests against it.
