@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using WildRenderingSharp.Animation.Posing;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Drawing;
 
@@ -80,7 +81,8 @@ internal static class ShadowSignatures
         var hi = new Vector3(float.MinValue);
         foreach (var actor in actors)
         {
-            var (actorLo, actorHi) = RotateBounds(actor.Model.BoundsMin, actor.Model.BoundsMax, actor.ModelMatrixRows);
+            var (posedLo, posedHi) = PosedBounds(actor);
+            var (actorLo, actorHi) = RotateBounds(posedLo, posedHi, actor.ModelMatrixRows);
             lo = Vector3.Min(lo, actorLo);
             hi = Vector3.Max(hi, actorHi);
         }
@@ -90,6 +92,28 @@ internal static class ShadowSignatures
             hi = Vector3.Max(hi, batch.BoundsMax);
         }
         return (lo, hi);
+    }
+
+    // The model's bounds are those of its bind pose, so an actor posed far from it (a ragdoll thrown across the floor) would leave its shadow outside the map fitted to them.
+    // Every bone that has moved from its bind place adds a box around where it is now, as far each way as a quarter of the model's size, which is more than the geometry a bone carries reaches.
+    static (Vector3 Lo, Vector3 Hi) PosedBounds(ActorRenderInput actor)
+    {
+        var (lo, hi) = (actor.Model.BoundsMin, actor.Model.BoundsMax);
+        if (actor.BoneWorldMatrices is not { } posed || actor.Model.Skeleton is not { } skeleton)
+            return (lo, hi);
+
+        Matrix4x4[] bind = SkeletonPose.SharedBindPoseWorld(skeleton);
+        float reach = (hi - lo).Length() * 0.25f;
+        var (bindLo, bindHi) = (lo, hi);
+        for (int i = 0; i < posed.Length && i < bind.Length; i++)
+        {
+            Vector3 now = posed[i].Translation;
+            if (Vector3.Distance(now, bind[i].Translation) < reach * 0.1f)
+                continue;
+            lo = Vector3.Min(lo, now - new Vector3(reach));
+            hi = Vector3.Max(hi, now + new Vector3(reach));
+        }
+        return (Vector3.Min(lo, bindLo), Vector3.Max(hi, bindHi));
     }
 
     static (Vector3 Lo, Vector3 Hi) RotateBounds(Vector3 lo, Vector3 hi, ReadOnlySpan<Vector4> modelRows)
