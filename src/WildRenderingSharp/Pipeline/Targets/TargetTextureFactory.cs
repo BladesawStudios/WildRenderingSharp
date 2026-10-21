@@ -20,7 +20,7 @@ sealed unsafe class TargetTextureFactory(GL gl)
     {
         uint handle = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, handle);
-        var pixelType = format == InternalFormat.Rgba8 ? PixelType.UnsignedByte : PixelType.Float;
+        var pixelType = format is InternalFormat.Rgba8 or InternalFormat.Srgb8Alpha8 ? PixelType.UnsignedByte : PixelType.Float;
         gl.TexImage2D(TextureTarget.Texture2D, 0, format, (uint)width, (uint)height, 0, PixelFormat.Rgba, pixelType, null);
         // A texture allocated with no data holds whatever the card's memory held, which a pass that is skipped would then show.
         gl.ClearTexImage(handle, 0, PixelFormat.Rgba, pixelType, null);

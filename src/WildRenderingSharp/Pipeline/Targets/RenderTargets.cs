@@ -134,9 +134,15 @@ public sealed class RenderTargets : IDisposable
         _gl.Viewport(0, 0, (uint)arrayTarget.Width, (uint)arrayTarget.Height);
     }
 
+    // The albedo attachment's number in the G-buffer.
+    public const int AlbedoAttachment = 1;
+
     public void BindGBuffer()
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _gbufferFbo);
+
+        // Only the albedo attachment is sRGB, so this converts what is written to it and leaves the rest as they are.
+        _gl.Enable(EnableCap.FramebufferSrgb);
         _gl.Viewport(0, 0, (uint)Width, (uint)Height);
     }
 
@@ -184,6 +190,8 @@ public sealed class RenderTargets : IDisposable
     }
 
     // Attachments 0-4 are 8-bit UNORM with nearest filtering because the resolve decodes packed flag bits from them.
+    // Attachment 1, the albedo, is sRGB: the game's shaders write the linear albedo they sampled and read it back linear (the resolve does no gamma of its own), which only works with the hardware encoding it on
+    // the way in and decoding it on the way out. Held as plain linear 8 bits, a dark albedo has a handful of levels per channel and shows as coloured squares wherever its texture varies.
     // Attachment 5 is emission and must be half-float, or it clamps at 1.0 and never crosses the bloom threshold.
     void CreateGBuffer(int width, int height)
     {
@@ -191,7 +199,7 @@ public sealed class RenderTargets : IDisposable
         for (int i = 0; i < GBufferCount; i++)
             GBuffer[i] = i == GBufferCount - 1
                 ? _textures.Color(width, height, InternalFormat.Rgba16f)
-                : _textures.Color(width, height, InternalFormat.Rgba8, filterNearest: true);
+                : _textures.Color(width, height, i == AlbedoAttachment ? InternalFormat.Srgb8Alpha8 : InternalFormat.Rgba8, filterNearest: true);
         GBufferDepth = _textures.Depth(width, height);
 
         _gbufferFbo = _gl.GenFramebuffer();
