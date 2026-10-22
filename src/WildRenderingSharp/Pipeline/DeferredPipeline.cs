@@ -101,7 +101,9 @@ public sealed class DeferredPipeline : IDisposable
         ShadowCounts = default;
         PrepareEnvironment(request.Environment);
 
-        if ((_models.Count == 0 || (request.Actors.Count == 0 && (request.Instances ?? []).Count == 0)) && !request.Environment.HasOwnGeometry)
+        // The sky is a frame of its own: a host showing it behind an empty scene has nothing placed, and that is not a mistake.
+        bool skyOnly = request.Lighting.Background == Rendering.Lighting.BackgroundMode.Sky;
+        if ((_models.Count == 0 || (request.Actors.Count == 0 && (request.Instances ?? []).Count == 0)) && !request.Environment.HasOwnGeometry && !skyOnly)
             throw new InvalidOperationException("No actors placed - call SetScene first.");
 
         var frame = new FrameContext(request, targetsOverride ?? Targets, shadowCacheOverride ?? _mainShadowCache, shadowMapOverride)
