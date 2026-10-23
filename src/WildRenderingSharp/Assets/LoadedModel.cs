@@ -1,7 +1,9 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Animation.Clips;
 using WildRenderingSharp.Assets.Manifests;
 using WildRenderingSharp.Assets.Textures;
+using WildRenderingSharp.Scene.Posing;
 
 namespace WildRenderingSharp.Assets;
 
@@ -48,6 +50,16 @@ public sealed class LoadedModel : IDisposable
             AfterVertexArrays = null;
             after();
         }
+    }
+
+    // Holds material and texture pattern animations at the given frames, once, as an actor playing them would. For a model drawn only in instances, which has
+    // no actor to play them; on the render thread, before the model's instances are added.
+    public void Dress(IReadOnlyList<(MaterialAnimManifest Clip, float Frame)> materials, IReadOnlyList<(TexturePatternAnimManifest Clip, float Frame)> patterns)
+    {
+        if (patterns.Count > 0)
+            TexturePatternPose.Apply(this, [.. patterns.Select(p => new TexturePatternPose.Playing(p.Clip, p.Frame))], Textures);
+        if (materials.Count > 0)
+            MaterialAnimPose.Apply(this, [.. materials.Select(m => new MaterialAnimPose.Playing(m.Clip, m.Frame))]);
     }
 
     public Vector3 BoundsCenter => (BoundsMin + BoundsMax) * 0.5f;
