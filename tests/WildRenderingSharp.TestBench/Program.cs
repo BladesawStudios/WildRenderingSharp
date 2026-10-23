@@ -109,7 +109,18 @@ var renderer = new WildRenderer(gl, cache, rom, initialWidth: size, initialHeigh
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
 int instanceCount = int.Parse(Option("instances", "0"));
 if (instanceCount == 0 && mixModels.Count == 0)
-    renderer.AddActor(model);
+{
+    var actor = renderer.AddActor(model);
+    // Animations held at a frame, as "m:<name>=<frame>" (shader parameters) or "t:<name>=<frame>" (texture patterns), comma separated.
+    foreach (string held in Option("hold", "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+    {
+        string[] part = held[2..].Split('=');
+        string file = Path.Combine(cache.ModelDirectory(model), $"{model}.{part[0]}.{(held[0] == 'm' ? "matanim" : "texpat")}.json");
+        if (!File.Exists(file)) { Console.WriteLine($"hold: no {file}"); continue; }
+        if (held[0] == 'm') actor.ShaderParam.Add(WildRenderingSharp.Animation.Clips.MaterialAnimManifest.Load(file)).Seek(float.Parse(part[1]));
+        else actor.TexturePattern.Add(WildRenderingSharp.Animation.Clips.TexturePatternAnimManifest.Load(file)).Seek(float.Parse(part[1]));
+    }
+}
 if (game == "totk")
     TotkBenchOptions.Apply(renderer, options);
 if (options.TryGetValue("bloom", out var bloom))
