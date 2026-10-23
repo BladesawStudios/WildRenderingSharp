@@ -76,7 +76,7 @@ public static class TotkModelPreparer
     static List<string>? AnimArchives(IRomAccess rom, TotkActorInfo.Resolved? actor, string modelName)
     {
         if (actor is null)
-            return null;
+            return TotkUMiiAnimations.ArchivesOf(rom, modelName);
         var packs = actor.AnimPackNames.ToList();
         string project = modelName.Split('.')[0];
         if (!packs.Contains(project, StringComparer.Ordinal) && rom.Exists($"Model/{project}.anim.bfres.zs"))
