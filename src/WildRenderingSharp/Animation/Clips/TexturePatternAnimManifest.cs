@@ -53,6 +53,7 @@ public sealed class TexturePatternAnimManifest : IAnimClip
             Format = t.Format,
             Width = t.Width,
             Height = t.Height,
+            CompSelect = t.CompSelect,
         };
     }
 }

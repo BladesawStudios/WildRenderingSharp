@@ -14,4 +14,6 @@ public sealed class TexturePatternTextureEntry
     [JsonPropertyName("format")] public string Format { get; set; } = "";
     [JsonPropertyName("width")] public int Width { get; set; }
     [JsonPropertyName("height")] public int Height { get; set; }
+    // The container's channel-selector bytes, as a sampler binding's; null on a pattern exported before they were written.
+    [JsonPropertyName("comp_select")] public int[]? CompSelect { get; set; }
 }

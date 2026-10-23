@@ -13,7 +13,7 @@ public static class TotkSourceStamp
     public const string FileName = "romfs_sources.json";
 
     // Bump the version of the part whose output changed.
-    const int GeometryVersion = 6, MaterialVersion = 6, ManifestVersion = 6;
+    const int GeometryVersion = 7, MaterialVersion = 6, ManifestVersion = 7;
 
     const int PackVersion = 1;
 
