@@ -8,7 +8,7 @@
     Usable two ways:
       - referenced as a library, through ModelPreparer / InProcessPreparer;
       - run as a child process (this is an Exe), through the core library's OutOfProcessPreparer,
-        by a host that cannot load ShaderLibrary's vendored BfresLibrary build beside its own.
+        by a host whose own BfresLibrary build would clash with the one ShaderLibrary builds against.
 
     All the real work is ShaderLibrary.CompileTool's - this project only sequences it, records
     which romfs files each preparation read (so mods invalidate it), and installs the shared assets.
@@ -23,6 +23,7 @@
     <!-- The vendored libraries are the default; point WrsLibRoot, or WrsShaderLibraryDir alone, at other checkouts to build against those. -->
     <WrsLibRoot Condition="'$(WrsLibRoot)' == ''">$(MSBuildThisFileDirectory)..\..\vendor</WrsLibRoot>
     <WrsShaderLibraryDir Condition="'$(WrsShaderLibraryDir)' == ''">$(WrsLibRoot)\ShaderLibrary</WrsShaderLibraryDir>
+    <WrsBfresLibraryDir>$(WrsShaderLibraryDir)\..\BfresLibrary</WrsBfresLibraryDir>
     <!-- Where PtclSharp reads ZstdSharp, BymlSharp and Yaz0Sharp from: its PtclLibRoot when one is set, its own lib otherwise. -->
     <WrsPtclLibRoot>$(PtclLibRoot)</WrsPtclLibRoot>
     <WrsPtclLibRoot Condition="'$(WrsPtclLibRoot)' == ''">$(WrsLibRoot)\PtclSharp\lib</WrsPtclLibRoot>
@@ -32,33 +33,31 @@
     <Error Code="WRS0001" Text="WildRenderingSharp.Preparation builds against the ShaderLibrary submodule, and $(WrsShaderLibraryDir) is empty. Run: git submodule update --init --recursive" />
   </Target>
 
+  <Target Name="WrsCheckBfresLibrary" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(WrsBfresLibraryDir)\BfresLibrary\BfresLibrary.csproj')">
+    <Error Code="WRS0003" Text="WildRenderingSharp.Preparation builds against the BfresLibrary beside ShaderLibrary, and $(WrsBfresLibraryDir) is empty. Run: git submodule update --init --recursive" />
+  </Target>
+
   <Target Name="WrsCheckPtclSharp" BeforeTargets="CollectPackageReferences;CoreCompile" Condition="!Exists('$(WrsLibRoot)\PtclSharp\src\PtclSharp\PtclSharp.csproj') Or !Exists('$(WrsPtclLibRoot)\ZstdSharp\src\ZstdSharp\ZstdSharp.csproj')">
     <Error Code="WRS0002" Text="WildRenderingSharp.Preparation builds against PtclSharp in $(WrsLibRoot)\PtclSharp and the libraries it reads effect files with in $(WrsPtclLibRoot), and one of them is empty. Run: git submodule update --init --recursive" />
   </Target>
-
-  <ItemGroup>
-    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\WildRenderingSharp\WildRenderingSharp.csproj" />
     <ProjectReference Include="$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
   </ItemGroup>
 
-  <!-- The BFRES reader ShaderLibrary builds against; the asset readers here hand its ResFile to the exporters. -->
+  <!-- The BFRES reader ShaderLibrary builds against, which is the one beside it; the asset readers here hand its ResFile to the exporters. -->
   <ItemGroup>
-    <Reference Include="BfresLibrary">
-      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\BfresLibrary.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="$(WrsBfresLibraryDir)\BfresLibrary\BfresLibrary.csproj" />
     <Reference Include="Syroot.Maths">
-      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\Syroot.Maths.dll</HintPath>
+      <HintPath>$(WrsBfresLibraryDir)\Libraries\Syroot.Maths.dll</HintPath>
     </Reference>
     <Reference Include="Syroot.BinaryData">
-      <HintPath>$(WrsShaderLibraryDir)\ShaderLibrary.CompileTool\Libs\Bfres\Syroot.BinaryData.dll</HintPath>
+      <HintPath>$(WrsBfresLibraryDir)\Libraries\Syroot.BinaryData.dll</HintPath>
     </Reference>
   </ItemGroup>
 
-  <!-- The VFXB/ESETB reader particle effects are read through. Its BFRES-dependent half (PtclSharp.Models) stays out: ShaderLibrary's BfresLibrary build is the one in this process. -->
+  <!-- The VFXB/ESETB reader particle effects are read through. -->
   <ItemGroup>
     <ProjectReference Include="$(WrsLibRoot)\PtclSharp\src\PtclSharp\PtclSharp.csproj" />
   </ItemGroup>

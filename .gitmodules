@@ -19,3 +19,6 @@
 [submodule "vendor/PtclSharp"]
 	path = vendor/PtclSharp
 	url = https://github.com/BladesawStudios/PtclSharp
+[submodule "vendor/BfresLibrary"]
+	path = vendor/BfresLibrary
+	url = https://github.com/BladesawStudios/BfresLibrary

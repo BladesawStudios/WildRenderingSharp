@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using BfresLibrary;
 using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
@@ -8,8 +9,8 @@ namespace WildRenderingSharp.Preparation.Totk;
 /// Turns the 64-bit keys that TotK's V10 BFRES files store in place of names back into the names, using a string table from the ROM.
 /// </summary>
 /// <remarks>
-/// Call <see cref="Use"/> with a ROM before parsing a BFRES and dispose the result afterwards; <see cref="Lookup"/> reads from the table it
-/// loaded, which is kept per async flow. The table file holds a sorted array of 64-bit keys starting at byte 224, followed by an entries
+/// Call <see cref="Use"/> with a ROM before parsing a BFRES and dispose the result afterwards; BfresLibrary names shader options, render infos
+/// and shader params through <see cref="Lookup"/>, which reads from the table it loaded, kept per async flow. The table file holds a sorted array of 64-bit keys starting at byte 224, followed by an entries
 /// array whose offset the header stores at byte 192. Each entry is 16 bytes and begins with the offset of a length-prefixed UTF-8 string, and a
 /// key's string is the entry at the same index as the key.
 /// </remarks>
@@ -49,9 +50,10 @@ public sealed class ExternalStringTable
         return new Scope(previous);
     }
 
-    // The string a key names in the current table, or null if the table has no entry for it.
-    public static string? Lookup(ulong key) =>
-        (Current.Value ?? throw new InvalidOperationException("No external string table is in use.")).Find(key);
+    static ExternalStringTable() => ResFile.ExternalStringResolver = key => Lookup(key)!;
+
+    // The string a key names in the current table, or null if no table is in use or it has no entry for the key, which BfresLibrary names by the key.
+    public static string? Lookup(ulong key) => Current.Value?.Find(key);
 
     string? Find(ulong key) => _names.GetOrAdd(key, Resolve);
 

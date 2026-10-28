@@ -21,7 +21,6 @@ public static class BotwSystemAssets
         if (IsBuilt(cache))
             return;
 
-        BfresPatches.EnsureApplied();
         log?.Invoke("[prepare] BotW deferred shading passes");
         var assets = new BotwAssets(rom);
         string archives = Path.Combine(cache.Root, "_botw_shader_archives");

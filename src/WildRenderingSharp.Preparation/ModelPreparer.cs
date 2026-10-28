@@ -17,7 +17,6 @@ public static class ModelPreparer
             return;
         }
 
-        BfresPatches.EnsureApplied();
         using var romfs = new TotkRomfs(romfsRoot);
         using var strings = ExternalStringTable.Use(romfs.Base);
         TotkSystemAssets.Ensure(romfs, cache, log);
@@ -32,7 +31,6 @@ public static class ModelPreparer
     public static string PrepareIfNeeded(string romfsRoot, string actorOrModelName, CacheLayout cache, Action<string>? log = null,
         bool importAnims = true, bool force = false, IEnumerable<string>? modRomfsLayers = null)
     {
-        BfresPatches.EnsureApplied();
         using var romfs = new TotkRomfs(romfsRoot, modRomfsLayers);
         using var strings = ExternalStringTable.Use(romfs.Layered);
         return PrepareIfNeeded(romfs, actorOrModelName, cache, log, importAnims, force);
@@ -42,7 +40,6 @@ public static class ModelPreparer
         Action<string>? onBegin, Action<PrepareOutcome> onOutcome, bool importAnims = true, bool force = false,
         IEnumerable<string>? modRomfsLayers = null, CancellationToken cancellationToken = default)
     {
-        BfresPatches.EnsureApplied();
         using var romfs = new TotkRomfs(romfsRoot, modRomfsLayers);
         using var strings = ExternalStringTable.Use(romfs.Layered);
         TotkShaderArchives.Extract(romfs.Base, cache, "material");

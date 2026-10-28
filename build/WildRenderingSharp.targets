@@ -9,8 +9,8 @@
 
       wrs-prepare\  WildRenderingSharp.Preparation - the offline model preparer, run as a child
                     process by WildRenderingSharp.Hosting.OutOfProcessPreparer. It carries
-                    ShaderLibrary's own vendored BfresLibrary build, which is not the one a host
-                    building BfresLibrary from source has. Built when WrsOutOfProcessPreparer is
+                    the BfresLibrary build ShaderLibrary builds against, which need not be the one
+                    a host builds itself. Built when WrsOutOfProcessPreparer is
                     true (the default). A host that references WildRenderingSharp.Preparation
                     directly and prepares in-process can set it to false.
 
