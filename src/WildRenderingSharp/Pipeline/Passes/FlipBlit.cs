@@ -25,22 +25,24 @@ internal sealed class FlipBlit : IDisposable
         _floorProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FloorFragmentSource, "flip_blit_floor");
     }
 
-    public void Copy(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, bool flip)
+    public void Copy(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, bool flip, float scale = 1f)
     {
         _gl.UseProgram(_flipProgram);
         targets.BindColorTarget(dst);
         _gl.BindTextureUniform(_flipProgram, "t", 0, src.Handle);
         _gl.SetInt(_flipProgram, "uFlip", flip ? 1 : 0);
+        _gl.SetFloat(_flipProgram, "uScale", scale);
         resources.DrawFullscreenTriangle();
     }
 
-    public void CopyWithFloor(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, GpuTexture floor, bool flip)
+    public void CopyWithFloor(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, GpuTexture floor, bool flip, float scale = 1f)
     {
         _gl.UseProgram(_floorProgram);
         targets.BindColorTarget(dst);
         _gl.BindTextureUniform(_floorProgram, "t", 0, src.Handle);
         _gl.BindTextureUniform(_floorProgram, "tFloor", 1, floor.Handle);
         _gl.SetInt(_floorProgram, "uFlip", flip ? 1 : 0);
+        _gl.SetFloat(_floorProgram, "uScale", scale);
         resources.DrawFullscreenTriangle();
     }
 

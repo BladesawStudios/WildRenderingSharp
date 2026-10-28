@@ -65,8 +65,12 @@ internal sealed class SceneColorShapePass : IDisposable
                 continue;
             group.BindUbos(resources);
             foreach (var sh in shapes)
+            {
+                FaceCulling.Apply(_gl, sh.RenderState);
                 group.Draw(drawer, sh, ShapeProgram.GBuffer);
+            }
         }
+        FaceCulling.Reset(_gl);
 
         _gl.DepthFunc(DepthFunction.Less);
         _gl.Disable(EnableCap.DepthTest);
