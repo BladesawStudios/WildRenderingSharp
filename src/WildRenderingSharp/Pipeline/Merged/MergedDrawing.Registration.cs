@@ -121,7 +121,8 @@ internal sealed unsafe partial class MergedDrawing
     {
         var merged = new MergedShape(this, _geometry!.Add(shape), _materials!.Add(shape.MaterialBlock))
         {
-            Excluded = shape.GBufferSamplers.Concat(shape.ZOnlySamplers).Any(s => ExternalTextures.IsArraySampler(s.Key)),
+            // A shape that needs its back face culled is drawn on its own, with that state set, since a merged draw is issued later for every shape of a program at once.
+            Excluded = shape.CullsFaces || shape.GBufferSamplers.Concat(shape.ZOnlySamplers).Any(s => ExternalTextures.IsArraySampler(s.Key)),
         };
         shape.Merged = merged;
         return merged;

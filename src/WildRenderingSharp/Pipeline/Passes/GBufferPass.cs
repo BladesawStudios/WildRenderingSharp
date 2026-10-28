@@ -140,12 +140,28 @@ internal sealed class GBufferPass(GL gl)
                 batchBlocks = group.Batch is not null;
                 bound = g;
             }
+            SetCulling(shape);
             group.Draw(drawer, shape, which);
             if (detailed)
                 timer!.Detail(detailPrefix + group.Label);
         }
+        // The merged draws are issued below for every shape of a program together, with the state they were collected under.
+        SetCulling(null);
         drawer.Merged.Flush();
     }
+
+    // The face a material hides is left out for the shapes that cut out their front face and would show it through the cut; everything else is drawn double-sided.
+    void SetCulling(LoadedShape? shape)
+    {
+        bool cull = shape is { CullsFaces: true };
+        if (cull)
+            FaceCulling.Apply(gl, shape!.RenderState);
+        else if (_culling)
+            FaceCulling.Reset(gl);
+        _culling = cull;
+    }
+
+    bool _culling;
 
     void CollectItems(IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer, Func<LoadedShape, bool> include, ShapeProgram which)
     {
