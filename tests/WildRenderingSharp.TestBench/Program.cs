@@ -107,6 +107,8 @@ if (options.ContainsKey("check-water-shader"))
 using var rom = TotkRom.Open(romfs);
 var renderer = new WildRenderer(gl, cache, rom, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
+// The largest side a texture is kept at, as the World view sets it; zero keeps them whole.
+renderer.TextureMaxSize = int.Parse(Option("texmax", "0"));
 int instanceCount = int.Parse(Option("instances", "0"));
 if (instanceCount == 0 && mixModels.Count == 0)
 {
@@ -168,6 +170,10 @@ if (options.TryGetValue("yaw", out var yaw))
     viewOffset = Vector3.Transform(viewOffset, Quaternion.CreateFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(float.Parse(yaw))));
 if (options.TryGetValue("target-y", out var targetY))
     center.Y = float.Parse(targetY);
+if (options.TryGetValue("target-x", out var targetX))
+    center.X = float.Parse(targetX);
+if (options.TryGetValue("target-z", out var targetZ))
+    center.Z = float.Parse(targetZ);
 camera.Target = center;
 camera.Eye = center + viewOffset;
 if (options.TryGetValue("near", out var nearPlane))

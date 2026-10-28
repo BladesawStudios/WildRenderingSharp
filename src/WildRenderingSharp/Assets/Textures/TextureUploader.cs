@@ -28,7 +28,8 @@ sealed class TextureUploader(GL gl, int maxSize = 0)
 
     // The file is the mip chain back to back, or mip 0 alone from an older cache; levels are read for as long as another whole one remains.
     // A cap on the size, when there is one, leaves out the levels above it, which are most of a mip chain's bytes: each level is three times the ones below it put together.
-    // The last level is never left out, so a texture with no smaller ones goes up whole.
+    // The texture is kept at the smallest level that is still at least the cap, so a chain that does not halve onto it (3072, 1536, 768, 384) is kept at 768 and not at
+    // 384, which would leave its high-resolution version blurrier than the 1024 one it replaces. The last level is never left out, so a texture with no smaller ones goes up whole.
     int UploadLevels(SamplerBinding s, CompressedTextureFormat.Info info, byte[] raw, bool srgb, out long bytes, out int width, out int height)
     {
         bytes = 0;
@@ -49,7 +50,7 @@ sealed class TextureUploader(GL gl, int maxSize = 0)
         }
 
         int first = 0;
-        while (maxSize > 0 && first < chain.Count - 1 && Math.Max(chain[first].W, chain[first].H) > maxSize)
+        while (maxSize > 0 && first < chain.Count - 1 && Math.Max(chain[first + 1].W, chain[first + 1].H) >= maxSize)
             first++;
 
         int levels = 0;
