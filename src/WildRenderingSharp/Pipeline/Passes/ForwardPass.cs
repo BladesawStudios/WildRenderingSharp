@@ -64,6 +64,9 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
         // GL keeps the blend equation as global state even with blending off, so a material authoring sub, min or max would leak it.
         gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);
         gl.Disable(EnableCap.PolygonOffsetFill);
+        gl.Disable(EnableCap.CullFace);
+        gl.FrontFace(FrontFaceDirection.Ccw);
+        gl.CullFace(TriangleFace.Back);
         gl.DepthMask(true);
         gl.DepthFunc(DepthFunction.Less);
         gl.Disable(EnableCap.DepthTest);
@@ -78,6 +81,7 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
         gl.DepthFunc((DepthFunction)shape.RenderState.ResolveDepthFunc());
         gl.DepthMask(shape.RenderState.DepthWriteEnabled);
         SetPolygonOffset(shape);
+        SetCulling(shape);
 
         if (group.Batch is not null)
         {
@@ -93,6 +97,19 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
             gl.SetInt(program, "uDebugStepTarget", shape.DebugStepTarget);
         }
         drawer.Draw(program, shape.ForwardVao, shape.MaterialBlock, shape.ForwardSamplers, shape.IndexCount, shape.SamplerOverrides);
+    }
+
+    // A material authors which face it shows; a double-sided lens shaded on both is what made it a solid disc, its far side being a fresnel-opaque back face.
+    void SetCulling(LoadedShape shape)
+    {
+        if (shape.RenderState.CulledFace is not { } face)
+        {
+            gl.Disable(EnableCap.CullFace);
+            return;
+        }
+        gl.Enable(EnableCap.CullFace);
+        gl.FrontFace(FrontFaceDirection.Ccw);
+        gl.CullFace(face);
     }
 
     // A blended shape uses its own blend state. An opaque or masked one redraws additively for its status-effect overlay: its forward
