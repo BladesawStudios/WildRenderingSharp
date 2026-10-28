@@ -60,20 +60,20 @@ static class FrameProbe
         // The scan reads the whole emission buffer back, so it runs a few times a second and the last result stands in between.
         if (_scanFrames++ % ScanEvery == 0)
         {
-            _edge = DescribeBrightestLine(t);
+            _edge = DescribeBrightestLine(t, t.Final, "the lit frame (HDR)", mark: true) + DescribeBrightestLine(t, t.Ldr, "the displayed frame, after tonemap and field haze", mark: false);
             _dark = DescribeDarkestLine(t);
         }
         text.Append(_edge);
         text.Append(_dark);
     }
 
-    // Finds, with no aiming, the thinnest bright line in the lit frame - a pixel well above both its neighbours along one axis, the way a rim is - and lists
+    // Finds, with no aiming, the thinnest bright line in a frame - a pixel well above both its neighbours along one axis, the way a rim is - and lists
     // what each buffer held for nine pixels across it. Its place is kept for drawing a marker on the view.
-    static string DescribeBrightestLine(RenderTargets t)
+    static string DescribeBrightestLine(RenderTargets t, GpuTexture source, string frameName, bool mark)
     {
         var text = new StringBuilder();
-        int width = t.Final.Width, height = t.Final.Height;
-        float[] hdr = t.ReadPixelsFloatRgba(t.Final);   // rows from the top of the displayed frame
+        int width = source.Width, height = source.Height;
+        float[] hdr = t.ReadPixelsFloatRgba(source);   // rows from the top of the displayed frame
         float Luma(int px, int py) { int i = (py * width + px) * 4; return hdr[i] + hdr[i + 1] + hdr[i + 2]; }
 
         (int X, int Y, int DX, int DY, float Excess) best = (-1, -1, 0, 0, 0f);
@@ -92,8 +92,9 @@ static class FrameProbe
             }
         }
 
-        _marker = best.X < 0 ? null : (best.X, best.Y, width, height);
-        text.AppendLine("--- the brightest thin line in the lit frame ---");
+        if (mark)
+            _marker = best.X < 0 ? null : (best.X, best.Y, width, height);
+        text.AppendLine($"--- the brightest thin line in {frameName} ---");
         if (best.X < 0)
         {
             text.AppendLine("none");
@@ -153,10 +154,10 @@ static class FrameProbe
             ("emission", t.GBuffer[5], 1f, false), ("albedo", t.GBuffer[1], 255f, false), ("normal", t.GBuffer[3], 255f, false), ("material", t.GBuffer[0], 255f, false),
             ("pass id", t.PassId, 255f, false), ("linear depth", t.LinearDepth, 1f, false), ("half depth", t.LinearDepthHalf, 1f, true),
             ("pre-shadow", t.PreShadow, 1f, true), ("pre-misc", t.PreMisc, 1f, true), ("pre-fog", t.PreFog, 1f, false), ("pre-fog half", t.PreFogHalf, 1f, true),
-            ("behind", t.Behind, 1f, false), ("HDR", t.Final, 1f, false),
+            ("behind", t.Behind, 1f, false), ("HDR", t.Final, 1f, false), ("LDR", t.Ldr, 1f, false),
         })
         {
-            bool fromBottom = texture == t.PassId || texture == t.Final;
+            bool fromBottom = texture == t.PassId || texture == t.Final || texture == t.Ldr;
             string Cell(int i)
             {
                 int cx = Math.Clamp(x + dx * (i - 4), 0, width - 1);
