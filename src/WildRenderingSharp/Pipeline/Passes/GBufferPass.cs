@@ -35,17 +35,20 @@ internal sealed class GBufferPass(GL gl)
         DrawStepDebugger(resources, targets, groups, drawer);
     }
 
-    // A z-prepass pays only where the z-only program discards: that shape's G-buffer program takes its cutout from the prepass depth.
+    // A z-prepass pays only where the z-only program discards and the G-buffer program does not: that shape's G-buffer program takes its cutout from the prepass
+    // depth. One that cuts out for itself needs no prepass, and with one the two programs' depths have to agree to the last step or the main draw loses the
+    // pixels the prepass kept, as a dissolving ribbon did, leaving flat patches where it should have been dark scales.
     // Asked of every shape every frame, so what the program source said is remembered here rather than looked up under the cache's lock.
-    readonly Dictionary<string, bool> _discards = new(StringComparer.Ordinal);
+    readonly Dictionary<(string ZOnly, string GBuffer), bool> _needsPrepass = [];
 
     bool NeedsPrepass(ShapeDrawer drawer, LoadedShape shape)
     {
         if (!shape.HasZOnly || !shape.RenderState.DepthWriteEnabled)
             return false;
-        if (!_discards.TryGetValue(shape.ZOnlyShaderName, out bool discards))
-            _discards[shape.ZOnlyShaderName] = discards = drawer.Programs.FragmentDiscards(shape.ZOnlyShaderName);
-        return discards;
+        var key = (shape.ZOnlyShaderName, shape.GBufferShaderName);
+        if (!_needsPrepass.TryGetValue(key, out bool needed))
+            _needsPrepass[key] = needed = drawer.Programs.FragmentDiscards(key.ZOnlyShaderName) && !drawer.Programs.FragmentDiscards(key.GBufferShaderName);
+        return needed;
     }
 
     void DrawStages(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
