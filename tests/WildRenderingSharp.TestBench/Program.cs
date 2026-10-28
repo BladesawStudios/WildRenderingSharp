@@ -166,6 +166,10 @@ if (options.TryGetValue("target-y", out var targetY))
     center.Y = float.Parse(targetY);
 camera.Target = center;
 camera.Eye = center + viewOffset;
+if (options.TryGetValue("near", out var nearPlane))
+    camera.NearPlane = float.Parse(nearPlane);
+if (options.TryGetValue("far", out var farPlane))
+    camera.FarPlane = float.Parse(farPlane);
 
 // A second actor behind the first, for what reads the lit scene behind it: its own centre moved away from the camera and down.
 if (behindModel is not null)

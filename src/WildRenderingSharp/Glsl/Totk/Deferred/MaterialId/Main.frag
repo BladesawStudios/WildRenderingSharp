@@ -19,7 +19,7 @@ void main() {
     // The host's draws do not write this layer, so where they won the depth it still holds what a shape they covered wrote.
     if (uHostDrew != 0) {
         float d = texture(tex_gbuf_depth, g).r;
-        float viewZ = (2.0 * uNearFar.x * uNearFar.y) / (uNearFar.y + uNearFar.x - (d * 2.0 - 1.0) * (uNearFar.y - uNearFar.x));
+        float viewZ = (uNearFar.x * uNearFar.y) / (uNearFar.y * (1.0 - d) + uNearFar.x * d);
         float now = clamp((viewZ - uNearFar.x) / (uNearFar.y - uNearFar.x), 0.0, 1.0);
         float before = texture(tex_before_host, g).r;
         if (now < before - max(1e-7, before * 1e-4))
