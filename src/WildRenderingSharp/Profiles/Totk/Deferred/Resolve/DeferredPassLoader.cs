@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Logging;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
@@ -21,7 +22,8 @@ static class DeferredPassLoader
             if (FindProgram(decompiledDir, requested) is not var (name, source))
                 continue;
 
-            uint program = programs.Load(source);
+            // The resolve is drawn at the frame's size, so the depth it gathers at its own pixel is the full-resolution one.
+            uint program = programs.Load(source, patchFragment: f => PixelCentreGather.Anchor(f, "cTex_NormalizedLinearDepth"));
             string materialPath = Path.Combine(deferredMaterialsDir, $"{name}.gsys_material.bin");
             var material = MaterialBlock.FromFile(gl, materialPath);
             if (material.Authored.Length == 0)
