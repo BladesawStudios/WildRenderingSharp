@@ -61,4 +61,12 @@ internal sealed class RenderState
         new BlendEquations(Lookup(BlendOps, RgbOp, "add"), Lookup(BlendOps, AlphaOp, "add")));
 
     public GLEnum ResolveDepthFunc() => Lookup(DepthFuncsByName, DepthFunc, "lequal");
+
+    // The face the material discards: "front" shows only front faces, "back" only back faces, anything else both.
+    public TriangleFace? CulledFace => DisplayFace switch
+    {
+        "front" => TriangleFace.Back,
+        "back" => TriangleFace.Front,
+        _ => null,
+    };
 }

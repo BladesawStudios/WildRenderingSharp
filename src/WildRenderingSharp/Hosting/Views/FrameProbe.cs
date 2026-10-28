@@ -60,20 +60,20 @@ static class FrameProbe
         // The scan reads the whole emission buffer back, so it runs a few times a second and the last result stands in between.
         if (_scanFrames++ % ScanEvery == 0)
         {
-            _edge = DescribeBrightestLine(t);
+            _edge = DescribeBrightestLine(t, t.Final, "the lit frame (HDR)", mark: true) + DescribeBrightestLine(t, t.Ldr, "the displayed frame, after tonemap and field haze", mark: false);
             _dark = DescribeDarkestLine(t);
         }
         text.Append(_edge);
         text.Append(_dark);
     }
 
-    // Finds, with no aiming, the thinnest bright line in the lit frame - a pixel well above both its neighbours along one axis, the way a rim is - and lists
+    // Finds, with no aiming, the thinnest bright line in a frame - a pixel well above both its neighbours along one axis, the way a rim is - and lists
     // what each buffer held for nine pixels across it. Its place is kept for drawing a marker on the view.
-    static string DescribeBrightestLine(RenderTargets t)
+    static string DescribeBrightestLine(RenderTargets t, GpuTexture source, string frameName, bool mark)
     {
         var text = new StringBuilder();
-        int width = t.Final.Width, height = t.Final.Height;
-        float[] hdr = t.ReadPixelsFloatRgba(t.Final);   // rows from the top of the displayed frame
+        int width = source.Width, height = source.Height;
+        float[] hdr = t.ReadPixelsFloatRgba(source);   // rows from the top of the displayed frame
         float Luma(int px, int py) { int i = (py * width + px) * 4; return hdr[i] + hdr[i + 1] + hdr[i + 2]; }
 
         (int X, int Y, int DX, int DY, float Excess) best = (-1, -1, 0, 0, 0f);
@@ -85,15 +85,16 @@ static class FrameProbe
                 if (luma < 0.15f)
                     continue;
                 float across = MathF.Max(Luma(px - 1, py), Luma(px + 1, py)), down = MathF.Max(Luma(px, py - 1), Luma(px, py + 1));
-                if (luma - across > best.Excess && luma > 1.6f * across)
+                if (luma - across > best.Excess && luma > BrightRatio * across)
                     best = (px, py, 1, 0, luma - across);
-                if (luma - down > best.Excess && luma > 1.6f * down)
+                if (luma - down > best.Excess && luma > BrightRatio * down)
                     best = (px, py, 0, 1, luma - down);
             }
         }
 
-        _marker = best.X < 0 ? null : (best.X, best.Y, width, height);
-        text.AppendLine("--- the brightest thin line in the lit frame ---");
+        if (mark)
+            _marker = best.X < 0 ? null : (best.X, best.Y, width, height);
+        text.AppendLine($"--- the brightest thin line in {frameName} ---");
         if (best.X < 0)
         {
             text.AppendLine("none");
@@ -102,23 +103,7 @@ static class FrameProbe
 
         text.AppendLine($"at x {best.X}, y {best.Y} from the top ({100f * best.X / width:F0}% across, {100f * best.Y / height:F0}% down), a line along "
             + (best.DX == 1 ? "y" : "x") + $", {best.Excess:G3} brighter than its neighbours; nine pixels across it, {(best.DX == 1 ? "left to right" : "top to bottom")}, with it fifth");
-        foreach (var (name, texture, scale) in new (string, GpuTexture, float)[]
-        {
-            ("emission", t.GBuffer[5], 1f), ("albedo", t.GBuffer[1], 255f), ("material", t.GBuffer[0], 255f), ("pass id", t.PassId, 255f),
-            ("linear depth", t.LinearDepth, 1f), ("behind", t.Behind, 1f), ("HDR", t.Final, 1f),
-        })
-        {
-            // The pass ID and the HDR are laid out from the bottom of the frame, the G-buffer and what is stored like it from the top.
-            bool fromBottom = texture == t.PassId || texture == t.Final;
-            string Cell(int i)
-            {
-                int cx = Math.Clamp(best.X + best.DX * (i - 4), 0, width - 1);
-                int cy = Math.Clamp(best.Y + best.DY * (i - 4), 0, height - 1);
-                var v = t.ReadPixel(texture, cx, fromBottom ? height - 1 - cy : cy) * scale;
-                return scale == 1f ? $"{v.X:G3} {v.Y:G3} {v.Z:G3}" : $"{v.X:F0} {v.Y:F0} {v.Z:F0} {v.W:F0}";
-            }
-            text.AppendLine($"{name,-13} {string.Join(" | ", Enumerable.Range(0, 9).Select(Cell))}");
-        }
+        ListAcross(text, t, best.X, best.Y, best.DX, best.DY);
         return text.ToString();
     }
 
@@ -154,19 +139,29 @@ static class FrameProbe
 
         text.AppendLine($"at x {worst.X}, y {worst.Y} from the top ({100f * worst.X / width:F0}% across, {100f * worst.Y / height:F0}% down), a line along "
             + (worst.DX == 1 ? "y" : "x") + $", {worst.Drop:G3} darker than its neighbours; nine pixels across it, {(worst.DX == 1 ? "left to right" : "top to bottom")}, with it fifth");
-        foreach (var (name, texture, scale) in new (string, GpuTexture, float)[]
+        ListAcross(text, t, worst.X, worst.Y, worst.DX, worst.DY);
+        return text.ToString();
+    }
+
+    // Every buffer the resolve reads, for nine pixels across a found line with it fifth, so one copy of the text says which of them holds the odd value. The buffers
+    // drawn under the game's origin are laid out from the top of the frame, the pass ID and the HDR from the bottom, and the pre-shading and half-depth buffers
+    // are half the frame's size, so a pixel's texel in them is its own halved.
+    static void ListAcross(StringBuilder text, RenderTargets t, int x, int y, int dx, int dy)
+    {
+        int width = t.Final.Width, height = t.Final.Height;
+        foreach (var (name, texture, scale, half) in new (string, GpuTexture, float, bool)[]
         {
-            ("emission", t.GBuffer[5], 1f), ("albedo", t.GBuffer[1], 255f), ("normal", t.GBuffer[3], 255f), ("material", t.GBuffer[0], 255f), ("pass id", t.PassId, 255f),
-            ("linear depth", t.LinearDepth, 1f), ("pre-shadow", t.PreShadow, 1f), ("pre-misc", t.PreMisc, 1f), ("pre-fog", t.PreFog, 1f), ("behind", t.Behind, 1f), ("HDR", t.Final, 1f),
+            ("emission", t.GBuffer[5], 1f, false), ("albedo", t.GBuffer[1], 255f, false), ("normal", t.GBuffer[3], 255f, false), ("material", t.GBuffer[0], 255f, false),
+            ("pass id", t.PassId, 255f, false), ("linear depth", t.LinearDepth, 1f, false), ("half depth", t.LinearDepthHalf, 1f, true),
+            ("pre-shadow", t.PreShadow, 1f, true), ("pre-misc", t.PreMisc, 1f, true), ("pre-fog", t.PreFog, 1f, false), ("pre-fog half", t.PreFogHalf, 1f, true),
+            ("behind", t.Behind, 1f, false), ("HDR", t.Final, 1f, false), ("LDR", t.Ldr, 1f, false),
         })
         {
-            // The buffers drawn under the game's origin are laid out from the top of the frame; the pass ID and the HDR from the bottom.
-            bool fromBottom = texture == t.PassId || texture == t.Final;
-            bool half = texture == t.PreShadow || texture == t.PreMisc;
+            bool fromBottom = texture == t.PassId || texture == t.Final || texture == t.Ldr;
             string Cell(int i)
             {
-                int cx = Math.Clamp(worst.X + worst.DX * (i - 4), 0, width - 1);
-                int cy = Math.Clamp(worst.Y + worst.DY * (i - 4), 0, height - 1);
+                int cx = Math.Clamp(x + dx * (i - 4), 0, width - 1);
+                int cy = Math.Clamp(y + dy * (i - 4), 0, height - 1);
                 if (half)
                     (cx, cy) = (cx / 2, cy / 2);
                 var v = t.ReadPixel(texture, cx, fromBottom ? texture.Height - 1 - cy : cy) * scale;
@@ -174,12 +169,14 @@ static class FrameProbe
             }
             text.AppendLine($"{name,-13} {string.Join(" | ", Enumerable.Range(0, 9).Select(Cell))}");
         }
-        return text.ToString();
     }
 
     // Where the last scan found its line, in the pixels of the frame it scanned, for the view to mark.
     public static (int X, int Y, int Width, int Height)? Marker => _marker;
     static (int X, int Y, int Width, int Height)? _marker;
+
+    // How much brighter than its brighter neighbour a pixel must be to count as a bright line; a pale blob on a pale surface is not far above it.
+    const float BrightRatio = 1.25f;
 
     const int ScanEvery = 30;
     static int _scanFrames;

@@ -111,6 +111,10 @@ int instanceCount = int.Parse(Option("instances", "0"));
 if (instanceCount == 0 && mixModels.Count == 0)
 {
     var actor = renderer.AddActor(model);
+    // Materials whose name contains the text also draw in the forward pass, as a status-effect overlay does.
+    if (options.TryGetValue("force-forward", out var forceForward))
+        foreach (var shape in actor.Model.Shapes.Where(s => s.Material.Contains(forceForward, StringComparison.OrdinalIgnoreCase)))
+            shape.ForceForward = true;
     // Animations held at a frame, as "m:<name>=<frame>" (shader parameters) or "t:<name>=<frame>" (texture patterns), comma separated.
     foreach (string held in Option("hold", "").Split(',', StringSplitOptions.RemoveEmptyEntries))
     {
@@ -155,8 +159,17 @@ if (instanceCount > 0 || mixModels.Count > 0)
     var framing = SceneFramingCalculator.ForModelRadius(radius);
     (camera.NearPlane, camera.FarPlane) = (framing.Near, framing.Far);
 }
+var viewOffset = SceneFramingCalculator.DefaultViewDirection * radius * float.Parse(Option("distance", "3.5"));
+if (options.TryGetValue("yaw", out var yaw))
+    viewOffset = Vector3.Transform(viewOffset, Quaternion.CreateFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(float.Parse(yaw))));
+if (options.TryGetValue("target-y", out var targetY))
+    center.Y = float.Parse(targetY);
 camera.Target = center;
-camera.Eye = center + SceneFramingCalculator.DefaultViewDirection * radius * 3.5f;
+camera.Eye = center + viewOffset;
+if (options.TryGetValue("near", out var nearPlane))
+    camera.NearPlane = float.Parse(nearPlane);
+if (options.TryGetValue("far", out var farPlane))
+    camera.FarPlane = float.Parse(farPlane);
 
 // A second actor behind the first, for what reads the lit scene behind it: its own centre moved away from the camera and down.
 if (behindModel is not null)
@@ -192,6 +205,8 @@ if (options.ContainsKey("cascades"))
         .Select(reach => new ShadowFocus(camera.Eye + forward * reach * 0.5f, reach)).ToArray();
 }
 
+if (options.TryGetValue("aa", out var aa))
+    renderer.View.AntiAliasing = Enum.Parse<WildRenderingSharp.Hosting.Views.AntiAliasingMode>(aa, ignoreCase: true);
 if (options.TryGetValue("view", out var view))
     renderer.View.Mode = Enum.Parse<WildRenderingSharp.Hosting.Views.SceneViewMode>(view, ignoreCase: true);
 

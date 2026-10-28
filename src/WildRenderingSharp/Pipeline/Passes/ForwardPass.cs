@@ -17,7 +17,7 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
     // The forward programs' own inputs go on units the rest of the frame binds once and relies on, so the bindings are put back afterwards.
     readonly TextureBindingSnapshot _bindings = new();
 
-    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer, float sceneUnits)
     {
         var forwardGroups = groups
             .Select(g => (Group: g, Forward: g.Shapes.Where(s => s.HasForward && (s.Blend || s.ForceForward)).ToList()))
@@ -27,22 +27,22 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
             return;
 
         _bindings.Capture(gl);
-        Begin(resources, targets);
+        Begin(resources, targets, sceneUnits);
         foreach (var (group, shapes) in forwardGroups)
         {
             group.BindUbos(resources);
             foreach (var shape in shapes)
                 DrawShape(group, shape, drawer);
         }
-        End(resources, targets);
+        End(resources, targets, sceneUnits);
         _bindings.Restore(gl);
     }
 
     // Draws into the scene in the G-buffer's flipped orientation, against the G-buffer's depth, with a copy of the scene behind for cTex_ColorBuffer.
-    void Begin(GLResourceCache resources, RenderTargets targets)
+    void Begin(GLResourceCache resources, RenderTargets targets, float sceneUnits)
     {
         gl.Disable(EnableCap.Blend);
-        flip.Copy(resources, targets, targets.Scene, targets.Final, flip: true);
+        flip.Copy(resources, targets, targets.Scene, targets.Final, flip: true, sceneUnits);
         flip.Copy(resources, targets, targets.Behind, targets.Scene, flip: false);
 
         targets.BindColorAndDepthTarget(targets.Scene, targets.GBufferDepth);
@@ -58,18 +58,19 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
         neutral.Bind();
     }
 
-    void End(GLResourceCache resources, RenderTargets targets)
+    void End(GLResourceCache resources, RenderTargets targets, float sceneUnits)
     {
         gl.Disable(EnableCap.Blend);
         // GL keeps the blend equation as global state even with blending off, so a material authoring sub, min or max would leak it.
         gl.BlendEquationSeparate(GLEnum.FuncAdd, GLEnum.FuncAdd);
         gl.Disable(EnableCap.PolygonOffsetFill);
+        FaceCulling.Reset(gl);
         gl.DepthMask(true);
         gl.DepthFunc(DepthFunction.Less);
         gl.Disable(EnableCap.DepthTest);
         ClipOrigin.Game(gl, false);
         resources.BindCamera(FrameUniformKeys.SceneCamera);
-        flip.CopyWithFloor(resources, targets, targets.Final, targets.Scene, targets.Behind, flip: true);
+        flip.CopyKeepingCoverage(resources, targets, targets.Final, targets.Scene, targets.Behind, flip: true, 1f / sceneUnits);
     }
 
     void DrawShape(ActorDrawGroup group, LoadedShape shape, ShapeDrawer drawer)
@@ -78,6 +79,7 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
         gl.DepthFunc((DepthFunction)shape.RenderState.ResolveDepthFunc());
         gl.DepthMask(shape.RenderState.DepthWriteEnabled);
         SetPolygonOffset(shape);
+        FaceCulling.Apply(gl, shape.RenderState);
 
         if (group.Batch is not null)
         {

@@ -11,42 +11,43 @@ internal sealed class FlipBlit : IDisposable
 {
     static readonly string FlipFragmentSource = GlslFiles.Load("Pipeline/Forward/Flip.frag");
 
-    // The combine step after forward geometry has been added into the scene, floored at the deferred-only copy so the forward pass only
-    // brightens and only adds coverage: the forward program's base colour term is negative for every input (a decompiler artifact).
-    static readonly string FloorFragmentSource = GlslFiles.Load("Pipeline/Forward/Floor.frag");
+    // The combine step after forward drawing: the scene back in the frame's units, keeping the coverage the deferred pass wrote.
+    static readonly string CoverageFragmentSource = GlslFiles.Load("Pipeline/Forward/Coverage.frag");
 
     readonly GL _gl;
-    readonly uint _flipProgram, _floorProgram;
+    readonly uint _flipProgram, _coverageProgram;
 
     public FlipBlit(GL gl)
     {
         _gl = gl;
         _flipProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FlipFragmentSource, "flip_blit");
-        _floorProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FloorFragmentSource, "flip_blit_floor");
+        _coverageProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, CoverageFragmentSource, "flip_blit_coverage");
     }
 
-    public void Copy(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, bool flip)
+    public void Copy(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, bool flip, float scale = 1f)
     {
         _gl.UseProgram(_flipProgram);
         targets.BindColorTarget(dst);
         _gl.BindTextureUniform(_flipProgram, "t", 0, src.Handle);
         _gl.SetInt(_flipProgram, "uFlip", flip ? 1 : 0);
+        _gl.SetFloat(_flipProgram, "uScale", scale);
         resources.DrawFullscreenTriangle();
     }
 
-    public void CopyWithFloor(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, GpuTexture floor, bool flip)
+    public void CopyKeepingCoverage(GLResourceCache resources, RenderTargets targets, GpuTexture dst, GpuTexture src, GpuTexture coverage, bool flip, float scale = 1f)
     {
-        _gl.UseProgram(_floorProgram);
+        _gl.UseProgram(_coverageProgram);
         targets.BindColorTarget(dst);
-        _gl.BindTextureUniform(_floorProgram, "t", 0, src.Handle);
-        _gl.BindTextureUniform(_floorProgram, "tFloor", 1, floor.Handle);
-        _gl.SetInt(_floorProgram, "uFlip", flip ? 1 : 0);
+        _gl.BindTextureUniform(_coverageProgram, "t", 0, src.Handle);
+        _gl.BindTextureUniform(_coverageProgram, "tCoverage", 1, coverage.Handle);
+        _gl.SetInt(_coverageProgram, "uFlip", flip ? 1 : 0);
+        _gl.SetFloat(_coverageProgram, "uScale", scale);
         resources.DrawFullscreenTriangle();
     }
 
     public void Dispose()
     {
         _gl.ReleaseProgram(_flipProgram);
-        _gl.ReleaseProgram(_floorProgram);
+        _gl.ReleaseProgram(_coverageProgram);
     }
 }

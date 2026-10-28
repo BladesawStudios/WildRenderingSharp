@@ -5,6 +5,7 @@ using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
+using WildRenderingSharp.Profiles.Totk.Shaders;
 using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PreShading;
@@ -74,17 +75,9 @@ internal sealed class PreShadingPass : IDisposable
         _material.Dispose();
     }
 
-    // A pass that reads its own half-resolution depth texel gathers at the pixel's centre, which is exactly where the gather's footprint changes: float
-    // error in the interpolated coordinate decides, row by row, whether it anchors on its own texel or the one above, and the rows that miss show as bands.
-    // A quarter texel in keeps the footprint on the texel's own side. The water pass reads no half-resolution depth.
-    const string HalfDepthGather = "textureGather(cTex_HalfNormalizedLinearDepth, vec2(temp_0, temp_1), 0)";
-
+    // The pass is drawn at the half-resolution buffers' size, so its own half-resolution depth texel is the one gathered at the pixel's centre. The water pass reads none.
     static string Patch(string fragment) =>
-        MaskByPassId(fragment.Contains(HalfDepthGather, StringComparison.Ordinal)
-            ? fragment.Replace(HalfDepthGather,
-                "textureGather(cTex_HalfNormalizedLinearDepth, vec2(temp_0, temp_1) + 0.25 / vec2(textureSize(cTex_HalfNormalizedLinearDepth, 0)), 0)",
-                StringComparison.Ordinal)
-            : fragment);
+        MaskByPassId(PixelCentreGather.Anchor(fragment, "cTex_HalfNormalizedLinearDepth"));
 
     static string MaskByPassId(string fragment) =>
         fragment.ReplaceRequired("void main()\n{",

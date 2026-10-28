@@ -35,6 +35,9 @@ Conclusions only, from the game binary (Ghidra), GPU captures (RenderDoc) and th
 - The forward `gsys_assign_material` programs read four blocks: `_Context` (1), `_Mat` (8), `_Env` (6) and `_SceneMat` (10). `_Mat` is built per material offline.
 - Nine of its 17 samplers are neutral placeholders here. The unit 6 shadow cascade placeholder (always lit) collapses the shadow contrast term to 0, so `DynamicDepthShadowScale` (`SceneMat[3].z`, set by `ModelSceneExtension::setDynamicShadowParams` as `1 - param`) is left unwritten.
 - The fog colours in `Env[16]` and `Env[19]` do not leak into the forward result: every term that multiplies them is zero by construction.
+- `gsys::ModelScene::getDrawArg` lists the game's passes with a material-mask word each: `GBuffer/Xlu` (`0x10`), `GBuffer/XluSeal` (`0x100`), `GBuffer/XluToOpa` (`0x20`) and the forward `Model(Xlu)` (`0x40000000`). A `gsys_gbuffer_xlu` material such as Purah's lens has a program for all three of the G-buffer, z-only and forward passes, so it is drawn in the G-buffer scene-colour pass and again forward; the forward fresnel alpha is near zero face-on and only brightens toward the rim.
+- Every material authors a `display_face` (52 of 53 sampled say `front`). The forward and scene-colour passes cull by it; the G-buffer pass is sorted and merged and still draws double-sided, which only matters for a shape that is blended or writes no depth.
+- `cTex_ColorBuffer` is the frame times `Exposure / EmissionScale` in the scene-colour pass, and the forward pass draws in those units too, converting back when it composites. This matches the two passes to each other; it is not read from the game.
 - The toon outline lives in the deferred programs. A forward redraw of an opaque shape overwrites it, so forcing the forward pass is a per-shape choice, not an automatic one.
 
 ## G-buffer albedo
