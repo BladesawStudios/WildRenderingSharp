@@ -113,11 +113,17 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             ForwardSamplers = SamplersFor(shapePrograms.Forward, sh.MaterialSamplers),
             ForwardShaderName = shapePrograms.Forward != 0 ? sh.MaterialShader : "",
             ReadsSceneColor = gl.UniformLocation(shapePrograms.GBuffer, "cTex_ColorBuffer") >= 0,
+            CullsFaces = sh.RenderState.CulledFace is not null && CutsOut(sh),
             IsFarStandIn = Path.GetFileName(dataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)).StartsWith("Far_", StringComparison.Ordinal),
             MaterialBlock = new MaterialBlock(gl, CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.MaterialFile))),
             MaterialParams = MaterialParamLayout.TryLoadBeside(dataDirectory, sh.MaterialFile),
         };
     }
+
+    // Whether the G-buffer or the z-only program of the shape discards.
+    bool CutsOut(ShapeManifestEntry sh) =>
+        (!string.IsNullOrEmpty(sh.GBufferShader) && programs.FragmentDiscards(sh.GBufferShader))
+        || (!string.IsNullOrEmpty(sh.ZOnlyShader) && programs.FragmentDiscards(sh.ZOnlyShader));
 
     IReadOnlyList<ShapeSampler> SamplersFor(uint program, IReadOnlyList<SamplerBinding> bindings) =>
         program != 0 ? textures.Resolve(bindings) : [];

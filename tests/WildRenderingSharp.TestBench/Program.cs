@@ -107,10 +107,16 @@ if (options.ContainsKey("check-water-shader"))
 using var rom = TotkRom.Open(romfs);
 var renderer = new WildRenderer(gl, cache, rom, initialWidth: size, initialHeight: size);
 renderer.Lighting.Background = Option("background", "sky") == "color" ? BackgroundMode.Color : BackgroundMode.Sky;
+// The largest side a texture is kept at, as the World view sets it; zero keeps them whole.
+renderer.TextureMaxSize = int.Parse(Option("texmax", "0"));
 int instanceCount = int.Parse(Option("instances", "0"));
 if (instanceCount == 0 && mixModels.Count == 0)
 {
     var actor = renderer.AddActor(model);
+    // Only the shapes whose name contains --only draw, and none whose name contains --hide.
+    foreach (var shape in actor.Model.Shapes)
+        shape.Enabled = (!options.TryGetValue("only", out var only) || shape.Name.Contains(only, StringComparison.OrdinalIgnoreCase))
+            && (!options.TryGetValue("hide", out var hide) || !shape.Name.Contains(hide, StringComparison.OrdinalIgnoreCase));
     // Materials whose name contains the text also draw in the forward pass, as a status-effect overlay does.
     if (options.TryGetValue("force-forward", out var forceForward))
         foreach (var shape in actor.Model.Shapes.Where(s => s.Material.Contains(forceForward, StringComparison.OrdinalIgnoreCase)))
@@ -164,6 +170,10 @@ if (options.TryGetValue("yaw", out var yaw))
     viewOffset = Vector3.Transform(viewOffset, Quaternion.CreateFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(float.Parse(yaw))));
 if (options.TryGetValue("target-y", out var targetY))
     center.Y = float.Parse(targetY);
+if (options.TryGetValue("target-x", out var targetX))
+    center.X = float.Parse(targetX);
+if (options.TryGetValue("target-z", out var targetZ))
+    center.Z = float.Parse(targetZ);
 camera.Target = center;
 camera.Eye = center + viewOffset;
 if (options.TryGetValue("near", out var nearPlane))

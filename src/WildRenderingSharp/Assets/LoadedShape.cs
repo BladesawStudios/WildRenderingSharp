@@ -131,6 +131,10 @@ public sealed class LoadedShape
     public bool ReadsSceneColor { get; init; }
     public bool HasForward => ForwardProgram != 0;
 
+    // Whether the shape has to be drawn with the face its material hides left out: it cuts pixels out of its front face, and the back face seen through those would
+    // show where the game shows nothing.
+    internal bool CullsFaces { get; init; }
+
     public bool Enabled { get; set; } = true;
 
     public bool ForceForward { get; set; }

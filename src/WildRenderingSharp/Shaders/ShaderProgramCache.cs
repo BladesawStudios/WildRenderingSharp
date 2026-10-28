@@ -41,7 +41,7 @@ internal sealed class ShaderProgramCache : IDisposable
 
     // The version of the code that makes the sources these programs are built from: the cleaning, the corrections and the instanced and merged patches. A program kept by name is
     // good until this changes, so it is changed whenever any of them does. (Also the revision of the files themselves: a program is kept with their sizes and times.)
-    const string SourceRevision = "1";
+    const string SourceRevision = "2";
 
     // What the program's source files are now, for the identity a kept program is found by. Throws when they are missing, as reading them does.
     string Stamp(string baseName)
