@@ -42,11 +42,12 @@ internal static partial class UnwrittenOutputs
             assignments.Append($"    wrs_fill{location} = vec4(0.0);\n");
         }
 
-        int end = fragment.LastIndexOf('}');
         int main = fragment.IndexOf("void main()", StringComparison.Ordinal);
-        if (end < 0 || main < 0 || assignments.Length == 0)
+        if (main < 0 || assignments.Length == 0)
             return fragment;
 
-        return fragment[..main] + declarations + fragment[main..end] + assignments + fragment[end..];
+        // The program's own main is kept under another name and called from a new one, since it ends in a return and may return early.
+        string renamed = fragment[..main] + declarations + "void wrs_gbuffer_main()" + fragment[(main + "void main()".Length)..];
+        return renamed + "\nvoid main()\n{\n    wrs_gbuffer_main();\n" + assignments + "}\n";
     }
 }

@@ -2,6 +2,7 @@ using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets.Materials;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Profiles.Totk.Shaders;
+using WildRenderingSharp.Shaders;
 
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
@@ -34,7 +35,7 @@ public sealed class CaveShading : IDisposable
     uint Link(int program)
     {
         string vert = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, $"cave_prog{program}_extracted.vert")));
-        string frag = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, $"cave_prog{program}_extracted.frag")));
+        string frag = UnwrittenOutputs.Apply(TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, $"cave_prog{program}_extracted.frag"))));
         return GLProgramBuilder.Build(_gl, vert, frag, $"cave_prog{program}");
     }
 
