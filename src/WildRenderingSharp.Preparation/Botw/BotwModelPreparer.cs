@@ -20,7 +20,6 @@ public static class BotwModelPreparer
 
     public static string PrepareIfNeeded(IRomAccess rom, string modelName, CacheLayout cache, Action<string>? log = null, bool force = false)
     {
-        BfresPatches.EnsureApplied();
         BotwSystemAssets.Ensure(rom, cache, log);
         if (!force && cache.IsPrepared(modelName))
         {
@@ -32,7 +31,6 @@ public static class BotwModelPreparer
 
     public static string Prepare(IRomAccess rom, string modelName, CacheLayout cache, Action<string>? log = null)
     {
-        BfresPatches.EnsureApplied();
         BotwSystemAssets.Ensure(rom, cache, log);
         var assets = new BotwAssets(rom);
 
