@@ -111,6 +111,10 @@ int instanceCount = int.Parse(Option("instances", "0"));
 if (instanceCount == 0 && mixModels.Count == 0)
 {
     var actor = renderer.AddActor(model);
+    // Materials whose name contains the text also draw in the forward pass, as a status-effect overlay does.
+    if (options.TryGetValue("force-forward", out var forceForward))
+        foreach (var shape in actor.Model.Shapes.Where(s => s.Material.Contains(forceForward, StringComparison.OrdinalIgnoreCase)))
+            shape.ForceForward = true;
     // Animations held at a frame, as "m:<name>=<frame>" (shader parameters) or "t:<name>=<frame>" (texture patterns), comma separated.
     foreach (string held in Option("hold", "").Split(',', StringSplitOptions.RemoveEmptyEntries))
     {

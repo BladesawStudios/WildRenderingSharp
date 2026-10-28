@@ -70,7 +70,7 @@ internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neu
         gl.Disable(EnableCap.DepthTest);
         ClipOrigin.Game(gl, false);
         resources.BindCamera(FrameUniformKeys.SceneCamera);
-        flip.CopyWithFloor(resources, targets, targets.Final, targets.Scene, targets.Behind, flip: true, 1f / sceneUnits);
+        flip.CopyKeepingCoverage(resources, targets, targets.Final, targets.Scene, targets.Behind, flip: true, 1f / sceneUnits);
     }
 
     void DrawShape(ActorDrawGroup group, LoadedShape shape, ShapeDrawer drawer)
