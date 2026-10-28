@@ -201,6 +201,8 @@ if (options.ContainsKey("cascades"))
         .Select(reach => new ShadowFocus(camera.Eye + forward * reach * 0.5f, reach)).ToArray();
 }
 
+if (options.TryGetValue("aa", out var aa))
+    renderer.View.AntiAliasing = Enum.Parse<WildRenderingSharp.Hosting.Views.AntiAliasingMode>(aa, ignoreCase: true);
 if (options.TryGetValue("view", out var view))
     renderer.View.Mode = Enum.Parse<WildRenderingSharp.Hosting.Views.SceneViewMode>(view, ignoreCase: true);
 
