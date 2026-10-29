@@ -5,6 +5,8 @@ uniform sampler2D tex_gbuf_depth;
 // The normalized linear depth before the host's terrain, caves and grass were drawn (1e6 where nothing was), and the planes it was made with.
 uniform sampler2D tex_before_host;
 uniform int uHostDrew;
+// A material ID written after the host's draws, which is fresh over them (-1 for none): the gloom's.
+uniform int uFreshId;
 uniform vec2 uNearFar;
 uniform int uCount;
 uniform int uPriority[16];
@@ -17,7 +19,8 @@ void main() {
     if (texture(tex_gbuf_depth, g).r >= 1.0)
         discard;
     // The host's draws do not write this layer, so where they won the depth it still holds what a shape they covered wrote.
-    if (uHostDrew != 0) {
+    int id = int(round(texture(tex_material_id, g).r * 255.0));
+    if (uHostDrew != 0 && id != uFreshId) {
         float d = texture(tex_gbuf_depth, g).r;
         float viewZ = (uNearFar.x * uNearFar.y) / (uNearFar.y * (1.0 - d) + uNearFar.x * d);
         float now = clamp((viewZ - uNearFar.x) / (uNearFar.y - uNearFar.x), 0.0, 1.0);
@@ -25,7 +28,6 @@ void main() {
         if (now < before - max(1e-7, before * 1e-4))
             discard;
     }
-    int id = int(round(texture(tex_material_id, g).r * 255.0));
     for (int i = 0; i < uCount; i++) {
         if (uPriority[i] == id) {
             fragColor = vec4(uPassId[i], 0.0, 0.0, 1.0);

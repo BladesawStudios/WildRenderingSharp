@@ -10,6 +10,9 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 /// <summary>Fills the pass-ID mask: first from each shape's named pass, then from the material IDs the G-buffer programs wrote, then with the entrance's pass over a shrine's doorway.</summary>
 internal sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene scene, TerrainRenderer terrain, EntranceInterior interior) : IDisposable
 {
+    // The gloom is composed into the G-buffer after the host's draws, so the material ID it writes is not one a host's draw left stale.
+    const int GloomId = 32;
+
     readonly PassIdMaskPass _byShape = new(gl, drawer);
     readonly MaterialIdPass _byMaterialId = new(gl);
 
@@ -22,7 +25,7 @@ internal sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene sce
         _byShape.Run(resources, frame.Targets, frame.Setup.Groups, scene.PassNames, scene.PassOf, frame.Setup.Cam.ViewProj,
             frame.Camera.NearPlane, frame.Camera.FarPlane, ClaimPass(frame));
         // The host's draws leave the layers they do not write as the shapes behind them left them, so the IDs under what they covered are stale.
-        _byMaterialId.Run(resources, frame.Targets, scene.MaterialIdPasses(), terrain.GBufferDrawn, frame.Camera.NearPlane, frame.Camera.FarPlane);
+        _byMaterialId.Run(resources, frame.Targets, scene.MaterialIdPasses(), terrain.GBufferDrawn, frame.Stats.GloomComposed ? GloomId : -1, frame.Camera.NearPlane, frame.Camera.FarPlane);
         interior.Stamp(resources, scene.PassIndex(LoadedShapeExtensions.EntrancePass));
     }
 

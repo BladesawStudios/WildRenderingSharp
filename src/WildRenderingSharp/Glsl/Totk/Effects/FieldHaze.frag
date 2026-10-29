@@ -1,9 +1,5 @@
 #version 330 core
 uniform sampler2D tDepth;
-// The G-buffer's material IDs, which say which pixels are the gloom's.
-uniform sampler2D tMaterialId;
-// 0 veils everything but the gloom; 1 veils only the gloom, by scaling what is there instead of laying a colour over it, so its black stays black.
-uniform int uGloomPass;
 uniform float uNear;
 uniform float uFar;
 uniform vec2 uViewScale;
@@ -16,8 +12,6 @@ uniform float uSkyInfluence;
 uniform vec3 uLevels[8];
 // The normalized depth at and beyond which a pixel is sky.
 const float SkyDepth = 0.9999;
-// The gloom's material ID, in bytes.
-const float GloomId = 32.0;
 
 in vec2 vUV;
 out vec4 fragColor;
@@ -42,10 +36,6 @@ void main()
     // The depth is stored from the top row down, as the game draws it, and the image from the bottom up.
     float depth = texture(tDepth, vec2(vUV.x, 1.0 - vUV.y)).r;
 
-    bool gloom = abs(texture(tMaterialId, vec2(vUV.x, 1.0 - vUV.y)).r * 255.0 - GloomId) < 0.5;
-    if (gloom != (uGloomPass == 1))
-        discard;
-
     // The game never veils the sky, which has its own haze, so the veil over it is only as much as the influence says.
     bool sky = depth >= SkyDepth;
     if (sky && uSkyInfluence <= 0.0)
@@ -58,7 +48,5 @@ void main()
         opticalDepth += uLevels[level].z * lengthInSphere(ray / scale, distance, uLevels[level].x, uLevels[level].y);
 
     // The cover grows with the optical depth to a power below one, so the near haze is thick enough and the far haze does not close in on one.
-    float cover = (1.0 - exp(-pow(opticalDepth, uFalloff) * uStrength)) * (sky ? uSkyInfluence : 1.0);
-    // The gloom pass is blended as dst * (colour + 1 - cover), so the colour is premultiplied by the cover.
-    fragColor = vec4(uGloomPass == 1 ? uColor * cover : uColor, cover);
+    fragColor = vec4(uColor, (1.0 - exp(-pow(opticalDepth, uFalloff) * uStrength)) * (sky ? uSkyInfluence : 1.0));
 }
