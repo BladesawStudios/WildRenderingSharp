@@ -225,7 +225,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     }
 
     // The sides a cascade may be set to, in texels.
-    const int MinCascadeSize = 512, MaxCascadeSize = 8192;
+    const int MinCascadeSize = 512, MaxCascadeSize = 4096;
 
     // How far the sun may move, in degrees, before a cascade is drawn again under the new direction: a cascade's texels are large for the height of what casts into
     // them, so a sun a fraction of a degree off puts a shadow well inside a texel of where it should be, and the finer the cascade the less it can take.
