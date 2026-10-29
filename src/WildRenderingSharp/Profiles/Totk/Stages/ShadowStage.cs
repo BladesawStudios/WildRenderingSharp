@@ -301,5 +301,5 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         group with { Shapes = group.Shapes.Where(s => !s.ReadsSceneColor).ToList() };
 
     static List<LoadedShape> CastingShapes(InstanceBatch batch) =>
-        batch.Model.Shapes.Where(s => s.Enabled && s.CastsShadow && !s.PortalOnly && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList();
+        batch.Model.Shapes.Where(s => s.Enabled && s.CastsShadow && !s.LeftOutOfOrdinaryPasses && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList();
 }

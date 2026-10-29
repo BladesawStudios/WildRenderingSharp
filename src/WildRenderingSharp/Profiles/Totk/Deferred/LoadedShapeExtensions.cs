@@ -31,6 +31,11 @@ internal static class LoadedShapeExtensions
     // the rock its dissolve fire stands over the hall as slabs.
     public static bool IsHallRockCopy(this LoadedShape shape) => IsSeenThroughDoorway(shape) && shape.Material == "Mt_Rock_ZonauShrineEntranceNature_A";
 
+    // A building's interior volume (its "inner material"), which the game draws into its Inner Mask targets and not into the picture; drawn there as a surface it
+    // covers the rooms it marks with flat white.
+    public static bool IsInnerMaskVolume(this LoadedShape shape) =>
+        shape.Tags.TryGetValue("option.o_inner_material", out var value) && string.Equals(value, "True", StringComparison.OrdinalIgnoreCase);
+
     // The panel the doorway's green fire burns on, which the game files with the rock's Shrine queue by its material's name, as it has no entrance part.
     public static bool IsDoorwayPanel(this LoadedShape shape) => shape.Material == "Mt_WarpHole_BackAura_00";
 

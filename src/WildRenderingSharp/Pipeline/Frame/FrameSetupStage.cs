@@ -48,11 +48,11 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
         var casting = frame.Request.Actors.Select(a => new ActorDrawGroup(
             profile.Actor(new SkinningData(a.ModelMatrixRows, a.Model.Skeleton, a.BoneWorldMatrices)),
             a.ModelMatrixRows,
-            a.Model.Shapes.Where(s => s.Enabled && !s.PortalOnly && (!s.Hidden || s.CastsShadow)).ToList())).ToList();
+            a.Model.Shapes.Where(s => s.Enabled && !s.LeftOutOfOrdinaryPasses && (!s.Hidden || s.CastsShadow)).ToList())).ToList();
 
         foreach (var batch in frame.Instances.Where(b => b.Visible.Count > 0))
             casting.Add(ActorDrawGroup.ForBatch(profile, batch,
-                batch.Model.Shapes.Where(s => s.Enabled && !s.PortalOnly && (!s.Hidden || s.CastsShadow) && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList()));
+                batch.Model.Shapes.Where(s => s.Enabled && !s.LeftOutOfOrdinaryPasses && (!s.Hidden || s.CastsShadow) && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList()));
 
         List<ActorDrawGroup> groups = [.. casting.Select(g => g with { Shapes = g.Shapes.Where(s => !s.Hidden).ToList() })];
         var opaque = groups
