@@ -12,6 +12,7 @@ namespace WildRenderingSharp.Preparation.Totk;
 /// <summary>Decompiles the G-buffer programs and default material blocks of the terrain and cave shading models from their shader archives.</summary>
 public static class TotkShaderExports
 {
+    /// <summary>One shading model of a shader archive to decompile: its programs, what they are named and where its material block is.</summary>
     public sealed record ShadingModelExport(string Archive, string Model, int[] Programs, string ProgramPrefix, string MaterialFile, bool ReadsImmediates = false)
     {
         public string ProgramName(int program) => $"{ProgramPrefix}{program}";

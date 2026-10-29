@@ -2,17 +2,12 @@ using System.Text.Json;
 
 namespace WildRenderingSharp.Profiles.Totk.Effects;
 
-/// <summary>One of the field's haze emitters: a sphere of sprites that follows the camera, as preparation recorded it.</summary>
-/// <param name="Offset">How far ahead of the camera the sphere's centre is, in metres: the radius for a sphere that touches the camera, zero for one around it.</param>
-/// <param name="Radius">Radius of the sphere the sprites are scattered in, in metres.</param>
-/// <param name="Particles">How many sprites are alive at once.</param>
-/// <param name="Area">Cross-section of one sprite facing the camera, in square metres.</param>
-/// <param name="Alpha">The sprite's opacity averaged over its life and its texels.</param>
-/// <param name="NearStart">The distance ahead of the camera, in metres of view depth, at which a sprite begins to fade in.</param>
-/// <param name="NearEnd">Where it is wholly faded in.</param>
-/// <param name="FarStart">Where it begins to fade out, or zero when it does not.</param>
-/// <param name="FarEnd">Where it is wholly faded out.</param>
-/// <param name="SoftDistance">How far in front of the scene's depth, in metres, a sprite's opacity is reduced to nothing at the surface.</param>
+/// <summary>One of the field's haze emitters: a shell of sprites that follows the camera, as preparation recorded it.</summary>
+/// <remarks>
+/// Offset and Radius place the sphere the sprites fill, ahead of the camera, in metres; Particles, Area and Alpha say how many are alive, how much of the view one covers and
+/// how opaque one is averaged over its life and its texels. A sprite fades in over NearStart to NearEnd metres of view depth and out over FarStart to FarEnd (zero for no fade
+/// out), and fades out against the scene's depth over its last SoftDistance metres.
+/// </remarks>
 public sealed record FieldHazeLevel(float Offset, float Radius, float Particles, float Area, float Alpha,
     float NearStart, float NearEnd, float FarStart, float FarEnd, float SoftDistance);
 

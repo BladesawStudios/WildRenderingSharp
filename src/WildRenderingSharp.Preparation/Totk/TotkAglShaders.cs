@@ -33,7 +33,7 @@ public static class TotkAglShaders
     }
 
     // The gloom renderer's programs: the shape of each volume into a density target, the count of how many volumes cover a pixel, and the compose that turns the
-    // density into gloom albedo and emission. They are in the same archive as HDR compose and have no macros.
+    // density into gloom albedo and emission. Every variant of each is exported.
     public static void Gloom(IRomAccess rom, string outDir)
     {
         var sharc = AglDecompiler.Open(rom, ApplicationPackage, "AglShader.sharcb");

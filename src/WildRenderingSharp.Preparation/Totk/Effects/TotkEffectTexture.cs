@@ -17,7 +17,7 @@ internal static class TotkEffectTexture
         writer.Write(rgba);
     }
 
-    /// <summary>The alpha of each texel of the texture, 0 to 1.</summary>
+    // The alpha of each texel of the texture, 0 to 1.
     public static float[] Alphas(IRomAccess rom, string name)
     {
         var (_, _, rgba) = Decode(rom, name);
