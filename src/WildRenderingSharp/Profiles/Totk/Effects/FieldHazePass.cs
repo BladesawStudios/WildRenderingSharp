@@ -51,7 +51,6 @@ internal sealed class FieldHazePass : IDisposable
         _gl.BlendFuncSeparate(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha, BlendingFactor.Zero, BlendingFactor.One);
         _gl.UseProgram(_program);
         _gl.BindTextureUniform(_program, "tDepth", 0, targets.LinearDepth.Handle);
-        _gl.BindTextureUniform(_program, "tMaterialId", 1, targets.GBuffer[0].Handle);
         _gl.SetFloat(_program, "uNear", camera.NearPlane);
         _gl.SetFloat(_program, "uFar", camera.FarPlane);
         _gl.Uniform2(_gl.UniformLocation(_program, "uViewScale"), aspect * tanHalf, tanHalf);
