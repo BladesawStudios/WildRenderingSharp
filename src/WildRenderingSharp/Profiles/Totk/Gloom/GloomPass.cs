@@ -32,7 +32,7 @@ internal sealed class GloomPass : IDisposable
         _programs = new GloomPrograms(gl, programs);
         _density = new ScreenTarget(gl, InternalFormat.RG16f);
         _cube = new GloomCube(gl);
-        _quad = new HalfUnitQuad(gl);
+        _quad = new HalfUnitQuad(gl, topFirst: true);
         _white = ConstantTextures.Rgba(gl, 1f, 1f, 1f, 1f);
     }
 
