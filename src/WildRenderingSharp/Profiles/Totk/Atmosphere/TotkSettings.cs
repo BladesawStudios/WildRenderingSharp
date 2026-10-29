@@ -38,9 +38,6 @@ public sealed class TotkSettings
     // The power the haze's optical depth is raised to, below one so that near haze is thicker for a given far haze: 1 is the plain exponential of the sprites' own numbers.
     public float FieldHazeFalloff { get; set; } = 0.4f;
 
-    // How many times thicker the haze is over the gloom than FieldHazeStrength gives: the gloom writes no depth, so its haze is measured to the ground behind it.
-    public float FieldHazeGloomScale { get; set; } = 1.5f;
-
     // How much of the haze reaches the sky, 0 to 1: the game leaves the sky out, but a little of it softens the horizon.
     public float FieldHazeSkyInfluence { get; set; } = 0.05f;
 
