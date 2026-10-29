@@ -66,6 +66,9 @@ public sealed class TotkSettings
     public float SkyHorizonHaze { get; set; }
 
 
+    // The host's gloom, where it supplies one (see IGloomSource).
+    public bool UseGloom { get; set; } = true;
+
     public bool UseLensFlare { get; set; } = true;
 
     public float LensFlareThreshold { get; set; } = 60f;

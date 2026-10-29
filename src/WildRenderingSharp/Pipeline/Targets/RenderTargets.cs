@@ -152,6 +152,15 @@ public sealed class RenderTargets : IDisposable
             _gl.ColorMask(i, enabled, enabled, enabled, enabled);
     }
 
+    // Sends the bound G-buffer's output locations to the attachments given, in order, and the rest nowhere; no attachments sends them to their own.
+    public void SetGBufferOutputs(params ReadOnlySpan<int> attachments)
+    {
+        var buffers = new GLEnum[attachments.Length == 0 ? GBufferCount : attachments.Length];
+        for (int i = 0; i < buffers.Length; i++)
+            buffers[i] = GLEnum.ColorAttachment0 + (attachments.Length == 0 ? i : attachments[i]);
+        _gl.DrawBuffers(buffers);
+    }
+
     public void BindPassIdTarget()
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _passIdFbo);

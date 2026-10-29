@@ -11,6 +11,7 @@ using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Gloom;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
@@ -126,6 +127,9 @@ public sealed class WildRenderer : IDisposable
 
     public ITerrainHost? Terrain { get; set; }
 
+    // The host's gloom, composed into the G-buffer with the game's own programs; null for none.
+    public IGloomSource? Gloom { get; set; }
+
     public InstanceBatch AddInstances(LoadedModel model, IReadOnlyList<Vector4[]> placements, bool updateScene = true)
     {
         using var _ = GLHostState.Enter(_gl);
@@ -232,7 +236,7 @@ public sealed class WildRenderer : IDisposable
         foreach (var actor in _actors)
             actor.ApplyMaterialAnimations();
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
-        return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain), inputs,
+        return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain, Gloom), inputs,
             AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades);
     }
 

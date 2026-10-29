@@ -52,6 +52,7 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
             new FrameSetupStage(services),
             Own(new TotkFrameConstantsStage(services)),
             new GBufferStage(services, _scene, terrain, control, interior),
+            Own(new GloomStage(services, _scene, linearDepth)),
             new ShadowStage(services, terrain, control),
             // Before the screen-space lighting, whose game pre-shading draws only where the mask names a pass.
             new PassIdMaskStage(services, stamper),

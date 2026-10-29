@@ -1,14 +1,14 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Profiles.Totk.Sky.LensFlare;
+namespace WildRenderingSharp.Gpu;
 
-/// <summary>The quad the flare program draws: a half-unit position (its vertex shader doubles it) and a uv per corner.</summary>
-sealed unsafe class FlareQuad : IDisposable
+/// <summary>The quad the game's screen programs draw: a half-unit position (their vertex shaders double it) and a uv per corner.</summary>
+sealed unsafe class HalfUnitQuad : IDisposable
 {
     readonly GL _gl;
     readonly uint _vao, _vbo;
 
-    public FlareQuad(GL gl)
+    public HalfUnitQuad(GL gl)
     {
         _gl = gl;
         Span<float> corners =

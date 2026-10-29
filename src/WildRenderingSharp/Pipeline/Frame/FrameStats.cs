@@ -6,4 +6,7 @@ internal sealed class FrameStats
     public (long Triangles, long Instances) GBuffer { get; set; }
 
     public (long Triangles, long Instances) Shadow { get; set; }
+
+    // Whether the frame composed a host's gloom into the G-buffer.
+    public bool GloomComposed { get; set; }
 }
