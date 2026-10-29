@@ -127,6 +127,10 @@ public sealed class WildRenderer : IDisposable
 
     public IReadOnlyList<ShadowFocus>? ShadowCascades { get; set; }
 
+    // The view depths at which the first cascades end, in metres. Each of those cascades is fitted to the slice of the view from the one before to its end and drawn afresh every
+    // frame, and the cascades after them are the ShadowCascades' own regions, kept between frames.
+    public IReadOnlyList<float>? ShadowSliceEnds { get; set; }
+
     public ITerrainHost? Terrain { get; set; }
 
     // The host's gloom, composed into the G-buffer with the game's own programs; null for none.
@@ -239,7 +243,7 @@ public sealed class WildRenderer : IDisposable
             actor.ApplyMaterialAnimations();
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
         return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain, Gloom), inputs,
-            AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades);
+            AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades, ShadowSliceEnds);
     }
 
     public uint? Render(Camera camera, int width, int height, float deltaSeconds)

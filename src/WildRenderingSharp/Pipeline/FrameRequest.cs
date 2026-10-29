@@ -13,4 +13,5 @@ public sealed record FrameRequest(
     (int ActorIndex, int ShapeIndex)? Highlight = null,
     IReadOnlyList<InstanceBatch>? Instances = null,
     ShadowFocus? ShadowFocus = null,
-    IReadOnlyList<ShadowFocus>? ShadowCascades = null);
+    IReadOnlyList<ShadowFocus>? ShadowCascades = null,
+    IReadOnlyList<float>? ShadowSliceEnds = null);

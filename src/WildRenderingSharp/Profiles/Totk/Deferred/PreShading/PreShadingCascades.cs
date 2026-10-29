@@ -50,7 +50,7 @@ static class PreShadingCascades
     {
         Span<float> splits = [NoSplit, NoSplit, NoSplit];
         for (int c = 0; c < Math.Min(count - 1, splits.Length); c++)
-            splits[c] = frame.ShadowCache.CascadeRadius[c] * ReachShare;
+            splits[c] = frame.ShadowCache.CascadeSliceEnd[c] is > 0f and var end ? end : frame.ShadowCache.CascadeRadius[c] * ReachShare;
         return new Vector3(splits[0], splits[1], splits[2]);
     }
 }

@@ -26,4 +26,7 @@ public sealed class ShadowCache
     internal readonly long[] CascadeRedraws = new long[RenderTargets.MaxCascades];
     internal int TargetsId, CascadeSize;
     internal readonly float[] CascadeRadius = new float[RenderTargets.MaxCascades];
+
+    // The view depth a cascade fitted to a slice of the view ends at; zero for one that is a region kept between frames.
+    internal readonly float[] CascadeSliceEnd = new float[RenderTargets.MaxCascades];
 }

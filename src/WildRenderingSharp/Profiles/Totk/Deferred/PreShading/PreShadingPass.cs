@@ -77,7 +77,16 @@ internal sealed class PreShadingPass : IDisposable
 
     // The pass is drawn at the half-resolution buffers' size, so its own half-resolution depth texel is the one gathered at the pixel's centre. The water pass reads none.
     static string Patch(string fragment) =>
-        MaskByPassId(PixelCentreGather.Anchor(fragment, "cTex_HalfNormalizedLinearDepth"));
+        MaskByPassId(PixelCentreGather.Anchor(ScaleShadowFilter(fragment), "cTex_HalfNormalizedLinearDepth"));
+
+    // The character programs space their shadow taps by the scene material's filter width. The field programs space theirs by a width worked out in the shader, one texel and
+    // more, which the same width scales, so one setting widens or narrows the shadows of both.
+    static string ScaleShadowFilter(string fragment) =>
+        fragment.Contains("} fp_c13;", StringComparison.Ordinal)
+            ? FilterWidth.Replace(fragment, "$1 * fp_c13.data[33].x$2")
+            : fragment;
+
+    static readonly System.Text.RegularExpressions.Regex FilterWidth = new(@"(= fma\(temp_\d+, 1\.5, 1\.0\))(;)");
 
     static string MaskByPassId(string fragment) =>
         fragment.ReplaceRequired("void main()\n{",

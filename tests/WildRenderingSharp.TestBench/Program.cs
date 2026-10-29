@@ -25,7 +25,7 @@ string Option(string key, string fallback) => options.TryGetValue(key, out var v
 if (!options.TryGetValue("romfs", out var romfs) || !options.TryGetValue("actor", out var actorName))
 {
     Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] " +
-        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--gloom <box size>] [--frames <n>] [--instances <n> [--spacing <x>]] " +
+        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--slices <m,m>] [--gloom <box size>] [--frames <n>] [--instances <n> [--spacing <x>]] " +
         "[--with <model>,...] [--eye x,y,z] [--look x,y,z] [--fov <degrees>] [--only <shape>] [--hide <shape>] " +
         (Option("game", "totk") == "totk" ? TotkBenchOptions.Usage : ""));
     return 2;
@@ -219,7 +219,10 @@ if (options.ContainsKey("cascades"))
 {
     // The host's shadow cascades, as a map draws them: each four times the reach of the last, centred half a reach ahead of the camera.
     var forward = Vector3.Normalize(camera.Target - camera.Eye);
-    renderer.ShadowCascades = new[] { 64f, 256f, 1024f, 4096f }
+    // With --slices, the first cascades are fitted to slices of the view that end at those depths, and the regions after them are the world's.
+    float[] slices = Option("slices", "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(float.Parse).ToArray();
+    renderer.ShadowSliceEnds = slices.Length == 0 ? null : slices;
+    renderer.ShadowCascades = (slices.Length == 0 ? new[] { 64f, 256f, 1024f, 4096f } : Enumerable.Repeat(192f, slices.Length).Concat([192f, 1024f, 4096f]).ToArray())
         .Select(reach => new ShadowFocus(camera.Eye + forward * reach * 0.5f, reach)).ToArray();
 }
 
