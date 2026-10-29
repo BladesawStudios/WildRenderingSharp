@@ -122,8 +122,6 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var targets = frame.Targets;
         targets.SetCascadeSize(Math.Clamp(frame.TotkEnvironment().Settings.ShadowResolution, MinCascadeSize, MaxCascadeSize));
         int count = Math.Min(cascades.Count, RenderTargets.MaxCascades);
-        // The tilt runs from -1, a quarter of the bias, through 0, the balance, to 1, four times it.
-        float biasScale = MathF.Pow(4f, Math.Clamp(frame.TotkEnvironment().Settings.ShadowBiasTilt, -1f, 1f));
         var viewProj = new Matrix4x4[count];
         var texelWorld = new float[count];
         var bias = new float[count];
@@ -212,7 +210,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             // four times larger, and a surface within a texel's reach of its own stored depth then shadows itself wherever the
             // bias is smaller than that. So no cascade is given less than the bias a character-sized scene is tuned to, which is
             // a little over one texel.
-            float biasMetres = MathF.Max(request.ShadowBias, CascadeBiasTexels * texelWorld[c]) * biasScale;
+            float biasMetres = MathF.Max(request.ShadowBias, CascadeBiasTexels * texelWorld[c]);
             bias[c] = biasMetres / (lightRadius * 5f - 0.01f);
             invRange[c] = 1f / (lightRadius * 5f - 0.01f);
         }

@@ -57,10 +57,6 @@ public sealed class TotkSettings
     // How many texels the side of a sun shadow cascade is: more keeps the edges of shadows sharp, at the cost of the card's memory and the time to draw them.
     public int ShadowResolution { get; set; } = RenderTargets.DefaultCascadeSize;
 
-    // How the shadow bias is set between the near and the far of it, -1 to 1: -1 keeps shadows tight to their casters and may let surfaces shadow themselves, 0 is balanced, 1 keeps
-    // surfaces clear of their own shadow and may lift shadows off their casters.
-    public float ShadowBiasTilt { get; set; }
-
     // Whether the placed actors' shapes are drawn from shared buffers, one multi-draw for each program, in place of one draw for each shape.
     public bool MergedDraws { get; set; }
 
