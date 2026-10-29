@@ -67,6 +67,7 @@ internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDir
         {
             bool hull = shape.IsEntranceRock() && shape.CullsFaces;
             shape.ProfileDrawsGBuffer = hull || shape.IsDoorwayPanel();
+            shape.InnerMask = shape.IsInnerMaskVolume();
             shape.PortalOnly = shape.IsSeenThroughDoorway() || (shape.IsEntranceRock() && !hull);
         }
 

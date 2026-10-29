@@ -138,6 +138,12 @@ public sealed class LoadedShape
     // Whether the shape is left out of every ordinary pass, for a profile's own pass to draw only where it is seen through a portal.
     internal bool PortalOnly { get; set; }
 
+    // Whether the shape is a volume the game draws only into its inner mask, never into the picture: the box that marks a building's interior.
+    internal bool InnerMask { get; set; }
+
+    // Whether the shape is left out of the passes that draw what is seen, because a pass of a profile's own draws it or nothing does.
+    internal bool LeftOutOfOrdinaryPasses => PortalOnly || InnerMask;
+
     // Whether the G-buffer pass leaves the shape to a profile's own pass, which draws it into the G-buffer itself; every other pass draws it as ever.
     internal bool ProfileDrawsGBuffer { get; set; }
 

@@ -1,3 +1,4 @@
+using WildRenderingSharp.Pipeline.Targets;
 using System.Numerics;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
@@ -52,6 +53,9 @@ public sealed class TotkSettings
 
     // How far the sun shadow cascades push a caster back by the slope of its surface to the light, so a surface the sun meets at a graze does not shadow itself.
     public float ShadowSlopeOffset { get; set; }
+
+    // How many texels the side of a sun shadow cascade is: more keeps the edges of shadows sharp, at the cost of the card's memory and the time to draw them.
+    public int ShadowResolution { get; set; } = RenderTargets.DefaultCascadeSize;
 
     // Whether the placed actors' shapes are drawn from shared buffers, one multi-draw for each program, in place of one draw for each shape.
     public bool MergedDraws { get; set; }

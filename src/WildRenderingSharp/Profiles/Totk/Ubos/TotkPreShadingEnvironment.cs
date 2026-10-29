@@ -23,10 +23,10 @@ static class TotkPreShadingEnvironment
     const float GBufferNormalShare = 1f, GrazingExponent = 2f;
 
     // The scene's environment block with these slots set, kept apart so nothing else that reads the block sees them.
-    public static Ubo From(ReadOnlyMemory<byte> environment, string key, PreShadingFog fog, Vector3 entranceSky, Vector3 entranceGround, DungeonEntranceParam entrance)
+    public static Ubo From(ReadOnlyMemory<byte> environment, string key, PreShadingFog fog, Vector3 entranceSky, Vector3 entranceGround, DungeonEntranceParam entrance, int cascadeSize)
     {
         var block = new UboWriter(Spec, environment.Span);
-        Write(block);
+        Write(block, cascadeSize);
         WriteFog(block, fog);
         WriteEntrance(block, entranceSky, entranceGround, entrance);
         WriteVolumeFog(block, fog);
@@ -77,7 +77,7 @@ static class TotkPreShadingEnvironment
         block.Set(EntranceHazeShape, -param.FogStart * scale, scale, param.FogDamp, 0f);
     }
 
-    static void Write(UboWriter block)
+    static void Write(UboWriter block, int cascadeSize)
     {
         block.Set(HeightFade, 0f, 0f, 0f, 0f);
         block.Set(DarknessMapTransform, 0f, 0f, 0f, 0f);
@@ -87,7 +87,7 @@ static class TotkPreShadingEnvironment
 
         block.Set(ShadowDepthBias, 0, GrazingOffsetMetres);
         block.Set(ShadowDepthBias, 1, DepthBias);
-        float texel = 1f / RenderTargets.CascadeSize;
+        float texel = 1f / cascadeSize;
         block.Set(ShadowTexel, 0, texel);
         block.Set(ShadowTexel, 1, texel);
         block.Set(ShadowNormalBlend, 0, GBufferNormalShare);
