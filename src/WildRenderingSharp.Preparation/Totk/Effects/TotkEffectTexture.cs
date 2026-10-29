@@ -9,6 +9,26 @@ internal static class TotkEffectTexture
 {
     public static void Export(IRomAccess rom, string name, string path)
     {
+        var (width, height, rgba) = Decode(rom, name);
+        using var file = File.Create(path);
+        using var writer = new BinaryWriter(file);
+        writer.Write(width);
+        writer.Write(height);
+        writer.Write(rgba);
+    }
+
+    /// <summary>The alpha of each texel of the texture, 0 to 1.</summary>
+    public static float[] Alphas(IRomAccess rom, string name)
+    {
+        var (_, _, rgba) = Decode(rom, name);
+        var alphas = new float[rgba.Length / 4];
+        for (int texel = 0; texel < alphas.Length; texel++)
+            alphas[texel] = rgba[(texel * 4) + 3] / 255f;
+        return alphas;
+    }
+
+    static (int Width, int Height, byte[] Rgba) Decode(IRomAccess rom, string name)
+    {
         string source = TotkTextures.Find(rom, name) ?? throw new FileNotFoundException($"The effect texture '{name}' is not in TexToGo.");
         var texture = TotkTextures.Load(rom, source, surfaces: 1);
         byte[] data = texture.Surfaces[0].Data;
@@ -23,10 +43,6 @@ internal static class TotkEffectTexture
             _ => throw new NotSupportedException($"The effect texture '{name}' is {texture.Format}, which is not decoded."),
         };
 
-        using var file = File.Create(path);
-        using var writer = new BinaryWriter(file);
-        writer.Write(texture.Width);
-        writer.Write(texture.Height);
-        writer.Write(rgba);
+        return (texture.Width, texture.Height, rgba);
     }
 }

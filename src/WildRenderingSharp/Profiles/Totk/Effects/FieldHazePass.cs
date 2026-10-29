@@ -15,7 +15,8 @@ namespace WildRenderingSharp.Profiles.Totk.Effects;
 /// </summary>
 /// <remarks>
 /// The sprites are not drawn one by one. Each sphere holds a known number of them, so a ray through it is covered in proportion to its length in the
-/// sphere, and the covering is the same for any ray of that length.
+/// sphere, weighted at each point by how much of a sprite there shows: the fades the game's vertex programs give it by its distance from the camera,
+/// and the soft edge its fragment programs give it where it comes near the scene's depth.
 /// </remarks>
 internal sealed class FieldHazePass : IDisposable
 {
@@ -60,6 +61,8 @@ internal sealed class FieldHazePass : IDisposable
         _gl.SetFloat(_program, "uSkyInfluence", skyInfluence);
         _gl.SetInt(_program, "uCount", levels.Length);
         _gl.Uniform3(_gl.UniformLocation(_program, "uLevels"), levels.SelectMany(Level).ToArray());
+        _gl.Uniform4(_gl.UniformLocation(_program, "uBands"), levels.SelectMany(l => new[] { l.NearStart, l.NearEnd, l.FarStart, l.FarEnd }).ToArray());
+        _gl.Uniform1(_gl.UniformLocation(_program, "uSoft"), levels.Select(l => l.SoftDistance).ToArray());
         resources.DrawFullscreenTriangle();
         _gl.Disable(EnableCap.Blend);
         GLDiagnostics.CheckPass(_gl, "field haze");

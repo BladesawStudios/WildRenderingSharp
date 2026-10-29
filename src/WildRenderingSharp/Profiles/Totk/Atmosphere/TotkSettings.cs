@@ -32,11 +32,11 @@ public sealed class TotkSettings
     // Whether the game's field haze, the pale warm veil over the distance, is laid over the image. It needs the effect prepared.
     public bool UseFieldHaze { get; set; } = true;
 
-    // How much thicker the haze is than the sprites' own numbers make it, fitted to a screenshot of the game.
-    public float FieldHazeStrength { get; set; } = 0.8f;
+    // How many times the sprites' own numbers, read from the game's effect file, the haze is; one is the game's.
+    public float FieldHazeStrength { get; set; } = 1f;
 
-    // The power the haze's optical depth is raised to, below one so that near haze is thicker for a given far haze: 1 is the plain exponential of the sprites' own numbers.
-    public float FieldHazeFalloff { get; set; } = 0.4f;
+    // The power the haze's optical depth is raised to: 1 is the plain exponential of the sprites' own numbers, which is what the game's blending gives.
+    public float FieldHazeFalloff { get; set; } = 1f;
 
     // How much of the haze reaches the sky, 0 to 1: the game leaves the sky out, but a little of it softens the horizon.
     public float FieldHazeSkyInfluence { get; set; } = 0.05f;
