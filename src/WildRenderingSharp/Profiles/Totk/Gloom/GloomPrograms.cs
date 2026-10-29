@@ -41,7 +41,7 @@ internal sealed class GloomPrograms(GL gl, ShaderProgramCache programs)
     static string AfterVersion(string source)
     {
         int end = source.IndexOf('\n') + 1;
-        return source[..end] + GroupVote + source[end..];
+        return source[..end] + GroupVote + '\n' + source[end..];
     }
 
     uint Shape(bool cancelling, int type)
