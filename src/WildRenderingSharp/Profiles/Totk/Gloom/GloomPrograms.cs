@@ -24,6 +24,8 @@ internal sealed class GloomPrograms(GL gl, ShaderProgramCache programs)
 
     const int AltitudeShapeType = 3;
 
+    static readonly string GroupVote = GlslFiles.Load("Totk/Gloom/GroupVote.glsl");
+
     readonly Dictionary<(bool Cancelling, int Type), uint> _shapes = [];
     uint _compose;
 
@@ -35,6 +37,13 @@ internal sealed class GloomPrograms(GL gl, ShaderProgramCache programs)
 
     public uint Altitude() => Shape(false, AltitudeShapeType);
 
+    // The extension line goes in under the version line.
+    static string AfterVersion(string source)
+    {
+        int end = source.IndexOf('\n') + 1;
+        return source[..end] + GroupVote + source[end..];
+    }
+
     uint Shape(bool cancelling, int type)
     {
         if (_shapes.TryGetValue((cancelling, type), out uint linked))
@@ -42,7 +51,7 @@ internal sealed class GloomPrograms(GL gl, ShaderProgramCache programs)
 
         // The altitude program votes across a warp, and the cleaning leaves out the extension line that says so.
         uint program = type == AltitudeShapeType
-            ? programs.Load(ShapeName(cancelling, type), patchFragment: src => src.Replace("#version 450 core", "#version 450 core\n#extension GL_ARB_shader_group_vote : enable"))
+            ? programs.Load(ShapeName(cancelling, type), patchFragment: AfterVersion)
             : programs.Load(ShapeName(cancelling, type));
         gl.BindUniformBlock(program, "_vp_c3", GloomBlocks.View.Binding);
         gl.BindUniformBlock(program, "_vp_c4", GloomBlocks.Area.Binding);

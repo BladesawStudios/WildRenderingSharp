@@ -82,6 +82,7 @@ Profiles.Totk.Gloom.GloomVolume
 Profiles.Totk.Gloom.IGloomSource
 Profiles.Totk.Sky.Clouds.CloudMasks
 Profiles.Totk.Terrain.CaveShading
+Profiles.Totk.Terrain.DepthsShading
 Profiles.Totk.Terrain.ITerrainHost
 Profiles.Totk.Terrain.TerrainDraw
 Profiles.Totk.Terrain.TerrainShading
