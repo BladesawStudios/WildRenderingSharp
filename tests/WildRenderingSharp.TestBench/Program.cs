@@ -222,7 +222,7 @@ if (options.ContainsKey("cascades"))
     // With --slices, the first cascades are fitted to slices of the view that end at those depths, and the regions after them are the world's.
     float[] slices = Option("slices", "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(float.Parse).ToArray();
     renderer.ShadowSliceEnds = slices.Length == 0 ? null : slices;
-    renderer.ShadowCascades = (slices.Length == 0 ? new[] { 64f, 256f, 1024f, 4096f } : Enumerable.Repeat(192f, slices.Length).Concat([192f, 1024f, 4096f]).ToArray())
+    renderer.ShadowCascades = (slices.Length == 0 ? new[] { 64f, 256f, 1024f, 4096f } : Enumerable.Repeat(192f, slices.Length).Concat(KeptReaches(slices.Length > 0 ? slices[0] : 16f)).ToArray())
         .Select(reach => new ShadowFocus(camera.Eye + forward * reach * 0.5f, reach)).ToArray();
 }
 
@@ -273,4 +273,11 @@ static Vector3 ParseOrigin(string text)
 {
     var parts = text.Split(',').Select(float.Parse).ToArray();
     return new Vector3(parts[0], parts[1], parts[2]);
+}
+
+// The kept cascades' reaches for a fitted slice that ends at sliceEnd: their slices end in an even ratio out to where the last stops serving, as a host lays them out.
+static float[] KeptReaches(float sliceEnd)
+{
+    float ratio = MathF.Pow(WildRenderingSharp.Pipeline.Shadows.ShadowCascadeLayout.ReachShare * 4096f / sliceEnd, 1f / 3f);
+    return [WildRenderingSharp.Pipeline.Shadows.ShadowCascadeLayout.ReachFor(sliceEnd * ratio), WildRenderingSharp.Pipeline.Shadows.ShadowCascadeLayout.ReachFor(sliceEnd * ratio * ratio), 4096f];
 }
