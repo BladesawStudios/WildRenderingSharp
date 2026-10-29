@@ -40,7 +40,10 @@ internal sealed class GloomPrograms(GL gl, ShaderProgramCache programs)
         if (_shapes.TryGetValue((cancelling, type), out uint linked))
             return linked;
 
-        uint program = programs.Load(ShapeName(cancelling, type));
+        // The altitude program votes across a warp, and the cleaning leaves out the extension line that says so.
+        uint program = type == AltitudeShapeType
+            ? programs.Load(ShapeName(cancelling, type), patchFragment: src => src.Replace("#version 450 core", "#version 450 core\n#extension GL_ARB_shader_group_vote : enable"))
+            : programs.Load(ShapeName(cancelling, type));
         gl.BindUniformBlock(program, "_vp_c3", GloomBlocks.View.Binding);
         gl.BindUniformBlock(program, "_vp_c4", GloomBlocks.Area.Binding);
         if (cancelling)

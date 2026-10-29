@@ -54,6 +54,8 @@ internal sealed class GloomPass : IDisposable
         _gl.Disable(EnableCap.DepthTest);
         _gl.DepthMask(false);
         _gl.Disable(EnableCap.CullFace);
+        // A chasm's volume stands past the camera's far plane; the shape programs measure against the depth buffer, so a box clipped away whole would leave it ungloomed.
+        _gl.Enable(EnableCap.DepthClamp);
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
 
@@ -89,6 +91,7 @@ internal sealed class GloomPass : IDisposable
 
         _gl.BlendEquation(BlendEquationModeEXT.FuncAdd);
         _gl.Disable(EnableCap.Blend);
+        _gl.Disable(EnableCap.DepthClamp);
     }
 
     void Compose(GLResourceCache resources, RenderTargets targets, IGloomSource source, GloomTextures textures)

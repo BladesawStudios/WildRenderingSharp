@@ -15,7 +15,7 @@ sealed unsafe class GloomBench : IGloomSource
 
     public IReadOnlyList<GloomVolume> Volumes { get; }
 
-    public float? AltitudeDensity => null;
+    public float? AltitudeDensity => 0.6f;
 
     public GloomBench(GL gl, Vector3 centre, float size)
     {
@@ -28,7 +28,13 @@ sealed unsafe class GloomBench : IGloomSource
         gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapS, (int)GLEnum.Repeat);
         gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapT, (int)GLEnum.Repeat);
         gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapR, (int)GLEnum.Repeat);
-        Textures = new GloomTextures(noise, noise, noise, noise, noise, null, null);
+        uint plane = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, plane);
+        uint texel = 0x80808080u;
+        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba8, 1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte, &texel);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        Textures = new GloomTextures(noise, noise, noise, noise, noise, plane, plane);
 
         var placement = Matrix4x4.CreateScale(size) * Matrix4x4.CreateTranslation(centre);
         Volumes = [new GloomVolume(GloomShape.Box, placement, new(0.9f, 0.9f), Vector2.One, 0f, false)];

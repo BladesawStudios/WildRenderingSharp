@@ -26,8 +26,15 @@ internal sealed class GloomStage(StageServices services, DeferredScene scene, Li
         // The terrain and the entrance interior have changed the depth since the last time it was made linear.
         linearDepth.Run(services.Resources, frame.Targets, frame.Camera.NearPlane, frame.Camera.FarPlane);
         ClipOrigin.Game(services.Gl, true);
-        _gloom.Run(services.Resources, frame.Targets, frame.Setup.Cam, source, textures);
-        ClipOrigin.Game(services.Gl, false);
+        try
+        {
+            _gloom.Run(services.Resources, frame.Targets, frame.Setup.Cam, source, textures);
+        }
+        finally
+        {
+            // Whatever happened, the frame's other passes and the host draw with the ordinary window origin.
+            ClipOrigin.Game(services.Gl, false);
+        }
         services.Resources.BindCamera(FrameUniformKeys.SceneCamera);
         frame.Stats.GloomComposed = true;
         GLDiagnostics.CheckPass(services.Gl, "gloom");
