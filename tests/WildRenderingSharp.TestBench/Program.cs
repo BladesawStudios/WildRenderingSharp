@@ -250,13 +250,7 @@ if (options.ContainsKey("centre"))
     Console.WriteLine(renderer.View.ProbeCentre());
 
 if (options.ContainsKey("gloom"))
-{
-    // The material ID the compose program writes for the gloom is 32; count the pixels of the last frame's G-buffer that carry it.
-    var targets = renderer.View.Targets;
-    byte[] ids = targets.ReadPixelsRgba8(targets.GBuffer[0]);
-    int claimed = Enumerable.Range(0, ids.Length / 4).Count(i => ids[i * 4] == 32);
-    Console.WriteLine($"gloom: composed={renderer.Pipeline.GloomComposed}, material-ID-32 pixels {claimed} of {ids.Length / 4}");
-}
+    GloomBench.Report(renderer);
 
 byte[] rgba = renderer.View.ReadOutputRgba8();
 PngWriter.WriteRgba(outPath, size, size, rgba);

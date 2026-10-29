@@ -1,5 +1,6 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using WildRenderingSharp;
 using WildRenderingSharp.Profiles.Totk.Gloom;
 
 namespace WildRenderingSharp.TestBench;
@@ -16,6 +17,15 @@ sealed unsafe class GloomBench : IGloomSource
     public IReadOnlyList<GloomVolume> Volumes { get; }
 
     public float? AltitudeDensity => 0.6f;
+
+    // The material ID the compose program writes for the gloom is 32; counts the pixels of the last frame's G-buffer that carry it.
+    public static void Report(WildRenderer renderer)
+    {
+        var targets = renderer.View.Targets;
+        byte[] ids = targets.ReadPixelsRgba8(targets.GBuffer[0]);
+        int claimed = Enumerable.Range(0, ids.Length / 4).Count(i => ids[i * 4] == 32);
+        Console.WriteLine($"gloom: composed={renderer.Pipeline.GloomComposed}, material-ID-32 pixels {claimed} of {ids.Length / 4}");
+    }
 
     public GloomBench(GL gl, Vector3 centre, float size)
     {
