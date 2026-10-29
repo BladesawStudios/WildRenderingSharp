@@ -39,7 +39,7 @@ internal sealed class FieldHazePass : IDisposable
     public static FieldHazePass? Create(GL gl, AssetDirectories directories) =>
         FieldHazeManifest.Load(directories.Effects) is { } haze ? new FieldHazePass(gl, haze) : null;
 
-    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture image, Camera camera, Vector3 tint, float strength, float falloff, float skyInfluence)
+    public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture image, Camera camera, Vector3 tint, float strength, float falloff, float skyInfluence, float gloomScale)
     {
         float tanHalf = MathF.Tan(camera.FovRadians / 2f);
         float aspect = image.Width / (float)image.Height;
@@ -58,6 +58,8 @@ internal sealed class FieldHazePass : IDisposable
         _gl.SetFloat(_program, "uStrength", strength);
         _gl.SetFloat(_program, "uFalloff", falloff);
         _gl.SetFloat(_program, "uSkyInfluence", skyInfluence);
+        _gl.SetFloat(_program, "uGloomScale", gloomScale);
+        _gl.BindTextureUniform(_program, "tMaterialId", 1, targets.GBuffer[0].Handle);
         _gl.SetInt(_program, "uCount", levels.Length);
         _gl.Uniform3(_gl.UniformLocation(_program, "uLevels"), levels.SelectMany(Level).ToArray());
         resources.DrawFullscreenTriangle();

@@ -1,5 +1,8 @@
 #version 330 core
 uniform sampler2D tDepth;
+// The G-buffer's material IDs, which say which pixels are the gloom's, and how many times thicker the haze is over them.
+uniform sampler2D tMaterialId;
+uniform float uGloomScale;
 uniform float uNear;
 uniform float uFar;
 uniform vec2 uViewScale;
@@ -12,6 +15,8 @@ uniform float uSkyInfluence;
 uniform vec3 uLevels[8];
 // The normalized depth at and beyond which a pixel is sky.
 const float SkyDepth = 0.9999;
+// The gloom's material ID, in bytes.
+const float GloomId = 32.0;
 
 in vec2 vUV;
 out vec4 fragColor;
@@ -48,5 +53,6 @@ void main()
         opticalDepth += uLevels[level].z * lengthInSphere(ray / scale, distance, uLevels[level].x, uLevels[level].y);
 
     // The cover grows with the optical depth to a power below one, so the near haze is thick enough and the far haze does not close in on one.
-    fragColor = vec4(uColor, (1.0 - exp(-pow(opticalDepth, uFalloff) * uStrength)) * (sky ? uSkyInfluence : 1.0));
+    bool gloom = abs(texture(tMaterialId, vec2(vUV.x, 1.0 - vUV.y)).r * 255.0 - GloomId) < 0.5;
+    fragColor = vec4(uColor, (1.0 - exp(-pow(opticalDepth, uFalloff) * uStrength * (gloom ? uGloomScale : 1.0))) * (sky ? uSkyInfluence : 1.0));
 }

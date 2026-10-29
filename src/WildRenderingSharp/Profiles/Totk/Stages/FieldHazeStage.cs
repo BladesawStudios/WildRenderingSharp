@@ -13,7 +13,7 @@ internal sealed class FieldHazeStage(StageServices services) : IFrameStage, IDis
     {
         var environment = frame.TotkEnvironment();
         if (_haze is not null && environment.Settings.UseFieldHaze)
-            _haze.Run(services.Resources, frame.Targets, frame.Targets.Ldr, frame.Camera, Tint(environment.Palette.FogColor), environment.Settings.FieldHazeStrength, environment.Settings.FieldHazeFalloff, environment.Settings.FieldHazeSkyInfluence);
+            _haze.Run(services.Resources, frame.Targets, frame.Targets.Ldr, frame.Camera, Tint(environment.Palette.FogColor), environment.Settings.FieldHazeStrength, environment.Settings.FieldHazeFalloff, environment.Settings.FieldHazeSkyInfluence, environment.Settings.FieldHazeGloomScale);
     }
 
     // The haze takes the green of the palette's fog colour: the colour the game's own haze sprites show against the scene is a pale warm one, and a screenshot of the
