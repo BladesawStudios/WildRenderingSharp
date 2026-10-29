@@ -72,7 +72,6 @@ Profiles.Totk.Atmosphere.Palettes.SkyPostFx
 Profiles.Totk.Atmosphere.RenderEnvironment
 Profiles.Totk.Atmosphere.TotkEnvironment
 Profiles.Totk.Atmosphere.TotkSettings
-Profiles.Totk.Deferred.Resolve.MiasmaDebug
 Profiles.Totk.Effects.FieldHazeLevel
 Profiles.Totk.Effects.FieldHazeManifest
 Profiles.Totk.Effects.ParticleEmitterManifest

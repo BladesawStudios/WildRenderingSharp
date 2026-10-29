@@ -23,9 +23,7 @@ static class DeferredPassLoader
                 continue;
 
             // The resolve is drawn at the frame's size, so the depth it gathers at its own pixel is the full-resolution one.
-            uint program = programs.Load(source, patchFragment: f => requested == MiasmaDebug.Pass
-                ? MiasmaDebug.Patch(PixelCentreGather.Anchor(f, "cTex_NormalizedLinearDepth"))
-                : PixelCentreGather.Anchor(f, "cTex_NormalizedLinearDepth"));
+            uint program = programs.Load(source, patchFragment: f => PixelCentreGather.Anchor(f, "cTex_NormalizedLinearDepth"));
             string materialPath = Path.Combine(deferredMaterialsDir, $"{name}.gsys_material.bin");
             var material = MaterialBlock.FromFile(gl, materialPath);
             if (material.Authored.Length == 0)
