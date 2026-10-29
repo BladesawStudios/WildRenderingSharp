@@ -60,6 +60,13 @@ internal sealed class FieldHazePass : IDisposable
         _gl.SetFloat(_program, "uSkyInfluence", skyInfluence);
         _gl.SetInt(_program, "uCount", levels.Length);
         _gl.Uniform3(_gl.UniformLocation(_program, "uLevels"), levels.SelectMany(Level).ToArray());
+        _gl.BindTextureUniform(_program, "tMaterialId", 1, targets.GBuffer[0].Handle);
+        _gl.SetInt(_program, "uGloomPass", 0);
+        resources.DrawFullscreenTriangle();
+
+        // The gloom's pixels are veiled by scaling, not by laying a colour over them: the game's black gloom stays black under its haze.
+        _gl.BlendFuncSeparate(BlendingFactor.DstColor, BlendingFactor.OneMinusSrcAlpha, BlendingFactor.Zero, BlendingFactor.One);
+        _gl.SetInt(_program, "uGloomPass", 1);
         resources.DrawFullscreenTriangle();
         _gl.Disable(EnableCap.Blend);
         GLDiagnostics.CheckPass(_gl, "field haze");
