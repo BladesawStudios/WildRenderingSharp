@@ -30,7 +30,8 @@ internal sealed class MergedMaterials : IDisposable
 
         int bytes = MergedLayout.MaterialVec4s * 16;
         var slot = new byte[bytes];
-        block.Authored[..Math.Min(block.Authored.Length, bytes)].CopyTo(slot);
+        // What the block shows, so a material held at a clip before it was merged is drawn held.
+        block.Shown[..Math.Min(block.Shown.Length, bytes)].CopyTo(slot);
         Buffer.WriteBytes((long)at * 16, slot);
         block.Copy = (offset, data) =>
         {

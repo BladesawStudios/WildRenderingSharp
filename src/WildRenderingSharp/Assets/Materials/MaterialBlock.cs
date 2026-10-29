@@ -54,6 +54,9 @@ internal sealed class MaterialBlock : IDisposable
 
     public ReadOnlySpan<byte> Authored => _authored;
 
+    // What the block shows now: the authored bytes, or what was shown in their place.
+    public ReadOnlySpan<byte> Shown => _shown ?? _authored;
+
     // Whether the buffer currently shows something other than the authored bytes.
     public bool IsPatched { get; private set; }
 
@@ -70,8 +73,7 @@ internal sealed class MaterialBlock : IDisposable
     // Shows bytes in place of the authored ones, leaving the rest of the padded buffer alone.
     public void Show(ReadOnlySpan<byte> bytes)
     {
-        if (_handle == 0)
-            _shown = bytes.ToArray();
+        _shown = bytes.ToArray();
         Upload(0, bytes);
         IsPatched = true;
     }
