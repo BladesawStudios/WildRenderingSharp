@@ -15,9 +15,12 @@ static class TotkPreShadingSceneMaterial
     const int CubeAmbientSlot = 1, SkySlot = 2, GroundSlot = 3, SlotBytes = 16;
 
     // The scene's block with these slots set, kept apart so nothing else that reads the block sees them.
-    public static Ubo From(ReadOnlyMemory<byte> sceneMaterial, string key, Vector3 sky, Vector3 ground)
+    public static Ubo From(ReadOnlyMemory<byte> sceneMaterial, string key, Vector3 sky, Vector3 ground, float shadowFilterTexels)
     {
         var block = new UboWriter(Spec, sceneMaterial.Span);
+
+        // The width of the filter the character shadows are read through, in cascade texels: the game steps four taps this far from the point, each of them already smoothed.
+        block.SetAt(ConstDepthShadowCharaPcf, shadowFilterTexels);
         block.SetAt(SceneShadingInfoExposureBase + CubeAmbientSlot * SlotBytes, 1f, 1f, 1f, 0f);
         block.SetAt(SceneShadingInfoExposureBase + SkySlot * SlotBytes, sky.X, sky.Y, sky.Z, 0f);
         block.SetAt(SceneShadingInfoExposureBase + GroundSlot * SlotBytes, ground.X, ground.Y, ground.Z, 0f);

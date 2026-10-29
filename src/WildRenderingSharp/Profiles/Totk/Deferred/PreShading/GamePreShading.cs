@@ -84,8 +84,8 @@ internal sealed class GamePreShading(StageServices services, DeferredScene scene
         _gl.Disable(EnableCap.CullFace);
         ClipOrigin.Game(_gl, true);
 
-        DrawChara(frame, cascades);
-        var lit = TotkPreShadingSceneMaterial.From(sceneMaterial, SceneMaterialKey, frame.Setup.HemiSky, frame.Setup.HemiGround);
+        var lit = TotkPreShadingSceneMaterial.From(sceneMaterial, SceneMaterialKey, frame.Setup.HemiSky, frame.Setup.HemiGround, totk.Settings.ShadowFilterTexels);
+        DrawChara(frame, cascades, lit);
         DrawField(frame, cascades, lit);
         DrawUntiled(frame, cascades, lit, _leaf, LeafResolvePass);
         // The hall seen through a shrine's doorway is under the ground, out of the world's fog, and only the entrance's own haze is over it.
@@ -127,7 +127,7 @@ internal sealed class GamePreShading(StageServices services, DeferredScene scene
     }
 
     // The character passes' pixels are the ones their shapes stamp.
-    void DrawChara(FrameContext frame, ScreenSpaceShadowAndAoPass.CascadeParams cascades)
+    void DrawChara(FrameContext frame, ScreenSpaceShadowAndAoPass.CascadeParams cascades, Ubo sceneMaterial)
     {
         HashSet<int> passIds = [.. scene.ResolvedPasses.Where(p => p.Name.StartsWith(CharaResolvePrefix, StringComparison.Ordinal)).Select(p => p.PassIndex + 1)];
         if (_chara is null || passIds.Count == 0)
@@ -135,7 +135,7 @@ internal sealed class GamePreShading(StageServices services, DeferredScene scene
 
         var resources = services.Resources;
         resources.Bind(PreShadingCascades.Camera(CharaCameraKey, frame, cascades, field: false));
-        resources.BindUbo(FrameUniformKeys.SceneMaterial, TotkBindings.SceneMaterial);
+        resources.Bind(sceneMaterial);
         _charaFramebuffer.Bind(frame.Targets);
         _chara.Draw(resources, Mask(frame, passIds, claimsUnstamped: false));
     }

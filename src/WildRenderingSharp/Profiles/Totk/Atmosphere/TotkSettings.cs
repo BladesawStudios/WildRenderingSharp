@@ -57,6 +57,9 @@ public sealed class TotkSettings
     // How many texels the side of a sun shadow cascade is: more keeps the edges of shadows sharp, at the cost of the card's memory and the time to draw them.
     public int ShadowResolution { get; set; } = RenderTargets.DefaultCascadeSize;
 
+    // How wide the filter is that the game's shadows are read through, in texels of a cascade: the game uses one. Less is sharper and shows the texels; more is softer.
+    public float ShadowFilterTexels { get; set; } = 1f;
+
     // Whether the placed actors' shapes are drawn from shared buffers, one multi-draw for each program, in place of one draw for each shape.
     public bool MergedDraws { get; set; }
 
