@@ -19,6 +19,10 @@ public static class TotkShaderExports
 
     public static readonly ShadingModelExport Terrain = new("terrain", "terrain", [2, 32, 62], "terrain_prog", "terrain_gsys_material.bin");
 
+    // The Depths' ground, the quad mesh, whose archive holds one shading model for each level of detail besides the generic one. Programs 1 and 2 are its depth
+    // and G-buffer programs, as they are the chunked cave's.
+    public static readonly ShadingModelExport Depths = new("cave_quadmesh", "cave_quad_mesh_generic", [1, 2], "depths_prog", "depths_gsys_material.bin");
+
     public static readonly ShadingModelExport Cave = new("cave", "cave_chunked_mesh_generic", [1, 2], "cave_prog", "cave_gsys_material.bin");
 
     public static bool IsExported(ShadingModelExport export, string shadersDir) =>
@@ -29,7 +33,10 @@ public static class TotkShaderExports
     public static void Export(IRomAccess rom, ShadingModelExport export, string shadersDir)
     {
         Directory.CreateDirectory(shadersDir);
-        var shadingModel = OpenArchive(rom, export.Archive).ShaderModels[export.Model];
+        var models = OpenArchive(rom, export.Archive).ShaderModels;
+        var shadingModel = models.TryGetValue(export.Model, out var found)
+            ? found
+            : throw new InvalidOperationException($"'{export.Archive}' has no shader model \"{export.Model}\"; it holds: {string.Join(", ", models.Keys)}");
         foreach (int program in export.Programs)
             WriteProgram(shadingModel, program, export.ProgramName(program), shadersDir);
 

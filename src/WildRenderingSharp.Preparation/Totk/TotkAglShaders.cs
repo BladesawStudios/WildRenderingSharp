@@ -4,7 +4,7 @@ using WildRenderingSharp.Rom;
 
 namespace WildRenderingSharp.Preparation.Totk;
 
-/// <summary>The engine's own screen shaders: HDR compose, the cloud, and the lens flare and sky post-fx chains.</summary>
+/// <summary>The engine's own screen shaders: HDR compose, the gloom renderer's three passes, the cloud, and the lens flare and sky post-fx chains.</summary>
 public static class TotkAglShaders
 {
     const string ApplicationPackage = "Shader/ApplicationPackage.Nin_NX_NVN.release.sarc.zs";
@@ -31,6 +31,17 @@ public static class TotkAglShaders
                 File.Copy(variant, Path.Combine(outDir, $"agl_hdr_compose.{extension}"), overwrite: true);
         }
     }
+
+    // The gloom renderer's programs: the shape of each volume into a density target, the count of how many volumes cover a pixel, and the compose that turns the
+    // density into gloom albedo and emission. They are in the same archive as HDR compose and have no macros.
+    public static void Gloom(IRomAccess rom, string outDir)
+    {
+        var sharc = AglDecompiler.Open(rom, ApplicationPackage, "AglShader.sharcb");
+        foreach (string name in GloomPrograms)
+            AglDecompiler.AllVariants(sharc, AglDecompiler.Program(sharc, name), outDir);
+    }
+
+    public static readonly string[] GloomPrograms = ["miasma_renderer_shape", "miasma_renderer_count", "miasma_renderer_compose"];
 
     public static void Cloud(IRomAccess rom, string outDir)
     {
