@@ -169,7 +169,7 @@ internal sealed class GBufferPass(GL gl)
         for (int g = 0; g < groups.Count; g++)
         {
             bool instanced = groups[g].Batch is { Visible.Count: > 0 };
-            foreach (var shape in groups[g].Shapes.Where(include))
+            foreach (var shape in groups[g].Shapes.Where(s => !s.ProfileDrawsGBuffer && include(s)))
             {
                 ulong key = 0;
                 if (instanced)

@@ -7,4 +7,5 @@ internal readonly record struct SceneLightingData(
     Vector3 SunDirView, Vector3 SunDirWorld, Vector3 SunColor,
     Vector3 HemiSky, Vector3 HemiGround,
     Vector3 VolumeMaskColor, float VolumeMaskIntensity,
-    int ShadowMapSize, float MidScale, float HighlightScale);
+    int ShadowMapSize, float MidScale, float HighlightScale,
+    Vector3? EntranceSky = null, Vector3? EntranceGround = null);

@@ -37,7 +37,7 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
     static SceneLightingData BuildSceneLighting(FrameSetup setup, LightingContext lighting, EnvironmentLighting environment) =>
         new(setup.SunView, setup.SunWorld, environment.SunColor, environment.HemiSky, environment.HemiGround,
             environment.VolumeMaskColor, environment.VolumeMaskIntensity, RenderTargets.ShadowMapSize,
-            lighting.MidScale, lighting.HighlightScale);
+            lighting.MidScale, lighting.HighlightScale, environment.EntranceSky, environment.EntranceGround);
 
     // Each actor gets its own group, with uniforms built fresh from its placement and pose, and its shapes filtered fresh so
     // toggling a shape takes effect on the next frame.
@@ -48,11 +48,11 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
         var casting = frame.Request.Actors.Select(a => new ActorDrawGroup(
             profile.Actor(new SkinningData(a.ModelMatrixRows, a.Model.Skeleton, a.BoneWorldMatrices)),
             a.ModelMatrixRows,
-            a.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow)).ToList())).ToList();
+            a.Model.Shapes.Where(s => s.Enabled && !s.PortalOnly && (!s.Hidden || s.CastsShadow)).ToList())).ToList();
 
         foreach (var batch in frame.Instances.Where(b => b.Visible.Count > 0))
             casting.Add(ActorDrawGroup.ForBatch(profile, batch,
-                batch.Model.Shapes.Where(s => s.Enabled && (!s.Hidden || s.CastsShadow) && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList()));
+                batch.Model.Shapes.Where(s => s.Enabled && !s.PortalOnly && (!s.Hidden || s.CastsShadow) && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList()));
 
         List<ActorDrawGroup> groups = [.. casting.Select(g => g with { Shapes = g.Shapes.Where(s => !s.Hidden).ToList() })];
         var opaque = groups

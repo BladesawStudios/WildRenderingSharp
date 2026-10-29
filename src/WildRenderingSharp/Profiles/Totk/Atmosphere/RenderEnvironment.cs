@@ -23,16 +23,19 @@ public sealed class RenderEnvironment
 
     public HdrComposeParam HdrCompose { get; private set; } = HdrComposeParam.Default;
 
+    public DungeonEntranceParam DungeonEntrance { get; private set; } = DungeonEntranceParam.Default;
+
     public void LoadFrom(IRomAccess? rom)
     {
         HdrCompose = HdrComposeParam.Load(rom);
+        DungeonEntrance = DungeonEntranceParam.Load(rom);
         Palettes = EnvPaletteLibrary.Load(rom);
         (SkyPostFx, CloudPostFx, ColorCorrection) = SkyPostFxLibrary.Load(rom);
         CloudWeather = CloudWeather.Load(rom);
     }
 
     public TotkEnvironment Resolve(TotkSettings settings, ITerrainHost? terrain = null) =>
-        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings, CloudWeather, HdrCompose);
+        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings, CloudWeather, HdrCompose, DungeonEntrance);
 
 
     public static RenderEnvironment Load(IRomAccess? rom)

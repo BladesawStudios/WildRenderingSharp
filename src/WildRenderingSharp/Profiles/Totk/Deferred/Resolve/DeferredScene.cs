@@ -57,6 +57,16 @@ internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDir
             passNames = [.. passNames, hostPass];
         NeedsKnownMaterialFixes = shapes.Where(s => !s.Blend).Any(KnownMaterialFixes.NeedsEyeVisibilityMaskFix);
 
+        // A shrine's entrance rock is a closed hull with a doorway in it, through which the hall reaches far into the ground behind; EntranceInterior draws the
+        // rock, leaving it out of the doorway, the hall only there, and the doorway's fire over both. The rock's other part, a floor and ceiling at the doorway's
+        // height, only cuts the ground out of the doorway in the game, which EntranceInterior does, and is drawn by nothing.
+        foreach (LoadedShape shape in shapes)
+        {
+            bool hull = shape.IsEntranceRock() && shape.CullsFaces;
+            shape.ProfileDrawsGBuffer = hull || shape.IsDoorwayPanel();
+            shape.PortalOnly = shape.IsSeenThroughDoorway() || (shape.IsEntranceRock() && !hull);
+        }
+
         // Resolving reads every pass's material off disk, so it only happens when the set of passes changes.
         if (passNames.SequenceEqual(_passNames, StringComparer.Ordinal) && _resolvedPasses.Count == passNames.Count)
             return;

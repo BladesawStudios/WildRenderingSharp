@@ -44,6 +44,12 @@ public sealed class TotkSettings
     // How much of the sun's light the ground throws back up as ambient light, in units of the sun's own: 0 leaves the ambient ground colour as the palette gives it.
     public float GroundBounce { get; set; } = 0.015f;
 
+    // The light the hall seen through a shrine's doorway is lit with, from above and below: the game's DungeonEntranceParam colours (1) or the frame's own ambient (0), and
+    // how much of it. The game's own is all of its colours, once.
+    public float EntranceAmbientAuthored { get; set; } = 1f;
+
+    public float EntranceAmbientScale { get; set; } = 1f;
+
     // How far the sun shadow cascades push a caster back by the slope of its surface to the light, so a surface the sun meets at a graze does not shadow itself.
     public float ShadowSlopeOffset { get; set; }
 

@@ -2,6 +2,7 @@ using System.Numerics;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Profiles.Totk.Atmosphere;
 using static WildRenderingSharp.Profiles.Totk.Ubos.TotkEnvironmentLayout;
 
 namespace WildRenderingSharp.Profiles.Totk.Ubos;
@@ -22,12 +23,12 @@ static class TotkPreShadingEnvironment
     const float GBufferNormalShare = 1f, GrazingExponent = 2f;
 
     // The scene's environment block with these slots set, kept apart so nothing else that reads the block sees them.
-    public static Ubo From(ReadOnlyMemory<byte> environment, string key, PreShadingFog fog, Vector3 hemiSky, Vector3 hemiGround)
+    public static Ubo From(ReadOnlyMemory<byte> environment, string key, PreShadingFog fog, Vector3 entranceSky, Vector3 entranceGround, DungeonEntranceParam entrance)
     {
         var block = new UboWriter(Spec, environment.Span);
         Write(block);
         WriteFog(block, fog);
-        WriteEntrance(block, hemiSky, hemiGround);
+        WriteEntrance(block, entranceSky, entranceGround, entrance);
         WriteVolumeFog(block, fog);
         return block.ToUbo(key);
     }
@@ -63,14 +64,17 @@ static class TotkPreShadingEnvironment
         block.Set(WorldFogMaskStartEndInvDamp, scale, 1f, 0f, 0f);
     }
 
-    // The entrance pass lights from the sky and the ground as the rest of the frame does. Its haze is left out, with the exponent at 1 because at 0 its
-    // pow of a clamped zero is NaN, which blacks the whole surface.
-    static void WriteEntrance(UboWriter block, Vector3 hemiSky, Vector3 hemiGround)
+    // The entrance pass lights from the two colours the game gives it (DungeonEntranceParam), not from the scene's ambient, and hazes with the param's fog: its colour with
+    // the strength in alpha, then the ramp's bias and scale over the start and end distances, and the damp, as the game writes them.
+    static void WriteEntrance(UboWriter block, Vector3 sky, Vector3 ground, DungeonEntranceParam param)
     {
-        block.Set(EntranceSkyLight, hemiSky.X, hemiSky.Y, hemiSky.Z, 0f);
-        block.Set(EntranceGroundLight, hemiGround.X, hemiGround.Y, hemiGround.Z, 0f);
-        block.Set(EntranceHazeColor, 0f, 0f, 0f, 0f);
-        block.Set(EntranceHazeShape, 0f, 0f, 1f, 0f);
+        block.Set(EntranceSkyLight, sky.X, sky.Y, sky.Z, 0f);
+        block.Set(EntranceGroundLight, ground.X, ground.Y, ground.Z, 0f);
+
+        float range = param.FogEnd - param.FogStart;
+        float scale = range == 0f ? 1f : 1f / range;
+        block.Set(EntranceHazeColor, param.FogColor.X, param.FogColor.Y, param.FogColor.Z, param.FogColor.W);
+        block.Set(EntranceHazeShape, -param.FogStart * scale, scale, param.FogDamp, 0f);
     }
 
     static void Write(UboWriter block)

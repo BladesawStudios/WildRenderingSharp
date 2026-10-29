@@ -24,7 +24,8 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.PreShading;
 /// They run once the approximated buffers are drawn and before PreShadow is filtered, as the game's own passes do, and they use their own camera,
 /// environment and scene-material blocks and their own cascade sampler, so nothing the other passes read changes.
 /// </remarks>
-internal sealed class GamePreShading(StageServices services, DeferredScene scene, PassIdStamper stamper, CubeEnvironment cubeEnvironment, SkyBake skyBake)
+internal sealed class GamePreShading(StageServices services, DeferredScene scene, PassIdStamper stamper, CubeEnvironment cubeEnvironment, SkyBake skyBake,
+    EntranceInterior interior)
     : IPreShadingOverride, IDisposable
 {
     const string CharaPass = "preshading_chara", FieldPass = "preshading_field", LeafPass = "preshading_field_leaf", EntrancePass = "preshading_field_entrance",
@@ -66,14 +67,16 @@ internal sealed class GamePreShading(StageServices services, DeferredScene scene
         cubeEnvironment.Set(frame.Setup.HemiSky, frame.Setup.HemiGround);
         var totk = frame.TotkEnvironment();
         var fog = PreShadingFog.From(totk, SkyStage.Intensity(frame), totk.Settings.SkyFogStrength);
-        resources.Bind(TotkPreShadingEnvironment.From(environment, EnvironmentKey, fog, frame.Setup.HemiSky, frame.Setup.HemiGround));
+        var (entranceSky, entranceGround) = totk.EntranceLight(frame.Setup.HemiSky, frame.Setup.HemiGround);
+        var withFog = TotkPreShadingEnvironment.From(environment, EnvironmentKey, fog, entranceSky, entranceGround, totk.DungeonEntrance);
+        resources.Bind(withFog);
 
         // The passes read PreShadow's static-shadow channel, which is 1 where nothing is statically shadowed; the approximation leaves it 0, so they read a copy with it set.
         _gl.CopyImageSubData(targets.PreShadow.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
             targets.PreShadowScratch.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)targets.PreShadow.Width, (uint)targets.PreShadow.Height, 1);
         FillStaticShadow(targets, targets.PreShadowScratch);
         uint volumeMask = totk.Settings.UseVolumeMaskEffect && VolumeMask() is { } mask ? mask.Run(resources, targets, frame.Setup).Handle : 0;
-        _textures.Bind(targets, targets.PreShadowScratch, cubeEnvironment.Handle, skyBake.BakedInscatter, fog.VolumeMask, volumeMask);
+        _textures.Bind(targets, targets.PreShadowScratch, cubeEnvironment.Handle, skyBake.BakedInscatter, fog.VolumeMask, volumeMask, interior.Thickness);
         Sky = new ForwardSkyInputs(cubeEnvironment.Handle, skyBake.BakedInscatter, _textures.VolumeMaskHandle);
 
         _gl.Disable(EnableCap.DepthTest);
@@ -85,7 +88,10 @@ internal sealed class GamePreShading(StageServices services, DeferredScene scene
         var lit = TotkPreShadingSceneMaterial.From(sceneMaterial, SceneMaterialKey, frame.Setup.HemiSky, frame.Setup.HemiGround);
         DrawField(frame, cascades, lit);
         DrawUntiled(frame, cascades, lit, _leaf, LeafResolvePass);
+        // The hall seen through a shrine's doorway is under the ground, out of the world's fog, and only the entrance's own haze is over it.
+        resources.Bind(TotkPreShadingEnvironment.From(environment, EnvironmentKey, PreShadingFog.Off(totk), entranceSky, entranceGround, totk.DungeonEntrance));
         DrawUntiled(frame, cascades, lit, _entrance, EntranceResolvePass);
+        resources.Bind(withFog);
         DrawUntiled(frame, cascades, lit, _water, DeferredScene.WaterPass);
 
         ClipOrigin.Game(_gl, false);

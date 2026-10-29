@@ -5,7 +5,8 @@ namespace WildRenderingSharp.Graphics.Contracts;
 
 /// <summary>What a frame's lighting needs from a game's environment data: the sun, the ambient, and the volume-mask tint.</summary>
 public readonly record struct EnvironmentLighting(
-    Vector3 SunColor, Vector3 HemiSky, Vector3 HemiGround, Vector3 VolumeMaskColor, float VolumeMaskIntensity);
+    Vector3 SunColor, Vector3 HemiSky, Vector3 HemiGround, Vector3 VolumeMaskColor, float VolumeMaskIntensity,
+    Vector3? EntranceSky = null, Vector3? EntranceGround = null);
 
 /// <summary>The grade applied when a finished frame is presented.</summary>
 public readonly record struct PresentGrade(float Saturation, float Brightness, float Gamma)

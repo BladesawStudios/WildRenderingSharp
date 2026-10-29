@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
+using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Targets;
 using WildRenderingSharp.Profiles.Totk.Deferred;
@@ -13,7 +14,7 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 /// <summary>Lights the G-buffer one deferred pass at a time.</summary>
 internal sealed class ResolveStage(
     StageServices services, DeferredScene scene, TerrainRenderer terrain,
-    ScreenSpaceLightingStage screenSpaceLighting, PassIdStamper stamper, CubeEnvironment cubeEnvironment) : IFrameStage, IDisposable
+    ScreenSpaceLightingStage screenSpaceLighting, PassIdStamper stamper, CubeEnvironment cubeEnvironment, EntranceInterior interior) : IFrameStage, IDisposable
 {
     readonly DeferredResolvePass _resolve = new(services.Gl, cubeEnvironment);
     readonly SceneColorShapePass _sceneColorShapes = new(services.Gl);
@@ -46,7 +47,12 @@ internal sealed class ResolveStage(
             sceneColorPasses.Add(DeferredScene.WaterPass);
         }
 
-        bool twoHalves = hasSceneColorShapes || waterHost is not null;
+        // The see-through shapes of the hall a shrine's doorway shows; drawn over it once it is lit, the entrance's pass is lit again in the second half.
+        var doorway = interior.Portal != 0
+            ? PlacedShapes.Of(frame, services.Profile, s => s.IsSeenThroughDoorway() && s.ReadsSceneColor)
+            : [];
+
+        bool twoHalves = hasSceneColorShapes || waterHost is not null || doorway.Count > 0;
 
         // The pass that lights the terrain, which no actor stamps, in whichever half it runs in.
         int defaultPass = stamper.ClaimPass(frame);
@@ -56,7 +62,7 @@ internal sealed class ResolveStage(
         GLDiagnostics.CheckPass(services.Gl, "deferred resolve");
 
         if (twoHalves)
-            ResolveSceneColorShapes(frame, hasSceneColorShapes, waterHost, sceneColorPasses, defaultPass);
+            ResolveSceneColorShapes(frame, hasSceneColorShapes, waterHost, sceneColorPasses, doorway, defaultPass);
     }
 
     void StartPendingTrace(RenderTargets targets)
@@ -68,7 +74,8 @@ internal sealed class ResolveStage(
         _resolve.Trace(pass, p => ResolveTrace.Begin(services.Gl, services.Programs, p.Source, path, header, targets.Width / 2, targets.Height / 2));
     }
 
-    void ResolveSceneColorShapes(FrameContext frame, bool hasShapes, ITerrainHost? waterHost, HashSet<string> sceneColorPasses, int defaultPass)
+    void ResolveSceneColorShapes(FrameContext frame, bool hasShapes, ITerrainHost? waterHost, HashSet<string> sceneColorPasses,
+        List<ActorDrawGroup> doorway, int defaultPass)
     {
         var lighting = frame.Lighting;
         var resources = services.Resources;
@@ -77,11 +84,17 @@ internal sealed class ResolveStage(
 
         float emissionUnits = lighting.Exposure / MathF.Max(1e-4f, lighting.EmissionScale);
         _sceneColorShapes.CopyInputs(resources, targets, emissionUnits);
-        if (hasShapes)
+        if (hasShapes || doorway.Count > 0)
         {
             resources.BindCamera(FrameUniformKeys.GBufferCamera);
             ClipOrigin.Game(gl, true);
-            _sceneColorShapes.Run(resources, targets, frame.Setup.Groups, services.Drawer);
+            if (hasShapes)
+                _sceneColorShapes.Run(resources, targets, frame.Setup.Groups, services.Drawer);
+            if (doorway.Count > 0)
+            {
+                interior.ThroughDoorway(resources, targets, () => _sceneColorShapes.Run(resources, targets, doorway, services.Drawer));
+                sceneColorPasses = [.. sceneColorPasses, LoadedShapeExtensions.EntrancePass];
+            }
             ClipOrigin.Game(gl, false);
         }
         if (waterHost is not null)
