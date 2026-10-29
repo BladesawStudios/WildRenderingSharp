@@ -1,7 +1,7 @@
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Gpu;
 
-namespace WildRenderingSharp.Profiles.Totk.Deferred;
+namespace WildRenderingSharp.Pipeline.Targets;
 
 /// <summary>A screen-sized texture a pass of the profile's own draws into or keeps a copy in, with its framebuffer when it is drawn into.</summary>
 /// <remarks>

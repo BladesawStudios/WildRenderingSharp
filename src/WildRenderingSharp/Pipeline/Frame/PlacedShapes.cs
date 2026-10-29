@@ -1,9 +1,8 @@
 using WildRenderingSharp.Assets;
 using WildRenderingSharp.Graphics.Data;
 using WildRenderingSharp.Pipeline.Drawing;
-using WildRenderingSharp.Pipeline.Frame;
 
-namespace WildRenderingSharp.Profiles.Totk.Deferred;
+namespace WildRenderingSharp.Pipeline.Frame;
 
 /// <summary>The shapes of the frame's models that pass a test, grouped by what places them, for a pass that draws shapes the frame's own lists leave out.</summary>
 /// <remarks>
