@@ -28,6 +28,9 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     // The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like.
     public CaveShading Cave { get; }
 
+    // The game's programs for the Depths' quad mesh.
+    public DepthsShading Depths { get; }
+
     public TotkFrameGraph(StageServices services)
     {
         var linearDepth = Own(new LinearDepthPass(services.Gl));
@@ -36,6 +39,7 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
         var forward = new ForwardPass(services.Gl, flip, forwardInputs);
         Terrain = Own(new TerrainShading(services.Gl, services.Directories.Decompiled, services.Profile.Bindings));
         Cave = Own(new CaveShading(services.Gl, services.Directories.Decompiled));
+        Depths = new DepthsShading(services.Gl, services.Directories.Decompiled);
         _scene = Own(new DeferredScene(services.Gl, services.Programs, services.Directories));
         var terrain = new TerrainRenderer(services, Terrain, linearDepth, _scene);
         var control = Own(new GBufferControlInputs(services.Gl));
@@ -52,6 +56,7 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
             new FrameSetupStage(services),
             Own(new TotkFrameConstantsStage(services)),
             new GBufferStage(services, _scene, terrain, control, interior),
+            Own(new GloomStage(services, _scene, linearDepth)),
             new ShadowStage(services, terrain, control),
             // Before the screen-space lighting, whose game pre-shading draws only where the mask names a pass.
             new PassIdMaskStage(services, stamper),

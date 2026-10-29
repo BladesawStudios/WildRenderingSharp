@@ -25,7 +25,7 @@ internal sealed class LensFlarePass : IDisposable
     readonly GL _gl;
     readonly uint _program, _brightProgram, _blurProgram;
     readonly FlareSource _source;
-    readonly FlareQuad? _quad;
+    readonly HalfUnitQuad? _quad;
     bool _logged;
 
     public LensFlarePass(GL gl, ShaderProgramCache programs)
@@ -48,7 +48,7 @@ internal sealed class LensFlarePass : IDisposable
 
         _brightProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, BrightFrag, "lens_flare_bright");
         _blurProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, BlurFrag, "lens_flare_blur");
-        _quad = new FlareQuad(gl);
+        _quad = new HalfUnitQuad(gl);
         Log.Info("[LensFlarePass] real agl_flare_filter_flare linked (4 ghosts + halo).");
     }
 

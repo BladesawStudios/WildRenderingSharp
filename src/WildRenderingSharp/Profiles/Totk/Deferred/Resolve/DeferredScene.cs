@@ -15,6 +15,9 @@ internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDir
 
     public const string WaterPass = "field_water";
 
+    // The pass that lights the gloom the gloom stage composes into the G-buffer.
+    public const string MiasmaPass = "field_miasma";
+
     const string CharacterPassPrefix = "chara_";
 
     readonly List<string> _hostPasses = [];

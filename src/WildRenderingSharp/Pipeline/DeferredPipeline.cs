@@ -41,6 +41,9 @@ public sealed class DeferredPipeline : IDisposable
 
     public (long Triangles, long Instances) ShadowCounts { get; private set; }
 
+    // Whether the last frame composed a host's gloom into the G-buffer.
+    public bool GloomComposed { get; private set; }
+
     // The frame's actor draw calls, the commands in them, the texture binds and the program switches.
     public (long Calls, long Commands, long TextureBinds, long ProgramSwitches) DrawCounts { get; private set; }
 
@@ -118,6 +121,7 @@ public sealed class DeferredPipeline : IDisposable
 
         GBufferCounts = frame.Stats.GBuffer;
         ShadowCounts = frame.Stats.Shadow;
+        GloomComposed = frame.Stats.GloomComposed;
         DrawCounts = DrawStatistics.Take();
         Timer.Mark("post");
         return frame.Result;

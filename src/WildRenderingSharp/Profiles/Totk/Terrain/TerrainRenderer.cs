@@ -18,6 +18,7 @@ namespace WildRenderingSharp.Profiles.Totk.Terrain;
 /// <summary>Draws a host's terrain through the game's terrain programs: its G-buffer half, its water and its shadow.</summary>
 internal sealed class TerrainRenderer(StageServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene)
 {
+
     const int WaterColorBufferUnit = 19;
 
     uint _underDepthProgram;
@@ -52,6 +53,8 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         Resources.DrawFullscreenTriangle();
         CopyGBufferLayer(targets, targets.GBuffer[1], underAlbedo);
         CopyGBufferLayer(targets, targets.GBuffer[3], underNormal);
+        var underEmission = targets.TerrainUnderEmission();
+        CopyGBufferLayer(targets, targets.GBuffer[5], underEmission);
 
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.TerrainCamera, terrainCamera));
         Resources.BindMaterial(shading.Material);
@@ -65,6 +68,7 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         Gl.DepthMask(true);
         Gl.BindTextureAt(0, underAlbedo.Handle);
         Gl.BindTextureAt(1, underNormal.Handle);
+        Gl.BindTextureAt(3, underEmission.Handle);
         Gl.BindTextureAt(4, underDepth.Handle);
 
         ClipOrigin.Game(Gl, true);

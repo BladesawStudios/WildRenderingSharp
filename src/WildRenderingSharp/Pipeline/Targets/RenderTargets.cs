@@ -112,6 +112,8 @@ public sealed class RenderTargets : IDisposable
 
     public (GpuTexture Albedo, GpuTexture Normal, GpuTexture Depth) TerrainUnderCopies() => _snapshots.TerrainUnderCopies(Width, Height);
 
+    public GpuTexture TerrainUnderEmission() => _snapshots.TerrainUnderEmission(Width, Height);
+
     public void BindColorTarget(GpuTexture target)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorFbo);
@@ -150,6 +152,15 @@ public sealed class RenderTargets : IDisposable
     {
         for (uint i = 0; i < GBufferCount; i++)
             _gl.ColorMask(i, enabled, enabled, enabled, enabled);
+    }
+
+    // Sends the bound G-buffer's output locations to the attachments given, in order, and the rest nowhere; no attachments sends them to their own.
+    public void SetGBufferOutputs(params ReadOnlySpan<int> attachments)
+    {
+        var buffers = new GLEnum[attachments.Length == 0 ? GBufferCount : attachments.Length];
+        for (int i = 0; i < buffers.Length; i++)
+            buffers[i] = GLEnum.ColorAttachment0 + (attachments.Length == 0 ? i : attachments[i]);
+        _gl.DrawBuffers(buffers);
     }
 
     public void BindPassIdTarget()

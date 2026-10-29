@@ -85,10 +85,11 @@ public static class AglDecompiler
 
     static string ToGlsl(SharcfbFile.ShaderVariation variation)
     {
-        string glsl = TegraShaderTranslator.Decompile(variation.ByteCode);
         if (variation.ControlShader is not { Length: > 0 } control)
-            return glsl;
-        float[] constants = new CompileToolControlShader(control).GetConstantsAsFloats(variation.ByteCode);
+            return TegraShaderTranslator.Decompile(variation.ByteCode);
+        var controlShader = new CompileToolControlShader(control);
+        string glsl = TegraShaderTranslator.Decompile(variation.ByteCode, controlShader.GetConstants(variation.ByteCode));
+        float[] constants = controlShader.GetConstantsAsFloats(variation.ByteCode);
         return constants.Length > 0 ? FoldConstants(glsl, constants) : glsl;
     }
 

@@ -1,5 +1,6 @@
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
+using WildRenderingSharp.Profiles.Totk.Gloom;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 using WildRenderingSharp.Rom;
 
@@ -34,8 +35,8 @@ public sealed class RenderEnvironment
         CloudWeather = CloudWeather.Load(rom);
     }
 
-    public TotkEnvironment Resolve(TotkSettings settings, ITerrainHost? terrain = null) =>
-        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings, CloudWeather, HdrCompose, DungeonEntrance);
+    public TotkEnvironment Resolve(TotkSettings settings, ITerrainHost? terrain = null, IGloomSource? gloom = null) =>
+        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings, CloudWeather, HdrCompose, DungeonEntrance, gloom);
 
 
     public static RenderEnvironment Load(IRomAccess? rom)

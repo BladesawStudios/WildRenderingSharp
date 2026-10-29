@@ -11,6 +11,7 @@ using WildRenderingSharp.Pipeline.Drawing;
 using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Profiles.Totk;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Gloom;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 using WildRenderingSharp.Rendering;
 using WildRenderingSharp.Rendering.Cameras;
@@ -50,6 +51,8 @@ public sealed class WildRenderer : IDisposable
 
     // The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like; null when the pipeline is not TotK's.
     public CaveShading? CaveShading => (Pipeline.Graph as TotkFrameGraph)?.Cave;
+
+    public DepthsShading? DepthsShading => (Pipeline.Graph as TotkFrameGraph)?.Depths;
 
     public IReadOnlyList<RenderActor> Actors => _actors;
 
@@ -125,6 +128,9 @@ public sealed class WildRenderer : IDisposable
     public IReadOnlyList<ShadowFocus>? ShadowCascades { get; set; }
 
     public ITerrainHost? Terrain { get; set; }
+
+    // The host's gloom, composed into the G-buffer with the game's own programs; null for none.
+    public IGloomSource? Gloom { get; set; }
 
     public InstanceBatch AddInstances(LoadedModel model, IReadOnlyList<Vector4[]> placements, bool updateScene = true)
     {
@@ -232,7 +238,7 @@ public sealed class WildRenderer : IDisposable
         foreach (var actor in _actors)
             actor.ApplyMaterialAnimations();
         var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
-        return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain), inputs,
+        return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain, Gloom), inputs,
             AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades);
     }
 

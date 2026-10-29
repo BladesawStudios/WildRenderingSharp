@@ -20,6 +20,7 @@ public static class TotkSystemAssets
         void Step(string name, Action step) => Run(failures, log, name, step);
         Step("system shaders", () => Once(Path.Combine(cache.Shaders, "agl_hdr_compose.vert"), cache.Shaders, () => TotkAglShaders.HdrCompose(romfs.Base, cache.Shaders)));
         Step("deferred materials", () => DeferredPasses(romfs, cache));
+        Step("gloom shaders", () => Once(Path.Combine(cache.Shaders, "agl_miasma_renderer_compose.frag"), cache.Shaders, () => TotkAglShaders.Gloom(romfs.Base, cache.Shaders)));
         Step("system textures", () => Once(Path.Combine(cache.SystemTextures, "Proc3DNoise.r8"), null, () => TotkSystemTextures.ExtractProc3DNoise(romfs.Base, cache.SystemTextures)));
         Step("cloud textures", () =>
         {
@@ -48,6 +49,7 @@ public static class TotkSystemAssets
         });
         Step("terrain shaders", () => Export(romfs, TotkShaderExports.Terrain, cache));
         Step("cave shaders", () => Export(romfs, TotkShaderExports.Cave, cache));
+        Step("depths shaders", () => Export(romfs, TotkShaderExports.Depths, cache));
 
         // The renderer cannot start without the HDR compose shader; the other steps only cost features.
         if (failures.Count > 0 && !cache.HasSystemAssets)

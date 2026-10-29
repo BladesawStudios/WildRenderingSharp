@@ -2,6 +2,7 @@ using System.Numerics;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
 using WildRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
+using WildRenderingSharp.Profiles.Totk.Gloom;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 using WildRenderingSharp.Rendering.Lighting;
 
@@ -14,8 +15,11 @@ namespace WildRenderingSharp.Profiles.Totk.Atmosphere;
 public sealed class TotkEnvironment(
     EnvPalette palette, SkyPostFx? skyPostFx = null, CloudPostFx? cloudPostFx = null,
     ColorCorrectionPostFx? colorCorrection = null, ITerrainHost? terrain = null,
-    TotkSettings? settings = null, CloudWeather? cloudWeather = null, HdrComposeParam? hdrCompose = null, DungeonEntranceParam? dungeonEntrance = null) : IFrameEnvironment
+    TotkSettings? settings = null, CloudWeather? cloudWeather = null, HdrComposeParam? hdrCompose = null, DungeonEntranceParam? dungeonEntrance = null,
+    IGloomSource? gloom = null) : IFrameEnvironment
 {
+    public IGloomSource? Gloom { get; } = gloom;
+
     public ITerrainHost? Terrain { get; } = terrain;
 
     public TotkSettings Settings { get; } = settings ?? new();

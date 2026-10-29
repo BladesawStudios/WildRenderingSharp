@@ -1,22 +1,27 @@
 using Silk.NET.OpenGL;
 
-namespace WildRenderingSharp.Profiles.Totk.Sky.LensFlare;
+namespace WildRenderingSharp.Gpu;
 
-/// <summary>The quad the flare program draws: a half-unit position (its vertex shader doubles it) and a uv per corner.</summary>
-sealed unsafe class FlareQuad : IDisposable
+/// <summary>The quad the game's screen programs draw: a half-unit position (their vertex shaders double it) and a uv per corner.</summary>
+/// <remarks>
+/// The uv runs up the screen, as a lower-left window origin has it. A program drawn with the game's upper-left origin reads row zero as the top of the screen, so its quad is made
+/// with <c>topFirst</c>, which puts uv.y zero at the top.
+/// </remarks>
+sealed unsafe class HalfUnitQuad : IDisposable
 {
     readonly GL _gl;
     readonly uint _vao, _vbo;
 
-    public FlareQuad(GL gl)
+    public HalfUnitQuad(GL gl, bool topFirst = false)
     {
         _gl = gl;
+        float bottom = topFirst ? 1f : 0f, top = topFirst ? 0f : 1f;
         Span<float> corners =
         [
-            -0.5f, -0.5f, 0f, 0f,
-             0.5f, -0.5f, 1f, 0f,
-            -0.5f,  0.5f, 0f, 1f,
-             0.5f,  0.5f, 1f, 1f,
+            -0.5f, -0.5f, 0f, bottom,
+             0.5f, -0.5f, 1f, bottom,
+            -0.5f,  0.5f, 0f, top,
+             0.5f,  0.5f, 1f, top,
         ];
         _vao = gl.GenVertexArray();
         _vbo = gl.GenBuffer();

@@ -25,7 +25,7 @@ string Option(string key, string fallback) => options.TryGetValue(key, out var v
 if (!options.TryGetValue("romfs", out var romfs) || !options.TryGetValue("actor", out var actorName))
 {
     Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] " +
-        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--frames <n>] [--instances <n> [--spacing <x>]] " +
+        "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--gloom <box size>] [--frames <n>] [--instances <n> [--spacing <x>]] " +
         "[--with <model>,...] [--eye x,y,z] [--look x,y,z] [--fov <degrees>] [--only <shape>] [--hide <shape>] " +
         (Option("game", "totk") == "totk" ? TotkBenchOptions.Usage : ""));
     return 2;
@@ -228,6 +228,9 @@ if (options.TryGetValue("aa", out var aa))
 if (options.TryGetValue("view", out var view))
     renderer.View.Mode = Enum.Parse<WildRenderingSharp.Hosting.Views.SceneViewMode>(view, ignoreCase: true);
 
+if (options.TryGetValue("gloom", out var gloomSize))
+    renderer.Gloom = new GloomBench(gl, camera.Target, float.Parse(gloomSize));
+
 // Several frames: the sky bake, shadow cache and exposure probe settle over the first few.
 for (int i = 0; i < 4; i++)
     renderer.Render(camera, size, size, 1f / 60f);
@@ -245,6 +248,9 @@ if (options.ContainsKey("probe"))
 
 if (options.ContainsKey("centre"))
     Console.WriteLine(renderer.View.ProbeCentre());
+
+if (options.ContainsKey("gloom"))
+    GloomBench.Report(renderer);
 
 byte[] rgba = renderer.View.ReadOutputRgba8();
 PngWriter.WriteRgba(outPath, size, size, rgba);
