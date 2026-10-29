@@ -75,6 +75,11 @@ Profiles.Totk.Atmosphere.TotkSettings
 Profiles.Totk.Effects.FieldHazeLevel
 Profiles.Totk.Effects.FieldHazeManifest
 Profiles.Totk.Effects.ParticleEmitterManifest
+Profiles.Totk.Gloom.GloomLook
+Profiles.Totk.Gloom.GloomShape
+Profiles.Totk.Gloom.GloomTextures
+Profiles.Totk.Gloom.GloomVolume
+Profiles.Totk.Gloom.IGloomSource
 Profiles.Totk.Sky.Clouds.CloudMasks
 Profiles.Totk.Terrain.CaveShading
 Profiles.Totk.Terrain.ITerrainHost

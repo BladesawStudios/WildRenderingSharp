@@ -1,0 +1,36 @@
+using System.Numerics;
+using Silk.NET.OpenGL;
+using WildRenderingSharp.Profiles.Totk.Gloom;
+
+namespace WildRenderingSharp.TestBench;
+
+/// <summary>A gloom of one box around the camera's target and flat noise, to run the game's gloom programs on a scene and count the pixels they claim.</summary>
+sealed unsafe class GloomBench : IGloomSource
+{
+    public GloomTextures? Textures { get; }
+
+    public GloomLook Look { get; } = new(
+        new(20f, 300f, 1f, 0.2f), new(0.35f, 0.04f, 0.1f, 0.5f), new(0.6f, 0.05f, 0.1f), new(0.05f, 0f, 0.02f), new(1f, 2f),
+        new(0.1f, 0.2f), new(0.2f, 0f, 0f), new(2f, 0.1f), new(0.3f, 0.5f, 0.2f));
+
+    public IReadOnlyList<GloomVolume> Volumes { get; }
+
+    public float? AltitudeDensity => null;
+
+    public GloomBench(GL gl, Vector3 centre, float size)
+    {
+        uint noise = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture3D, noise);
+        byte half = 128;
+        gl.TexImage3D(TextureTarget.Texture3D, 0, InternalFormat.R8, 1, 1, 1, 0, PixelFormat.Red, PixelType.UnsignedByte, &half);
+        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapS, (int)GLEnum.Repeat);
+        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapT, (int)GLEnum.Repeat);
+        gl.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapR, (int)GLEnum.Repeat);
+        Textures = new GloomTextures(noise, noise, noise, noise, noise, null, null);
+
+        var placement = Matrix4x4.CreateScale(size) * Matrix4x4.CreateTranslation(centre);
+        Volumes = [new GloomVolume(GloomShape.Box, placement, new(0.9f, 0.9f), Vector2.One, 0f, false)];
+    }
+}
