@@ -86,6 +86,8 @@ internal sealed class DeferredResolvePass : IDisposable
         var trace = StartTrace(pass);
         _gl.UseProgram(trace?.Program ?? pass.Program);
         trace?.Bind();
+        if (pass.Name == MiasmaDebug.Pass)
+            MiasmaDebug.Upload(_gl, trace?.Program ?? pass.Program);
         if (pass.Tiled)
         {
             resources.BindCamera(TotkUniformKeys.FieldCamera);
