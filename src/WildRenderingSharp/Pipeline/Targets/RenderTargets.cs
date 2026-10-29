@@ -112,6 +112,8 @@ public sealed class RenderTargets : IDisposable
 
     public (GpuTexture Albedo, GpuTexture Normal, GpuTexture Depth) TerrainUnderCopies() => _snapshots.TerrainUnderCopies(Width, Height);
 
+    public GpuTexture TerrainUnderEmission() => _snapshots.TerrainUnderEmission(Width, Height);
+
     public void BindColorTarget(GpuTexture target)
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _scratchColorFbo);

@@ -16,8 +16,11 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
 /// <summary>Draws a host's terrain through the game's terrain programs: its G-buffer half, its water and its shadow.</summary>
-internal sealed class TerrainRenderer(StageServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene)
+internal sealed class TerrainRenderer(StageServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene) : IDisposable
 {
+    // What every program expects bound; put back after a host has drawn, since a host binds the storage buffer at binding 0 for its own programs.
+    readonly DecompilerBindings _decompiler = new(services.Gl, services.Resources);
+
     const int WaterColorBufferUnit = 19;
 
     uint _underDepthProgram;
@@ -52,6 +55,8 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         Resources.DrawFullscreenTriangle();
         CopyGBufferLayer(targets, targets.GBuffer[1], underAlbedo);
         CopyGBufferLayer(targets, targets.GBuffer[3], underNormal);
+        var underEmission = targets.TerrainUnderEmission();
+        CopyGBufferLayer(targets, targets.GBuffer[5], underEmission);
 
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.TerrainCamera, terrainCamera));
         Resources.BindMaterial(shading.Material);
@@ -65,11 +70,13 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         Gl.DepthMask(true);
         Gl.BindTextureAt(0, underAlbedo.Handle);
         Gl.BindTextureAt(1, underNormal.Handle);
+        Gl.BindTextureAt(3, underEmission.Handle);
         Gl.BindTextureAt(4, underDepth.Handle);
 
         ClipOrigin.Game(Gl, true);
         host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default, GBufferTargets: targets.GBuffer.Length));
         ClipOrigin.Game(Gl, false);
+        _decompiler.Bind();
 
         ResetState();
         GLDiagnostics.CheckPass(Gl, "terrain");
@@ -131,6 +138,8 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
     void CopyGBufferLayer(RenderTargets targets, GpuTexture source, GpuTexture destination) =>
         Gl.CopyImageSubData(source.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
             destination.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)targets.Width, (uint)targets.Height, 1);
+
+    public void Dispose() => _decompiler.Dispose();
 
     void ResetState()
     {

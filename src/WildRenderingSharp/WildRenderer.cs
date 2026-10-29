@@ -52,6 +52,8 @@ public sealed class WildRenderer : IDisposable
     // The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like; null when the pipeline is not TotK's.
     public CaveShading? CaveShading => (Pipeline.Graph as TotkFrameGraph)?.Cave;
 
+    public DepthsShading? DepthsShading => (Pipeline.Graph as TotkFrameGraph)?.Depths;
+
     public IReadOnlyList<RenderActor> Actors => _actors;
 
     public ulong FrameId { get; private set; }

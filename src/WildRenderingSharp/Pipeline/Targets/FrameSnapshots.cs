@@ -10,14 +10,14 @@ sealed class FrameSnapshots(GL gl, TargetTextureFactory textures)
 
     readonly GpuTexture?[] _stages = new GpuTexture?[Slots];
     GpuTexture? _layerCopy;
-    GpuTexture? _underAlbedo, _underNormal, _underDepth;
+    GpuTexture? _underAlbedo, _underNormal, _underDepth, _underEmission;
 
     // Drops the copies, whose textures the factory has just released.
     public void Reset()
     {
         Array.Clear(_stages);
         _layerCopy = null;
-        _underAlbedo = _underNormal = _underDepth = null;
+        _underAlbedo = _underNormal = _underDepth = _underEmission = null;
     }
 
     // Copies the source as it stands into the slot.
@@ -39,6 +39,10 @@ sealed class FrameSnapshots(GL gl, TargetTextureFactory textures)
         _underDepth ??= textures.Color(width, height, InternalFormat.R32f, repeat: false);
         return (_underAlbedo.Value, _underNormal.Value, _underDepth.Value);
     }
+
+    // A full-size copy of the emission under the terrain, for the programs that read it (the Depths' ground).
+    public GpuTexture TerrainUnderEmission(int width, int height) =>
+        _underEmission ??= textures.Color(width, height, InternalFormat.Rgba16f, repeat: false, filterNearest: true);
 
     // One layer of a texture array as a plain texture, overwritten by the next call.
     public GpuTexture LayerCopy(GpuTexture array, int layer)
