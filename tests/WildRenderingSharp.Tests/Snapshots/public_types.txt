@@ -63,6 +63,7 @@ Profiles.Totk.Atmosphere.Clouds.CloudPostFxLayer
 Profiles.Totk.Atmosphere.Clouds.CloudPostFxShared
 Profiles.Totk.Atmosphere.Clouds.CloudWeather
 Profiles.Totk.Atmosphere.Clouds.CloudWeatherValue
+Profiles.Totk.Atmosphere.DungeonEntranceParam
 Profiles.Totk.Atmosphere.HdrComposeParam
 Profiles.Totk.Atmosphere.Palettes.ColorCorrectionPostFx
 Profiles.Totk.Atmosphere.Palettes.EnvPalette

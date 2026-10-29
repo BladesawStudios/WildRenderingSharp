@@ -40,6 +40,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Glsl\**\*" LogicalName="Glsl/%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- The code that cleans, corrects and patches the games' shaders, kept with the build so a program kept by name is found by what made it. -->
+    <EmbeddedResource Include="Shaders\*.cs;Profiles\**\Shaders\*.cs" LogicalName="Patch/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

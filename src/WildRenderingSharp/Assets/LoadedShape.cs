@@ -135,6 +135,12 @@ public sealed class LoadedShape
     // show where the game shows nothing.
     internal bool CullsFaces { get; init; }
 
+    // Whether the shape is left out of every ordinary pass, for a profile's own pass to draw only where it is seen through a portal.
+    internal bool PortalOnly { get; set; }
+
+    // Whether the G-buffer pass leaves the shape to a profile's own pass, which draws it into the G-buffer itself; every other pass draws it as ever.
+    internal bool ProfileDrawsGBuffer { get; set; }
+
     public bool Enabled { get; set; } = true;
 
     public bool ForceForward { get; set; }

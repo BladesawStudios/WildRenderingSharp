@@ -51,13 +51,18 @@ internal sealed class TextureCache : IDisposable
                 _shared.Release(tex);
             else
             {
+                // A merged draw may have taken a handle from it as from any other, which has to go before the texture does.
+                _shared?.Residency?.Release(_gl, tex.Handle);
                 _gl.DeleteTexture(tex.Handle);
                 GpuMemory.Texture(-tex.Bytes);
             }
         }
         _byTextureName.Clear();
         if (_white is { } white)
+        {
+            _shared?.Residency?.Release(_gl, white.Handle);
             _gl.DeleteTexture(white.Handle);
+        }
         _white = null;
         if (_ownsExternal)
             _external?.Dispose();

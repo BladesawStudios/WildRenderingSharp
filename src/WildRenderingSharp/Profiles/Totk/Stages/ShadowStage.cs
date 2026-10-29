@@ -9,12 +9,13 @@ using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Pipeline.Targets;
+using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Terrain;
 
 namespace WildRenderingSharp.Profiles.Totk.Stages;
 
 /// <summary>Draws the sun's shadow map, or its cascades.</summary>
-internal sealed class ShadowStage(StageServices services, TerrainRenderer terrain) : IFrameStage
+internal sealed class ShadowStage(StageServices services, TerrainRenderer terrain, GBufferControlInputs control) : IFrameStage
 {
     // The bias a cascade is given at least, in its own texels: the 0.0015 m an actor scene uses over its 0.00125 m texels.
     const float CascadeBiasTexels = 1.2f;
@@ -30,6 +31,9 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     {
         var request = frame.Request;
         var cache = frame.ShadowCache;
+        // The casters draw with their depth programs, which read the same control texels the G-buffer pass binds; left to whatever the frame before bound, a
+        // shrine's rock took its mode from that and cast a shadow of depth 0 over itself as the view turned.
+        control.Bind();
         InstanceShadowRuns.BeginFrame(3.0);
 
         if (request.ShadowFocus is { } shadowFocus)
@@ -297,5 +301,5 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         group with { Shapes = group.Shapes.Where(s => !s.ReadsSceneColor).ToList() };
 
     static List<LoadedShape> CastingShapes(InstanceBatch batch) =>
-        batch.Model.Shapes.Where(s => s.Enabled && s.CastsShadow && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList();
+        batch.Model.Shapes.Where(s => s.Enabled && s.CastsShadow && !s.PortalOnly && !s.ReadsSceneColor && (batch.IncludeBlended || (!s.Blend && !s.ForceForward))).ToList();
 }

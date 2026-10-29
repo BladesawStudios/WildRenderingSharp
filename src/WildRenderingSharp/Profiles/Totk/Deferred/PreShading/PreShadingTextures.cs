@@ -10,7 +10,7 @@ internal sealed class PreShadingTextures(GL gl) : IDisposable
     // The programs' sampler bindings.
     const int Albedo = 0, Normal = 1, MaterialId = 2, Emission = 3, LinearDepth = 4, HalfLinearDepth = 5, ShadowCascades = 6,
         DepthBuffer = 7, ScreenVolumeMask = 8, CubeEnvironment = 9, WorldVolumeMask = 11, SkyInscatter = 12, Projection = 13, SkyIslandShadow = 14, Darkness = 15,
-        PreShadow = 16, PreMisc = 18,
+        PreShadow = 16, PreMisc = 18, LocalReflection = 25,
         CloudNoise = 26, SkyColor = 27, LightPrePass = 28;
 
     // Black reads as no world shadow height, no volume, no inscatter, no darkness and no cloud noise; white as a projection that shades nothing.
@@ -29,8 +29,10 @@ internal sealed class PreShadingTextures(GL gl) : IDisposable
     // The screen-space volume mask last bound.
     public uint VolumeMaskHandle { get; private set; }
 
-    // The screen-space volume mask is the one given, or when there is none a single texel holding volumeShare.
-    public unsafe void Bind(RenderTargets targets, GpuTexture preShadow, uint cubeEnvironment, uint skyInscatter, float volumeShare, uint volumeMask)
+    // The screen-space volume mask is the one given, or when there is none a single texel holding volumeShare. entranceThickness is cTex_LocalReflection, the depth
+    // behind a shrine's doorway the entrance pass hazes over (see EntranceInterior), or 0 when no entrance is drawn.
+    public unsafe void Bind(RenderTargets targets, GpuTexture preShadow, uint cubeEnvironment, uint skyInscatter, float volumeShare, uint volumeMask,
+        uint entranceThickness)
     {
         if (volumeShare != _volumeShare)
         {
@@ -59,6 +61,7 @@ internal sealed class PreShadingTextures(GL gl) : IDisposable
         gl.BindTextureAt(ScreenVolumeMask, VolumeMaskHandle);
         gl.BindTextureAt(WorldVolumeMask, _blackArray, TextureTarget.Texture2DArray);
         gl.BindTextureAt(DepthBuffer, targets.GBufferDepth.Handle);
+        gl.BindTextureAt(LocalReflection, entranceThickness != 0 ? entranceThickness : _black);
         foreach (int unit in new[] { SkyIslandShadow, Darkness, CloudNoise })
             gl.BindTextureAt(unit, _black);
     }

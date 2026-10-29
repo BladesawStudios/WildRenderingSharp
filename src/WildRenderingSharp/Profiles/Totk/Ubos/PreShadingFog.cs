@@ -19,9 +19,8 @@ internal readonly record struct PreShadingFog(
 {
     public static PreShadingFog From(TotkEnvironment environment, float skyIntensity, float strength)
     {
-        // Off is the same fog with nothing in it.
         if (!environment.Settings.UseFog)
-            return default(PreShadingFog) with { ScatterFar = 1f, GroundEnd = 1f, VolumeEnd = 1f, LeafFogEnd = LeafRange(environment.SkyPostFx) };
+            return Off(environment);
 
         var palette = environment.Palette;
         var sky = environment.SkyPostFx;
@@ -34,6 +33,10 @@ internal readonly record struct PreShadingFog(
             palette.YFogColor * skyIntensity, palette.YFogDensity, palette.YFogStart,
             palette.TryGetFloat("YFogEnd", out float yFogEnd) ? yFogEnd : DefaultYFogEnd, environment.Settings.VolumeFogMask);
     }
+
+    // Off is the same fog with nothing in it.
+    public static PreShadingFog Off(TotkEnvironment environment) =>
+        default(PreShadingFog) with { ScatterFar = 1f, GroundEnd = 1f, VolumeEnd = 1f, LeafFogEnd = LeafRange(environment.SkyPostFx) };
 
     // The end of the low fog's ramp when the palette authors none: the world fog object's own, in genvb's master_field.
     const float DefaultYFogEnd = 240f;

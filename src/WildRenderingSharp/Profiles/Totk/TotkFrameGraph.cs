@@ -3,6 +3,7 @@ using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Passes;
 using WildRenderingSharp.Profiles.Totk.Atmosphere;
+using WildRenderingSharp.Profiles.Totk.Deferred;
 using WildRenderingSharp.Profiles.Totk.Deferred.PassIds;
 using WildRenderingSharp.Profiles.Totk.Deferred.PreShading;
 using WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
@@ -37,19 +38,21 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
         Cave = Own(new CaveShading(services.Gl, services.Directories.Decompiled));
         _scene = Own(new DeferredScene(services.Gl, services.Programs, services.Directories));
         var terrain = new TerrainRenderer(services, Terrain, linearDepth, _scene);
-        var stamper = Own(new PassIdStamper(services.Gl, services.Drawer, _scene, terrain));
+        var control = Own(new GBufferControlInputs(services.Gl));
+        var interior = Own(new EntranceInterior(services.Gl));
+        var stamper = Own(new PassIdStamper(services.Gl, services.Drawer, _scene, terrain, interior));
         _skyBake = Own(new SkyBake(services));
         var cubeEnvironment = Own(new CubeEnvironment(services.Gl));
-        var gamePreShading = Own(new GamePreShading(services, _scene, stamper, cubeEnvironment, _skyBake));
+        var gamePreShading = Own(new GamePreShading(services, _scene, stamper, cubeEnvironment, _skyBake, interior));
         var screenSpaceLighting = Own(new ScreenSpaceLightingStage(services, linearDepth, gamePreShading));
-        _resolve = Own(new ResolveStage(services, _scene, terrain, screenSpaceLighting, stamper, cubeEnvironment));
+        _resolve = Own(new ResolveStage(services, _scene, terrain, screenSpaceLighting, stamper, cubeEnvironment, interior));
 
         _stages =
         [
             new FrameSetupStage(services),
             Own(new TotkFrameConstantsStage(services)),
-            Own(new GBufferStage(services, _scene, terrain)),
-            new ShadowStage(services, terrain),
+            new GBufferStage(services, _scene, terrain, control, interior),
+            new ShadowStage(services, terrain, control),
             // Before the screen-space lighting, whose game pre-shading draws only where the mask names a pass.
             new PassIdMaskStage(services, stamper),
             screenSpaceLighting,

@@ -40,8 +40,29 @@ internal sealed class ShaderProgramCache : IDisposable
     readonly object _sync = new();
 
     // The version of the code that makes the sources these programs are built from: the cleaning, the corrections and the instanced and merged patches. A program kept by name is
-    // good until this changes, so it is changed whenever any of them does. (Also the revision of the files themselves: a program is kept with their sizes and times.)
-    const string SourceRevision = "2";
+    // good until this changes, so it is read off the code itself - the patch sources and the GLSL they insert, embedded in the build - and not left to be remembered. (Also the
+    // revision of the files themselves: a program is kept with their sizes and times.)
+    static readonly string SourceRevision = PatchRevision();
+
+    static string PatchRevision()
+    {
+        var assembly = typeof(ShaderProgramCache).Assembly;
+        using var hash = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        var resources = assembly.GetManifestResourceNames().ToDictionary(n => n.Replace(Path.DirectorySeparatorChar, '/'));
+        foreach (var (name, resource) in resources.OrderBy(r => r.Key, StringComparer.Ordinal))
+        {
+            if (!name.StartsWith("Patch/", StringComparison.Ordinal) && !name.Contains("/Shaders/", StringComparison.Ordinal))
+                continue;
+            hash.AppendData(System.Text.Encoding.UTF8.GetBytes(name));
+            using var stream = assembly.GetManifestResourceStream(resource);
+            if (stream is null)
+                continue;
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            hash.AppendData(memory.ToArray());
+        }
+        return "3" + Convert.ToHexString(hash.GetHashAndReset(), 0, 8);
+    }
 
     // What the program's source files are now, for the identity a kept program is found by. Throws when they are missing, as reading them does.
     string Stamp(string baseName)
@@ -63,7 +84,7 @@ internal sealed class ShaderProgramCache : IDisposable
             uint kept = GLProgramBuilder.BuildNamed(_gl, $"plain|{isForwardProgram}|{Stamp(baseName)}", () =>
             {
                 string vert = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-                string raw = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+                string raw = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
                 return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
             }, baseName);
             _programs[baseName] = kept;
@@ -71,7 +92,7 @@ internal sealed class ShaderProgramCache : IDisposable
         }
 
         string vertSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-        string rawFragSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+        string rawFragSource = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
         string fragSource = isForwardProgram ? _sources.CorrectForwardFragment(rawFragSource) : rawFragSource;
         if (patchVertex is not null) vertSource = patchVertex(vertSource);
         if (patchFragment is not null) fragSource = patchFragment(fragSource);
@@ -110,7 +131,7 @@ internal sealed class ShaderProgramCache : IDisposable
             string vert = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert"))), _gl.SupportsBaseInstance()) ?? "";
             if (vert.Length == 0)
                 return null;
-            string raw = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+            string raw = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
             return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
         }, baseName + "_instanced");
         _instancedPrograms[key] = keptProgram;
@@ -130,7 +151,7 @@ internal sealed class ShaderProgramCache : IDisposable
             return GLProgramBuilder.BuildNamed(_gl, $"merged|{Stamp(baseName)}", () =>
             {
                 string v = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-                string f = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag")));
+                string f = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
                 return _sources.Merge(v, f);
             }, baseName + "_merged");
         }

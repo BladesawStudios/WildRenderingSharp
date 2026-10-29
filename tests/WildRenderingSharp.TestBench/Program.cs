@@ -26,6 +26,7 @@ if (!options.TryGetValue("romfs", out var romfs) || !options.TryGetValue("actor"
 {
     Console.Error.WriteLine("usage: --game totk|botw --romfs <dir> --actor <name> [--cache <dir>] [--out <png>] [--size <px>] " +
         "[--background sky|color] [--sun <radians>] [--azimuth <radians>] [--lookup <degrees>] [--exposure <x>] [--probe 1] [--frames <n>] [--instances <n> [--spacing <x>]] " +
+        "[--with <model>,...] [--eye x,y,z] [--look x,y,z] [--fov <degrees>] [--only <shape>] [--hide <shape>] " +
         (Option("game", "totk") == "totk" ? TotkBenchOptions.Usage : ""));
     return 2;
 }
@@ -113,8 +114,10 @@ int instanceCount = int.Parse(Option("instances", "0"));
 if (instanceCount == 0 && mixModels.Count == 0)
 {
     var actor = renderer.AddActor(model);
+    // Prepared models drawn where the actor stands, as an actor's sub-models are (a shrine entrance's hall), comma separated.
+    var withActors = Option("with", "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(renderer.AddActor).ToList();
     // Only the shapes whose name contains --only draw, and none whose name contains --hide.
-    foreach (var shape in actor.Model.Shapes)
+    foreach (var shape in withActors.Prepend(actor).SelectMany(a => a.Model.Shapes))
         shape.Enabled = (!options.TryGetValue("only", out var only) || shape.Name.Contains(only, StringComparison.OrdinalIgnoreCase))
             && (!options.TryGetValue("hide", out var hide) || !shape.Name.Contains(hide, StringComparison.OrdinalIgnoreCase));
     // Materials whose name contains the text also draw in the forward pass, as a status-effect overlay does.
@@ -154,7 +157,7 @@ if (options.TryGetValue("load-bench", out var loadBench))
     return 0;
 }
 
-var camera = new Camera { FovDegrees = 38f };
+var camera = new Camera { FovDegrees = float.Parse(Option("fov", "38")) };
 var (center, radius) = mixModels.Count > 0
     ? InstanceGrid.AddRow(renderer, [model, .. mixModels], Math.Max(instanceCount, 1), float.Parse(Option("cell", "4")))
     : instanceCount > 0
@@ -204,6 +207,11 @@ if (options.TryGetValue("altitude", out var altitude))
     camera.Eye += lift;
     camera.Target += lift;
 }
+// The camera placed outright, in the model's space: its eye and the point it looks at, as "x,y,z".
+if (options.TryGetValue("eye", out var eye))
+    camera.Eye = ParseOrigin(eye);
+if (options.TryGetValue("look", out var look))
+    camera.Target = ParseOrigin(look);
 if (options.TryGetValue("exposure", out var exposure))
     renderer.Lighting.Exposure = float.Parse(exposure);
 
