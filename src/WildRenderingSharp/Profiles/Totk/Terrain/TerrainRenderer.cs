@@ -16,10 +16,8 @@ using WildRenderingSharp.Shaders;
 namespace WildRenderingSharp.Profiles.Totk.Terrain;
 
 /// <summary>Draws a host's terrain through the game's terrain programs: its G-buffer half, its water and its shadow.</summary>
-internal sealed class TerrainRenderer(StageServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene) : IDisposable
+internal sealed class TerrainRenderer(StageServices services, TerrainShading shading, LinearDepthPass linearDepth, DeferredScene scene)
 {
-    // What every program expects bound; put back after a host has drawn, since a host binds the storage buffer at binding 0 for its own programs.
-    readonly DecompilerBindings _decompiler = new(services.Gl, services.Resources);
 
     const int WaterColorBufferUnit = 19;
 
@@ -76,7 +74,6 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
         ClipOrigin.Game(Gl, true);
         host.DrawGBuffer(new TerrainDraw(Gl, camera.Eye, -1, default, GBufferTargets: targets.GBuffer.Length));
         ClipOrigin.Game(Gl, false);
-        _decompiler.Bind();
 
         ResetState();
         GLDiagnostics.CheckPass(Gl, "terrain");
@@ -138,8 +135,6 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
     void CopyGBufferLayer(RenderTargets targets, GpuTexture source, GpuTexture destination) =>
         Gl.CopyImageSubData(source.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0,
             destination.Handle, CopyImageSubDataTarget.Texture2D, 0, 0, 0, 0, (uint)targets.Width, (uint)targets.Height, 1);
-
-    public void Dispose() => _decompiler.Dispose();
 
     void ResetState()
     {

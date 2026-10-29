@@ -7,6 +7,7 @@ namespace WildRenderingSharp.Profiles.Totk.Gloom;
 
 /// <summary>The uniform blocks of the game's gloom programs, laid out as their decompiled code reads them.</summary>
 /// <remarks>
+/// The bindings are ones nothing else of the renderer reads, so what the gloom leaves bound cannot reach a later pass.
 /// The programs name the same slot differently from stage to stage and variant to variant - the shape pass's vertex stage reads the view at slot 3 and its
 /// fragment stage at slot 4 - so a block is bound by the name each program gives it (see <see cref="GloomPrograms"/>) and only its role is fixed here.
 /// The view block is the game's camera as the gloom reads it; the area block holds one volume, its unit-to-world rows first, which the vertex stage reads, then the
@@ -14,12 +15,12 @@ namespace WildRenderingSharp.Profiles.Totk.Gloom;
 /// </remarks>
 static class GloomBlocks
 {
-    public static readonly UboSpec View = new("GloomView", 12, 15 * 16);
-    public static readonly UboSpec Area = new("GloomArea", 13, 8 * 16);
-    public static readonly UboSpec Compose = new("GloomCompose", 14, 10 * 16);
+    public static readonly UboSpec View = new("GloomView", 40, 15 * 16);
+    public static readonly UboSpec Area = new("GloomArea", 41, 8 * 16);
+    public static readonly UboSpec Compose = new("GloomCompose", 42, 10 * 16);
 
     // Only the shape programs' fragment stage reads this one, at slot 146 for the index of the pixel's tile in a culling bitmap nothing here uses.
-    public static readonly UboSpec Context = new("GloomContext", 15, 147 * 16);
+    public static readonly UboSpec Context = new("GloomContext", 43, 147 * 16);
 
     // The distance scale at the lens's field of view: one at fifty degrees and wider, less when narrower.
     static float DistanceScale(float verticalFovRadians)

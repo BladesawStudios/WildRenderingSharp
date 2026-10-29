@@ -20,7 +20,9 @@ namespace WildRenderingSharp.Profiles.Totk.Terrain;
 /// </remarks>
 public sealed class DepthsShading
 {
-    public const uint ImmediatesBinding = 2, DrawCallBinding = 3, MaterialBinding = 8, StaticBinding = 11, InstanceBinding = 12, PageLayoutBinding = 13, PageBinding = 0;
+    // The blocks are bound where nothing else of the renderer reads (the game has them at 2, 3, 11, 12 and 13, which are the bones' and others'); the program is
+    // pointed at them when it is linked. The page file is the storage buffer at 0, which the host puts back after it draws.
+    public const uint ImmediatesBinding = 44, DrawCallBinding = 45, StaticBinding = 46, InstanceBinding = 47, PageLayoutBinding = 48, MaterialBinding = 8, PageBinding = 0;
 
     public const int NormalsUnit = 17, WeightsUnit = 18, DetailUnit = 19, AlbedoArrayUnit = TerrainShading.AlbedoArrayUnit, CombinedArrayUnit = TerrainShading.CombinedArrayUnit;
 
@@ -54,7 +56,13 @@ public sealed class DepthsShading
             throw new InvalidOperationException($"depths_prog{program}'s vertex stage declares no page buffer - the export changed?");
         vert = vert.Replace(PageBufferDeclaration, ImmediatesDeclaration + PageBufferDeclaration, StringComparison.Ordinal);
         string frag = UnwrittenOutputs.Apply(TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, $"depths_prog{program}_extracted.frag"))));
-        return GLProgramBuilder.Build(_gl, vert, frag, $"depths_prog{program}");
+        uint linked = GLProgramBuilder.Build(_gl, vert, frag, $"depths_prog{program}");
+        _gl.BindUniformBlock(linked, "_vp_c1", ImmediatesBinding);
+        _gl.BindUniformBlock(linked, "_cave_QM_DrawCallDataUBO", DrawCallBinding);
+        _gl.BindUniformBlock(linked, "_cave_StaticDataUBO", StaticBinding);
+        _gl.BindUniformBlock(linked, "_cave_QM_InstanceDataUBO", InstanceBinding);
+        _gl.BindUniformBlock(linked, "_cave_QM_PageLayoutDataUBO", PageLayoutBinding);
+        return linked;
     }
 
     /// <summary>The vertex stage's table of immediate constants, as the program was exported with it.</summary>
