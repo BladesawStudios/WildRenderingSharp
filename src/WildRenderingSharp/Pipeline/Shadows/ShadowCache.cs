@@ -24,6 +24,6 @@ public sealed class ShadowCache
     internal readonly long[] CascadeCauses = new long[4];
     internal readonly bool[] CascadeHasActors = new bool[RenderTargets.MaxCascades];
     internal readonly long[] CascadeRedraws = new long[RenderTargets.MaxCascades];
-    internal int TargetsId;
+    internal int TargetsId, CascadeSize;
     internal readonly float[] CascadeRadius = new float[RenderTargets.MaxCascades];
 }

@@ -72,7 +72,7 @@ internal sealed class BotwLightingStage(StageServices services, BotwPasses passe
     // The environment and context blocks the pre-shading passes read; the context carries the cascade's view-to-texture matrix.
     void UploadConstants(FrameContext frame, Matrix4x4 viewToShadow)
     {
-        float texel = 1f / RenderTargets.CascadeSize;
+        float texel = 1f / frame.Targets.CascadeSize;
         services.Resources.Bind(BotwUniforms.Environment(frame.Setup.SunView, frame.Setup.SunColor, frame.Setup.HemiSky, frame.Setup.HemiGround, frame.Setup.Cam.ViewInv, texel));
         services.Resources.Bind(BotwUniforms.CascadeCamera(ContextKey, frame.Setup.Cam, viewToShadow, 1e9f, 1e9f));
     }

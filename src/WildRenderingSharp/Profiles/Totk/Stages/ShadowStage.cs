@@ -120,6 +120,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var request = frame.Request;
         var cache = frame.ShadowCache;
         var targets = frame.Targets;
+        targets.SetCascadeSize(Math.Clamp(frame.TotkEnvironment().Settings.ShadowResolution, MinCascadeSize, MaxCascadeSize));
         int count = Math.Min(cascades.Count, RenderTargets.MaxCascades);
         var viewProj = new Matrix4x4[count];
         var texelWorld = new float[count];
@@ -130,11 +131,12 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
 
         // New targets hold no cascades, so every one of them has to be drawn.
         int targetsId = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(targets);
-        if (cache.TargetsId != targetsId)
+        if (cache.TargetsId != targetsId || cache.CascadeSize != targets.CascadeSize)
         {
             Array.Clear(cache.CascadeSignature);
             Array.Clear(cache.CascadeHasActors);
             cache.TargetsId = targetsId;
+            cache.CascadeSize = targets.CascadeSize;
         }
 
         // A cascade that has changed is drawn at most one a frame, the one waiting longest, and one never drawn at all always is: redrawing every changed cascade at
@@ -202,7 +204,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             }
             cache.CascadeRadius[c] = focus.Radius;
             viewProj[c] = cache.CascadeLight[c].ViewProj;
-            texelWorld[c] = 2f * lightRadius / RenderTargets.CascadeSize;
+            texelWorld[c] = 2f * lightRadius / targets.CascadeSize;
 
             // The request's bias is a fixed distance, which suits the finest cascade only: a cascade four times wider has texels
             // four times larger, and a surface within a texel's reach of its own stored depth then shadows itself wherever the
@@ -219,8 +221,11 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             frame.Stats.Shadow = services.Drawer.TakeCounts();
             Resources.BindCamera(FrameUniformKeys.SceneCamera);
         }
-        return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias, invRange);
+        return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias, invRange, targets.CascadeSize);
     }
+
+    // The sides a cascade may be set to, in texels.
+    const int MinCascadeSize = 512, MaxCascadeSize = 8192;
 
     // How far the sun may move, in degrees, before a cascade is drawn again under the new direction: a cascade's texels are large for the height of what casts into
     // them, so a sun a fraction of a degree off puts a shadow well inside a texel of where it should be, and the finer the cascade the less it can take.

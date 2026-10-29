@@ -33,7 +33,7 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
         CascadeParams? Cascades = null);
 
     // The cascades a frame's shadows come from - see ShadowCascades.
-    public sealed record CascadeParams(uint Texture, Matrix4x4[] ViewProj, float[] TexelWorld, float[] Bias, float[] InvDepthRange);
+    public sealed record CascadeParams(uint Texture, Matrix4x4[] ViewProj, float[] TexelWorld, float[] Bias, float[] InvDepthRange, int Size);
 
     readonly GL _gl;
     readonly uint _preshadowProgram, _preshadingFilterProgram, _aoProgram, _blurProgram;
@@ -105,7 +105,7 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
         if (cascades is null)
             return;
 
-        _gl.SetFloat(program, "uCascadeTexel", 1f / RenderTargets.CascadeSize);
+        _gl.SetFloat(program, "uCascadeTexel", 1f / cascades.Size);
         for (int c = 0; c < count; c++)
         {
             _gl.SetMat4(program, $"uCascadeViewProj[{c}]", cascades.ViewProj[c]);

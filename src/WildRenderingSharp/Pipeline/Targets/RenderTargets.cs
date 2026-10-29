@@ -8,7 +8,7 @@ namespace WildRenderingSharp.Pipeline.Targets;
 public sealed class RenderTargets : IDisposable
 {
     public const int BloomLevelCount = 4;
-    public const int ShadowMapSize = ShadowTargets.MapSize, CascadeSize = ShadowTargets.CascadeSize, MaxCascades = ShadowTargets.MaxCascades;
+    public const int ShadowMapSize = ShadowTargets.MapSize, DefaultCascadeSize = ShadowTargets.DefaultCascadeSize, MaxCascades = ShadowTargets.MaxCascades;
 
     const int GBufferCount = 6;
 
@@ -81,6 +81,10 @@ public sealed class RenderTargets : IDisposable
 
     public GpuTexture ShadowMap => _shadow.Map;
     public GpuTexture ShadowCascades => _shadow.Cascades;
+
+    public int CascadeSize => _shadow.CascadeSize;
+
+    public void SetCascadeSize(int size) => _shadow.ResizeCascades(size);
 
     public void Resize(int width, int height)
     {
