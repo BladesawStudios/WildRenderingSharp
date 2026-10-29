@@ -59,17 +59,19 @@ internal sealed class GloomPrograms(GL gl, ShaderProgramCache programs)
         }
 
         gl.UseProgram(program);
-        gl.SetSamplerUnit(program, "fp_t_tcb_8", DepthUnit);
         if (type == AltitudeShapeType)
         {
+            // In this variant the altitude map is the sampler of location 0 and the depth the one of location 1.
+            gl.SetSamplerUnit(program, "fp_t_tcb_C", DepthUnit);
+            gl.SetSamplerUnit(program, "fp_t_tcb_8", AltitudeUnit);
             gl.SetSamplerUnit(program, "fp_t_tcb_A", Altitude2Unit);
-            gl.SetSamplerUnit(program, "fp_t_tcb_C", AltitudeUnit);
             gl.SetSamplerUnit(program, "fp_t_tcb_E", SimpleUnit);
             gl.SetSamplerUnit(program, "fp_t_tcb_10", FbmUnit);
             gl.SetSamplerUnit(program, "fp_t_tcb_12", RidgeUnit);
         }
         else
         {
+            gl.SetSamplerUnit(program, "fp_t_tcb_8", DepthUnit);
             gl.SetSamplerUnit(program, "fp_t_tcb_A", SimpleUnit);
             gl.SetSamplerUnit(program, "fp_t_tcb_C", FbmUnit);
             gl.SetSamplerUnit(program, "fp_t_tcb_E", RidgeUnit);

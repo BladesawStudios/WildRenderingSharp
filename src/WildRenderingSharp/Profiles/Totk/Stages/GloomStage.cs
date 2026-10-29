@@ -1,4 +1,5 @@
 using WildRenderingSharp.Gpu;
+using WildRenderingSharp.Logging;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Passes;
@@ -12,6 +13,7 @@ namespace WildRenderingSharp.Profiles.Totk.Stages;
 internal sealed class GloomStage(StageServices services, DeferredScene scene, LinearDepthPass linearDepth) : IFrameStage, IDisposable
 {
     readonly GloomPass _gloom = new(services.Gl, services.Programs);
+    bool _logged;
 
     public void Run(FrameContext frame)
     {
@@ -21,6 +23,11 @@ internal sealed class GloomStage(StageServices services, DeferredScene scene, Li
         if (source.Volumes.Count == 0 && source.AltitudeDensity is null)
             return;
 
+        if (!_logged)
+        {
+            _logged = true;
+            Log.Info($"[GloomStage] first frame: {source.Volumes.Count} volumes, altitude density {source.AltitudeDensity?.ToString("G3") ?? "none"}");
+        }
         scene.EnsurePass(DeferredScene.MiasmaPass);
 
         // The terrain and the entrance interior have changed the depth since the last time it was made linear.

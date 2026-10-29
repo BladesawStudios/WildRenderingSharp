@@ -1,5 +1,7 @@
 #version 330 core
 uniform sampler2D tDepth;
+// The G-buffer's material IDs; a pixel the gloom has made is the gloom's own, which no haze lightens.
+uniform sampler2D tMaterialId;
 uniform float uNear;
 uniform float uFar;
 uniform vec2 uViewScale;
@@ -12,6 +14,8 @@ uniform float uSkyInfluence;
 uniform vec3 uLevels[8];
 // The normalized depth at and beyond which a pixel is sky.
 const float SkyDepth = 0.9999;
+// The gloom's material ID, in bytes.
+const float GloomId = 32.0;
 
 in vec2 vUV;
 out vec4 fragColor;
@@ -35,6 +39,9 @@ void main()
     float scale = length(ray);
     // The depth is stored from the top row down, as the game draws it, and the image from the bottom up.
     float depth = texture(tDepth, vec2(vUV.x, 1.0 - vUV.y)).r;
+
+    if (abs(texture(tMaterialId, vec2(vUV.x, 1.0 - vUV.y)).r * 255.0 - GloomId) < 0.5)
+        discard;
 
     // The game never veils the sky, which has its own haze, so the veil over it is only as much as the influence says.
     bool sky = depth >= SkyDepth;
