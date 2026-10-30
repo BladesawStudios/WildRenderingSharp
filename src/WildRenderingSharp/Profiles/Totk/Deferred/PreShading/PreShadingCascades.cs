@@ -2,6 +2,7 @@ using System.Numerics;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Passes;
+using WildRenderingSharp.Pipeline.Shadows;
 using WildRenderingSharp.Profiles.Totk.Ubos;
 
 namespace WildRenderingSharp.Profiles.Totk.Deferred.PreShading;
@@ -12,9 +13,6 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.PreShading;
 /// </summary>
 static class PreShadingCascades
 {
-    // A cascade serves the view depths up to this share of its reach, which keeps a pixel's lateral distance inside the region the cascade is fitted to.
-    const float ReachShare = 0.6f;
-
     const float NoSplit = 1e9f;
 
     // The game's cascades are rendered with a slope-scaled offset ours lack, and its pass adds only a fixed depth bias and a short offset, so a surface the
@@ -50,7 +48,7 @@ static class PreShadingCascades
     {
         Span<float> splits = [NoSplit, NoSplit, NoSplit];
         for (int c = 0; c < Math.Min(count - 1, splits.Length); c++)
-            splits[c] = frame.ShadowCache.CascadeSliceEnd[c] is > 0f and var end ? end : frame.ShadowCache.CascadeRadius[c] * ReachShare;
+            splits[c] = frame.ShadowCache.CascadeSliceEnd[c] is > 0f and var end ? end : frame.ShadowCache.CascadeRadius[c] * ShadowCascadeLayout.ReachShare;
         return new Vector3(splits[0], splits[1], splits[2]);
     }
 }
