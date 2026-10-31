@@ -165,10 +165,15 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
             foreach (var batch in frame.Instances)
                 batch.Shadow.UpdateCascade(c, focus, right, up, (hi - lo).Length() * 0.5f + 1e-4f);
-            if (live)
-                continue;
 
+            // A fitted cascade follows the camera, so what it is fitted to is its light matrices, which only change once it has moved a whole texel.
             parts[c] = SignatureParts(frame, c, focus, suns[c]);
+            if (live)
+            {
+                signatures[c] = Combine(parts[c] with { Focus = light.ViewProj.GetHashCode() });
+                continue;
+            }
+
             signatures[c] = Combine(parts[c]);
             if (cache.CascadeSignature[c] != signatures[c] && cache.CascadeSignature[c] != 0 && (oldest < 0 || cache.CascadeDrawnAt[c] < cache.CascadeDrawnAt[oldest]))
                 oldest = c;
@@ -178,6 +183,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         // not make every cascade redraw its whole map.
         var movers = ActorGroups(frame);
         bool hasMovers = movers.Any(g => g.Shapes.Count > 0);
+        long moverSignature = (uint)HashCode.Combine(ShadowSignatures.ActorSignature(request.Actors), movers.Sum(g => g.Shapes.Count), frame.TotkEnvironment().Settings.ShadowSlopeOffset);
 
         for (int c = 0; c < count; c++)
         {
@@ -188,12 +194,16 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             bool redrawn = !live && (cache.CascadeSignature[c] == 0 || c == oldest);
             if (live)
             {
-                // Nothing is kept: what does not move and what does are drawn together, into the cascade itself.
-                DrawCascade(frame, c, focus, lights[c], live: true, movers);
+                // Nothing is kept apart: what does not move and what does are drawn together, into the cascade itself, and a still scene under a still camera is left as it is.
+                long signature = signatures[c] ^ moverSignature;
+                if (cache.CascadeSignature[c] != signature)
+                {
+                    DrawCascade(frame, c, focus, lights[c], live: true, movers);
+                    cache.CascadeSignature[c] = signature;
+                    drew = true;
+                }
                 cache.CascadeLight[c] = lights[c];
-                cache.CascadeSignature[c] = 0;
                 cache.CascadeHasActors[c] = false;
-                drew = true;
             }
             else if (redrawn)
             {
