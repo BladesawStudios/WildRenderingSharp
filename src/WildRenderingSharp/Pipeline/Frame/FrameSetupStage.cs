@@ -31,13 +31,18 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
 
         services.Resources.Bind(profile.Camera(FrameUniformKeys.SceneCamera, cam));
         services.Resources.Bind(profile.Camera(FrameUniformKeys.GBufferCamera, gameOrigin ? cam : flipped));
-        services.Resources.Bind(profile.Lighting(BuildSceneLighting(frame.Setup, frame.Lighting, environment)));
+        services.Resources.Bind(profile.Lighting(BuildSceneLighting(frame.Setup, frame.Lighting, environment, frame.Targets.Height)));
     }
 
-    static SceneLightingData BuildSceneLighting(FrameSetup setup, LightingContext lighting, EnvironmentLighting environment) =>
+    // The game's own ratio (ModelSceneExtension::calcParticle_, p_dynamic_resolution_ratio): the view's height over 900 once it is taller than that, else 1. The resolve programs
+    // multiply the pixel offsets of their toon edge by it, so the edge keeps its share of the picture as the picture grows.
+    const float ReferenceHeight = 900f;
+
+    static SceneLightingData BuildSceneLighting(FrameSetup setup, LightingContext lighting, EnvironmentLighting environment, int renderHeight) =>
         new(setup.SunView, setup.SunWorld, environment.SunColor, environment.HemiSky, environment.HemiGround,
             environment.VolumeMaskColor, environment.VolumeMaskIntensity, RenderTargets.ShadowMapSize,
-            lighting.MidScale, lighting.HighlightScale, environment.EntranceSky, environment.EntranceGround);
+            lighting.MidScale, lighting.HighlightScale, environment.EntranceSky, environment.EntranceGround,
+            renderHeight > ReferenceHeight ? renderHeight / ReferenceHeight : 1f);
 
     // Each actor gets its own group, with uniforms built fresh from its placement and pose, and its shapes filtered fresh so
     // toggling a shape takes effect on the next frame.
