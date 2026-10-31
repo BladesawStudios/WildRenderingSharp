@@ -27,7 +27,7 @@ internal static class GsysContext
         block.Set(NearFar, near, far, near / far, 1f - near / far);
         block.Set(DepthScale, 1f / (far - near), near / (far - near), aspect, 1f / aspect);
         block.Set(FarMinusNear, far - near, 1f / (1f - near / far), 0f, 0f);
-        block.Set(FieldOfView, aspect * tanHalfFovY, tanHalfFovY, 2f * MathF.Atan(tanHalfFovY), 0f);
+        block.Set(FieldOfView, aspect * tanHalfFovY, tanHalfFovY, camera.StatedFovRadians > 0f ? camera.StatedFovRadians : 2f * MathF.Atan(tanHalfFovY), 0f);
         block.Set(Resolution, 1f / camera.TexelSize.X, 1f / camera.TexelSize.Y, camera.TexelSize.X, camera.TexelSize.Y);
     }
 }

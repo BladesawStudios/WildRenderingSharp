@@ -20,6 +20,8 @@ internal sealed class FrameSetupStage(StageServices services) : IFrameStage
         var environment = frame.Environment.ResolveLighting(lighting);
 
         var cam = CameraData.From(frame.Camera, frame.Targets.Width, frame.Targets.Height);
+        if (lighting.EdgeFovDegrees > 0f)
+            cam = cam with { StatedFovRadians = MathF.Min(float.DegreesToRadians(lighting.EdgeFovDegrees), frame.Camera.FovRadians) };
         var flipped = cam.FlippedY();
         var sunWorld = SunDirection.FromElevationAzimuth(lighting.SunElevation, lighting.SunAzimuth);
         var sunView = SunDirection.ToView(sunWorld, cam.View);

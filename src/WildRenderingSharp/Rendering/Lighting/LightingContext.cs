@@ -30,5 +30,9 @@ public class LightingContext
     // The baked lighting of every static object that has none of its own, 0 to 1. The game's is 1.
     public float DefaultBakeStrength { get; set; } = 1.0f;
 
+    // The widest lens the characters' toon edge is worked out for, in degrees: their programs read the field of view for nothing else, and scale the edge with it, so past
+    // this the edge stops growing while the picture keeps its real lens. Zero leaves it the camera's own, as in the game.
+    public float EdgeFovDegrees { get; set; }
+
     public bool ShowGrid { get; set; } = true;
 }

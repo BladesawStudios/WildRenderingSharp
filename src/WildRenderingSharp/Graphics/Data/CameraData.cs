@@ -13,6 +13,9 @@ internal readonly record struct Lens(float Aspect, float TanHalfFovY, float Near
 internal readonly record struct CameraData(
     Matrix4x4 View, Matrix4x4 ViewProj, Matrix4x4 Proj, Matrix4x4 ViewInv, Lens Lens, Vector2 TexelSize)
 {
+    // The field of view the block states, in radians, where it is not the lens's own; zero for the lens's.
+    public float StatedFovRadians { get; init; }
+
     public float Aspect => Lens.Aspect;
     public float TanHalfFovY => Lens.TanHalfFovY;
     public float Near => Lens.Near;
