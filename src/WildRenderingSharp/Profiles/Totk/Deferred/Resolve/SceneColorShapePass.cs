@@ -15,9 +15,9 @@ namespace WildRenderingSharp.Profiles.Totk.Deferred.Resolve;
 internal sealed class SceneColorShapePass : IDisposable
 {
     readonly GL _gl;
-    readonly uint _copyProgram;
+    readonly uint _copyProgram, _white, _black;
 
-    public const int MaterialIdUnit = 2, LinearDepthUnit = 4, LinearDepthHalfUnit = 5, ColorBufferUnit = 27;
+    public const int MaterialIdUnit = 2, LinearDepthUnit = 4, LinearDepthHalfUnit = 5, PreFogUnit = 13, PreMiscUnit = 14, ColorBufferUnit = 27;
 
     static readonly string CopyFragmentSource = GlslFiles.Load("Totk/Deferred/SceneColorShape/Copy.frag");
 
@@ -25,6 +25,8 @@ internal sealed class SceneColorShapePass : IDisposable
     {
         _gl = gl;
         _copyProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, CopyFragmentSource, "scene_color_copy");
+        _white = ConstantTextures.Rgba(gl, 1f, 1f, 1f, 1f);
+        _black = ConstantTextures.Rgba(gl, 0f, 0f, 0f, 0f);
     }
 
     public static bool Any(IReadOnlyList<ActorDrawGroup> groups) => groups.Any(g => g.Shapes.Any(s => s.ReadsSceneColor));
@@ -57,6 +59,7 @@ internal sealed class SceneColorShapePass : IDisposable
         BindAt(LinearDepthUnit, targets.LinearDepth.Handle);
         BindAt(LinearDepthHalfUnit, targets.LinearDepthHalf.Handle);
         BindAt(ColorBufferUnit, targets.Behind.Handle);
+        bool? fogBound = null;
 
         foreach (var group in groups)
         {
@@ -66,6 +69,8 @@ internal sealed class SceneColorShapePass : IDisposable
             group.BindUbos(resources);
             foreach (var sh in shapes)
             {
+                if (fogBound != sh.FogsSceneColor)
+                    BindFogInputs(targets, (fogBound = sh.FogsSceneColor).Value);
                 FaceCulling.Apply(_gl, sh.RenderState);
                 group.Draw(drawer, sh, ShapeProgram.GBuffer);
             }
@@ -76,6 +81,14 @@ internal sealed class SceneColorShapePass : IDisposable
         _gl.Disable(EnableCap.DepthTest);
     }
 
+    // A program that fogs what is behind it reads colour * PreMisc.w + PreFog at these units; the others read them as cTex_Projection0 and cTex_SkyIslandShadow,
+    // where white is a projection that shades nothing and black no island's shadow. Left as pre-shading bound them, the fog read white and lit see-through eyes white.
+    void BindFogInputs(RenderTargets targets, bool fogs)
+    {
+        BindAt(PreFogUnit, fogs ? targets.PreFog.Handle : _white);
+        BindAt(PreMiscUnit, fogs ? targets.PreMisc.Handle : _black);
+    }
+
     void BindAt(int unit, uint handle)
     {
         _gl.ActiveTexture(TextureUnit.Texture0 + unit);
@@ -83,5 +96,10 @@ internal sealed class SceneColorShapePass : IDisposable
         _gl.ActiveTexture(TextureUnit.Texture0);
     }
 
-    public void Dispose() => _gl.ReleaseProgram(_copyProgram);
+    public void Dispose()
+    {
+        _gl.ReleaseProgram(_copyProgram);
+        _gl.DeleteTexture(_white);
+        _gl.DeleteTexture(_black);
+    }
 }
