@@ -104,6 +104,9 @@ public sealed class TotkSettings
     public float CloudBrightness { get; set; } = 1.0f;
 
     public bool AnimateClouds { get; set; } = true;
+
+    // The time the clouds stand at, in seconds, for a picture that takes longer to draw than it lasts; null runs them on the wall clock.
+    public float? CloudSeconds { get; set; }
     public CloudFadeSettings CloudFade { get; set; } = new();
 
     public float CloudResolutionScale { get; set; } = 0.5f;

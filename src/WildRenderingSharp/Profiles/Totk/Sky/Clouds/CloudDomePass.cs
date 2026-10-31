@@ -70,9 +70,11 @@ internal sealed unsafe class CloudDomePass : IDisposable
         IntensityShadow: layer.ShadowColorIntensity);
 
     // Moves the cloud clock on (or holds it) and returns the seconds every layer's offsets and weather values are evaluated at.
-    public float Advance(bool animate)
+    public float Advance(bool animate, float? held = null)
     {
         double now = _clock.Elapsed.TotalSeconds;
+        if (animate && held is { } seconds)
+            _animBase = now - seconds;
         // Measured against wall-clock time so the offset is right whenever a frame is drawn (the viewport only redraws on input).
         if (animate)
             _animSeconds = (float)(now - _animBase);
