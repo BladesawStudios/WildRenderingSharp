@@ -25,6 +25,9 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
 
     readonly ShadowPass _shadow = new(services.Gl);
 
+    // How long a frame may spend finding which instances each shadow draws: a little in the view, and as long as it takes for a picture that is kept.
+    const double ViewRunsMs = 3.0, ExactRunsMs = 3_600_000.0;
+
     GLResourceCache Resources => services.Resources;
 
     public void Run(FrameContext frame)
@@ -34,7 +37,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         // The casters draw with their depth programs, which read the same control texels the G-buffer pass binds; left to whatever the frame before bound, a
         // shrine's rock took its mode from that and cast a shadow of depth 0 over itself as the view turned.
         control.Bind();
-        InstanceShadowRuns.BeginFrame(3.0);
+        InstanceShadowRuns.BeginFrame(frame.TotkEnvironment().Settings.ExactShadows ? ExactRunsMs : ViewRunsMs);
 
         if (request.ShadowFocus is { } shadowFocus)
             foreach (var batch in frame.Instances)
