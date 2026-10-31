@@ -14,6 +14,9 @@ public sealed class ShadowCache
     internal Vector3 RotatedLo, RotatedHi;
     internal ShadowPass.LightMatrices LightMatrices;
     internal readonly long[] CascadeSignature = new long[RenderTargets.MaxCascades];
+
+    // What the moving casters last drawn over a fitted cascade were.
+    internal readonly long[] CascadeMovers = new long[RenderTargets.MaxCascades];
     internal readonly ShadowPass.LightMatrices[] CascadeLight = new ShadowPass.LightMatrices[RenderTargets.MaxCascades];
     internal readonly long[] CascadeDrawnAt = new long[RenderTargets.MaxCascades];
     internal long FrameCount;
