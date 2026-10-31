@@ -57,6 +57,9 @@ public sealed class TotkSettings
     // How many texels the side of a sun shadow cascade is: more keeps the edges of shadows sharp, at the cost of the card's memory and the time to draw them.
     public int ShadowResolution { get; set; } = RenderTargets.DefaultCascadeSize;
 
+    // Whether every cascade that has changed is drawn again for this frame, and under the sun as it is, as a picture that is kept needs; otherwise the kept ones are redrawn one a frame.
+    public bool ExactShadows { get; set; }
+
     // How wide the filter is that the game's shadows are read through, in texels of a cascade: the game uses one. Less is sharper and shows the texels; more is softer.
     public float ShadowFilterTexels { get; set; } = 1f;
 

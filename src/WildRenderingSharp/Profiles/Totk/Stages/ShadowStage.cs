@@ -153,12 +153,13 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var suns = new Vector3[count];
         var parts = new (int Sun, int Focus, int Terrain, int Runs)[count];
         int oldest = -1;
+        bool exact = frame.TotkEnvironment().Settings.ExactShadows;
         for (int c = 0; c < count; c++)
         {
             var focus = cascades[c];
             var (lo, hi) = (focus.Min, focus.Max);
             bool live = c < fitted;
-            suns[c] = live ? frame.Setup.SunWorld : HeldSun(cache, c, frame.Setup.SunWorld);
+            suns[c] = live || exact ? frame.Setup.SunWorld : HeldSun(cache, c, frame.Setup.SunWorld);
             lights[c] = ShadowPass.BuildLightMatrices(lo, hi, suns[c], live ? targets.CascadeSize : 0);
             var light = lights[c];
             var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
@@ -191,7 +192,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             var (lo, hi) = (focus.Min, focus.Max);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
             bool live = c < fitted;
-            bool redrawn = !live && (cache.CascadeSignature[c] == 0 || c == oldest);
+            bool redrawn = !live && (cache.CascadeSignature[c] == 0 || c == oldest || (exact && cache.CascadeSignature[c] != signatures[c]));
             if (live)
             {
                 // What does not move is only drawn again when the cascade has moved by a texel, and what moves over a copy of it, so an actor playing under a still camera costs
