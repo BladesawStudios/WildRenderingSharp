@@ -31,8 +31,11 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     // The game's programs for the Depths' quad mesh.
     public DepthsShading Depths { get; }
 
+    readonly Silk.NET.OpenGL.GL _gl;
+
     public TotkFrameGraph(StageServices services)
     {
+        _gl = services.Gl;
         var linearDepth = Own(new LinearDepthPass(services.Gl));
         var flip = Own(new FlipBlit(services.Gl));
         var forwardInputs = Own(new ForwardNeutralInputs(services.Gl, services.Directories.SystemTextures));
@@ -101,8 +104,12 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
 
     public void Run(FrameContext frame)
     {
+        // Sent to the card as each stage ends, so it is drawing while the next is written and not only once the whole frame has been handed over at the swap.
         foreach (var stage in _stages)
+        {
             stage.Run(frame);
+            _gl.Flush();
+        }
     }
 
     public void Dispose()

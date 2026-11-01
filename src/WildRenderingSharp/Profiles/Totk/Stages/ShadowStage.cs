@@ -25,6 +25,9 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
 
     readonly ShadowPass _shadow = new(services.Gl);
 
+    // How long a frame may spend finding which instances each shadow draws: a little in the view, and as long as it takes for a picture that is kept.
+    const double ViewRunsMs = 3.0, ExactRunsMs = 3_600_000.0;
+
     GLResourceCache Resources => services.Resources;
 
     public void Run(FrameContext frame)
@@ -34,7 +37,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         // The casters draw with their depth programs, which read the same control texels the G-buffer pass binds; left to whatever the frame before bound, a
         // shrine's rock took its mode from that and cast a shadow of depth 0 over itself as the view turned.
         control.Bind();
-        InstanceShadowRuns.BeginFrame(3.0);
+        InstanceShadowRuns.BeginFrame(frame.TotkEnvironment().Settings.ExactShadows ? ExactRunsMs : ViewRunsMs);
 
         if (request.ShadowFocus is { } shadowFocus)
             foreach (var batch in frame.Instances)
@@ -153,22 +156,28 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var suns = new Vector3[count];
         var parts = new (int Sun, int Focus, int Terrain, int Runs)[count];
         int oldest = -1;
+        bool exact = frame.TotkEnvironment().Settings.ExactShadows;
         for (int c = 0; c < count; c++)
         {
             var focus = cascades[c];
             var (lo, hi) = (focus.Min, focus.Max);
             bool live = c < fitted;
-            suns[c] = live ? frame.Setup.SunWorld : HeldSun(cache, c, frame.Setup.SunWorld);
+            suns[c] = live || exact ? frame.Setup.SunWorld : HeldSun(cache, c, frame.Setup.SunWorld);
             lights[c] = ShadowPass.BuildLightMatrices(lo, hi, suns[c], live ? targets.CascadeSize : 0);
             var light = lights[c];
             var right = new Vector3(light.View.M11, light.View.M21, light.View.M31);
             var up = new Vector3(light.View.M12, light.View.M22, light.View.M32);
             foreach (var batch in frame.Instances)
                 batch.Shadow.UpdateCascade(c, focus, right, up, (hi - lo).Length() * 0.5f + 1e-4f);
-            if (live)
-                continue;
 
+            // A fitted cascade follows the camera, so what it is fitted to is its light matrices, which only change once it has moved a whole texel.
             parts[c] = SignatureParts(frame, c, focus, suns[c]);
+            if (live)
+            {
+                signatures[c] = Combine(parts[c] with { Focus = light.ViewProj.GetHashCode() });
+                continue;
+            }
+
             signatures[c] = Combine(parts[c]);
             if (cache.CascadeSignature[c] != signatures[c] && cache.CascadeSignature[c] != 0 && (oldest < 0 || cache.CascadeDrawnAt[c] < cache.CascadeDrawnAt[oldest]))
                 oldest = c;
@@ -178,6 +187,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         // not make every cascade redraw its whole map.
         var movers = ActorGroups(frame);
         bool hasMovers = movers.Any(g => g.Shapes.Count > 0);
+        long moverSignature = (uint)HashCode.Combine(ShadowSignatures.ActorSignature(request.Actors), movers.Sum(g => g.Shapes.Count), frame.TotkEnvironment().Settings.ShadowSlopeOffset);
 
         for (int c = 0; c < count; c++)
         {
@@ -185,15 +195,28 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             var (lo, hi) = (focus.Min, focus.Max);
             float lightRadius = (hi - lo).Length() * 0.5f + 1e-4f;
             bool live = c < fitted;
-            bool redrawn = !live && (cache.CascadeSignature[c] == 0 || c == oldest);
+            bool redrawn = !live && (cache.CascadeSignature[c] == 0 || c == oldest || (exact && cache.CascadeSignature[c] != signatures[c]));
             if (live)
             {
-                // Nothing is kept: what does not move and what does are drawn together, into the cascade itself.
-                DrawCascade(frame, c, focus, lights[c], live: true, movers);
+                // What does not move is only drawn again when the cascade has moved by a texel, and what moves over a copy of it, so an actor playing under a still camera costs
+                // the actor alone, and a still scene nothing.
+                bool stale = cache.CascadeSignature[c] != signatures[c];
+                if (stale)
+                {
+                    DrawCascade(frame, c, focus, lights[c]);
+                    cache.CascadeSignature[c] = signatures[c];
+                    drew = true;
+                }
+                if (stale || cache.CascadeMovers[c] != moverSignature)
+                {
+                    targets.CopyStaticShadowCascade(c);
+                    if (hasMovers)
+                        DrawMovers(frame, c, lights[c], movers);
+                    cache.CascadeMovers[c] = moverSignature;
+                    drew = true;
+                }
                 cache.CascadeLight[c] = lights[c];
-                cache.CascadeSignature[c] = 0;
-                cache.CascadeHasActors[c] = false;
-                drew = true;
+                cache.CascadeHasActors[c] = hasMovers;
             }
             else if (redrawn)
             {
@@ -289,16 +312,14 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         return new ShadowFocus(sphere.Center, sphere.Radius / MathF.Sqrt(3f));
     }
 
-    // live draws the cascade with the movers over what is in it, into the array the lighting reads; otherwise it keeps what does not move, apart from the movers.
-    void DrawCascade(FrameContext frame, int cascade, ShadowFocus focus, ShadowPass.LightMatrices light, bool live = false, List<ActorDrawGroup>? movers = null)
+    // Draws what does not move into the cascade's array of unmoving casters, which what moves is laid over a copy of.
+    void DrawCascade(FrameContext frame, int cascade, ShadowFocus focus, ShadowPass.LightMatrices light)
     {
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
 
         var groups = new List<ActorDrawGroup>();
         foreach (var batch in frame.Instances.Where(b => b.Shadow.Cascade(cascade).Count > 0))
             groups.Add(ActorDrawGroup.ForBatch(services.Profile, batch, CastingShapes(batch), shadowRuns: true, cascade: cascade));
-        if (live && movers is not null)
-            groups.AddRange(movers);
 
         // Depth is clamped, not clipped, so a caster nearer the sun than the cascade's near plane still shadows it: with a low sun the
         // mountain that shades a valley is far toward the sun, and a cascade can only reach so far.
@@ -311,7 +332,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         float slope = frame.TotkEnvironment().Settings.ShadowSlopeOffset;
         gl.Enable(EnableCap.PolygonOffsetFill);
         gl.PolygonOffset(slope, slope > 0f ? ConstantOffset : 0f);
-        _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade, statics: !live);
+        _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade, statics: true);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
             terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);

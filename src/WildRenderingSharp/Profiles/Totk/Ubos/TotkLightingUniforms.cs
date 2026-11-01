@@ -46,6 +46,7 @@ static class TotkLightingUniforms
         var block = new UboWriter(TotkSceneMaterialLayout.Spec);
         TotkSceneMaterialDefaults.Write(block);
         GsysSceneMaterial.WriteLighting(block, lighting.MidScale, lighting.HighlightScale);
+        block.SetAt(TotkSceneMaterialLayout.DynamicResolutionRatio, lighting.ResolutionRatio);
 
         // The ambient sky and ground pair the deferred vertex shader lerps by screen Y, and a pow() exponent, in the archive's unnamed array.
         block.SetAt(TotkSceneMaterialLayout.SceneShadingSkyAmbient, lighting.HemiSky.X, lighting.HemiSky.Y, lighting.HemiSky.Z);

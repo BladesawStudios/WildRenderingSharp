@@ -212,6 +212,8 @@ if (options.TryGetValue("eye", out var eye))
     camera.Eye = ParseOrigin(eye);
 if (options.TryGetValue("look", out var look))
     camera.Target = ParseOrigin(look);
+if (options.TryGetValue("edgefov", out var edgeFov))
+    renderer.Lighting.EdgeFovDegrees = float.Parse(edgeFov);
 if (options.TryGetValue("exposure", out var exposure))
     renderer.Lighting.Exposure = float.Parse(exposure);
 

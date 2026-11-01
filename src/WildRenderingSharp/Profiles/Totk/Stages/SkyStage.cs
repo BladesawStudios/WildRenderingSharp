@@ -126,7 +126,7 @@ internal sealed class SkyStage(StageServices services, SkyBake bake) : IFrameSta
         var palette = environment.Palette;
         var cam = frame.Setup.Cam;
 
-        float seconds = _cloudDome.Advance(settings.AnimateClouds);
+        float seconds = _cloudDome.Advance(settings.AnimateClouds, settings.CloudSeconds);
         var layers = ResolveCloudLayers(environment, seconds, frame.Camera.Eye.Y);
 
         _cloudDome.Run(services.Resources, frame.Targets, layers,
