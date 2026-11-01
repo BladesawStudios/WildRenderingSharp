@@ -113,6 +113,7 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             ForwardSamplers = SamplersFor(shapePrograms.Forward, sh.MaterialSamplers),
             ForwardShaderName = shapePrograms.Forward != 0 ? sh.MaterialShader : "",
             ReadsSceneColor = gl.UniformLocation(shapePrograms.GBuffer, "cTex_ColorBuffer") >= 0,
+            FogsSceneColor = gl.UniformLocation(shapePrograms.GBuffer, "cTex_PreFog") >= 0,
             CullsFaces = sh.RenderState.CulledFace is not null && CutsOut(sh),
             IsFarStandIn = Path.GetFileName(dataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)).StartsWith("Far_", StringComparison.Ordinal),
             MaterialBlock = new MaterialBlock(gl, CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.MaterialFile))),

@@ -129,6 +129,9 @@ public sealed class LoadedShape
     public bool CastsShadow { get; init; } = true;
 
     public bool ReadsSceneColor { get; init; }
+
+    // Whether the G-buffer program fogs the scene colour it reads with the frame's pre-fog and pre-misc buffers, at units other programs use for other inputs.
+    internal bool FogsSceneColor { get; init; }
     public bool HasForward => ForwardProgram != 0;
 
     // Whether the shape has to be drawn with the face its material hides left out: it cuts pixels out of its front face, and the back face seen through those would

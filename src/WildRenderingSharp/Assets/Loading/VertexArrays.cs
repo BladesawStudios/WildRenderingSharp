@@ -75,19 +75,21 @@ sealed unsafe class VertexArrays(GL gl)
         gl.VertexAttribPointer((uint)entry.Location, entry.Components, VertexAttribPointerType.Float, false, (uint)stride, (void*)(nint)entry.Offset);
     }
 
-    // Reads the blend attributes from the one shared vertex through a divisor no instance count reaches, so every vertex of every
-    // instance reads element 0.
+    // Reads the blend attributes from the one shared vertex through a binding whose stride is zero, so every vertex of every instance reads
+    // the same bytes. An instanced attribute would not: a draw's base instance is added to the element it reads, past the one there is.
     void BindConstantSkin(Func<string, int> location)
     {
-        gl.BindBuffer(BufferTargetARB.ArrayBuffer, ConstantSkinBuffer.For(gl));
+        uint buffer = ConstantSkinBuffer.For(gl);
         for (int i = 0; i < VertexCompactor.BlendAttributes.Length; i++)
         {
             int at = location(VertexCompactor.BlendAttributes[i]);
             if (at < 0)
                 continue;
             gl.EnableVertexAttribArray((uint)at);
-            gl.VertexAttribPointer((uint)at, 4, VertexAttribPointerType.Float, false, 0, (void*)(nint)(i * 16));
-            gl.VertexAttribDivisor((uint)at, uint.MaxValue);
+            gl.VertexAttribFormat((uint)at, 4, VertexAttribType.Float, false, 0);
+            gl.VertexAttribBinding((uint)at, (uint)at);
+            gl.BindVertexBuffer((uint)at, buffer, i * 16, 0);
+            gl.VertexBindingDivisor((uint)at, 0);
         }
     }
 }
