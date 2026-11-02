@@ -16,8 +16,19 @@ internal sealed class ModelManifest
     public static ModelManifest Load(string manifestPath)
     {
         using var stream = File.OpenRead(manifestPath);
-        return JsonSerializer.Deserialize<ModelManifest>(stream, JsonOptions)
+        var manifest = JsonSerializer.Deserialize<ModelManifest>(stream, JsonOptions)
             ?? throw new InvalidDataException($"'{manifestPath}' did not deserialize to a manifest.");
+        manifest.ClampEyes();
+        return manifest;
+    }
+
+    // An eye's textures are read through coordinates that are moved, scaled and turned by hand, which the game never does, so a texture the game tiles would tile in the eye again once the
+    // coordinates leave 0..1. Every sampler of a material named for an eye clamps instead, which is the same everywhere the coordinates stay inside.
+    void ClampEyes()
+    {
+        foreach (var shape in Shapes.Where(s => s.Material.Contains("eye", StringComparison.OrdinalIgnoreCase)))
+            foreach (var sampler in shape.Samplers.Concat(shape.ZOnlySamplers).Concat(shape.MaterialSamplers))
+                (sampler.WrapU, sampler.WrapV) = ("Clamp", "Clamp");
     }
 
     public static IEnumerable<string> ListAvailableModels(string cacheRoot) =>
