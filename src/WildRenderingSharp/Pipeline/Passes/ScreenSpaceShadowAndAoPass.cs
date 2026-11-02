@@ -56,11 +56,17 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
         RunSeparableBlur(resources, targets, targets.AoRaw, targets.AoTmp, targets.PreMisc, p.Near, p.Far, p.AoRadius);
     }
 
-    // The game's filter smooths PreShadow with one separable 3-tap Gaussian, as its shadow pre-pass is configured (a blur of width 1, repeated once).
+    // How many times the game's filter is run over PreShadow. The game runs it once and then has its temporal anti-aliasing to smooth what is left; the buffer is half the frame's size, so a shadow's
+    // edge crossing it kinks at every texel, and with nothing after to average the kinks away they show as ragged steps along the edge where the frame is not supersampled. A second run takes
+    // them out and leaves the edge as crisp as the shading that reads it makes it. More runs only widen the penumbra.
+    const int FilterRuns = 2;
+
+    // Smooths PreShadow with the game's separable 3-tap Gaussian (a blur of width 1), kept to the pixel's own surface, FilterRuns times.
     public void FilterPreShadow(GLResourceCache resources, RenderTargets targets)
     {
         _gl.Disable(EnableCap.DepthTest);
-        BlurPreShadow(resources, targets, targets.PreShadow, targets.PreShadowScratch);
+        for (int i = 0; i < FilterRuns; i++)
+            BlurPreShadow(resources, targets, targets.PreShadow, targets.PreShadowScratch);
     }
 
     public void Dispose()
