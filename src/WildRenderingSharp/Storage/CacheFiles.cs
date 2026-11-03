@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
+using System.IO.Hashing;
 
 namespace WildRenderingSharp.Storage;
 
@@ -73,17 +73,20 @@ public static class CacheFiles
         {
             string folder = Path.Combine(Path.GetDirectoryName(directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))!, TextureFolder);
             Directory.CreateDirectory(folder);
-            string hash = Convert.ToHexString(SHA256.HashData(bytes), 0, 16);
+            string hash = ContentHash(bytes);
             string target = Path.Combine(folder, hash + Suffix);
             if (!File.Exists(target))
                 AtomicFile.WriteAllBytes(target, CompressTexture(bytes));
             PendingIndex.GetOrAdd(directory, _ => new(StringComparer.Ordinal))[name] = hash;
         }
 
-        // A plain file from an earlier preparation of this folder would be read in preference to what was just written.
-        if (File.Exists(full))
-            File.Delete(full);
+        // A plain file from an earlier preparation of this folder would be read in preference to what was just written. Deleting one that is not there does nothing.
+        File.Delete(full);
     }
+
+    // What a texture's bytes are called in the shared folder. A texture is hashed once for each model that uses it and is megabytes, so this is a fast hash that does not
+    // collide in practice; a cryptographic one was a tenth of the time a cold cache took to make.
+    static string ContentHash(byte[] bytes) => Convert.ToHexString(XxHash128.Hash(bytes));
 
     // Reads a file and throws the bytes away, so the system has it in memory when the real read comes. Many of these at once cost no more than one, since a disk answers
     // many requests at a time.
@@ -164,7 +167,7 @@ public static class CacheFiles
             foreach (string file in textures)
             {
                 byte[] bytes = File.ReadAllBytes(file);
-                string hash = Convert.ToHexString(SHA256.HashData(bytes), 0, 16);
+                string hash = ContentHash(bytes);
                 string target = Path.Combine(shared, hash + Suffix);
                 if (!File.Exists(target))
                     AtomicFile.WriteAllBytes(target, Compress(bytes));
