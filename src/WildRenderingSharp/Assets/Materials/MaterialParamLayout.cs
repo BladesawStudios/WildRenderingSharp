@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WildRenderingSharp.Logging;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Assets.Materials;
 
@@ -37,8 +38,7 @@ internal sealed class MaterialParamLayout
 
     public static MaterialParamLayout Load(string path)
     {
-        using var stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<MaterialParamLayout>(stream, JsonOptions)
+        return JsonSerializer.Deserialize<MaterialParamLayout>(CacheFiles.ReadAllBytes(path), JsonOptions)
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a material param layout.");
     }
 
@@ -52,7 +52,7 @@ internal sealed class MaterialParamLayout
         string path = Path.Combine(dataDirectory, materialUboRelativePath[..^suffix.Length] + ".params.json");
         try
         {
-            return File.Exists(path) ? Load(path) : null;
+            return CacheFiles.FileExists(path) ? Load(path) : null;
         }
         catch (Exception ex)
         {
