@@ -190,7 +190,7 @@ internal static class GLProgramBuilder
     // which is half a gigabyte of a whole map's programs saved, for a decompression that costs a fraction of reading the larger file.
     static byte[] Compress(byte[] file)
     {
-        using var compressor = new ZstdSharp.Compressor(6);
+        using var compressor = new ZstdSharp.Compressor(3);
         return compressor.Wrap(file).ToArray();
     }
 
@@ -244,9 +244,21 @@ internal static class GLProgramBuilder
             BitConverter.TryWriteBytes(file.AsSpan(0, 4), (uint)format);
 
             byte[] whole = file.AsSpan(0, (int)written + 4).ToArray();
-            AtomicFile.WriteAllBytes(path, path.EndsWith(".zbin", StringComparison.Ordinal) ? Compress(whole) : whole);
+
+            // Only the read of the binary needs the context; compressing and writing it happen on the pool, so the thread that is loading models does not wait on the disk.
+            _ = Task.Run(() => WriteBinary(path, whole));
         }
         // Only a cache - the program itself is fine.
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+
+    static void WriteBinary(string path, byte[] whole)
+    {
+        try
+        {
+            AtomicFile.WriteAllBytes(path, path.EndsWith(".zbin", StringComparison.Ordinal) ? Compress(whole) : whole);
+        }
+        // Only a cache: the program was built and is in use, and the next run builds it again.
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
 }

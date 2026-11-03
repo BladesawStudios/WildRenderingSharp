@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
 using WildRenderingSharp.Shaders;
@@ -9,9 +10,12 @@ internal static class InstancedShaderPatch
 {
     internal static readonly Regex MainSignature = new(@"\bvoid\s+main\s*\(\s*\)", RegexOptions.Compiled);
 
-    internal static Regex BlockDeclaration(string blockName) => new(
-        @"layout\s*\([^)]*\)\s*uniform\s+" + Regex.Escape(blockName) + @"\s*\{[^}]*\}\s*(\w+)\s*;",
-        RegexOptions.Compiled);
+    // A compiled regex is code generated and compiled when it is made, so each block's is made once however many shaders are patched.
+    static readonly ConcurrentDictionary<string, Regex> BlockDeclarations = new();
+
+    internal static Regex BlockDeclaration(string blockName) => BlockDeclarations.GetOrAdd(blockName, name => new Regex(
+        @"layout\s*\([^)]*\)\s*uniform\s+" + Regex.Escape(name) + @"\s*\{[^}]*\}\s*(\w+)\s*;",
+        RegexOptions.Compiled));
 
     public static string? Apply(string vertexSource, bool baseInstance)
     {
