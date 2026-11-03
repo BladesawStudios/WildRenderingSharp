@@ -11,76 +11,101 @@ namespace WildRenderingSharp.Hosting.Preparers;
 public sealed record LoaderResult(Func<bool> Apply, Action Discard);
 
 /// <summary>
-/// Runs a host's model loads on a thread with a GL context sharing the host's, and hands back a step for the render thread to finish. A
+/// Runs a host's model loads on threads with GL contexts sharing the host's, and hands back a step for the render thread to finish. A
 /// result is applied only if its owner is still the one passed to ApplyFinished.
 /// </summary>
+/// <remarks>
+/// Jobs are taken in the order they were queued, by as many workers as the host gave contexts to, so several load at once. Results are
+/// applied in that same order however they finished: a job that finishes early waits for the ones queued before it, so what the scene
+/// holds, and the order it holds it in, is the same on every run. A job the owner's change made stale is dropped and counts as finished
+/// with nothing to apply, so the ones behind it are never held up by it.
+/// </remarks>
 public sealed class BackgroundLoader : IDisposable
 {
-    sealed record Job(object Owner, int Generation, Func<LoaderResult> Run);
+    sealed record Job(object Owner, int Generation, long Order, Func<LoaderResult> Run);
 
     readonly GL _gl;
-    readonly Func<IGLContext?> _createContext;
+    readonly Func<int, IGLContext?> _createContext;
     readonly Func<Exception, LoaderResult> _failed;
     readonly Action<string>? _log;
+    readonly int _workers;
     readonly BlockingCollection<Job> _jobs = new();
-    readonly ConcurrentQueue<(Job Job, LoaderResult Result)> _finished = new();
-    readonly object _busy = new();
 
-    Thread? _thread;
-    IGLContext? _context;
-    bool _unavailable;
+    // Finished jobs by the order they were queued in; a null result is a job dropped without running.
+    readonly ConcurrentDictionary<long, (Job Job, LoaderResult? Result)> _finished = new();
+    readonly object _applying = new();
+    readonly List<(Thread Thread, IGLContext Context, object Busy)> _threads = [];
+    bool _started, _unavailable;
+    long _queued;
+    long _nextToApply;
     int _generation;
 
-    // createContext makes the loader's context on the render thread (null keeps loading there), and failed gives the result for a job that threw.
-    public BackgroundLoader(GL gl, Func<IGLContext?> createContext, Func<Exception, LoaderResult> failed, Action<string>? log = null)
+    // createContext makes the context for worker i on the render thread (null keeps loading there), and failed gives the result for a job that threw.
+    public BackgroundLoader(GL gl, Func<int, IGLContext?> createContext, Func<Exception, LoaderResult> failed, Action<string>? log = null, int workers = 1)
     {
         _gl = gl;
         _createContext = createContext;
         _failed = failed;
         _log = log;
+        _workers = Math.Max(1, workers);
     }
 
-    // Starts the thread once; false when the host gave it no context.
+    // Starts the threads once; false when the host gave it no context at all. A host that cannot make as many as asked for gets the ones it could.
     public bool EnsureStarted()
     {
-        if (_thread is not null)
+        if (_started)
             return true;
         if (_unavailable)
             return false;
 
-        try
+        for (int i = 0; i < _workers; i++)
         {
-            _context = _createContext();
+            IGLContext? context = null;
+            try
+            {
+                context = _createContext(i);
+            }
+            catch (Exception ex)
+            {
+                _log?.Invoke($"Loader context {i}: {ex.Message}");
+            }
+            if (context is null)
+                break;
+
+            var busy = new object();
+            var thread = new Thread(() => Loop(context, busy)) { IsBackground = true, Name = $"Model loader {i}", Priority = ThreadPriority.BelowNormal };
+            _threads.Add((thread, context, busy));
         }
-        catch (Exception ex)
-        {
-            _log?.Invoke($"Loader context: {ex.Message}");
-        }
-        if (_context is null)
+
+        if (_threads.Count == 0)
         {
             _unavailable = true;
             return false;
         }
 
-        _thread = new Thread(Loop) { IsBackground = true, Name = "Model loader", Priority = ThreadPriority.BelowNormal };
-        _thread.Start();
+        foreach (var (thread, _, _) in _threads)
+            thread.Start();
+        _started = true;
         return true;
     }
 
-    public bool Started => _thread is not null;
+    public bool Started => _started;
 
     public void Queue(object owner, Func<LoaderResult> run) =>
-        _jobs.Add(new Job(owner, Volatile.Read(ref _generation), run));
+        _jobs.Add(new Job(owner, Volatile.Read(ref _generation), Interlocked.Increment(ref _queued) - 1, run));
 
-    void Loop()
+    void Loop(IGLContext context, object busy)
     {
-        _context!.MakeCurrent();
+        context.MakeCurrent();
         foreach (Job job in _jobs.GetConsumingEnumerable())
         {
-            lock (_busy)
+            lock (busy)
             {
                 if (job.Generation != Volatile.Read(ref _generation))
+                {
+                    _finished[job.Order] = (job, null);
                     continue;
+                }
 
                 LoaderResult result;
                 try
@@ -94,57 +119,74 @@ public sealed class BackgroundLoader : IDisposable
 
                 // Work in a shared context is not visible to another until it is flushed.
                 _gl.Finish();
-                _finished.Enqueue((job, result));
+                _finished[job.Order] = (job, result);
             }
         }
-        _context.Clear();
+        context.Clear();
     }
 
-    // Applies what the loader has finished, on the render thread. True when anything was added to the scene.
+    // Applies what the loaders have finished, in the order the jobs were queued, on the render thread. True when anything was added to the scene.
     public bool ApplyFinished(object? currentOwner, Action<Exception>? applyFailed = null)
     {
         bool added = false;
-        while (_finished.TryDequeue(out var item))
+        lock (_applying)
         {
-            if (item.Job.Generation != Volatile.Read(ref _generation) || !ReferenceEquals(item.Job.Owner, currentOwner))
+            while (_finished.TryRemove(_nextToApply, out var item))
             {
-                item.Result.Discard();
-                continue;
-            }
+                _nextToApply++;
+                if (item.Result is null)
+                    continue;
 
-            try
-            {
-                if (item.Result.Apply())
-                    added = true;
-            }
-            catch (Exception ex)
-            {
-                applyFailed?.Invoke(ex);
+                if (item.Job.Generation != Volatile.Read(ref _generation) || !ReferenceEquals(item.Job.Owner, currentOwner))
+                {
+                    item.Result.Discard();
+                    continue;
+                }
+
+                try
+                {
+                    if (item.Result.Apply())
+                        added = true;
+                }
+                catch (Exception ex)
+                {
+                    applyFailed?.Invoke(ex);
+                }
             }
         }
         return added;
     }
 
-    // Drops queued jobs and waits for the one in flight, before an owner goes away.
+    // Drops queued jobs and waits for the ones in flight, before an owner goes away.
     public void WaitIdle()
     {
         Interlocked.Increment(ref _generation);
-        while (_jobs.TryTake(out _)) { }
-        lock (_busy) { }
+        while (_jobs.TryTake(out Job? dropped))
+            _finished[dropped.Order] = (dropped, null);
+        foreach (var (_, _, busy) in _threads)
+            lock (busy) { }
     }
 
     public void DropFinished()
     {
         WaitIdle();
-        while (_finished.TryDequeue(out var item))
-            item.Result.Discard();
+        lock (_applying)
+        {
+            while (_finished.TryRemove(_nextToApply, out var item))
+            {
+                _nextToApply++;
+                item.Result?.Discard();
+            }
+        }
     }
 
     public void Dispose()
     {
         WaitIdle();
         _jobs.CompleteAdding();
-        _thread?.Join(2000);
-        _thread = null;
+        foreach (var (thread, _, _) in _threads)
+            thread.Join(2000);
+        _threads.Clear();
+        _started = false;
     }
 }
