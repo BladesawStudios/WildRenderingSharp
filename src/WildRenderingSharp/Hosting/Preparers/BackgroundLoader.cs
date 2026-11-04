@@ -18,7 +18,8 @@ public sealed record LoaderResult(Func<bool> Apply, Action Discard);
 /// Jobs are taken in the order they were queued, by as many workers as the host gave contexts to, so several load at once. Results are
 /// applied in that same order however they finished: a job that finishes early waits for the ones queued before it, so what the scene
 /// holds, and the order it holds it in, is the same on every run. A job the owner's change made stale is dropped and counts as finished
-/// with nothing to apply, so the ones behind it are never held up by it.
+/// with nothing to apply, so the ones behind it are never held up by it. Every worker but the first stops after a few seconds with nothing to do and hands its context
+/// back to the host to be destroyed, since a context holds driver memory for as long as it lives and a load is when it is wanted.
 /// </remarks>
 public sealed class BackgroundLoader : IDisposable
 {
@@ -29,7 +30,14 @@ public sealed class BackgroundLoader : IDisposable
     readonly Func<Exception, LoaderResult> _failed;
     readonly Action<string>? _log;
     readonly int _workers;
+    readonly Action<int>? _release;
     readonly BlockingCollection<Job> _jobs = new();
+
+    // How long a worker after the first waits for a job before it stops.
+    static readonly TimeSpan IdleFor = TimeSpan.FromSeconds(5);
+
+    // Workers that have stopped, by number, for the render thread to have their contexts destroyed.
+    readonly ConcurrentQueue<int> _retired = new();
 
     // Finished jobs by the order they were queued in; a null result is a job dropped without running.
     readonly ConcurrentDictionary<long, (Job Job, LoaderResult? Result)> _finished = new();
@@ -41,8 +49,9 @@ public sealed class BackgroundLoader : IDisposable
     int _generation;
 
     // createContext makes the context for worker i on the render thread (null keeps loading there), and failed gives the result for a job that threw.
-    public BackgroundLoader(GL gl, Func<int, IGLContext?> createContext, Func<Exception, LoaderResult> failed, Action<string>? log = null, int workers = 1)
+    public BackgroundLoader(GL gl, Func<int, IGLContext?> createContext, Func<Exception, LoaderResult> failed, Action<string>? log = null, int workers = 1, Action<int>? release = null)
     {
+        _release = release;
         _gl = gl;
         _createContext = createContext;
         _failed = failed;
@@ -73,7 +82,8 @@ public sealed class BackgroundLoader : IDisposable
                 break;
 
             var busy = new object();
-            var thread = new Thread(() => Loop(context, busy)) { IsBackground = true, Name = $"Model loader {i}", Priority = ThreadPriority.BelowNormal };
+            int number = i;
+            var thread = new Thread(() => Loop(context, busy, number)) { IsBackground = true, Name = $"Model loader {i}", Priority = ThreadPriority.BelowNormal };
             _threads.Add((thread, context, busy));
         }
 
@@ -94,11 +104,21 @@ public sealed class BackgroundLoader : IDisposable
     public void Queue(object owner, Func<LoaderResult> run) =>
         _jobs.Add(new Job(owner, Volatile.Read(ref _generation), Interlocked.Increment(ref _queued) - 1, run));
 
-    void Loop(IGLContext context, object busy)
+    void Loop(IGLContext context, object busy, int number)
     {
         context.MakeCurrent();
-        foreach (Job job in _jobs.GetConsumingEnumerable())
+        while (!_jobs.IsCompleted)
         {
+            if (!_jobs.TryTake(out Job? job, number == 0 || _release is null ? Timeout.Infinite : (int)IdleFor.TotalMilliseconds))
+            {
+                if (_jobs.IsCompleted)
+                    break;
+                // Nothing came for a while: this worker stops, and its context is destroyed by the host on the render thread.
+                context.Clear();
+                _retired.Enqueue(number);
+                return;
+            }
+
             lock (busy)
             {
                 if (job.Generation != Volatile.Read(ref _generation))
@@ -128,6 +148,9 @@ public sealed class BackgroundLoader : IDisposable
     // Applies what the loaders have finished, in the order the jobs were queued, on the render thread. True when anything was added to the scene.
     public bool ApplyFinished(object? currentOwner, Action<Exception>? applyFailed = null)
     {
+        while (_retired.TryDequeue(out int stopped))
+            _release?.Invoke(stopped);
+
         bool added = false;
         lock (_applying)
         {
