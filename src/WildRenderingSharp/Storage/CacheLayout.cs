@@ -40,7 +40,7 @@ public sealed record CacheLayout(string Root)
     public string ManifestPath(string resolvedModelName) =>
         Path.Combine(ModelDirectory(resolvedModelName), $"{resolvedModelName}.manifest.json");
 
-    public bool IsPrepared(string resolvedModelName) => File.Exists(ManifestPath(resolvedModelName));
+    public bool IsPrepared(string resolvedModelName) => CacheFiles.IsModelPrepared(ModelDirectory(resolvedModelName), $"{resolvedModelName}.manifest.json");
 
     public bool HasSystemAssets => File.Exists(Path.Combine(Shaders, "agl_hdr_compose.vert"));
 }

@@ -25,6 +25,30 @@ public static class CacheFiles
     [ThreadStatic] static ZstdSharp.Compressor? _compressor;
     [ThreadStatic] static ZstdSharp.Decompressor? _decompressor;
 
+    // Whether a model is prepared: its bundle is written, which is only once all of it is, or its manifest is in its folder as a file. Asks the disk about one file and reads nothing.
+    public static bool IsModelPrepared(string folder, string manifestName) =>
+        File.Exists(Path.Combine(folder, ModelBundle.FileName)) || File.Exists(Path.Combine(folder, manifestName));
+
+    // The names of the files in a model's folder that match the pattern, whether they are in its bundle, in the open session or in the folder. The pattern has one * in it at most.
+    public static IEnumerable<string> EnumerateFiles(string folder, string pattern)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        if (ModelSession.Current is { } session && session.NameOf(Path.Combine(folder, "x")) is not null)
+            foreach (string held in session.Names)
+                names.Add(held);
+        if (ModelBundles.OpenIn(folder) is { } bundle)
+            foreach (string stored in bundle.Names)
+                names.Add(stored);
+        if (Directory.Exists(folder))
+            foreach (string file in Directory.EnumerateFiles(folder, pattern))
+                names.Add(Path.GetFileName(file));
+
+        int star = pattern.IndexOf('*');
+        string head = star < 0 ? pattern : pattern[..star], tail = star < 0 ? "" : pattern[(star + 1)..];
+        return names.Where(n => !n.Contains('/') && (star < 0 ? n == pattern : n.Length >= head.Length + tail.Length
+            && n.StartsWith(head, StringComparison.Ordinal) && n.EndsWith(tail, StringComparison.Ordinal)));
+    }
+
     // Opens the session that collects a model's small files, to be written as one bundle by Pack. keepExisting starts it from the bundle the folder has, for redoing part of a model.
     public static ModelSession BeginModel(string folder, bool keepExisting) => ModelSession.Begin(folder, keepExisting);
 
@@ -126,7 +150,7 @@ public static class CacheFiles
             string hash = ContentHash(bytes);
             string target = Path.Combine(folder, hash + Suffix);
             if (!File.Exists(target))
-                AtomicFile.WriteAllBytes(target, CompressTexture(bytes));
+                WriteShared(target, CompressTexture(bytes));
             PendingIndex.GetOrAdd(directory, _ => new(StringComparer.Ordinal))[name] = hash;
         }
 
@@ -134,6 +158,21 @@ public static class CacheFiles
         // bundle is read before the folder, so it needs no deleting.
         if (InSession(full) is null)
             File.Delete(full);
+    }
+
+    // Writes a shared texture, which is named by what is in it. Two models that use the same texture can be prepared at the same moment, each finding the file not there yet and
+    // each moving its copy into place, and the move that comes second is refused while the first has the file. The file is there and is the same one, so that is not a failure:
+    // it used to drop the texture from the model, which was skipped as unreadable, and which textures went missing changed from one preparation to the next.
+    static void WriteShared(string target, byte[] compressed)
+    {
+        try
+        {
+            AtomicFile.WriteAllBytes(target, compressed);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException && File.Exists(target))
+        {
+            // Another thread put the same file there first.
+        }
     }
 
     // What a texture's bytes are called in the shared folder. A texture is hashed once for each model that uses it and is megabytes, so this is a fast hash that does not
@@ -225,7 +264,7 @@ public static class CacheFiles
                 string hash = ContentHash(bytes);
                 string target = Path.Combine(shared, hash + Suffix);
                 if (!File.Exists(target))
-                    AtomicFile.WriteAllBytes(target, Compress(bytes));
+                    WriteShared(target, Compress(bytes));
                 index[Path.GetFileName(file)] = hash;
             }
 

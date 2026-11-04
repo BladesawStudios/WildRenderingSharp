@@ -46,6 +46,8 @@ public sealed class ModelSession : IDisposable
 
     internal bool Contains(string name) => _entries.ContainsKey(name);
 
+    internal IEnumerable<string> Names => _entries.Keys;
+
     internal byte[]? Read(string name) =>
         _entries.TryGetValue(name, out var entry) ? entry.Packed ? CacheFiles.Unpack(entry.Bytes) : entry.Bytes : null;
 

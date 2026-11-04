@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Assets.Manifests;
 
@@ -15,8 +16,7 @@ internal sealed class ModelManifest
 
     public static ModelManifest Load(string manifestPath)
     {
-        using var stream = File.OpenRead(manifestPath);
-        var manifest = JsonSerializer.Deserialize<ModelManifest>(stream, JsonOptions)
+        var manifest = JsonSerializer.Deserialize<ModelManifest>(CacheFiles.ReadAllBytes(manifestPath), JsonOptions)
             ?? throw new InvalidDataException($"'{manifestPath}' did not deserialize to a manifest.");
         manifest.ClampEyes();
         return manifest;
@@ -35,7 +35,7 @@ internal sealed class ModelManifest
         Directory.Exists(cacheRoot)
             ? Directory.EnumerateDirectories(cacheRoot)
                 .Select(Path.GetFileName)
-                .Where(n => n is not null && File.Exists(Path.Combine(cacheRoot, n, $"{n}.manifest.json")))
+                .Where(n => n is not null && CacheFiles.IsModelPrepared(Path.Combine(cacheRoot, n), $"{n}.manifest.json"))
                 .Select(n => n!)
                 .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             : [];

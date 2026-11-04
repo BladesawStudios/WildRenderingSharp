@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Animation.Clips;
 
@@ -23,18 +24,14 @@ public sealed class TexturePatternAnimManifest : IAnimClip
 
     public static TexturePatternAnimManifest Load(string path)
     {
-        using var stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<TexturePatternAnimManifest>(stream, JsonOptions)
+        return JsonSerializer.Deserialize<TexturePatternAnimManifest>(CacheFiles.ReadAllBytes(path), JsonOptions)
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a texture pattern anim manifest.");
     }
 
     public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        Directory.Exists(dataDirectory)
-            ? Directory.EnumerateFiles(dataDirectory, $"{modelName}.*.texpat.json")
-                .Select(Path.GetFileName)
-                .Select(n => n![(modelName.Length + 1)..^".texpat.json".Length])
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            : [];
+        CacheFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.texpat.json")
+            .Select(n => n[(modelName.Length + 1)..^".texpat.json".Length])
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 
     public SamplerBinding? BindingFor(int textureIndex, string samplerKey)
     {
