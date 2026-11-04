@@ -361,11 +361,27 @@ public static class CacheFiles
         session.Commit();
     }
 
-    static byte[] Compress(byte[] bytes) => (_compressor ??= new ZstdSharp.Compressor(Level)).Wrap(bytes).ToArray();
+    static byte[] Compress(byte[] bytes) => Compress(_compressor ??= new ZstdSharp.Compressor(Level), bytes);
+
+    // Compressed into a buffer from the pool and copied out at its size, so what is allocated is the result and not also the room for the worst case: a texture is megabytes,
+    // and each of those was a large-object allocation that only a full collection gives back.
+    static byte[] Compress(ZstdSharp.Compressor compressor, byte[] bytes)
+    {
+        byte[] room = System.Buffers.ArrayPool<byte>.Shared.Rent(ZstdSharp.Compressor.GetCompressBound(bytes.Length));
+        try
+        {
+            int written = compressor.Wrap(bytes, room);
+            return room.AsSpan(0, written).ToArray();
+        }
+        finally
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(room);
+        }
+    }
 
     // Texture data is block-compressed already and gains little from more effort.
     [ThreadStatic] static ZstdSharp.Compressor? _quickCompressor;
-    static byte[] CompressTexture(byte[] bytes) => (_quickCompressor ??= new ZstdSharp.Compressor(1)).Wrap(bytes).ToArray();
+    static byte[] CompressTexture(byte[] bytes) => Compress(_quickCompressor ??= new ZstdSharp.Compressor(1), bytes);
 
     internal static byte[] Unpack(ReadOnlySpan<byte> bytes) => (_decompressor ??= new ZstdSharp.Decompressor()).Unwrap(bytes).ToArray();
 }

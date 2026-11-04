@@ -112,7 +112,7 @@ public sealed class LayeredRom : IRomAccess
 
             // A map costs more to make and to hold than reading the file does, until the file is large; a map is also kept for the life of the ROM, and a map of every
             // model and texture file of a map's worth of preparing is thousands of open handles.
-            stored = new FileInfo(file).Length <= SmallFile ? File.ReadAllBytes(file) : _mapped.GetOrAdd(file, f => new MappedFile(f)).Span;
+            stored = SizeOf(file) <= SmallFile ? File.ReadAllBytes(file) : _mapped.GetOrAdd(file, f => new MappedFile(f)).Span;
         }
         else
         {
@@ -152,16 +152,25 @@ public sealed class LayeredRom : IRomAccess
         return file.Archive;
     }
 
-    string? LocateFile(string container)
+    // Where each file is, asked of the disk once: a file is located when it is asked about and again when it is read, for every model and texture, and the folders of a ROM
+    // do not change while it is open for one piece of work.
+    readonly ConcurrentDictionary<string, string?> _located = new(StringComparer.OrdinalIgnoreCase);
+
+    // How big a file is, asked of the disk once, for the same reason.
+    readonly ConcurrentDictionary<string, long> _sizes = new(StringComparer.OrdinalIgnoreCase);
+
+    long SizeOf(string file) => _sizes.GetOrAdd(file, f => new FileInfo(f).Length);
+
+    string? LocateFile(string container) => _located.GetOrAdd(container, c =>
     {
         foreach (string root in _roots)
         {
-            string file = Path.Combine(root, container);
+            string file = Path.Combine(root, c);
             if (File.Exists(file))
                 return file;
         }
         return null;
-    }
+    });
 
     void Note(string path)
     {

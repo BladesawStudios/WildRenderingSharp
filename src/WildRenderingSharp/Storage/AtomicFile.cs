@@ -3,6 +3,9 @@ namespace WildRenderingSharp.Storage;
 /// <summary>Writes a file aside and moves it into place, so a reader never sees half of it.</summary>
 public static class AtomicFile
 {
+    // The array is written as it is; the span form below has to copy, since what it is given cannot be held by what writes it.
+    public static void WriteAllBytes(string path, byte[] bytes) => Write(path, temp => File.WriteAllBytes(temp, bytes));
+
     public static void WriteAllBytes(string path, ReadOnlySpan<byte> bytes)
     {
         byte[] copy = bytes.ToArray();

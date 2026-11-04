@@ -107,7 +107,11 @@ internal sealed class ModelBundle
             foreach (var entry in entries.Values)
                 writer.Write(entry.Bytes);
         }
-        AtomicFile.WriteAllBytes(path, stream.GetBuffer().AsSpan(0, (int)stream.Length));
+        AtomicFile.Write(path, temp =>
+        {
+            using var file = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16);
+            file.Write(stream.GetBuffer(), 0, (int)stream.Length);
+        });
     }
 
     // What BinaryWriter writes for a string: its length in 7-bit groups, then its UTF-8.

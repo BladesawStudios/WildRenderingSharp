@@ -11,11 +11,30 @@ public static class TotkTextures
     static readonly string[] Extensions = [".txtg", ".bntx.zs", ".bntx"];
 
     // Where each texture is, asked of the ROM once: every model that uses a texture asked up to three file checks for it.
-    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IRomAccess, System.Collections.Concurrent.ConcurrentDictionary<string, string?>> Found = new();
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IRomAccess, System.Collections.Concurrent.ConcurrentDictionary<string, string?>> FoundByRom = new();
+
+    // The three tables for the ROM this thread last asked about: every texture of every model asks, and looking a ROM up in a weak table hashes the object each time, which
+    // was a tenth of the time a model took to prepare.
+    sealed record RomTables(
+        System.Collections.Concurrent.ConcurrentDictionary<string, string?> Found,
+        System.Collections.Concurrent.ConcurrentDictionary<string, (string File, string Hash)> Exported,
+        System.Collections.Concurrent.ConcurrentDictionary<string, TxtgTexture> Headers);
+
+    // The ROM is held weakly: a thread outlives the ROM it last asked about, and a ROM holds what it has decompressed.
+    [ThreadStatic] static (WeakReference<IRomAccess> Rom, RomTables Tables)? _last;
+
+    static RomTables TablesOf(IRomAccess rom)
+    {
+        if (_last is { } last && last.Rom.TryGetTarget(out IRomAccess? held) && ReferenceEquals(held, rom))
+            return last.Tables;
+        var tables = new RomTables(FoundByRom.GetOrCreateValue(rom), ExportedByRom.GetOrCreateValue(rom), HeadersByRom.GetOrCreateValue(rom));
+        _last = (new WeakReference<IRomAccess>(rom), tables);
+        return tables;
+    }
 
     public static string? Find(IRomAccess rom, string name)
     {
-        var known = Found.GetOrCreateValue(rom);
+        var known = TablesOf(rom).Found;
         if (known.TryGetValue(name, out string? held))
             return held;
         foreach (string extension in Extensions)
@@ -28,18 +47,19 @@ public static class TotkTextures
     }
 
     // What each texture file exported as, so a texture used by many models is read, decoded and compressed once: the file's name in the model's folder and the hash it was stored under.
-    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IRomAccess, System.Collections.Concurrent.ConcurrentDictionary<string, (string File, string Hash)>> Exported = new();
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IRomAccess, System.Collections.Concurrent.ConcurrentDictionary<string, (string File, string Hash)>> ExportedByRom = new();
 
     // A texture's header (size, format, channel select) is asked for by every model that uses it, and thousands share a few thousand textures, so it is read
     // once per ROM. Only the header is kept: a request for pixel data is read from the ROM as before.
-    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IRomAccess, System.Collections.Concurrent.ConcurrentDictionary<string, TxtgTexture>> Headers = new();
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IRomAccess, System.Collections.Concurrent.ConcurrentDictionary<string, TxtgTexture>> HeadersByRom = new();
 
     public static TextureHandle? Handle(IRomAccess rom, string name)
     {
         if (Find(rom, name) is not { } path)
             return null;
-        var headers = Headers.GetOrCreateValue(rom);
-        var exported = Exported.GetOrCreateValue(rom);
+        var tables = TablesOf(rom);
+        var headers = tables.Headers;
+        var exported = tables.Exported;
         TextureHandle? handle = null;
         handle = new TextureHandle(
             surfaces => surfaces == 0 ? headers.GetOrAdd(path, p => Load(rom, p, 0)) : Load(rom, path, surfaces),
