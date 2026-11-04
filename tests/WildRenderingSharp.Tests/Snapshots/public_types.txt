@@ -22,6 +22,8 @@ Assets.Manifests.SkeletonScalingMode
 Assets.Textures.ExternalTextures
 Assets.Textures.LoadedTexture
 Assets.Textures.SharedTextures
+Debug.IProfileSink
+Debug.Probe
 Gpu.GLHostState
 Gpu.GpuMemory
 Gpu.GpuPassTimer
@@ -53,6 +55,7 @@ Pipeline.Frame.ExposureMeter
 Pipeline.FrameRequest
 Pipeline.FrameResult
 Pipeline.Shadows.ShadowCache
+Pipeline.Shadows.ShadowCascadeLayout
 Pipeline.Shadows.ShadowFocus
 Pipeline.Targets.RenderTargets
 Profiles.Totk.Atmosphere.Clouds.CloudFadeSettings
@@ -100,4 +103,6 @@ Scene.RenderActor
 Storage.AtomicFile
 Storage.CacheFiles
 Storage.CacheLayout
+Storage.CacheLock
+Storage.ModelSession
 WildRenderer
