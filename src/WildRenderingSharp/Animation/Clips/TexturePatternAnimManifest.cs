@@ -29,7 +29,7 @@ public sealed class TexturePatternAnimManifest : IAnimClip
     }
 
     public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        CacheFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.texpat.json")
+        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.texpat.json")
             .Select(n => n[(modelName.Length + 1)..^".texpat.json".Length])
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 

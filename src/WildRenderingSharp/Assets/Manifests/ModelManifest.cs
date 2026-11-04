@@ -35,7 +35,7 @@ internal sealed class ModelManifest
         Directory.Exists(cacheRoot)
             ? Directory.EnumerateDirectories(cacheRoot)
                 .Select(Path.GetFileName)
-                .Where(n => n is not null && CacheFiles.IsModelPrepared(Path.Combine(cacheRoot, n), $"{n}.manifest.json"))
+                .Where(n => n is not null && ModelFiles.IsPrepared(Path.Combine(cacheRoot, n), $"{n}.manifest.json"))
                 .Select(n => n!)
                 .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             : [];

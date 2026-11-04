@@ -16,7 +16,7 @@ sealed record ShapeOptions(Dictionary<string, string> Tags, bool HidesNormalPass
             .ToDictionary(e => e.Key, e => e.Value.ToString());
 
         string path = Path.Combine(dataDirectory, $"{shape.Name}_options.txt");
-        if (CacheFiles.TryReadText(path) is not { } text)
+        if (ModelFiles.TryReadText(path) is not { } text)
             return new ShapeOptions(tags, false);
 
         bool hidesNormalPass = false;

@@ -5,7 +5,7 @@ namespace WildRenderingSharp.Storage;
 /// <summary>The small files of one prepared model, kept together in a single file.</summary>
 /// <remarks>
 /// A model is dozens of files - five for each shape, two for each material, a texture index - and on a disk with a virus scanner each one costs a create, a move and a read of
-/// its own, which was most of the time a cold cache took to make and to load. A bundle is one file holding them all: a header naming each entry, its place and whether it is
+/// its own. A bundle is one file holding them all: a header naming each entry, its place and whether it is
 /// compressed, then the entries one after another. Entries are named by their path in the model's folder with forward slashes (<c>matubo/Body.params.json</c>), so a bundle
 /// answers the same questions the folder did. It is written whole and never changed; a model prepared again gets a new one.
 /// </remarks>
@@ -35,7 +35,7 @@ internal sealed class ModelBundle
         if (!_entries.TryGetValue(name, out var entry))
             return null;
         var span = new ReadOnlySpan<byte>(_data, entry.Offset, entry.Length);
-        return entry.Packed ? CacheFiles.Unpack(span) : span.ToArray();
+        return entry.Packed ? CacheCodec.Unpack(span) : span.ToArray();
     }
 
     // The entry as it is stored, so a bundle read to be added to keeps its entries without unpacking and packing them again.

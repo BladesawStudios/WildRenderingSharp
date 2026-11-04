@@ -25,7 +25,7 @@ internal sealed class ModelLoader(GL gl, ShaderProgramCache programs, string dat
         var textures = new TextureCache(gl, dataDirectory, external, SharedTextures, TextureMaxSize);
 
         string skeletonPath = Path.Combine(dataDirectory, $"{modelName}.skeleton.json");
-        SkeletonManifest? skeleton = CacheFiles.FileExists(skeletonPath) ? SkeletonManifest.Load(skeletonPath) : null;
+        SkeletonManifest? skeleton = ModelFiles.FileExists(skeletonPath) ? SkeletonManifest.Load(skeletonPath) : null;
         bool weightsInert = CompactVertices && VertexCompactor.SmoothPaletteIsIdentity(skeleton);
 
         var options = new ShapeBuildOptions(CompactVertices, DeferVertexArrays, enableKnownDecompilerCorrections);

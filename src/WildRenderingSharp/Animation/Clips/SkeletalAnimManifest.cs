@@ -35,7 +35,7 @@ public sealed class SkeletalAnimManifest : IAnimClip
     }
 
     public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        CacheFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.anim.json")
+        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.anim.json")
             .Select(n => n[(modelName.Length + 1)..^".anim.json".Length])
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 }

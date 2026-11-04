@@ -14,9 +14,9 @@ public static class TotkModelPreparer
     static TotkModelPreparer()
     {
         ShaderLibrary.CompileTool.ExportOutput.WriteBytes = CacheFiles.WriteBytes;
-        ShaderLibrary.CompileTool.ExportOutput.WriteText = CacheFiles.WriteText;
-        ShaderLibrary.CompileTool.ExportOutput.Exists = CacheFiles.FileExists;
-        ShaderLibrary.CompileTool.ExportOutput.EnsureFolder = CacheFiles.EnsureFolder;
+        ShaderLibrary.CompileTool.ExportOutput.WriteText = ModelFiles.WriteText;
+        ShaderLibrary.CompileTool.ExportOutput.Exists = ModelFiles.FileExists;
+        ShaderLibrary.CompileTool.ExportOutput.EnsureFolder = ModelFiles.EnsureFolder;
     }
 
     // The folder every model's programs go into, made once per process however many models are prepared.
@@ -53,7 +53,7 @@ public static class TotkModelPreparer
         ShaderFolders.GetOrAdd(cache.Shaders, folder => Directory.CreateDirectory(folder));
 
         // The model's small files are collected here and written as one bundle by the Pack below; redoing only the materials starts from the bundle already there.
-        using var session = CacheFiles.BeginModel(dataDirectory, keepExisting: !stages.HasFlag(TotkSourceStamp.Stages.Geometry));
+        using var session = ModelSession.Begin(dataDirectory, keepExisting: !stages.HasFlag(TotkSourceStamp.Stages.Geometry));
 
         // Both are written last, so removing them first keeps a preparation that was cut short from counting as finished.
         File.Delete(cache.ManifestPath(modelName));

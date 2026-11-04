@@ -49,7 +49,7 @@ public sealed class ModelSession : IDisposable
     internal IEnumerable<string> Names => _entries.Keys;
 
     internal byte[]? Read(string name) =>
-        _entries.TryGetValue(name, out var entry) ? entry.Packed ? CacheFiles.Unpack(entry.Bytes) : entry.Bytes : null;
+        _entries.TryGetValue(name, out var entry) ? entry.Packed ? CacheCodec.Unpack(entry.Bytes) : entry.Bytes : null;
 
     // Writes the bundle. The folder is made if it is not there, and what is known of it is forgotten so a reader asks the disk.
     internal void Commit()

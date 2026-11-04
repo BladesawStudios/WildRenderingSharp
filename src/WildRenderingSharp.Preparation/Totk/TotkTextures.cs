@@ -13,8 +13,7 @@ public static class TotkTextures
     // Where each texture is, asked of the ROM once: every model that uses a texture asked up to three file checks for it.
     static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IRomAccess, System.Collections.Concurrent.ConcurrentDictionary<string, string?>> FoundByRom = new();
 
-    // The three tables for the ROM this thread last asked about: every texture of every model asks, and looking a ROM up in a weak table hashes the object each time, which
-    // was a tenth of the time a model took to prepare.
+    // The three tables for the ROM this thread last asked about, since every texture of every model asks and a weak-table lookup hashes the object each time.
     sealed record RomTables(
         System.Collections.Concurrent.ConcurrentDictionary<string, string?> Found,
         System.Collections.Concurrent.ConcurrentDictionary<string, (string File, string Hash)> Exported,

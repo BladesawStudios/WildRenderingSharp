@@ -52,7 +52,7 @@ internal sealed class MaterialParamLayout
         string path = Path.Combine(dataDirectory, materialUboRelativePath[..^suffix.Length] + ".params.json");
         try
         {
-            return CacheFiles.FileExists(path) ? Load(path) : null;
+            return ModelFiles.FileExists(path) ? Load(path) : null;
         }
         catch (Exception ex)
         {

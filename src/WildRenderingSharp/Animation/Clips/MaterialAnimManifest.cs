@@ -37,7 +37,7 @@ public sealed class MaterialAnimManifest : IAnimClip
     }
 
     public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        CacheFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.matanim.json")
+        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.matanim.json")
             .Select(n => n[(modelName.Length + 1)..^".matanim.json".Length])
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 }
