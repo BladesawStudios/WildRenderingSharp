@@ -127,6 +127,22 @@ public sealed class BakeLibrary : IDisposable
         return atlas is null ? null : new BakeActor(atlas, st, byName);
     }
 
+    // The index is replaced by whichever preparer finishes its tiles last, and for a moment the file being replaced cannot be opened, so a read that meets that waits it out.
+    static FileStream OpenIndex(string path)
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            }
+            catch (IOException) when (attempt < 10)
+            {
+                Thread.Sleep(50);
+            }
+        }
+    }
+
     bool EnsureIndex()
     {
         if (_indexLoaded)
@@ -135,7 +151,7 @@ public sealed class BakeLibrary : IDisposable
         if (!File.Exists(path))
             return false;
         _indexLoaded = true;
-        using var r = new BinaryReader(File.OpenRead(path), Encoding.UTF8);
+        using var r = new BinaryReader(OpenIndex(path), Encoding.UTF8);
         if (Encoding.ASCII.GetString(r.ReadBytes(4)) != "WRSB" || r.ReadInt32() != 1)
             return false;
         _tiles = new string[r.ReadInt32()];

@@ -20,7 +20,14 @@ public static class TotkShaderArchives
         string plain = $"Shader/{name}{Suffix}";
         string source = baseRom.Exists(plain) ? plain : plain + ".zs";
         Log.Info($"[TotkShaderArchives] decompressing '{source}' -> {path}");
-        AtomicFile.WriteAllBytes(path, baseRom.ReadAllBytesNested(source));
+        try
+        {
+            AtomicFile.WriteAllBytes(path, baseRom.ReadAllBytesNested(source));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException && File.Exists(path) && new FileInfo(path).Length > 0)
+        {
+            // Another preparer process extracted the same archive at the same moment and its copy is in place: the two are the same file, so that one stands.
+        }
         return path;
     }
 }
