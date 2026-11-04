@@ -1,5 +1,6 @@
 using System.Text.Json;
 using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Assets.Loading;
 
@@ -15,11 +16,11 @@ sealed record ShapeOptions(Dictionary<string, string> Tags, bool HidesNormalPass
             .ToDictionary(e => e.Key, e => e.Value.ToString());
 
         string path = Path.Combine(dataDirectory, $"{shape.Name}_options.txt");
-        if (!File.Exists(path))
+        if (ModelFiles.TryReadText(path) is not { } text)
             return new ShapeOptions(tags, false);
 
         bool hidesNormalPass = false;
-        foreach (string line in File.ReadLines(path))
+        foreach (string line in text.Split('\n'))
         {
             hidesNormalPass |= line.Trim().Equals(HideNormalPass, StringComparison.OrdinalIgnoreCase);
             int eq = line.IndexOf('=');

@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 
 namespace WildRenderingSharp.Storage;
 
@@ -8,6 +7,8 @@ namespace WildRenderingSharp.Storage;
 /// A file <c>X</c> packed in place becomes <c>X.zst</c>, compressed with zstd. A texture becomes <c>_textures/&lt;hash&gt;.zst</c> in the cache root, kept once however many
 /// models use it, and the model's folder keeps a small <c>textures.idx</c> saying which hash each of its texture files was. JSON and text files stay as they are.
 /// Everything that reads one of these files goes through <see cref="ReadAllBytes"/>, which takes either form, so a cache that is part packed, or packed while a host reads it, works.
+/// A model prepared inside a <see cref="ModelSession"/> keeps all of its small files, and its texture index, in one <see cref="ModelBundle"/> instead; the readers here look in
+/// a model's bundle first and in its folder after, so a cache of both kinds is read the same way.
 /// </remarks>
 public static class CacheFiles
 {
@@ -15,20 +16,18 @@ public static class CacheFiles
     public const string TextureFolder = "_textures";
 
     const string Suffix = ".zst";
-    const string TextureIndex = "textures.idx";
-
-    // Fast to write and faster to read; the cache is read far more often than it is made.
-    const int Level = 3;
-
-    [ThreadStatic] static ZstdSharp.Compressor? _compressor;
-    [ThreadStatic] static ZstdSharp.Decompressor? _decompressor;
 
     // Whether the file is there, in whichever form.
-    public static bool Exists(string path) => File.Exists(path) || File.Exists(path + Suffix) || SharedTexture(path) is not null;
+    public static bool Exists(string path) => ModelFiles.FileExists(path) || File.Exists(path + Suffix) || SharedTexture(path) is not null;
 
     // The file's bytes, from the plain file, the compressed one beside it, or the cache's shared copy of a texture.
     public static byte[] ReadAllBytes(string path)
     {
+        if (ModelFiles.InSession(path) is { } held && held.Read(held.NameOf(path)!) is { } fromSession)
+            return fromSession;
+        if (ModelBundles.Locate(path) is var (bundle, name) && bundle.Read(name) is { } fromBundle)
+            return fromBundle;
+
         // The plain file may be deleted between the check and the read by a pack running beside the reader, so each form is tried, not asked about.
         try
         {
@@ -41,7 +40,7 @@ public static class CacheFiles
 
         try
         {
-            return Unpack(File.ReadAllBytes(path + Suffix));
+            return CacheCodec.Unpack(File.ReadAllBytes(path + Suffix));
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
@@ -49,7 +48,7 @@ public static class CacheFiles
         }
 
         if (SharedTexture(path) is { } shared)
-            return Unpack(File.ReadAllBytes(shared));
+            return CacheCodec.Unpack(File.ReadAllBytes(shared));
         throw new FileNotFoundException($"'{path}' is not in the cache, plain, compressed or shared.", path);
     }
 
@@ -67,21 +66,23 @@ public static class CacheFiles
 
         if (material || IsGeometryPart(name) || !name.EndsWith(".bin", StringComparison.Ordinal))
         {
-            File.WriteAllBytes(full + Suffix, Compress(bytes));
+            if (ModelFiles.InSession(full) is { } held)
+                held.Add(held.NameOf(full)!, CacheCodec.Compress(bytes), packed: true);
+            else
+                File.WriteAllBytes(full + Suffix, CacheCodec.Compress(bytes));
         }
         else
         {
             string folder = Path.Combine(Path.GetDirectoryName(directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))!, TextureFolder);
-            Directory.CreateDirectory(folder);
-            string hash = Convert.ToHexString(SHA256.HashData(bytes), 0, 16);
+            string hash = CacheCodec.ContentHash(bytes);
             string target = Path.Combine(folder, hash + Suffix);
             if (!File.Exists(target))
-                AtomicFile.WriteAllBytes(target, CompressTexture(bytes));
+                CacheCodec.WriteShared(target, CacheCodec.CompressTexture(bytes));
             PendingIndex.GetOrAdd(directory, _ => new(StringComparer.Ordinal))[name] = hash;
         }
 
-        // A plain file from an earlier preparation of this folder would be read in preference to what was just written.
-        if (File.Exists(full))
+        // A plain file left in the folder would be read in preference to what was just written; a session's bundle is read first, so it needs no deleting.
+        if (ModelFiles.InSession(full) is null)
             File.Delete(full);
     }
 
@@ -116,10 +117,9 @@ public static class CacheFiles
             foreach (string file in Directory.EnumerateFiles(modelDirectory, "*", SearchOption.AllDirectories))
                 WarmFile(file);
 
-            string index = Path.Combine(modelDirectory, TextureIndex);
             string? root = Path.GetDirectoryName(Path.GetFullPath(modelDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-            if (root is not null && File.Exists(index))
-                foreach (string hash in ReadIndex(index).Values.Distinct())
+            if (root is not null)
+                foreach (string hash in ModelTextureIndex.Of(modelDirectory).Values.Distinct())
                     WarmFile(Path.Combine(root, TextureFolder, hash + Suffix));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -139,9 +139,8 @@ public static class CacheFiles
         if (!File.Exists(Path.Combine(Path.GetDirectoryName(directory)!, TextureFolder, hash + Suffix)))
             return false;
         PendingIndex.GetOrAdd(directory, _ => new(StringComparer.Ordinal))[fileName] = hash;
-        string plain = Path.Combine(directory, fileName);
-        if (File.Exists(plain))
-            File.Delete(plain);
+        if (ModelSession.Current is null)
+            File.Delete(Path.Combine(directory, fileName));
         return true;
     }
 
@@ -150,6 +149,11 @@ public static class CacheFiles
     public static void Pack(string modelDirectory)
     {
         string directory = Path.GetFullPath(modelDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (ModelSession.Current is { } session && session.NameOf(Path.Combine(directory, "x")) is not null)
+        {
+            Commit(session, directory);
+            return;
+        }
         string shared = Path.Combine(Path.GetDirectoryName(directory)!, TextureFolder);
 
         var textures = Directory.EnumerateFiles(directory, "*.bin").Where(f => !IsGeometryPart(f)).ToList();
@@ -157,22 +161,22 @@ public static class CacheFiles
         if (textures.Count > 0 || written is { Count: > 0 })
         {
             Directory.CreateDirectory(shared);
-            var index = ReadIndex(Path.Combine(directory, TextureIndex));
+            var index = ModelTextureIndex.ReadFile(Path.Combine(directory, ModelTextureIndex.FileName));
             if (written is not null)
                 foreach (var (file, hash) in written)
                     index[file] = hash;
             foreach (string file in textures)
             {
                 byte[] bytes = File.ReadAllBytes(file);
-                string hash = Convert.ToHexString(SHA256.HashData(bytes), 0, 16);
+                string hash = CacheCodec.ContentHash(bytes);
                 string target = Path.Combine(shared, hash + Suffix);
                 if (!File.Exists(target))
-                    AtomicFile.WriteAllBytes(target, Compress(bytes));
+                    CacheCodec.WriteShared(target, CacheCodec.Compress(bytes));
                 index[Path.GetFileName(file)] = hash;
             }
 
             // The index goes down before any texture file goes, so a reader that finds one missing finds where it went.
-            AtomicFile.WriteAllText(Path.Combine(directory, TextureIndex), string.Join('\n', index.Select(e => $"{e.Key}\t{e.Value}")));
+            AtomicFile.WriteAllText(Path.Combine(directory, ModelTextureIndex.FileName), string.Join('\n', index.Select(e => $"{e.Key}\t{e.Value}")));
             foreach (string file in textures)
                 File.Delete(file);
         }
@@ -189,7 +193,7 @@ public static class CacheFiles
     // Written straight to its place, not aside and moved: the plain file is read first and is deleted only once this is whole, so a reader never takes half of it.
     static void CompressInPlace(string file)
     {
-        File.WriteAllBytes(file + Suffix, Compress(File.ReadAllBytes(file)));
+        File.WriteAllBytes(file + Suffix, CacheCodec.Compress(File.ReadAllBytes(file)));
         File.Delete(file);
     }
 
@@ -203,10 +207,7 @@ public static class CacheFiles
         string? directory = Path.GetDirectoryName(path);
         if (directory is null)
             return null;
-        string indexPath = Path.Combine(directory, TextureIndex);
-        if (!File.Exists(indexPath))
-            return null;
-        if (!ReadIndex(indexPath).TryGetValue(Path.GetFileName(path), out string? hash))
+        if (!ModelTextureIndex.Of(directory).TryGetValue(Path.GetFileName(path), out string? hash))
             return null;
         string? root = Path.GetDirectoryName(directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         if (root is null)
@@ -215,30 +216,17 @@ public static class CacheFiles
         return File.Exists(shared) ? shared : null;
     }
 
-    static Dictionary<string, string> ReadIndex(string indexPath)
+    // Writes the session's bundle with the model's texture index in it: what the folder already named, then what this preparation wrote or linked.
+    static void Commit(ModelSession session, string directory)
     {
-        var index = new Dictionary<string, string>(StringComparer.Ordinal);
-        try
-        {
-            foreach (string line in File.ReadLines(indexPath))
-            {
-                int tab = line.IndexOf('\t');
-                if (tab > 0)
-                    index[line[..tab]] = line[(tab + 1)..];
-            }
-        }
-        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
-        {
-            // A folder with no index has no shared textures, which is an empty index.
-        }
-        return index;
+        PendingIndex.TryRemove(directory, out var written);
+        var index = new Dictionary<string, string>(ModelTextureIndex.Of(directory), StringComparer.Ordinal);
+        if (written is not null)
+            foreach (var (file, hash) in written)
+                index[file] = hash;
+        if (index.Count > 0)
+            session.Add(ModelTextureIndex.FileName, System.Text.Encoding.UTF8.GetBytes(string.Join('\n', index.Select(e => $"{e.Key}\t{e.Value}"))), packed: false);
+        session.Commit();
     }
 
-    static byte[] Compress(byte[] bytes) => (_compressor ??= new ZstdSharp.Compressor(Level)).Wrap(bytes).ToArray();
-
-    // Texture data is block-compressed already and gains little from more effort.
-    [ThreadStatic] static ZstdSharp.Compressor? _quickCompressor;
-    static byte[] CompressTexture(byte[] bytes) => (_quickCompressor ??= new ZstdSharp.Compressor(1)).Wrap(bytes).ToArray();
-
-    static byte[] Unpack(byte[] bytes) => (_decompressor ??= new ZstdSharp.Decompressor()).Unwrap(bytes).ToArray();
 }

@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Assets.Manifests;
 
@@ -24,8 +25,7 @@ public sealed class SkeletonManifest
 
     public static SkeletonManifest Load(string path)
     {
-        using var stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<SkeletonManifest>(stream, JsonOptions)
+        return JsonSerializer.Deserialize<SkeletonManifest>(CacheFiles.ReadAllBytes(path), JsonOptions)
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a skeleton manifest.");
     }
 

@@ -88,7 +88,11 @@ static class Cli
 
     static int PrepareBatch(CliOptions options, string romfs, CacheLayout cache)
     {
-        var names = DistinctLines(File.ReadAllLines(options.List!));
+        // A line starting with + names a model to prepare with its animations whether or not the rest of the batch is.
+        HashSet<string> animated = [];
+        var names = DistinctLines(File.ReadAllLines(options.List!))
+            .Select(line => { if (PrepareBatchRequest.ParseListLine(line, out string name)) animated.Add(name); return name; })
+            .Distinct(StringComparer.Ordinal).ToList();
         int parallelism = options.Jobs > 0 ? options.Jobs : PrepareBatchRequest.DefaultParallelism;
         var protocol = new ProtocolWriter(Console.Out);
 
@@ -114,7 +118,7 @@ static class Cli
             outcome => protocol.Say(outcome.Succeeded
                 ? $"WRS_DONE {outcome.ActorOrModelName}\t{outcome.ModelName}"
                 : $"WRS_FAIL {outcome.ActorOrModelName}\t{outcome.Error}"),
-            options.ImportAnims, options.Force, options.Mods);
+            options.ImportAnims, options.Force, options.Mods, animated: animated);
         return 0;
     }
 

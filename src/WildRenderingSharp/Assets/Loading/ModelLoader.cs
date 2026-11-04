@@ -3,6 +3,7 @@ using WildRenderingSharp.Animation.Clips;
 using WildRenderingSharp.Assets.Manifests;
 using WildRenderingSharp.Assets.Textures;
 using WildRenderingSharp.Shaders;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Assets.Loading;
 
@@ -24,7 +25,7 @@ internal sealed class ModelLoader(GL gl, ShaderProgramCache programs, string dat
         var textures = new TextureCache(gl, dataDirectory, external, SharedTextures, TextureMaxSize);
 
         string skeletonPath = Path.Combine(dataDirectory, $"{modelName}.skeleton.json");
-        SkeletonManifest? skeleton = File.Exists(skeletonPath) ? SkeletonManifest.Load(skeletonPath) : null;
+        SkeletonManifest? skeleton = ModelFiles.FileExists(skeletonPath) ? SkeletonManifest.Load(skeletonPath) : null;
         bool weightsInert = CompactVertices && VertexCompactor.SmoothPaletteIsIdentity(skeleton);
 
         var options = new ShapeBuildOptions(CompactVertices, DeferVertexArrays, enableKnownDecompilerCorrections);

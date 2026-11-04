@@ -1,4 +1,5 @@
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Debug;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Pipeline.Passes;
@@ -107,8 +108,11 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
         // Sent to the card as each stage ends, so it is drawing while the next is written and not only once the whole frame has been handed over at the swap.
         foreach (var stage in _stages)
         {
-            stage.Run(frame);
-            _gl.Flush();
+            using (Probe.Zone(stage.GetType().Name))
+            {
+                stage.Run(frame);
+                _gl.Flush();
+            }
         }
     }
 

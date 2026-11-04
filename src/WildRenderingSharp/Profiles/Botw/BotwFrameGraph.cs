@@ -1,4 +1,5 @@
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Debug;
 using WildRenderingSharp.Graphics.Contracts;
 using WildRenderingSharp.Pipeline.Frame;
 using WildRenderingSharp.Profiles.Botw.Stages;
@@ -43,7 +44,8 @@ internal sealed class BotwFrameGraph : IFrameGraph
     public void Run(FrameContext frame)
     {
         foreach (var stage in _stages)
-            stage.Run(frame);
+            using (Probe.Zone(stage.GetType().Name))
+                stage.Run(frame);
     }
 
     public void Dispose()

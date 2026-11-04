@@ -3,6 +3,9 @@ namespace WildRenderingSharp.Storage;
 /// <summary>Writes a file aside and moves it into place, so a reader never sees half of it.</summary>
 public static class AtomicFile
 {
+    // The array is written as it is; the span form below has to copy, since what it is given cannot be held by what writes it.
+    public static void WriteAllBytes(string path, byte[] bytes) => Write(path, temp => File.WriteAllBytes(temp, bytes));
+
     public static void WriteAllBytes(string path, ReadOnlySpan<byte> bytes)
     {
         byte[] copy = bytes.ToArray();
@@ -13,9 +16,17 @@ public static class AtomicFile
 
     public static void Write(string path, Action<string> writeTo)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         string temp = $"{path}.{Guid.NewGuid():N}.tmp";
-        writeTo(temp);
+        try
+        {
+            writeTo(temp);
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // The folder is made when a write finds it missing, not before every write: the folder nearly always exists, and asking the disk to make it is a call of its own.
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            writeTo(temp);
+        }
         File.Move(temp, path, overwrite: true);
     }
 }

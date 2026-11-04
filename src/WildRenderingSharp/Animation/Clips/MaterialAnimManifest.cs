@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Animation.Clips;
 
@@ -31,16 +32,12 @@ public sealed class MaterialAnimManifest : IAnimClip
 
     public static MaterialAnimManifest Load(string path)
     {
-        using var stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<MaterialAnimManifest>(stream, JsonOptions)
+        return JsonSerializer.Deserialize<MaterialAnimManifest>(CacheFiles.ReadAllBytes(path), JsonOptions)
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a material anim manifest.");
     }
 
     public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        Directory.Exists(dataDirectory)
-            ? Directory.EnumerateFiles(dataDirectory, $"{modelName}.*.matanim.json")
-                .Select(Path.GetFileName)
-                .Select(n => n![(modelName.Length + 1)..^".matanim.json".Length])
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            : [];
+        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.matanim.json")
+            .Select(n => n[(modelName.Length + 1)..^".matanim.json".Length])
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 }

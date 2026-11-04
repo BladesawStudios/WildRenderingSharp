@@ -13,7 +13,7 @@ internal sealed class ShaderProgramCache : IDisposable
 {
     readonly GL _gl;
     readonly string _decompiledDir;
-    readonly Dictionary<string, uint> _programs = new(StringComparer.Ordinal);
+    readonly ConcurrentDictionary<string, Lazy<uint>> _programs = new(StringComparer.Ordinal);
 
     public ShaderBindings Bindings { get; }
 
@@ -32,12 +32,31 @@ internal sealed class ShaderProgramCache : IDisposable
     public uint Load(string baseName, bool isForwardProgram = false,
         Func<string, string>? patchVertex = null, Func<string, string>? patchFragment = null)
     {
-        lock (_sync)
-            return LoadLocked(baseName, isForwardProgram, patchVertex, patchFragment);
+        if (patchVertex is not null || patchFragment is not null)
+        {
+            lock (_sync)
+                return LoadPatched(baseName, isForwardProgram, patchVertex, patchFragment);
+        }
+        return Once(_programs, baseName, () => BuildPlain(baseName, isForwardProgram));
     }
 
-    // Held for any use of the caches: a host may load models on a worker thread with a context of its own.
+    // Held while a program is made from patched sources, which are not kept: a host may load models on worker threads with contexts of their own.
     readonly object _sync = new();
+
+    // The program kept under key, made by whichever thread asks first while the others who want that one wait for it and nobody else waits. A failed build is made again the next time.
+    static uint Once(ConcurrentDictionary<string, Lazy<uint>> kept, string key, Func<uint> make)
+    {
+        var lazy = kept.GetOrAdd(key, _ => new Lazy<uint>(make));
+        try
+        {
+            return lazy.Value;
+        }
+        catch
+        {
+            kept.TryRemove(new KeyValuePair<string, Lazy<uint>>(key, lazy));
+            throw;
+        }
+    }
 
     // The version of the code that makes the sources these programs are built from: the cleaning, the corrections and the instanced and merged patches. A program kept by name is
     // good until this changes, so it is read off the code itself - the patch sources and the GLSL they insert, embedded in the build - and not left to be remembered. (Also the
@@ -72,34 +91,23 @@ internal sealed class ShaderProgramCache : IDisposable
         return $"{SourceRevision}|{baseName}|{vert.Length}:{vert.LastWriteTimeUtc.Ticks}|{frag.Length}:{frag.LastWriteTimeUtc.Ticks}";
     }
 
-    uint LoadLocked(string baseName, bool isForwardProgram,
+    uint BuildPlain(string baseName, bool isForwardProgram) =>
+        GLProgramBuilder.BuildNamed(_gl, $"plain|{isForwardProgram}|{Stamp(baseName)}", () =>
+        {
+            string vert = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
+            string raw = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
+            return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
+        }, baseName);
+
+    uint LoadPatched(string baseName, bool isForwardProgram,
         Func<string, string>? patchVertex, Func<string, string>? patchFragment)
     {
-        bool patched = patchVertex is not null || patchFragment is not null;
-        if (!patched && _programs.TryGetValue(baseName, out uint cached))
-            return cached;
-
-        if (!patched)
-        {
-            uint kept = GLProgramBuilder.BuildNamed(_gl, $"plain|{isForwardProgram}|{Stamp(baseName)}", () =>
-            {
-                string vert = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-                string raw = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
-                return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
-            }, baseName);
-            _programs[baseName] = kept;
-            return kept;
-        }
-
         string vertSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
         string rawFragSource = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
         string fragSource = isForwardProgram ? _sources.CorrectForwardFragment(rawFragSource) : rawFragSource;
         if (patchVertex is not null) vertSource = patchVertex(vertSource);
         if (patchFragment is not null) fragSource = patchFragment(fragSource);
-        uint program = GLProgramBuilder.Build(_gl, vertSource, fragSource, baseName);
-        if (!patched)
-            _programs[baseName] = program;
-        return program;
+        return GLProgramBuilder.Build(_gl, vertSource, fragSource, baseName);
     }
 
     readonly ConcurrentDictionary<string, bool> _discards = new(StringComparer.Ordinal);
@@ -112,21 +120,13 @@ internal sealed class ShaderProgramCache : IDisposable
         return !File.Exists(path) || File.ReadAllText(path).Contains("discard", StringComparison.Ordinal);
     });
 
-    readonly Dictionary<string, uint> _instancedPrograms = new(StringComparer.Ordinal);
+    readonly ConcurrentDictionary<string, Lazy<uint>> _instancedPrograms = new(StringComparer.Ordinal);
 
-    public uint LoadInstanced(string baseName, bool isForwardProgram = false)
-    {
-        lock (_sync)
-            return LoadInstancedLocked(baseName, isForwardProgram);
-    }
+    public uint LoadInstanced(string baseName, bool isForwardProgram = false) =>
+        Once(_instancedPrograms, (isForwardProgram ? "fwd:" : "") + baseName, () => BuildInstanced(baseName, isForwardProgram));
 
-    uint LoadInstancedLocked(string baseName, bool isForwardProgram)
-    {
-        string key = (isForwardProgram ? "fwd:" : "") + baseName;
-        if (_instancedPrograms.TryGetValue(key, out uint cached))
-            return cached;
-
-        uint keptProgram = GLProgramBuilder.BuildNamed(_gl, $"instanced|{isForwardProgram}|{_gl.SupportsBaseInstance()}|{Stamp(baseName)}", () =>
+    uint BuildInstanced(string baseName, bool isForwardProgram) =>
+        GLProgramBuilder.BuildNamed(_gl, $"instanced|{isForwardProgram}|{_gl.SupportsBaseInstance()}|{Stamp(baseName)}", () =>
         {
             string vert = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert"))), _gl.SupportsBaseInstance()) ?? "";
             if (vert.Length == 0)
@@ -134,9 +134,6 @@ internal sealed class ShaderProgramCache : IDisposable
             string raw = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
             return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
         }, baseName + "_instanced");
-        _instancedPrograms[key] = keptProgram;
-        return keptProgram;
-    }
 
     readonly ConcurrentDictionary<string, Lazy<uint>> _mergedPrograms = new(StringComparer.Ordinal);
 
@@ -168,12 +165,13 @@ internal sealed class ShaderProgramCache : IDisposable
             if (program.IsValueCreated && program.Value != 0)
                 _gl.ReleaseProgram(program.Value);
         _mergedPrograms.Clear();
-        foreach (uint program in _programs.Values)
-            _gl.ReleaseProgram(program);
+        foreach (var program in _programs.Values)
+            if (program.IsValueCreated)
+                _gl.ReleaseProgram(program.Value);
         _programs.Clear();
-        foreach (uint program in _instancedPrograms.Values)
-            if (program != 0)
-                _gl.ReleaseProgram(program);
+        foreach (var program in _instancedPrograms.Values)
+            if (program.IsValueCreated && program.Value != 0)
+                _gl.ReleaseProgram(program.Value);
         _instancedPrograms.Clear();
     }
 }

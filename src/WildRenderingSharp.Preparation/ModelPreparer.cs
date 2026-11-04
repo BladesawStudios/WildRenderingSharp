@@ -17,6 +17,8 @@ public static class ModelPreparer
             return;
         }
 
+        // Preparer processes start together, so the one that gets here first makes the assets and the others wait and find them current.
+        using var gate = CacheLock.Acquire(cache, "system-assets");
         using var romfs = new TotkRomfs(romfsRoot);
         using var strings = ExternalStringTable.Use(romfs.Base);
         TotkSystemAssets.Ensure(romfs, cache, log);
@@ -38,7 +40,7 @@ public static class ModelPreparer
 
     public static void PrepareMany(string romfsRoot, IReadOnlyList<string> actorOrModelNames, CacheLayout cache, int parallelism,
         Action<string>? onBegin, Action<PrepareOutcome> onOutcome, bool importAnims = true, bool force = false,
-        IEnumerable<string>? modRomfsLayers = null, CancellationToken cancellationToken = default)
+        IEnumerable<string>? modRomfsLayers = null, CancellationToken cancellationToken = default, IReadOnlySet<string>? animated = null)
     {
         using var romfs = new TotkRomfs(romfsRoot, modRomfsLayers);
         using var strings = ExternalStringTable.Use(romfs.Layered);
@@ -53,7 +55,7 @@ public static class ModelPreparer
             {
                 string model = TotkModelPreparer.ResolveModelName(romfs, name);
                 lock (modelGates.GetOrAdd(model, _ => new object()))
-                    model = PrepareIfNeeded(romfs, name, cache, null, importAnims, force);
+                    model = PrepareIfNeeded(romfs, name, cache, null, importAnims || animated?.Contains(name) == true, force);
                 onOutcome(new PrepareOutcome(name, model, null));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -58,7 +58,8 @@ sealed class BatchPreparation(PreparerProcess process, PrepareBatchRequest reque
     {
         var round = new Round(new HashSet<string>(StringComparer.Ordinal), new Queue<string>());
         string listFile = Path.Combine(Path.GetTempPath(), $"wrs-batch-{Environment.ProcessId}-{Guid.NewGuid():N}.txt");
-        await File.WriteAllLinesAsync(listFile, names, cancellationToken).ConfigureAwait(false);
+        await File.WriteAllLinesAsync(listFile, names.Select(n => PrepareBatchRequest.ListLine(n, !request.ImportAnimations && request.ImportsAnimationsOf(n))), cancellationToken)
+            .ConfigureAwait(false);
         try
         {
             round.ExitCode = await process.RunAsync(PreparerProtocol.PrepareBatch(request, listFile, jobs), line => OnLine(line, round), cancellationToken)

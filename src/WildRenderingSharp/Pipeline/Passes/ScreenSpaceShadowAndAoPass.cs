@@ -1,5 +1,6 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using WildRenderingSharp.Debug;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Pipeline.Resources;
 using WildRenderingSharp.Pipeline.Shadows;
@@ -51,9 +52,12 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
     {
         _gl.Disable(EnableCap.DepthTest);
 
-        DrawPreShadow(resources, targets, p);
-        DrawAo(resources, targets, p);
-        RunSeparableBlur(resources, targets, targets.AoRaw, targets.AoTmp, targets.PreMisc, p.Near, p.Far, p.AoRadius);
+        using (Probe.Zone("PreShadow"))
+            DrawPreShadow(resources, targets, p);
+        using (Probe.Zone("AO"))
+            DrawAo(resources, targets, p);
+        using (Probe.Zone("AO blur"))
+            RunSeparableBlur(resources, targets, targets.AoRaw, targets.AoTmp, targets.PreMisc, p.Near, p.Far, p.AoRadius);
     }
 
     // How many times the game's filter is run over PreShadow. The game runs it once and then has its temporal anti-aliasing to smooth what is left; the buffer is half the frame's size, so a shadow's
@@ -64,6 +68,7 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
     // Smooths PreShadow with the game's separable 3-tap Gaussian (a blur of width 1), kept to the pixel's own surface, FilterRuns times.
     public void FilterPreShadow(GLResourceCache resources, RenderTargets targets)
     {
+        using var zone = Probe.Zone("PreShadow filter");
         _gl.Disable(EnableCap.DepthTest);
         for (int i = 0; i < FilterRuns; i++)
             BlurPreShadow(resources, targets, targets.PreShadow, targets.PreShadowScratch);

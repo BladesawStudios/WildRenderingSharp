@@ -1,6 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using WildRenderingSharp.Assets;
+using WildRenderingSharp.Debug;
 using WildRenderingSharp.Gpu;
 using WildRenderingSharp.Graphics.Ubos;
 using WildRenderingSharp.Pipeline.Drawing;
@@ -157,6 +158,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         var parts = new (int Sun, int Focus, int Terrain, int Runs)[count];
         int oldest = -1;
         bool exact = frame.TotkEnvironment().Settings.ExactShadows;
+        var plan = Probe.Zone("Shadow.Plan");
         for (int c = 0; c < count; c++)
         {
             var focus = cascades[c];
@@ -182,6 +184,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             if (cache.CascadeSignature[c] != signatures[c] && cache.CascadeSignature[c] != 0 && (oldest < 0 || cache.CascadeDrawnAt[c] < cache.CascadeDrawnAt[oldest]))
                 oldest = c;
         }
+        plan.Dispose();
 
         // What moves is drawn over a copy of the cascade's unmoving casters every frame, so it never changes what the cascade keeps and a creature walking about does
         // not make every cascade redraw its whole map.
@@ -209,7 +212,8 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
                 }
                 if (stale || cache.CascadeMovers[c] != moverSignature)
                 {
-                    targets.CopyStaticShadowCascade(c);
+                    using (Probe.Zone("Shadow.CopyStatic"))
+                        targets.CopyStaticShadowCascade(c);
                     if (hasMovers)
                         DrawMovers(frame, c, lights[c], movers);
                     cache.CascadeMovers[c] = moverSignature;
@@ -239,7 +243,8 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
             }
             if (!live && (redrawn || hasMovers || cache.CascadeHasActors[c]))
             {
-                targets.CopyStaticShadowCascade(c);
+                using (Probe.Zone("Shadow.CopyStatic"))
+                    targets.CopyStaticShadowCascade(c);
                 if (hasMovers)
                     DrawMovers(frame, c, cache.CascadeLight[c], movers);
                 cache.CascadeHasActors[c] = hasMovers;
@@ -267,6 +272,10 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         }
         return new ScreenSpaceShadowAndAoPass.CascadeParams(targets.ShadowCascades.Handle, viewProj, texelWorld, bias, invRange, targets.CascadeSize);
     }
+
+    // Zone names for a profiler, made once: a name built per draw would allocate every frame.
+    static readonly string[] CascadeZones = [.. Enumerable.Range(0, RenderTargets.MaxCascades).Select(c => $"Shadow.Cascade{c}")];
+    static readonly string[] MoverZones = [.. Enumerable.Range(0, RenderTargets.MaxCascades).Select(c => $"Shadow.Movers{c}")];
 
     // The sides a cascade may be set to, in texels.
     const int MinCascadeSize = 512, MaxCascadeSize = 4096;
@@ -315,6 +324,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     // Draws what does not move into the cascade's array of unmoving casters, which what moves is laid over a copy of.
     void DrawCascade(FrameContext frame, int cascade, ShadowFocus focus, ShadowPass.LightMatrices light)
     {
+        using var zone = Probe.Zone(CascadeZones[Math.Min(cascade, CascadeZones.Length - 1)]);
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
 
         var groups = new List<ActorDrawGroup>();
@@ -332,10 +342,12 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
         float slope = frame.TotkEnvironment().Settings.ShadowSlopeOffset;
         gl.Enable(EnableCap.PolygonOffsetFill);
         gl.PolygonOffset(slope, slope > 0f ? ConstantOffset : 0f);
-        _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade, statics: true);
+        using (Probe.Zone("Shadow.Actors"))
+            _shadow.Run(Resources, frame.Targets, groups, services.Drawer, cascade, statics: true);
 
         if (frame.TotkEnvironment().Terrain is { } host && terrain.Available)
-            terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
+            using (Probe.Zone("Shadow.Terrain"))
+                terrain.DrawShadow(host, cascade, frame.Camera, focus, light, frame.Setup.Cam);
         gl.Disable(EnableCap.PolygonOffsetFill);
         gl.Disable(EnableCap.DepthClamp);
     }
@@ -343,6 +355,7 @@ internal sealed class ShadowStage(StageServices services, TerrainRenderer terrai
     // The placed actors that move, drawn into a cascade over the copy of what it keeps, under the light matrices that copy was drawn with.
     void DrawMovers(FrameContext frame, int cascade, ShadowPass.LightMatrices light, List<ActorDrawGroup> movers)
     {
+        using var zone = Probe.Zone(MoverZones[Math.Min(cascade, MoverZones.Length - 1)]);
         Resources.Bind(services.Profile.Camera(FrameUniformKeys.LightCamera, frame.Setup.Cam.ForLight(light.View, light.Proj)));
         var gl = services.Gl;
         gl.Enable(EnableCap.DepthClamp);

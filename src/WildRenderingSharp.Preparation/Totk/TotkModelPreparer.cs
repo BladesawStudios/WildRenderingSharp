@@ -10,8 +10,17 @@ namespace WildRenderingSharp.Preparation.Totk;
 /// </summary>
 public static class TotkModelPreparer
 {
-    // The exporters hand each binary file to the cache already packed.
-    static TotkModelPreparer() => ShaderLibrary.CompileTool.ExportOutput.WriteBytes = CacheFiles.WriteBytes;
+    // The exporters hand each file of a model to the cache, which keeps them in one bundle per model.
+    static TotkModelPreparer()
+    {
+        ShaderLibrary.CompileTool.ExportOutput.WriteBytes = CacheFiles.WriteBytes;
+        ShaderLibrary.CompileTool.ExportOutput.WriteText = ModelFiles.WriteText;
+        ShaderLibrary.CompileTool.ExportOutput.Exists = ModelFiles.FileExists;
+        ShaderLibrary.CompileTool.ExportOutput.EnsureFolder = ModelFiles.EnsureFolder;
+    }
+
+    // The folder every model's programs go into, made once per process however many models are prepared.
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DirectoryInfo> ShaderFolders = new(StringComparer.OrdinalIgnoreCase);
 
     public static string ResolveModelName(TotkRomfs romfs, string actorOrModelName) =>
         TotkActorInfo.Resolve(romfs.Layered, actorOrModelName)?.ModelName ?? actorOrModelName;
@@ -41,7 +50,10 @@ public static class TotkModelPreparer
 
         string dataDirectory = cache.ModelDirectory(modelName);
         Directory.CreateDirectory(dataDirectory);
-        Directory.CreateDirectory(cache.Shaders);
+        ShaderFolders.GetOrAdd(cache.Shaders, folder => Directory.CreateDirectory(folder));
+
+        // The model's small files are collected here and written as one bundle by the Pack below; redoing only the materials starts from the bundle already there.
+        using var session = ModelSession.Begin(dataDirectory, keepExisting: !stages.HasFlag(TotkSourceStamp.Stages.Geometry));
 
         // Both are written last, so removing them first keeps a preparation that was cut short from counting as finished.
         File.Delete(cache.ManifestPath(modelName));

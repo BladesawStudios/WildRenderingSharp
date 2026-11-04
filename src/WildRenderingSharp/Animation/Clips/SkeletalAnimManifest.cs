@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WildRenderingSharp.Assets.Manifests;
+using WildRenderingSharp.Storage;
 
 namespace WildRenderingSharp.Animation.Clips;
 
@@ -29,16 +30,12 @@ public sealed class SkeletalAnimManifest : IAnimClip
 
     public static SkeletalAnimManifest Load(string path)
     {
-        using var stream = File.OpenRead(path);
-        return JsonSerializer.Deserialize<SkeletalAnimManifest>(stream, JsonOptions)
+        return JsonSerializer.Deserialize<SkeletalAnimManifest>(CacheFiles.ReadAllBytes(path), JsonOptions)
             ?? throw new InvalidDataException($"'{path}' did not deserialize to a skeletal anim manifest.");
     }
 
     public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        Directory.Exists(dataDirectory)
-            ? Directory.EnumerateFiles(dataDirectory, $"{modelName}.*.anim.json")
-                .Select(Path.GetFileName)
-                .Select(n => n![(modelName.Length + 1)..^".anim.json".Length])
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            : [];
+        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.anim.json")
+            .Select(n => n[(modelName.Length + 1)..^".anim.json".Length])
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 }
