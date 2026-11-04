@@ -31,6 +31,14 @@ public static class CacheFiles
     // Whether the file is there, in whichever form.
     public static bool Exists(string path) => FileExists(path) || File.Exists(path + Suffix) || SharedTexture(path) is not null;
 
+    // Makes a model's folder for a file that is to be written into it. A folder whose files go into the open session's bundle is made when the bundle is written, so
+    // nothing is made for it now.
+    public static void EnsureFolder(string path)
+    {
+        if (InSession(Path.Combine(path, "x")) is null)
+            Directory.CreateDirectory(path);
+    }
+
     // Whether the file is in the open session, in the model's bundle, or in its folder as it is.
     public static bool FileExists(string path)
     {
@@ -115,7 +123,6 @@ public static class CacheFiles
         else
         {
             string folder = Path.Combine(Path.GetDirectoryName(directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))!, TextureFolder);
-            Directory.CreateDirectory(folder);
             string hash = ContentHash(bytes);
             string target = Path.Combine(folder, hash + Suffix);
             if (!File.Exists(target))

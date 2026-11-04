@@ -13,9 +13,17 @@ public static class AtomicFile
 
     public static void Write(string path, Action<string> writeTo)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         string temp = $"{path}.{Guid.NewGuid():N}.tmp";
-        writeTo(temp);
+        try
+        {
+            writeTo(temp);
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // The folder is made when a write finds it missing, not before every write: the folder nearly always exists, and asking the disk to make it is a call of its own.
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            writeTo(temp);
+        }
         File.Move(temp, path, overwrite: true);
     }
 }

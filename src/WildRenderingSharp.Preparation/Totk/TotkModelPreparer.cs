@@ -16,7 +16,11 @@ public static class TotkModelPreparer
         ShaderLibrary.CompileTool.ExportOutput.WriteBytes = CacheFiles.WriteBytes;
         ShaderLibrary.CompileTool.ExportOutput.WriteText = CacheFiles.WriteText;
         ShaderLibrary.CompileTool.ExportOutput.Exists = CacheFiles.FileExists;
+        ShaderLibrary.CompileTool.ExportOutput.EnsureFolder = CacheFiles.EnsureFolder;
     }
+
+    // The folder every model's programs go into, made once per process however many models are prepared.
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DirectoryInfo> ShaderFolders = new(StringComparer.OrdinalIgnoreCase);
 
     public static string ResolveModelName(TotkRomfs romfs, string actorOrModelName) =>
         TotkActorInfo.Resolve(romfs.Layered, actorOrModelName)?.ModelName ?? actorOrModelName;
@@ -46,7 +50,7 @@ public static class TotkModelPreparer
 
         string dataDirectory = cache.ModelDirectory(modelName);
         Directory.CreateDirectory(dataDirectory);
-        Directory.CreateDirectory(cache.Shaders);
+        ShaderFolders.GetOrAdd(cache.Shaders, folder => Directory.CreateDirectory(folder));
 
         // The model's small files are collected here and written as one bundle by the Pack below; redoing only the materials starts from the bundle already there.
         using var session = CacheFiles.BeginModel(dataDirectory, keepExisting: !stages.HasFlag(TotkSourceStamp.Stages.Geometry));
