@@ -17,6 +17,8 @@ public static class ModelPreparer
             return;
         }
 
+        // Preparer processes start together, so the one that gets here first makes the assets and the others wait and find them current.
+        using var gate = CacheLock.Acquire(cache, "system-assets");
         using var romfs = new TotkRomfs(romfsRoot);
         using var strings = ExternalStringTable.Use(romfs.Base);
         TotkSystemAssets.Ensure(romfs, cache, log);
