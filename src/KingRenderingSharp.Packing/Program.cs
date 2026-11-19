@@ -3,12 +3,12 @@ using KingRenderingSharp.Packing;
 
 // [prepare] --romfs <dir> --actor <model> [--anim <pack>]... [--cache <dir>] [--no-anims] [--force]
 // prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--no-anims] [--force]
-// system --romfs <dir> [--cache <dir>] [--list <bake tiles>] writes the data that belongs to no model (the cloud dome masks, the bake index and the listed bake tiles).
+// system --romfs <dir> [--cache <dir>] [--list <bake tiles>] [--pack-shaders] writes the data that belongs to no model (the cloud dome masks, the bake index and the listed bake tiles).
 // The first two answer in the protocol the model preparer's host reads: KRS_RESULT, KRS_BEGIN, KRS_DONE and KRS_FAIL lines.
 string command = args.Length > 0 && !args[0].StartsWith("--", StringComparison.Ordinal) ? args[0] : "prepare";
 string? romfs = null, actor = null, cache = null, list = null, modelFile = null;
 List<string> animationPacks = [];
-bool animations = true, force = false;
+bool animations = true, force = false, packShaders = false;
 int jobs = 0;
 for (int i = command == args.FirstOrDefault() ? 1 : 0; i < args.Length; i++)
 {
@@ -23,6 +23,7 @@ for (int i = command == args.FirstOrDefault() ? 1 : 0; i < args.Length; i++)
         case "--jobs" when i + 1 < args.Length && int.TryParse(args[i + 1], out int count): jobs = count; i++; break;
         case "--no-anims": animations = false; break;
         case "--force": force = true; break;
+        case "--pack-shaders": packShaders = true; break;
         default:
             Console.Error.WriteLine("usage: [prepare] --romfs <dir> --actor <model> [--anim <pack>]... [--cache <dir>] [--no-anims] [--force]\n       prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--no-anims] [--force]");
             return 2;
@@ -42,7 +43,7 @@ switch (command)
     case "prepare" when !string.IsNullOrEmpty(actor):
         return run.One(actor, animationPacks, modelFile);
     case "system":
-        return SystemExporter.Export(romfs, layout, string.IsNullOrEmpty(list) || !File.Exists(list) ? [] : [.. File.ReadAllLines(list).Select(l => l.Trim()).Where(l => l.Length > 0).Distinct()], jobs, Console.WriteLine);
+        return SystemExporter.Export(romfs, layout, string.IsNullOrEmpty(list) || !File.Exists(list) ? [] : [.. File.ReadAllLines(list).Select(l => l.Trim()).Where(l => l.Length > 0).Distinct()], jobs, packShaders, Console.WriteLine);
     case "prepare-batch" when !string.IsNullOrEmpty(list) && File.Exists(list):
         return run.Batch(File.ReadAllLines(list), jobs);
     default:

@@ -6,10 +6,10 @@ using KingRenderingSharp.Games.Totk.Sky.Clouds;
 namespace KingRenderingSharp.Packing;
 
 /// <summary>Prepares the data of a game that belongs to no model through BfShaderSharp and writes it where the renderer reads it in the cache.</summary>
-/// <remarks>The cloud dome's masks become <c>CloudMask&lt;n&gt;.r8</c> and <c>CloudMask&lt;n&gt;.dims.txt</c> in the system textures folder, as the renderer's loader expects them.</remarks>
+/// <remarks>The programs the pack translates (agl, grass, terrain water) replace the older preparer's files only with <c>--pack-shaders</c>: their text differs from the older translator's (the declared types of temporaries, a point size written by vertex stages) and has been checked by render regression for the agl passes of the sky and compose only. The cloud dome's masks become <c>CloudMask&lt;n&gt;.r8</c> and <c>CloudMask&lt;n&gt;.dims.txt</c> in the system textures folder, as the renderer's loader expects them.</remarks>
 internal static class SystemExporter
 {
-    public static int Export(string romfs, CacheLayout layout, IReadOnlyCollection<string> bakeTiles, int jobs, Action<string> log)
+    public static int Export(string romfs, CacheLayout layout, IReadOnlyCollection<string> bakeTiles, int jobs, bool packShaders, Action<string> log)
     {
         string pack = Path.Combine(Path.GetTempPath(), $"krs-system-{Guid.NewGuid():N}.bfgd");
         try
@@ -28,15 +28,21 @@ internal static class SystemExporter
             }
 
             log($"{written} cloud masks written to {layout.SystemTextures}");
-            Directory.CreateDirectory(layout.Shaders);
-            int agl = 0;
-            foreach (PackEntry entry in opened.Of(PackEntryKind.GameData).Where(e => e.Name.StartsWith(AglShaderImporter.Prefix, StringComparison.Ordinal)))
+            if (packShaders)
             {
-                File.WriteAllBytes(Path.Combine(layout.Shaders, entry.Name[AglShaderImporter.Prefix.Length..]), opened.Bytes(entry.Key));
-                agl++;
+                Directory.CreateDirectory(layout.Shaders);
+                int agl = 0;
+                foreach (PackEntry entry in opened.Of(PackEntryKind.GameData).Where(e => e.Name.StartsWith(AglShaderImporter.Prefix, StringComparison.Ordinal)))
+                {
+                    File.WriteAllBytes(Path.Combine(layout.Shaders, entry.Name[AglShaderImporter.Prefix.Length..]), opened.Bytes(entry.Key));
+                    agl++;
+                }
+
+                log($"{agl} agl shader stages written to {layout.Shaders}");
+                if (GrassExporter.Export(opened, layout) is { } grass) log($"grass programs written to {grass}");
             }
 
-            log($"{agl} agl shader stages written to {layout.Shaders}");
+            log($"{TerrainWaterExporter.Export(opened, romfs, layout, packShaders, log)} terrain water files written to {layout.Shaders}");
             int tiles = BakeExporter.Export(opened, layout.Bake);
             log($"{tiles} bake tiles written to {layout.Bake}");
             return 0;
