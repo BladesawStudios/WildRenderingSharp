@@ -17,11 +17,13 @@ public static class ModelPreparer
             return;
         }
 
+        if (File.Exists(cache.SystemPack)) return;
         // Preparer processes start together, so the one that gets here first makes the assets and the others wait and find them current.
         using var gate = CacheLock.Acquire(cache, "system-assets");
         using var romfs = new TotkRomfs(romfsRoot);
         using var strings = ExternalStringTable.Use(romfs.Base);
         TotkSystemAssets.Ensure(romfs, cache, log);
+        SystemSealing.Seal(cache, log);
     }
 
     public static string ResolveModelName(string romfsRoot, string actorOrModelName, IEnumerable<string>? modRomfsLayers = null)

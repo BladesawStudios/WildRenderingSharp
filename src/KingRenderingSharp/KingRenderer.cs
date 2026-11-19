@@ -32,6 +32,7 @@ public sealed class KingRenderer : IDisposable
     readonly List<InstanceBatch> _instances = [];
     readonly ModelFactory _models;
     readonly BakeAttachment _bakes;
+    readonly KingContent _content;
 
     public CacheLayout Cache { get; }
     public RenderEnvironment Environment { get; }
@@ -71,16 +72,17 @@ public sealed class KingRenderer : IDisposable
 
         _gl = gl;
         Cache = cache;
+        _content = new KingContent(cache);
         Environment = environment ?? RenderEnvironment.Load(rom);
 
         using (GLHostState.Enter(gl))
         {
-            Pipeline = new DeferredPipeline(gl, ContentStores.FromCache(cache), initialWidth, initialHeight, new TotkProfile());
+            Pipeline = new DeferredPipeline(gl, _content.Stores, initialWidth, initialHeight, new TotkProfile());
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);
             SharedTextures.Residency = Pipeline.Drawer.Merged.Residency;
-            _models = new ModelFactory(gl, Pipeline.Programs, cache, ExternalTextures, SharedTextures, Totk, Pipeline.Drawer.Merged);
+            _models = new ModelFactory(gl, Pipeline.Programs, _content, ExternalTextures, SharedTextures, Totk, Pipeline.Drawer.Merged);
             _bakes = new BakeAttachment(gl, cache);
             // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
             Pipeline.PrepareEnvironment(Environment.Resolve(Totk));
@@ -280,5 +282,6 @@ public sealed class KingRenderer : IDisposable
         SharedTextures.Dispose();
         _bakes.Dispose();
         Pipeline.Dispose();
+        _content.Dispose();
     }
 }

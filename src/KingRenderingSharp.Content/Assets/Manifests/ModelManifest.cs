@@ -31,12 +31,16 @@ internal sealed class ModelManifest
                 (sampler.WrapU, sampler.WrapV) = ("Clamp", "Clamp");
     }
 
-    public static IEnumerable<string> ListAvailableModels(string cacheRoot) =>
-        Directory.Exists(cacheRoot)
+    public static IEnumerable<string> ListAvailableModels(string cacheRoot)
+    {
+        IEnumerable<string> folders = Directory.Exists(cacheRoot)
             ? Directory.EnumerateDirectories(cacheRoot)
                 .Select(Path.GetFileName)
                 .Where(n => n is not null && ModelFiles.IsPrepared(Path.Combine(cacheRoot, n), $"{n}.manifest.json"))
                 .Select(n => n!)
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             : [];
+        string packs = Path.Combine(cacheRoot, "_packs");
+        IEnumerable<string> packed = Directory.Exists(packs) ? Directory.EnumerateFiles(packs, "*.bfap").Select(f => Path.GetFileNameWithoutExtension(f)) : [];
+        return folders.Concat(packed).Distinct(StringComparer.Ordinal).OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+    }
 }

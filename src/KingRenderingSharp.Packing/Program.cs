@@ -30,20 +30,24 @@ for (int i = command == args.FirstOrDefault() ? 1 : 0; i < args.Length; i++)
     }
 }
 
-if (string.IsNullOrEmpty(romfs) || !Directory.Exists(romfs))
+if (command != "seal" && (string.IsNullOrEmpty(romfs) || !Directory.Exists(romfs)))
 {
     Console.Error.WriteLine("--romfs must name an existing directory.");
     return 2;
 }
 
 CacheLayout layout = new(cache ?? CacheLayout.DefaultRoot);
-PackRun run = new(romfs, layout, animations, force);
+PackRun run = new(romfs ?? "", layout, animations, force);
 switch (command)
 {
     case "prepare" when !string.IsNullOrEmpty(actor):
         return run.One(actor, animationPacks, modelFile);
+    case "bake":
+        return BakeExporter.Run(romfs!, layout, string.IsNullOrEmpty(list) || !File.Exists(list) ? [] : [.. File.ReadAllLines(list).Select(l => l.Trim()).Where(l => l.Length > 0).Distinct()], jobs, force, line => { Console.WriteLine(line); Console.Out.Flush(); });
+    case "seal":
+        return SystemSealer.Seal(layout, Console.WriteLine);
     case "system":
-        return SystemExporter.Export(romfs, layout, string.IsNullOrEmpty(list) || !File.Exists(list) ? [] : [.. File.ReadAllLines(list).Select(l => l.Trim()).Where(l => l.Length > 0).Distinct()], jobs, packShaders, Console.WriteLine);
+        return SystemExporter.Export(romfs!, layout, string.IsNullOrEmpty(list) || !File.Exists(list) ? [] : [.. File.ReadAllLines(list).Select(l => l.Trim()).Where(l => l.Length > 0).Distinct()], jobs, packShaders, Console.WriteLine);
     case "prepare-batch" when !string.IsNullOrEmpty(list) && File.Exists(list):
         return run.Batch(File.ReadAllLines(list), jobs);
     default:

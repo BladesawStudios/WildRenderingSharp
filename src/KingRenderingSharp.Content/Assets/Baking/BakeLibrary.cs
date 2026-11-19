@@ -1,21 +1,25 @@
 using KingRenderingSharp.Gpu;
 using System.Numerics;
-using System.Text;
-using System.Text.Json;
+using BfShaderSharp.Pack;
+using KingRenderingSharp.Content.Assets.Sources;
+using KingRenderingSharp.Content.Packs;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Content.Assets.Textures;
 
 namespace KingRenderingSharp.Content.Assets.Baking;
 
 /// <summary>
-/// The game's baked lighting for placed static actors, read from a cache the preparer fills (<c>prepare-bake</c>; see
-/// <c>ShaderLibrary.CompileTool.ExportBake</c>).
+/// The game's baked lighting for placed static actors, read from the packs the preparer fills (<c>prepare-bake</c>): one holds the index of every placement, and each of the others the tiles
+/// it was asked for, with their atlas textures.
 /// </summary>
 public sealed class BakeLibrary : IDisposable
 {
     readonly GpuApi _gl;
     readonly string _dir;
     readonly TextureCache _textures;
+    readonly BakeFiles _files = new();
+    readonly List<(AssetPack Pack, PackTextureFiles Textures)> _packs = [];
+    readonly HashSet<string> _opened = new(StringComparer.OrdinalIgnoreCase);
     // Each atlas's own sampling, as uploaded, and whether the finest-level-only setting is on it now.
     readonly Dictionary<uint, (int MaxLevel, int MinFilter, bool FinestOnly)> _sampling = [];
     ulong[] _hashes = [];
@@ -24,13 +28,30 @@ public sealed class BakeLibrary : IDisposable
     bool _indexLoaded;
     readonly Dictionary<string, Tile?> _loaded = new(StringComparer.Ordinal);
 
-    sealed record Tile(LoadedTexture?[] Textures, Dictionary<ulong, JsonElement> Actors);
+    sealed record BakeMaterial(string Name, int Index, int Texture, Vector4 St);
+
+    sealed record BakeActorData(int Count, List<BakeMaterial> Materials);
+
+    sealed record Tile(LoadedTexture?[] Textures, Dictionary<ulong, BakeActorData> Actors);
+
+    // The texture files of the tiles loaded so far, by the names the texture cache is asked for, held in memory for as long as the cache reads them.
+    sealed class BakeFiles : IFileSource
+    {
+        readonly Dictionary<string, byte[]> _bytes = new(StringComparer.Ordinal);
+
+        public void Add(string file, byte[] bytes) => _bytes[file] = bytes;
+
+        public bool Has(string file) => _bytes.ContainsKey(file);
+
+        public byte[] Bytes(string file) => _bytes[file];
+    }
 
     public BakeLibrary(GpuApi gl, string bakeDirectory)
     {
         _gl = gl;
         _dir = bakeDirectory;
-        _textures = new TextureCache(gl, new Sources.FolderFiles(bakeDirectory));
+        _textures = new TextureCache(gl, _files);
+        OpenNewPacks();
     }
 
     /// <summary>
@@ -65,7 +86,18 @@ public sealed class BakeLibrary : IDisposable
         _gl.BindTexture(TextureTarget.Texture2D, 0);
     }
 
-    public bool HasIndex => File.Exists(Path.Combine(_dir, "index.bin"));
+    public bool HasIndex
+    {
+        get
+        {
+            lock (_sync)
+                return _packs.Any(p => p.Pack.Find(PackEntryKind.GameData, IndexEntry) is not null);
+        }
+    }
+
+    const string IndexEntry = "Bake/index";
+
+    const string TilePrefix = "Bake/tile/";
 
     public string? TileOf(ulong hash)
     {
@@ -86,8 +118,10 @@ public sealed class BakeLibrary : IDisposable
     public IReadOnlyList<string> MissingTiles(IEnumerable<ulong> hashes)
     {
         lock (_sync)
-            return [.. hashes.Select(TileOfLocked).OfType<string>().Distinct(StringComparer.Ordinal)
-                .Where(t => !File.Exists(Path.Combine(_dir, t + ".json")))];
+        {
+            OpenNewPacks();
+            return [.. hashes.Select(TileOfLocked).OfType<string>().Distinct(StringComparer.Ordinal).Where(t => FindTilePack(t) is null)];
+        }
     }
 
     public BakeActor? Find(ulong hash)
@@ -103,56 +137,64 @@ public sealed class BakeLibrary : IDisposable
         if (!tile.Actors.TryGetValue(hash, out var actor))
             return null;
 
-        int count = actor.GetProperty("count").GetInt32();
         var byName = new Dictionary<string, int>(StringComparer.Ordinal);
-        var st = new Vector4[Math.Max(0, count)];
+        var st = new Vector4[Math.Max(0, actor.Count)];
         LoadedTexture? atlas = null;
-        foreach (var mat in actor.GetProperty("materials").EnumerateArray())
+        foreach (var mat in actor.Materials)
         {
-            int index = mat.GetProperty("index").GetInt32();
-            int texture = mat.GetProperty("texture").GetInt32();
-            byName[mat.GetProperty("name").GetString() ?? ""] = index;
-            if (texture < 0 || texture >= tile.Textures.Length || tile.Textures[texture] is not { } t)
+            byName[mat.Name] = mat.Index;
+            if (mat.Texture < 0 || mat.Texture >= tile.Textures.Length || tile.Textures[mat.Texture] is not { } t)
                 continue;
             // One atlas per tile in every file read so far; a material on another would need
             // runs split per material, which nothing has called for yet.
             atlas ??= t;
             if (!ReferenceEquals(atlas, t))
                 continue;
-            if (index >= st.Length)
-                Array.Resize(ref st, index + 1);
-            var v = mat.GetProperty("st");
-            st[index] = new Vector4(v[0].GetSingle(), v[1].GetSingle(), v[2].GetSingle(), v[3].GetSingle());
+            if (mat.Index >= st.Length)
+                Array.Resize(ref st, mat.Index + 1);
+            st[mat.Index] = mat.St;
         }
         return atlas is null ? null : new BakeActor(atlas, st, byName);
     }
 
-    // The index is replaced by whichever preparer finishes its tiles last, and for a moment the file being replaced cannot be opened, so a read that meets that waits it out.
-    static FileStream OpenIndex(string path)
+    // Opens the packs of the folder that were not open yet. The preparer moves a pack into place once it is whole, so one that is there can be read.
+    void OpenNewPacks()
     {
-        for (int attempt = 0; ; attempt++)
+        if (!Directory.Exists(_dir)) return;
+        foreach (string file in Directory.EnumerateFiles(_dir, "*.bfgd").OrderBy(f => File.GetLastWriteTimeUtc(f)))
         {
+            if (!_opened.Add(file)) continue;
             try
             {
-                return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                AssetPack pack = AssetPack.Open(file);
+                _packs.Add((pack, new PackTextureFiles(pack)));
             }
-            catch (IOException) when (attempt < 10)
+            catch (IOException)
             {
-                Thread.Sleep(50);
+                _opened.Remove(file);
             }
         }
+    }
+
+    (AssetPack Pack, PackTextureFiles Textures)? FindTilePack(string tile)
+    {
+        for (int i = _packs.Count - 1; i >= 0; i--)
+            if (_packs[i].Pack.Find(PackEntryKind.GameData, TilePrefix + tile) is not null) return _packs[i];
+        return null;
     }
 
     bool EnsureIndex()
     {
         if (_indexLoaded)
             return _hashes.Length > 0;
-        string path = Path.Combine(_dir, "index.bin");
-        if (!File.Exists(path))
+        byte[]? bytes = null;
+        for (int i = _packs.Count - 1; i >= 0 && bytes is null; i--)
+            bytes = _packs[i].Pack.GameData(IndexEntry);
+        if (bytes is null)
             return false;
         _indexLoaded = true;
-        using var r = new BinaryReader(OpenIndex(path), Encoding.UTF8);
-        if (Encoding.ASCII.GetString(r.ReadBytes(4)) != "KRSB" || r.ReadInt32() != 1)
+        using var r = new BinaryReader(new MemoryStream(bytes), System.Text.Encoding.UTF8);
+        if (System.Text.Encoding.ASCII.GetString(r.ReadBytes(4)) != "KRSB" || r.ReadInt32() != 1)
             return false;
         _tiles = new string[r.ReadInt32()];
         for (int i = 0; i < _tiles.Length; i++)
@@ -176,6 +218,7 @@ public sealed class BakeLibrary : IDisposable
 
     void RefreshLocked()
     {
+        OpenNewPacks();
         // The index is read once it exists, because re-reading its 600,000 entries on every refresh would stall.
         if (_hashes.Length == 0)
             _indexLoaded = false;
@@ -187,35 +230,66 @@ public sealed class BakeLibrary : IDisposable
     {
         if (_loaded.TryGetValue(name, out var cached))
             return cached;
-        string path = Path.Combine(_dir, name + ".json");
-        if (!File.Exists(path))
+        if (FindTilePack(name) is not { } holder)
         {
             _loaded[name] = null;
             return null;
         }
 
-        using var doc = JsonDocument.Parse(File.ReadAllBytes(path));
-        var root = doc.RootElement;
-        var textures = root.GetProperty("textures").EnumerateArray().Select(t => _textures.Load(new SamplerBinding
+        RecordReader reader = new(holder.Pack.GameData(TilePrefix + name)!);
+        List<string> names = reader.List(1, r => r.String());
+        var textures = new LoadedTexture?[names.Count];
+        for (int i = 0; i < names.Count; i++)
         {
-            Key = "bake0",
-            Assigned = "bake0",
-            Texture = t.GetProperty("name").GetString() ?? "",
-            File = t.GetProperty("file").GetString() ?? "",
-            Format = t.GetProperty("format").GetString() ?? "",
-            Width = t.GetProperty("width").GetInt32(),
-            Height = t.GetProperty("height").GetInt32(),
-            WrapU = "Clamp",
-            WrapV = "Clamp",
-        })).ToArray();
-        var actors = new Dictionary<ulong, JsonElement>();
-        foreach (var a in root.GetProperty("actors").EnumerateObject())
-            if (ulong.TryParse(a.Name, out ulong hash))
-                actors[hash] = a.Value.Clone();
+            PackTextureFiles.File? file = holder.Textures.Read(names[i]);
+            if (file is null) continue;
+            string fileName = $"{names[i]}_{file.Width}x{file.Height}_{file.Format}.bin";
+            _files.Add(fileName, file.Bytes);
+            textures[i] = _textures.Load(new SamplerBinding
+            {
+                Key = "bake0",
+                Assigned = "bake0",
+                Texture = names[i],
+                File = fileName,
+                Format = file.Format,
+                Width = file.Width,
+                Height = file.Height,
+                WrapU = "Clamp",
+                WrapV = "Clamp",
+            });
+        }
+
+        var actors = new Dictionary<ulong, BakeActorData>();
+        int count = reader.Count();
+        for (int i = 0; i < count; i++)
+        {
+            ulong hash = (ulong)reader.U32() << 32 | reader.U32();
+            reader.String();
+            int original = reader.I32();
+            List<BakeMaterial> materials = [];
+            int n = reader.Count();
+            for (int m = 0; m < n; m++)
+            {
+                string material = reader.String();
+                int index = reader.I32(), texture = reader.I32();
+                materials.Add(new BakeMaterial(material, index, texture, new Vector4(reader.F32(), reader.F32(), reader.F32(), reader.F32())));
+            }
+
+            actors[hash] = new BakeActorData(original, materials);
+        }
+
         var tile = new Tile(textures, actors);
         _loaded[name] = tile;
         return tile;
     }
 
-    public void Dispose() => _textures.Dispose();
+    public void Dispose()
+    {
+        _textures.Dispose();
+        foreach ((AssetPack pack, PackTextureFiles files) in _packs)
+        {
+            files.Dispose();
+            pack.Dispose();
+        }
+    }
 }

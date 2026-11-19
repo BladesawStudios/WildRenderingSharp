@@ -142,38 +142,14 @@ static class Cli
         return 0;
     }
 
+    // The baked lighting is imported by the pack tool, which answers in the preparer protocol itself.
     static int PrepareBake(CliOptions options, string romfs, CacheLayout cache)
     {
-        int parallelism = options.Jobs > 0 ? options.Jobs : PrepareBatchRequest.DefaultParallelism;
-        string dir = cache.Bake;
-        using var rom = TotkRom.Open(romfs);
-        if (options.Force || !File.Exists(Path.Combine(dir, TotkBake.IndexFile)))
-            TotkBake.BuildIndex(rom, dir, parallelism);
-        Console.Out.Flush();
-
-        System.Diagnostics.Debug.Assert(options.List is not null);
-        System.Diagnostics.Debug.Assert(File.Exists(options.List));
-        
-        var protocol = new ProtocolWriter(Console.Out);
-        var files = DistinctLines(File.ReadAllLines(options.List));
-        Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = parallelism }, file =>
-        {
-            protocol.Say($"KRS_BEGIN {file}");
-            try
-            {
-                string manifestFile = Path.Combine(dir, file + ".json");
-                if (options.Force || !File.Exists(manifestFile)) {
-                    TotkBakeTile.Export(rom, file, dir);
-                }
-
-                protocol.Say($"KRS_DONE {file}\t{file}");
-            }
-            catch (Exception ex)
-            {
-                protocol.Say($"KRS_FAIL {file}\t{ex.Message.ReplaceLineEndings(" ")}");
-            }
-        });
-        return 0;
+        if (PackTool.Executable() is null) throw new FileNotFoundException("The pack tool (krs-pack/KingRenderingSharp.Packing) is not beside the preparer; build KingRenderingSharp.Packing.");
+        List<string> arguments = ["bake", "--romfs", romfs, "--cache", cache.Root, "--list", options.List!];
+        if (options.Jobs > 0) arguments.AddRange(["--jobs", options.Jobs.ToString(System.Globalization.CultureInfo.InvariantCulture)]);
+        if (options.Force) arguments.Add("--force");
+        return PackTool.Run(arguments, Console.WriteLine);
     }
 
     static int PrepareGrassShaders(CliOptions options, string romfs, CacheLayout cache)

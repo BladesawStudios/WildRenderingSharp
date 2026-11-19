@@ -37,7 +37,18 @@ public sealed record CacheLayout(string Root)
     public string ManifestPath(string resolvedModelName) =>
         Path.Combine(ModelDirectory(resolvedModelName), $"{resolvedModelName}.manifest.json");
 
-    public bool IsPrepared(string resolvedModelName) => ModelFiles.IsPrepared(ModelDirectory(resolvedModelName), $"{resolvedModelName}.manifest.json");
+    // Where the packs of the prepared models are kept: <name>.bfap, and beside it <name>.shaders with the prepared archives of the shaders it uses.
+    public string Packs => Path.Combine(Root, "_packs");
 
-    public bool HasSystemAssets => File.Exists(Path.Combine(Shaders, "agl_hdr_compose.vert"));
+    public string ModelPack(string resolvedModelName) => Path.Combine(Packs, resolvedModelName + ".bfap");
+
+    public string ModelShaders(string resolvedModelName) => Path.Combine(Packs, resolvedModelName + ".shaders");
+
+    // The pack of the data that belongs to no model: programs, system textures, effects.
+    public string SystemPack => Path.Combine(Root, "system.bfgd");
+
+    public bool IsPrepared(string resolvedModelName) =>
+        File.Exists(ModelPack(resolvedModelName)) || ModelFiles.IsPrepared(ModelDirectory(resolvedModelName), $"{resolvedModelName}.manifest.json");
+
+    public bool HasSystemAssets => File.Exists(SystemPack) || File.Exists(Path.Combine(Shaders, "agl_hdr_compose.vert"));
 }

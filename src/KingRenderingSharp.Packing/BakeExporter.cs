@@ -1,93 +1,75 @@
-using System.Globalization;
-using System.Text.Json;
 using BfShaderSharp.Assets;
 using BfShaderSharp.Pack;
-using KingRenderingSharp.Content.Packs;
+using BfShaderSharp.Pack.Records;
 using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Packing;
 
-/// <summary>Writes the baked lighting a pack holds as the files the renderer's bake library reads: <c>index.bin</c>, and for each tile its <c>.json</c> with the atlas textures beside it.</summary>
+/// <summary>Imports the baked lighting into packs the renderer's bake library reads: <c>index.bfgd</c> holds the index of every placement, and each run adds a pack of the tiles it was asked for with their atlas textures.</summary>
+/// <remarks>Answers in the preparer protocol, a KRS_BEGIN line for each tile and then KRS_DONE or KRS_FAIL. A tile some pack in the folder already holds is not imported again unless forced.</remarks>
 internal static class BakeExporter
 {
-    private const string TilePrefix = "Bake/tile/";
+    const string TilePrefix = "Bake/tile/";
 
-    /// <summary>Returns the number of tiles written; the index is written whenever the pack has one.</summary>
-    public static int Export(AssetPack pack, string directory)
+    public static int Run(string romfs, CacheLayout layout, IReadOnlyCollection<string> tiles, int jobs, bool force, Action<string> say)
     {
-        if (pack.GameData(BakeImporter.IndexEntry) is not { } index) return 0;
-        Directory.CreateDirectory(directory);
-        AtomicFile.Write(Path.Combine(directory, "index.bin"), temp => File.WriteAllBytes(temp, index));
-        using PackTextureFiles textures = new(pack);
-        int written = 0;
-        foreach (PackEntry entry in pack.Entries.Where(e => e.Kind == PackEntryKind.GameData && e.Name.StartsWith(TilePrefix, StringComparison.Ordinal)))
-        {
-            WriteTile(pack, textures, directory, entry.Name[TilePrefix.Length..], new RecordReader(pack.Bytes(entry.Key)));
-            written++;
-        }
+        Directory.CreateDirectory(layout.Bake);
+        using RomfsFiles files = new(romfs);
+        string index = Path.Combine(layout.Bake, "index.bfgd");
+        if (force || !File.Exists(index))
+            WritePack(index, files, context => BakeImporter.Import(context, [], jobs > 0 ? jobs : Environment.ProcessorCount, true));
 
-        return written;
+        HashSet<string> have = force ? [] : HeldTiles(layout.Bake);
+        string[] wanted = [.. tiles.Where(t => !have.Contains(t))];
+        foreach (string tile in tiles.Where(have.Contains)) say($"KRS_DONE {tile}\t{tile}");
+        if (wanted.Length == 0) return 0;
+
+        string pack = Path.Combine(layout.Bake, $"tiles-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Environment.ProcessId}.bfgd");
+        List<string> done = [];
+        WritePack(pack, files, context =>
+        {
+            Parallel.ForEach(wanted, new ParallelOptions { MaxDegreeOfParallelism = jobs > 0 ? jobs : Math.Max(1, Environment.ProcessorCount / 2) }, tile =>
+            {
+                say($"KRS_BEGIN {tile}");
+                try
+                {
+                    BakeImporter.Import(context, [tile], 1, false);
+                    lock (done) done.Add(tile);
+                }
+                catch (Exception exception)
+                {
+                    say($"KRS_FAIL {tile}\t{exception.GetBaseException().Message.ReplaceLineEndings(" ")}");
+                }
+            });
+        });
+
+        // The pack is reported only once it is in place, so a host that reads on a tile's report finds it.
+        foreach (string tile in done) say($"KRS_DONE {tile}\t{tile}");
+        return 0;
     }
 
-    private static void WriteTile(AssetPack pack, PackTextureFiles textures, string directory, string tile, RecordReader reader)
+    static void WritePack(string path, RomfsFiles files, Action<AssetContext> import)
     {
-        List<string> names = reader.List(1, r => r.String());
-        List<(string Name, string File, string Format, int Width, int Height)> files = [];
-        foreach (string name in names)
+        string temporary = path + ".tmp";
+        using (FileStream output = File.Create(temporary))
         {
-            PackTextureFiles.File? texture = textures.Read(name);
-            if (texture is null) throw new InvalidDataException($"{tile}: texture {name} cannot be exported");
-            string file = $"{name}_{texture.Width}x{texture.Height}_{texture.Format}.bin";
-            File.WriteAllBytes(Path.Combine(directory, file), texture.Bytes);
-            files.Add((name, file, texture.Format, texture.Width, texture.Height));
+            PackWriter writer = new(output);
+            import(new AssetContext(writer, files, ShaderArchiveSet.Empty, new Dictionary<ulong, string>(), TextureStorage.Linear));
+            writer.Finish();
         }
 
-        AtomicFile.Write(Path.Combine(directory, tile + ".json"), temp =>
+        File.Move(temporary, path, true);
+    }
+
+    static HashSet<string> HeldTiles(string folder)
+    {
+        HashSet<string> held = new(StringComparer.Ordinal);
+        foreach (string file in Directory.EnumerateFiles(folder, "*.bfgd"))
         {
-            using FileStream stream = File.Create(temp);
-            using Utf8JsonWriter w = new(stream);
-            w.WriteStartObject();
-            w.WriteStartArray("textures");
-            foreach (var t in files)
-            {
-                w.WriteStartObject();
-                w.WriteString("name", t.Name);
-                w.WriteString("file", t.File);
-                w.WriteString("format", t.Format);
-                w.WriteNumber("width", t.Width);
-                w.WriteNumber("height", t.Height);
-                w.WriteEndObject();
-            }
+            using AssetPack pack = AssetPack.Open(file);
+            foreach (PackEntry entry in pack.Of(PackEntryKind.GameData).Where(e => e.Name.StartsWith(TilePrefix, StringComparison.Ordinal))) held.Add(entry.Name[TilePrefix.Length..]);
+        }
 
-            w.WriteEndArray();
-            w.WriteStartObject("actors");
-            int actors = reader.Count();
-            for (int i = 0; i < actors; i++)
-            {
-                ulong hash = (ulong)reader.U32() << 32 | reader.U32();
-                w.WriteStartObject(hash.ToString(CultureInfo.InvariantCulture));
-                w.WriteString("model", reader.String());
-                w.WriteNumber("count", reader.I32());
-                w.WriteStartArray("materials");
-                int materials = reader.Count();
-                for (int m = 0; m < materials; m++)
-                {
-                    w.WriteStartObject();
-                    w.WriteString("name", reader.String());
-                    w.WriteNumber("index", reader.I32());
-                    w.WriteNumber("texture", reader.I32());
-                    w.WriteStartArray("st");
-                    for (int f = 0; f < 4; f++) w.WriteNumberValue(reader.F32());
-                    w.WriteEndArray();
-                    w.WriteEndObject();
-                }
-
-                w.WriteEndArray();
-                w.WriteEndObject();
-            }
-
-            w.WriteEndObject();
-            w.WriteEndObject();
-        });
+        return held;
     }
 }

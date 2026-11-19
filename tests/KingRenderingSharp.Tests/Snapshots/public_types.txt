@@ -28,7 +28,9 @@ Content.Assets.Textures.SharedTextures
 Content.Graphics.Contracts.EnvironmentLighting
 Content.Graphics.Contracts.IFrameEnvironment
 Content.Graphics.Contracts.PresentGrade
+Content.Packs.PackContentFiles
 Content.Packs.PackPrograms
+Content.Packs.SystemPack
 Content.Rendering.Cameras.Camera
 Content.Rendering.GLDebug
 Content.Rendering.Lighting.BackgroundMode
@@ -53,6 +55,7 @@ Core.Storage.ContentFilesExtensions
 Core.Storage.ContentStores
 Core.Storage.FolderContentFiles
 Core.Storage.IContentFiles
+Core.Storage.LayeredContentFiles
 Core.Storage.ModelFiles
 Core.Storage.ModelSession
 Core.Storage.SystemTexture

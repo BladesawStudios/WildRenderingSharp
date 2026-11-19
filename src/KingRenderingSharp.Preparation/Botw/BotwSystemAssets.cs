@@ -12,7 +12,7 @@ public static class BotwSystemAssets
     const string ShadingModel = "uking_sys_shading";
 
     public static bool IsBuilt(CacheLayout cache) =>
-        File.Exists(Path.Combine(cache.DeferredMaterials, "chara_skin.gsys_material.bin"))
+        File.Exists(cache.SystemPack) || File.Exists(Path.Combine(cache.DeferredMaterials, "chara_skin.gsys_material.bin"))
         && Directory.Exists(cache.Shaders)
         && Directory.EnumerateFiles(cache.Shaders, "deferred_chara_skin_prog*_extracted.frag").Any();
 
@@ -34,5 +34,6 @@ public static class BotwSystemAssets
         Directory.CreateDirectory(cache.DeferredMaterials);
         TestSystemShading.Run(systemBfsha, modelPath, cache.Shaders, ShadingModel);
         BuildMaterialUbo.Run(systemBfsha, model, cache.DeferredMaterials);
+        SystemSealing.Seal(cache, log);
     }
 }

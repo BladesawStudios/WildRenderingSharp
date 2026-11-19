@@ -16,4 +16,12 @@
     <ProjectReference Include="..\..\src\KingRenderingSharp.Preparation\KingRenderingSharp.Preparation.csproj" />
   </ItemGroup>
 
+  <!-- The preparer this runs in its own process looks for the pack tool beside it, as krs-pack. -->
+  <Target Name="KrsCopyPackToolForBench" AfterTargets="Build">
+    <ItemGroup>
+      <_KrsPackFiles Include="$(MSBuildThisFileDirectory)..\..\src\KingRenderingSharp.Preparation\bin\$(Configuration)\$(TargetFramework)\krs-pack\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_KrsPackFiles)" DestinationFiles="@(_KrsPackFiles->'$(OutDir)krs-pack\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

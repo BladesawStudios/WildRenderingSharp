@@ -87,11 +87,12 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
             return name;
         }
 
-        PreparedPackModel prepared = PackPreparer.Prepare(romfs, name, cache.ModelDirectory(name), cache.Shaders, log, animations || animatedAnyway, animationPacks, modelFile);
+        PreparedPackModel prepared = PackPreparer.Prepare(romfs, name, cache.ModelPack(name), cache.ModelShaders(name), log, animations || animatedAnyway, animationPacks, modelFile);
         foreach (string problem in prepared.Problems) log?.Invoke("[prepare] " + problem);
         using (RomfsFiles files = new(romfs))
             foreach ((string file, byte[] data) in ActorImporter.Physics(files, actorName ?? name, name))
             {
+                Directory.CreateDirectory(cache.ModelDirectory(name));
                 File.WriteAllBytes(Path.Combine(cache.ModelDirectory(name), file), data);
                 log?.Invoke($"[prepare] extracted physics asset '{file}'");
             }
