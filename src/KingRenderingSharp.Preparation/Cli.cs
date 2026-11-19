@@ -60,6 +60,8 @@ static class Cli
                 }
                 
                 return PrepareBatch(options, romfs, cache);
+            case "pack":
+                return string.IsNullOrEmpty(options.Actor) ? BadUsage("pack needs --actor <name>.") : Pack(options.Actor, romfs, cache);
             case "prepare-bake":
                 return PrepareBake(options, romfs, cache);
             case "prepare-grass-shaders":
@@ -84,6 +86,17 @@ static class Cli
         Console.Out.Flush();
         Console.WriteLine(OutOfProcessPreparer.ResultPrefix + model);
         return 0;
+    }
+
+    // Prepares a model through BfShaderSharp's asset pack and prepared shaders, and writes the same cache files the other commands write.
+    static int Pack(string actor, string romfs, CacheLayout cache)
+    {
+        var prepared = KingRenderingSharp.Content.Packs.PackPreparer.Prepare(romfs, actor, cache.ModelDirectory(actor), cache.Shaders, Console.WriteLine);
+        foreach (string problem in prepared.Problems) Console.Error.WriteLine(problem);
+        Console.WriteLine($"{prepared.Name}: {prepared.Shapes} shapes, {prepared.Programs} programs, {prepared.Textures} textures");
+        Console.Out.Flush();
+        Console.WriteLine(OutOfProcessPreparer.ResultPrefix + actor);
+        return prepared.Problems.Count == 0 ? 0 : 1;
     }
 
     static int PrepareBatch(CliOptions options, string romfs, CacheLayout cache)
