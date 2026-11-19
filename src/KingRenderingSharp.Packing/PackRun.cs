@@ -17,7 +17,7 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
         }
     }
 
-    /// <summary>Prepares one model, unless a manifest for it is already in the cache and <c>force</c> is not set.</summary>
+    /// <summary>Prepares one model, unless a manifest for the name is already in the cache and <c>force</c> is not set; a model file under a name of its own (one made from its content) is thereby prepared once.</summary>
     public int One(string name, IReadOnlyList<string> animationPacks, string? modelFile = null)
     {
         try
@@ -66,7 +66,7 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
 
     string Prepare(string name, IReadOnlyList<string> animationPacks, Action<string>? log, bool animatedAnyway = false, string? modelFile = null)
     {
-        if (!force && modelFile is null && cache.IsPrepared(name))
+        if (!force && cache.IsPrepared(name))
         {
             log?.Invoke($"[prepare] {name} is already prepared.");
             return name;

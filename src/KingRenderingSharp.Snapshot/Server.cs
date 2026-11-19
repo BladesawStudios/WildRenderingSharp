@@ -60,7 +60,7 @@ sealed class Server(Stream input, Stream output) : IDisposable
         Status("Preparing the shared assets");
         preparer.EnsureSystemAssetsAsync(romfs, cache, Status, game: game).GetAwaiter().GetResult();
         Status($"Preparing {actor}");
-        string model = preparer.PrepareAsync(new PrepareRequest(romfs, actor, cache, Game: game, ModelFile: modelFile, Force: modelFile is not null), Status).GetAwaiter().GetResult();
+        string model = preparer.PrepareAsync(new PrepareRequest(romfs, actor, cache, Game: game, ModelFile: modelFile), Status).GetAwaiter().GetResult();
 
         _scene?.Dispose();
         _window ??= Window.Create(WindowOptions.Default with
