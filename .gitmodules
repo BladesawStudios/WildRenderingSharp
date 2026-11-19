@@ -1,6 +1,3 @@
-[submodule "vendor/ShaderLibrary"]
-	path = vendor/ShaderLibrary
-	url = https://github.com/BladesawStudios/ShaderLibrary.git
 [submodule "vendor/AampSharp"]
 	path = vendor/AampSharp
 	url = https://github.com/BladesawStudios/AampSharp
@@ -19,9 +16,6 @@
 [submodule "vendor/PtclSharp"]
 	path = vendor/PtclSharp
 	url = https://github.com/BladesawStudios/PtclSharp
-[submodule "vendor/BfresLibrary"]
-	path = vendor/BfresLibrary
-	url = https://github.com/BladesawStudios/BfresLibrary
 [submodule "vendor/BfShaderSharp"]
 	path = vendor/BfShaderSharp
 	url = https://github.com/BladesawStudios/BfShaderSharp
