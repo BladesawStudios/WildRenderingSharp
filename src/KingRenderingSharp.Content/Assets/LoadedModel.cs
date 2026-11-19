@@ -27,6 +27,7 @@ public sealed class LoadedModel : IDisposable
     public IReadOnlyList<string> AvailableAnims { get; init; } = [];
 
     public IReadOnlyList<string> AvailableTexturePatternAnims { get; init; } = [];
+    public IReadOnlyList<string> AvailableVisibilityAnims { get; init; } = [];
 
     public IReadOnlyList<string> AvailableMaterialAnims { get; init; } = [];
 

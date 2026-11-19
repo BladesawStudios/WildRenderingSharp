@@ -150,7 +150,19 @@ public sealed class LoadedShape
     // Whether the G-buffer pass leaves the shape to a profile's own pass, which draws it into the G-buffer itself; every other pass draws it as ever.
     internal bool ProfileDrawsGBuffer { get; set; }
 
-    public bool Enabled { get; set; } = true;
+    // The user's switch for the shape, and whether a visibility animation hides it now; the shape is drawn when it is on and not hidden.
+    bool _enabled = true;
+
+    public bool Enabled
+    {
+        get => _enabled && !AnimationHidden;
+        set => _enabled = value;
+    }
+
+    internal bool AnimationHidden { get; set; }
+
+    /// <summary>The bone the shape is attached to, which a bone visibility animation names.</summary>
+    public int BoneIndex { get; init; } = -1;
 
     public bool ForceForward { get; set; }
 }

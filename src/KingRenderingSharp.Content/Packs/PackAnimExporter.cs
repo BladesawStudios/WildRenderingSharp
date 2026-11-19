@@ -13,8 +13,6 @@ namespace KingRenderingSharp.Content.Packs;
 /// </remarks>
 static class PackAnimExporter
 {
-    const int CurveTypeMask = 0x70;
-
     public static int Export(AssetPack pack, IReadOnlyList<string> stems, string modelName, string outDir, List<string> problems)
     {
         int written = 0;
@@ -29,7 +27,7 @@ static class PackAnimExporter
         return written;
     }
 
-    static string Safe(string name) => string.Concat(name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+    internal static string Safe(string name) => string.Concat(name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
 
     static string F(float v) => v.ToString("R", CultureInfo.InvariantCulture);
 
@@ -79,46 +77,26 @@ static class PackAnimExporter
 
     static string? Curve(CurveRecord curve, string anim, string bone, List<string> problems)
     {
-        int type = curve.Flags & CurveTypeMask;
-        float[] frames = curve.Frames;
-        List<float[]> rows = [];
-        if (CurveDecoder.CanDecode(curve))
+        if (PackCurve.Read(curve, out string? reason) is not { } read)
         {
-            HermiteKeys keys = CurveDecoder.Decode(curve);
-            frames = keys.Frames;
-            for (int i = 0; i < frames.Length; i++)
-            {
-                if (i == frames.Length - 1) { rows.Add([keys.Values[i], 0, 0, 0]); break; }
-                float dt = frames[i + 1] - frames[i], v0 = keys.Values[i], v1 = keys.Values[i + 1], s0 = keys.Slopes[i], s1 = keys.Slopes[i + 1];
-                float d = v0 - v1;
-                rows.Add(dt == 0 ? [v0, s0, 0, 0] : [v0, s0, -3 * d / (dt * dt) - (2 * s0 + s1) / dt, 2 * d / (dt * dt * dt) + (s0 + s1) / (dt * dt)]);
-            }
-        }
-        else if (curve.CompressedKeys.Length > 0 || type is not (0 or 0x10 or 0x20) || curve.Keys.Length == 0)
-        {
-            problems.Add($"{anim}/{bone}: a curve of flags 0x{curve.Flags:x} is not written");
+            problems.Add($"{anim}/{bone}: {reason}");
             return null;
         }
-        else
-        {
-            int per = type == 0x20 || frames.Length == 0 ? 1 : curve.Keys.Length / frames.Length;
-            if (per == 0 || curve.Keys.Length % per != 0) { problems.Add($"{anim}/{bone}: a curve has {curve.Keys.Length} keys for {frames.Length} frames"); return null; }
-            for (int i = 0; i < curve.Keys.Length / per; i++) rows.Add(curve.Keys[(i * per)..(i * per + per)]);
-        }
 
+        float[] frames = read.Frames;
         StringBuilder sb = new();
         sb.AppendLine("        {");
-        sb.AppendLine($"          \"curve_type\": {(CurveDecoder.CanDecode(curve) ? 0 : type)},");
+        sb.AppendLine($"          \"curve_type\": {read.Type},");
         sb.AppendLine($"          \"target_offset\": {curve.DataOffset},");
         sb.AppendLine($"          \"start_frame\": {F(curve.StartFrame)},");
         sb.AppendLine($"          \"end_frame\": {F(curve.EndFrame)},");
-        sb.AppendLine($"          \"scale\": {F(CurveDecoder.CanDecode(curve) ? 1 : curve.Scale)},");
-        sb.AppendLine($"          \"offset\": {F(CurveDecoder.CanDecode(curve) ? 0 : curve.Offset)},");
+        sb.AppendLine($"          \"scale\": {F(read.Scale)},");
+        sb.AppendLine($"          \"offset\": {F(read.Offset)},");
         sb.AppendLine($"          \"delta\": {F(curve.Delta)},");
         sb.AppendLine($"          \"pre_wrap\": {(curve.Flags >> 8) & 3},");
         sb.AppendLine($"          \"post_wrap\": {(curve.Flags >> 12) & 3},");
         sb.AppendLine($"          \"frames\": [{Floats(frames)}],");
-        sb.AppendLine($"          \"keys\": [{string.Join(", ", rows.Select(r => $"[{Floats(r)}]"))}]");
+        sb.AppendLine($"          \"keys\": [{read.KeysJson()}]");
         sb.Append("        }");
         return sb.ToString();
     }

@@ -42,6 +42,9 @@ sealed partial class PackModelExporter(AssetPack pack, Func<string, PreparedArch
     static readonly JsonSerializerOptions Json = new() { WriteIndented = true, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never };
 
     readonly PackTextureFiles _textures = new(pack);
+
+    /// <summary>The texture reader, shared with the animation exporters that write textures of their own.</summary>
+    public PackTextureFiles Textures => _textures;
     readonly ConcurrentDictionary<(string Model, int Program), string?> _written = new();
     readonly ConcurrentDictionary<string, ProgramLookup> _lookups = new();
 

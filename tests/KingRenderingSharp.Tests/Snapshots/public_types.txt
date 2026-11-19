@@ -11,6 +11,9 @@ Content.Animation.Clips.TexturePatternAnimManifest
 Content.Animation.Clips.TexturePatternMaterialEntry
 Content.Animation.Clips.TexturePatternSamplerEntry
 Content.Animation.Clips.TexturePatternTextureEntry
+Content.Animation.Clips.VisibilityAnimCurve
+Content.Animation.Clips.VisibilityAnimEntry
+Content.Animation.Clips.VisibilityAnimManifest
 Content.Assets.Baking.BakeActor
 Content.Assets.Baking.BakeLibrary
 Content.Assets.LoadedModel

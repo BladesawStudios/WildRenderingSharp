@@ -48,6 +48,7 @@ public class RenderActor : IDisposable
     public AnimChannel<MaterialAnimManifest> ShaderParam { get; } = new();
     public AnimChannel<MaterialAnimManifest> TextureSrt { get; } = new();
     public AnimChannel<TexturePatternAnimManifest> TexturePattern { get; } = new(stepped: true);
+    public AnimChannel<VisibilityAnimManifest> Visibility { get; } = new(stepped: true);
 
     public IEnumerable<AnimSlot<MaterialAnimManifest>> MaterialSlots => ShaderParam.Slots.Concat(TextureSrt.Slots);
 
@@ -69,6 +70,7 @@ public class RenderActor : IDisposable
         ShaderParam.Clear();
         TextureSrt.Clear();
         TexturePattern.Clear();
+        Visibility.Clear();
     }
 
     public const float DefaultFramesPerSecond = 30f;
@@ -79,6 +81,7 @@ public class RenderActor : IDisposable
         moved |= ShaderParam.Advance(deltaSeconds, framesPerSecond);
         moved |= TextureSrt.Advance(deltaSeconds, framesPerSecond);
         moved |= TexturePattern.Advance(deltaSeconds, framesPerSecond);
+        moved |= Visibility.Advance(deltaSeconds, framesPerSecond);
         return moved;
     }
 
@@ -94,6 +97,12 @@ public class RenderActor : IDisposable
             TexturePatternPose.Apply(Model, patternAnims, Model.Textures);
         else
             TexturePatternPose.Clear(Model);
+
+        var visibilityAnims = Visibility.Slots.Select(s => new VisibilityPose.Playing(s.Clip, s.Frame)).ToList();
+        if (visibilityAnims.Count > 0)
+            VisibilityPose.Apply(Model, visibilityAnims);
+        else
+            VisibilityPose.Clear(Model);
 
         var materialAnims = MaterialSlots
             .Select(s => new MaterialAnimPose.Playing(s.Clip, s.Frame)).ToList();

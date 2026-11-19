@@ -87,6 +87,7 @@ sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirecto
             Hidden = shapeOptions.HidesNormalPass || sh.Samplers.Count == 0,
             CastsShadow = !shapeOptions.HidesNormalPass && sh.RenderState.DepthWriteEnabled,
             Name = sh.Name,
+            BoneIndex = sh.BoneIndex,
             Material = sh.Material,
             Tags = shapeOptions.Tags,
             AlphaTest = sh.AlphaTest,

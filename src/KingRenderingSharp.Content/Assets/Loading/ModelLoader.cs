@@ -45,6 +45,7 @@ internal sealed class ModelLoader(GL gl, ShaderProgramCache programs, string dat
             AvailableAnims = SkeletalAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),
             AvailableTexturePatternAnims = TexturePatternAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),
             AvailableMaterialAnims = MaterialAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),
+            AvailableVisibilityAnims = VisibilityAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),
             PendingVertexArrays = builder.PendingVertexArrays.Count > 0 ? builder.PendingVertexArrays : null,
         };
     }

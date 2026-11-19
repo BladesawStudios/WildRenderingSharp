@@ -66,6 +66,9 @@ static class PackPreparer
                 {
                     List<string> skipped = [];
                     anims = PackAnimExporter.Export(pack, stems, name, modelFolder, skipped);
+                    ModelRecord record = pack.Model(packModel)!;
+                    anims += new PackMaterialAnimExporter(pack, exporter.Textures).Export(stems, record, name, modelFolder, skipped);
+                    anims += PackVisibilityAnimExporter.Export(pack, stems, name, modelFolder, skipped);
                     foreach (string line in skipped.Take(20)) log?.Invoke("animation: " + line);
                 }
 
