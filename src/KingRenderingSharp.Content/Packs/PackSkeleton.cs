@@ -103,64 +103,6 @@ static class PackSkeleton
         return manifest;
     }
 
-    /// <summary>The skeleton's JSON, or null for a skeleton without bones.</summary>
-    public static string? ToJson(SkeletonRecord skeleton)
-    {
-        if (skeleton.Bones.Count == 0) return null;
-        var matrixToBone = skeleton.MatrixToBone;
-        var inverse = skeleton.InverseMatrices;
-
-        // A bone carries its own slot number in each segment (-1 for none), so counting them reads the two counts the skeleton stores.
-        int smooth = skeleton.Bones.Count(b => b.Smooth >= 0);
-        int rigid = skeleton.Bones.Count(b => b.Rigid >= 0);
-        if (smooth + rigid != matrixToBone.Count)
-        {
-            if (inverse.Count > 0 && inverse.Count <= matrixToBone.Count) smooth = inverse.Count;
-            smooth = Math.Min(smooth, matrixToBone.Count);
-            rigid = matrixToBone.Count - smooth;
-        }
-
-        StringBuilder sb = new();
-        sb.AppendLine("{");
-        sb.AppendLine($"  \"scaling_mode\": {ScalingMode(skeleton)},");
-        sb.AppendLine($"  \"smooth_matrix_count\": {smooth},");
-        sb.AppendLine($"  \"rigid_matrix_count\": {rigid},");
-        sb.AppendLine("  \"bones\": [");
-        for (int i = 0; i < skeleton.Bones.Count; i++)
-        {
-            BoneRecord b = skeleton.Bones[i];
-            sb.AppendLine("    {");
-            sb.AppendLine($"      \"name\": {Quote(b.Name)},");
-            sb.AppendLine($"      \"parent_index\": {b.Parent},");
-            sb.AppendLine($"      \"smooth_matrix_index\": {b.Smooth},");
-            sb.AppendLine($"      \"rigid_matrix_index\": {b.Rigid},");
-            sb.AppendLine($"      \"billboard_index\": {b.Billboard},");
-            sb.AppendLine($"      \"segment_scale_compensate\": {(SegmentScaleCompensate(b) ? "true" : "false")},");
-            sb.AppendLine($"      \"scale\": [{string.Join(", ", b.Scale.Select(F))}],");
-            sb.AppendLine($"      \"rotation\": [{string.Join(", ", b.Rotation.Select(F))}],");
-            sb.AppendLine($"      \"rotation_is_quaternion\": {(IsQuaternion(b) ? "true" : "false")},");
-            sb.AppendLine($"      \"position\": [{string.Join(", ", b.Position.Select(F))}]");
-            sb.AppendLine(i == skeleton.Bones.Count - 1 ? "    }" : "    },");
-        }
-
-        sb.AppendLine("  ],");
-        sb.AppendLine($"  \"matrix_to_bone_list\": [{string.Join(", ", matrixToBone)}],");
-
-        // One inverse-bind matrix per smooth slot. A skeleton that stores fewer gets the inverse of the bone's own bind-pose world matrix, which is what the stored one undoes.
-        Matrix4x4[]? bindWorld = smooth > inverse.Count ? BoneWorldMatrices(skeleton) : null;
-        sb.AppendLine("  \"inverse_model_matrices\": [");
-        for (int i = 0; i < smooth; i++)
-        {
-            float[] m = i < inverse.Count ? inverse[i] : DerivedInverse(bindWorld!, matrixToBone, i);
-            sb.Append($"    [{string.Join(", ", m.Select(F))}]");
-            sb.AppendLine(i == smooth - 1 ? "" : ",");
-        }
-
-        sb.AppendLine("  ]");
-        sb.AppendLine("}");
-        return sb.ToString();
-    }
-
     // The twelve floats of the inverse of a bone's bind world matrix, as rows of the GPU's 3x4: each is a column of the inverse.
     static float[] DerivedInverse(Matrix4x4[] bindWorld, IReadOnlyList<ushort> matrixToBone, int slot)
     {
