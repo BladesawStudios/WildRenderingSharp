@@ -29,7 +29,7 @@ sealed class BotwScene : ISnapshotScene
     public BotwScene(GpuApi gl, CacheLayout cache, string model, int size)
     {
         _host = GLHostState.Enter(gl);
-        var pipeline = new DeferredPipeline(gl, cache.Shaders, size, size, profile: new BotwProfile());
+        var pipeline = new DeferredPipeline(gl, ContentStores.FromCache(cache), size, size, new BotwProfile());
         _view = new SceneView(gl, pipeline);
         var loader = new ModelLoader(gl, pipeline.Programs, new ExternalTextures(gl)) { SharedTextures = new SharedTextures(gl) };
         _actor = new RenderActor { Model = loader.Load(cache.ModelDirectory(model), enableKnownDecompilerCorrections: false), ModelName = model, Name = model };

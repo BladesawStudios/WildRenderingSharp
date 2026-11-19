@@ -48,8 +48,13 @@ Core.Storage.AtomicFile
 Core.Storage.CacheFiles
 Core.Storage.CacheLayout
 Core.Storage.CacheLock
+Core.Storage.ContentFilesExtensions
+Core.Storage.ContentStores
+Core.Storage.FolderContentFiles
+Core.Storage.IContentFiles
 Core.Storage.ModelFiles
 Core.Storage.ModelSession
+Core.Storage.SystemTexture
 Games.Totk.Atmosphere.Clouds.CloudFadeSettings
 Games.Totk.Atmosphere.Clouds.CloudLookLayer
 Games.Totk.Atmosphere.Clouds.CloudMotionLayer

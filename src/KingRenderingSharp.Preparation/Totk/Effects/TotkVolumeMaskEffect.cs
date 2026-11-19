@@ -16,7 +16,7 @@ public static class TotkVolumeMaskEffect
         new("static", "Env_VolumeMask_AddFog_MainField", "Haze_Far", ParticleEmitterManifest.AddFogId, Textured: true),
     ];
 
-    public static bool IsExported(CacheLayout cache) => Emitters.All(e => ParticleEmitterManifest.IsPrepared(cache.Shaders, cache.Effects, e.Id) && (!e.Textured || File.Exists(ParticleEmitterManifest.TexturePath(cache.Effects, e.Id))));
+    public static bool IsExported(CacheLayout cache) => Emitters.All(e => ParticleEmitterManifest.IsPrepared(new FolderContentFiles(cache.Shaders), new FolderContentFiles(cache.Effects), e.Id) && (!e.Textured || File.Exists(Path.Combine(cache.Effects, ParticleEmitterManifest.TextureFile(e.Id)))));
 
     public static void Export(IRomAccess rom, CacheLayout cache)
     {

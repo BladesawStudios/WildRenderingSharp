@@ -1,3 +1,4 @@
+using KingRenderingSharp.Core.Storage;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Games.Totk.Shaders;
@@ -14,18 +15,17 @@ public sealed class CaveShading : IDisposable
     public const uint ChunkBinding = 3, InstanceBinding = 12, PaletteBinding = 13;
 
     readonly GpuApi _gl;
-    readonly string _shadersDir;
+    readonly IContentFiles _shaders;
     MaterialBlock? _material;
 
-    internal CaveShading(GpuApi gl, string shadersDir)
+    internal CaveShading(GpuApi gl, IContentFiles shaders)
     {
         _gl = gl;
-        _shadersDir = shadersDir;
+        _shaders = shaders;
     }
 
     public bool Available =>
-        File.Exists(Path.Combine(_shadersDir, "cave_prog2_extracted.frag"))
-        && File.Exists(Path.Combine(_shadersDir, "cave_prog1_extracted.frag"));
+        _shaders.Exists("cave_prog2_extracted.frag") && _shaders.Exists("cave_prog1_extracted.frag");
 
     public uint LinkGBufferProgram() => Link(2);
 
@@ -33,11 +33,11 @@ public sealed class CaveShading : IDisposable
 
     uint Link(int program)
     {
-        var (vert, frag) = ExtractedProgramSource.Read(_shadersDir, $"cave_prog{program}");
+        var (vert, frag) = ExtractedProgramSource.Read(_shaders, $"cave_prog{program}");
         return GLProgramBuilder.Build(_gl, vert, frag, $"cave_prog{program}");
     }
 
-    internal MaterialBlock Material => _material ??= MaterialBlock.FromFile(_gl, Path.Combine(_shadersDir, "cave_gsys_material.bin"));
+    internal MaterialBlock Material => _material ??= MaterialBlock.From(_gl, _shaders, "cave_gsys_material.bin");
 
     public void Dispose() => _material?.Dispose();
 }

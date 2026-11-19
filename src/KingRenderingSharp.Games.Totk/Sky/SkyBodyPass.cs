@@ -21,38 +21,30 @@ internal sealed class SkyBodyPass : IDisposable
 
     static readonly string FragmentSource = GlslFiles.Load("Totk/Sky/SkyBody/Main.frag");
 
-    public SkyBodyPass(GpuApi gl, string? systemTexturesDirectory)
+    public SkyBodyPass(GpuApi gl, Core.Storage.IContentFiles? systemTextures)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "sky_body");
-        if (string.IsNullOrEmpty(systemTexturesDirectory) || !Directory.Exists(systemTexturesDirectory))
+        if (systemTextures is null || !systemTextures.Exists(Core.Storage.SystemTexture.FileOf("SunDisc")))
         {
             Log.Warning("[SkyBodyPass] no system-texture directory - sun/moon unavailable until extraction runs.");
             return;
         }
 
-        _sunTex = LoadSingle(systemTexturesDirectory, "SunDisc", channels: 1);
+        _sunTex = LoadSingle(systemTextures, "SunDisc", channels: 1);
         for (int i = 0; i < 8; i++)
-            _moonTex[i] = LoadSingle(systemTexturesDirectory, $"Moon{i + 1}", channels: 2);
+            _moonTex[i] = LoadSingle(systemTextures, $"Moon{i + 1}", channels: 2);
 
         Log.Info($"[SkyBodyPass] sun={(_sunTex != 0 ? "loaded" : "missing")}, " +
             $"moon phases loaded: {_moonTex.Count(t => t != 0)}/8");
     }
 
-    unsafe uint LoadSingle(string dir, string name, int channels)
+    unsafe uint LoadSingle(Core.Storage.IContentFiles files, string name, int channels)
     {
-        string dataPath = Path.Combine(dir, name + (channels == 1 ? ".r8" : ".rg8"));
-        string dimsPath = Path.Combine(dir, name + ".dims.txt");
-        if (!File.Exists(dataPath) || !File.Exists(dimsPath))
+        if (Core.Storage.SystemTexture.TryRead(files, name) is not { } texture || texture.Channels != channels)
             return 0;
 
-        var parts = File.ReadAllText(dimsPath).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2 || !int.TryParse(parts[0], out int w) || !int.TryParse(parts[1], out int h))
-            return 0;
-
-        byte[] data = File.ReadAllBytes(dataPath);
-        if (data.Length < w * h * channels)
-            return 0;
+        (int w, int h, byte[] data) = (texture.Width, texture.Height, texture.Texels);
 
         uint tex = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, tex);

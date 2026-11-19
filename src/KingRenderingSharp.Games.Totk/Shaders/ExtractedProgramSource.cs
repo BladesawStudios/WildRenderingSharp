@@ -1,4 +1,5 @@
 using KingRenderingSharp.Content.Shaders;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Games.Totk.Shaders;
 
@@ -11,7 +12,7 @@ namespace KingRenderingSharp.Games.Totk.Shaders;
 /// </remarks>
 internal static class ExtractedProgramSource
 {
-    public static (string Vertex, string Fragment) Read(string shadersDir, string name) =>
-        (TotkGlsl.Clean(File.ReadAllText(Path.Combine(shadersDir, name + "_extracted.vert"))),
-         UnwrittenOutputs.Apply(TotkGlsl.Clean(File.ReadAllText(Path.Combine(shadersDir, name + "_extracted.frag")))));
+    public static (string Vertex, string Fragment) Read(IContentFiles shaders, string name) =>
+        (TotkGlsl.Clean(shaders.ReadText(name + "_extracted.vert")),
+         UnwrittenOutputs.Apply(TotkGlsl.Clean(shaders.ReadText(name + "_extracted.frag"))));
 }

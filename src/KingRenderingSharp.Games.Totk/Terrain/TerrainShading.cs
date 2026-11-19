@@ -1,3 +1,4 @@
+using KingRenderingSharp.Core.Storage;
 using System.Text.RegularExpressions;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Gpu;
@@ -14,7 +15,7 @@ namespace KingRenderingSharp.Games.Totk.Terrain;
 public sealed partial class TerrainShading : IDisposable
 {
     readonly GpuApi _gl;
-    readonly string _shadersDir;
+    readonly IContentFiles _shaders;
     readonly ShaderBindings _bindings;
     MaterialBlock? _material;
 
@@ -25,21 +26,21 @@ public sealed partial class TerrainShading : IDisposable
     public const int NormalUnit = 17, MaterialUnit = 18, MaterialLinearUnit = 19, BakeUnit = 20, AlbedoArrayUnit = 13, CombinedArrayUnit = 14;
     public const uint TerrainSystemBinding = 11;
 
-    internal TerrainShading(GpuApi gl, string shadersDir, ShaderBindings bindings)
+    internal TerrainShading(GpuApi gl, IContentFiles shaders, ShaderBindings bindings)
     {
         _gl = gl;
-        _shadersDir = shadersDir;
+        _shaders = shaders;
         _bindings = bindings;
     }
 
     bool _available;
 
     // Once the programs are there they stay; asking the disk every frame costs more than the rest of the question.
-    public bool Available => _available || (_available = File.Exists(Path.Combine(_shadersDir, "terrain_prog2_extracted.frag")));
+    public bool Available => _available || (_available = _shaders.Exists("terrain_prog2_extracted.frag"));
 
     public uint LinkGBufferProgram(string hostVertexSource, int program = 2)
     {
-        string frag = File.ReadAllText(Path.Combine(_shadersDir, $"terrain_prog{program}_extracted.frag"));
+        string frag = _shaders.ReadText($"terrain_prog{program}_extracted.frag");
         frag = UnwrittenOutputs.Apply(PatchTileSamplers(TotkGlsl.Clean(frag)));
         return GLProgramBuilder.Build(_gl, hostVertexSource, frag, $"terrain_prog{program}");
     }
@@ -69,8 +70,7 @@ public sealed partial class TerrainShading : IDisposable
 
     MaterialBlock CreateMaterial()
     {
-        string path = Path.Combine(_shadersDir, "terrain_gsys_material.bin");
-        byte[] bytes = File.Exists(path) ? File.ReadAllBytes(path) : [];
+        byte[] bytes = _shaders.Exists("terrain_gsys_material.bin") ? _shaders.ReadBytes("terrain_gsys_material.bin") : [];
         // The model's default has Mat slot 29 at 1, which the G-buffer program turns into full wet gloss. The game rewrites it with the
         // weather; dry ground is 0.
         if (bytes.Length >= DrySlotOffset + sizeof(float))

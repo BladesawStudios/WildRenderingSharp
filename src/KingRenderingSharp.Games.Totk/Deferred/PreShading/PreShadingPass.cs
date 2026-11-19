@@ -46,10 +46,10 @@ internal sealed class PreShadingPass : IDisposable
     public static PreShadingPass? Load(GpuApi gl, ShaderProgramCache programs, AssetDirectories directories, string name)
     {
         string? baseName = DeferredPassLoader.Find(directories.Decompiled, name);
-        string materialPath = Path.Combine(directories.DeferredMaterials, $"{name}.gsys_material.bin");
-        if (baseName is null || !File.Exists(materialPath))
+        string materialName = $"{name}.gsys_material.bin";
+        if (baseName is null || !directories.DeferredMaterials.Exists(materialName))
             return null;
-        return new PreShadingPass(gl, programs.Load(baseName, patchFragment: Patch), MaterialBlock.FromFile(gl, materialPath));
+        return new PreShadingPass(gl, programs.Load(baseName, patchFragment: Patch), MaterialBlock.From(gl, directories.DeferredMaterials, materialName));
     }
 
     public unsafe void Draw(GLResourceCache resources, PreShadingMask mask)

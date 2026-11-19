@@ -32,13 +32,13 @@ internal static class TotkEffectExport
         var mesh = TotkEffectMesh.Read(resource, modelIndex);
 
         Directory.CreateDirectory(cache.Effects);
-        mesh.Write(ParticleEmitterManifest.MeshPath(cache.Effects, emitter.Id));
-        File.WriteAllBytes(ParticleEmitterManifest.StaticBlockPath(cache.Effects, emitter.Id), data[..ParticleEmitterManifest.StaticBlockBytes]);
+        mesh.Write(Path.Combine(cache.Effects, ParticleEmitterManifest.MeshFile(emitter.Id)));
+        File.WriteAllBytes(Path.Combine(cache.Effects, ParticleEmitterManifest.StaticBlockFile(emitter.Id)), data[..ParticleEmitterManifest.StaticBlockBytes]);
         if (file.Plugin(emitter.Set, emitter.Emitter, "EP04", ParticleEmitterManifest.AreaLoopBytes) is { } areaLoop)
-            File.WriteAllBytes(ParticleEmitterManifest.PluginPath(cache.Effects, emitter.Id), areaLoop);
+            File.WriteAllBytes(Path.Combine(cache.Effects, ParticleEmitterManifest.PluginFile(emitter.Id)), areaLoop);
         if (fields.GetUInt64("tex_slot0_guid") is var texture and not ulong.MaxValue)
-            TotkEffectTexture.Export(rom, file.TextureName((uint)texture), ParticleEmitterManifest.TexturePath(cache.Effects, emitter.Id));
-        File.WriteAllText(ParticleEmitterManifest.ManifestPath(cache.Effects, emitter.Id), JsonSerializer.Serialize(Manifest(fields, mesh)));
+            TotkEffectTexture.Export(rom, file.TextureName((uint)texture), Path.Combine(cache.Effects, ParticleEmitterManifest.TextureFile(emitter.Id)));
+        System.IO.File.WriteAllBytes(Path.Combine(cache.Effects, ParticleEmitterManifest.ManifestFile(emitter.Id)), Manifest(fields, mesh).ToBytes());
         TotkEffectProgram.Export(file.ShaderArchive(), fields.GetInt32("shader_idx_normal"), ParticleEmitterManifest.ProgramName(emitter.Id), cache.Shaders);
     }
 

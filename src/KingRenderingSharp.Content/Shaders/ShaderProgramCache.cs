@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Contracts;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Content.Shaders;
 
@@ -11,22 +12,22 @@ namespace KingRenderingSharp.Content.Shaders;
 internal sealed class ShaderProgramCache : IDisposable
 {
     readonly GpuApi _gl;
-    readonly string _decompiledDir;
+    readonly IContentFiles _files;
     readonly ConcurrentDictionary<string, Lazy<uint>> _programs = new(StringComparer.Ordinal);
 
     public ShaderBindings Bindings { get; }
 
     readonly IShaderSources _sources;
 
-    public ShaderProgramCache(GpuApi gl, string decompiledDir, ShaderBindings bindings, IShaderSources sources)
+    public ShaderProgramCache(GpuApi gl, IContentFiles files, ShaderBindings bindings, IShaderSources sources)
     {
         _gl = gl;
         Bindings = bindings;
         _sources = sources;
-        _decompiledDir = decompiledDir;
+        _files = files;
     }
 
-    public bool Exists(string baseName) => File.Exists(Path.Combine(_decompiledDir, baseName + ".frag"));
+    public bool Exists(string baseName) => _files.Exists(baseName + ".frag");
 
     public uint Load(string baseName, bool isForwardProgram = false,
         Func<string, string>? patchVertex = null, Func<string, string>? patchFragment = null)
@@ -86,24 +87,22 @@ internal sealed class ShaderProgramCache : IDisposable
     // What the program's source files are now, for the identity a kept program is found by. Throws when they are missing, as reading them does.
     string Stamp(string baseName)
     {
-        var vert = new FileInfo(Path.Combine(_decompiledDir, baseName + ".vert"));
-        var frag = new FileInfo(Path.Combine(_decompiledDir, baseName + ".frag"));
-        return $"{SourceRevision}|{baseName}|{vert.Length}:{vert.LastWriteTimeUtc.Ticks}|{frag.Length}:{frag.LastWriteTimeUtc.Ticks}";
+        return $"{SourceRevision}|{baseName}|{_files.Stamp(baseName + ".vert")}|{_files.Stamp(baseName + ".frag")}";
     }
 
     uint BuildPlain(string baseName, bool isForwardProgram) =>
         GLProgramBuilder.BuildNamed(_gl, $"plain|{isForwardProgram}|{Stamp(baseName)}", () =>
         {
-            string vert = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-            string raw = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
+            string vert = _sources.Clean(_files.ReadText(baseName + ".vert"));
+            string raw = UnwrittenOutputs.Apply(_sources.Clean(_files.ReadText(baseName + ".frag")));
             return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
         }, baseName);
 
     uint LoadPatched(string baseName, bool isForwardProgram,
         Func<string, string>? patchVertex, Func<string, string>? patchFragment)
     {
-        string vertSource = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-        string rawFragSource = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
+        string vertSource = _sources.Clean(_files.ReadText(baseName + ".vert"));
+        string rawFragSource = UnwrittenOutputs.Apply(_sources.Clean(_files.ReadText(baseName + ".frag")));
         string fragSource = isForwardProgram ? _sources.CorrectForwardFragment(rawFragSource) : rawFragSource;
         if (patchVertex is not null) vertSource = patchVertex(vertSource);
         if (patchFragment is not null) fragSource = patchFragment(fragSource);
@@ -116,8 +115,7 @@ internal sealed class ShaderProgramCache : IDisposable
     // link on another thread can hold for half a second.
     public bool FragmentDiscards(string baseName) => _discards.GetOrAdd(baseName, name =>
     {
-        string path = Path.Combine(_decompiledDir, name + ".frag");
-        return !File.Exists(path) || File.ReadAllText(path).Contains("discard", StringComparison.Ordinal);
+        return !_files.Exists(name + ".frag") || _files.ReadText(name + ".frag").Contains("discard", StringComparison.Ordinal);
     });
 
     readonly ConcurrentDictionary<string, Lazy<uint>> _instancedPrograms = new(StringComparer.Ordinal);
@@ -128,10 +126,10 @@ internal sealed class ShaderProgramCache : IDisposable
     uint BuildInstanced(string baseName, bool isForwardProgram) =>
         GLProgramBuilder.BuildNamed(_gl, $"instanced|{isForwardProgram}|{_gl.SupportsBaseInstance()}|{Stamp(baseName)}", () =>
         {
-            string vert = _sources.Instance(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert"))), _gl.SupportsBaseInstance()) ?? "";
+            string vert = _sources.Instance(_sources.Clean(_files.ReadText(baseName + ".vert")), _gl.SupportsBaseInstance()) ?? "";
             if (vert.Length == 0)
                 return null;
-            string raw = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
+            string raw = UnwrittenOutputs.Apply(_sources.Clean(_files.ReadText(baseName + ".frag")));
             return (vert, isForwardProgram ? _sources.CorrectForwardFragment(raw) : raw);
         }, baseName + "_instanced");
 
@@ -147,8 +145,8 @@ internal sealed class ShaderProgramCache : IDisposable
         {
             return GLProgramBuilder.BuildNamed(_gl, $"merged|{Stamp(baseName)}", () =>
             {
-                string v = _sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".vert")));
-                string f = UnwrittenOutputs.Apply(_sources.Clean(File.ReadAllText(Path.Combine(_decompiledDir, baseName + ".frag"))));
+                string v = _sources.Clean(_files.ReadText(baseName + ".vert"));
+                string f = UnwrittenOutputs.Apply(_sources.Clean(_files.ReadText(baseName + ".frag")));
                 return _sources.Merge(v, f);
             }, baseName + "_merged");
         }

@@ -85,13 +85,13 @@ internal static class EffectExporter
         if (modelIndex < 0) throw new InvalidDataException($"Emitter '{emitter.Name}' uses model {model:X8}, which its effect file does not hold.");
         Mesh mesh = Mesh.Read(resource, modelIndex);
 
-        mesh.Write(ParticleEmitterManifest.MeshPath(layout.Effects, emitter.Id));
-        System.IO.File.WriteAllBytes(ParticleEmitterManifest.StaticBlockPath(layout.Effects, emitter.Id), data[..ParticleEmitterManifest.StaticBlockBytes]);
+        mesh.Write(Path.Combine(layout.Effects, ParticleEmitterManifest.MeshFile(emitter.Id)));
+        System.IO.File.WriteAllBytes(Path.Combine(layout.Effects, ParticleEmitterManifest.StaticBlockFile(emitter.Id)), data[..ParticleEmitterManifest.StaticBlockBytes]);
         if (file.Plugin(emitter.Set, emitter.Name, "EP04", ParticleEmitterManifest.AreaLoopBytes) is { } areaLoop)
-            System.IO.File.WriteAllBytes(ParticleEmitterManifest.PluginPath(layout.Effects, emitter.Id), areaLoop);
+            System.IO.File.WriteAllBytes(Path.Combine(layout.Effects, ParticleEmitterManifest.PluginFile(emitter.Id)), areaLoop);
         if (fields.GetUInt64("tex_slot0_guid") is var texture and not ulong.MaxValue)
-            System.IO.File.WriteAllBytes(ParticleEmitterManifest.TexturePath(layout.Effects, emitter.Id), pack.GameData(EffectImporter.TextureEntry(file.TextureName((uint)texture))) ?? throw new InvalidDataException($"The pack holds no texture for emitter '{emitter.Name}'."));
-        System.IO.File.WriteAllText(ParticleEmitterManifest.ManifestPath(layout.Effects, emitter.Id), JsonSerializer.Serialize(Manifest(fields, mesh)));
+            System.IO.File.WriteAllBytes(Path.Combine(layout.Effects, ParticleEmitterManifest.TextureFile(emitter.Id)), pack.GameData(EffectImporter.TextureEntry(file.TextureName((uint)texture))) ?? throw new InvalidDataException($"The pack holds no texture for emitter '{emitter.Name}'."));
+        System.IO.File.WriteAllBytes(Path.Combine(layout.Effects, ParticleEmitterManifest.ManifestFile(emitter.Id)), Manifest(fields, mesh).ToBytes());
         if (programs) WriteProgram(file.ShaderArchive(), fields.GetInt32("shader_idx_normal"), ParticleEmitterManifest.ProgramName(emitter.Id), layout.Shaders);
     }
 
@@ -143,7 +143,7 @@ internal static class EffectExporter
             color = [fields.GetSingle("color0_const_rgb", 0), fields.GetSingle("color0_const_rgb", 1), fields.GetSingle("color0_const_rgb", 2)];
         }
 
-        System.IO.File.WriteAllText(FieldHazeManifest.Path(layout.Effects), JsonSerializer.Serialize(new FieldHazeManifest(color, [.. levels])));
+        System.IO.File.WriteAllBytes(Path.Combine(layout.Effects, FieldHazeManifest.FileName), (new FieldHazeManifest(color, [.. levels])).ToBytes());
         return levels.Count;
     }
 

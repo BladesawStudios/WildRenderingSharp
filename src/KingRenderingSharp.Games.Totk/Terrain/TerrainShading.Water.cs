@@ -1,6 +1,7 @@
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Content.Assets.Textures;
-using System.Text.Json;
+using BfShaderSharp.Pack;
+using KingRenderingSharp.Core.Storage;
 using System.Text.RegularExpressions;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
@@ -30,12 +31,12 @@ public sealed partial class TerrainShading
     bool _waterAvailable;
 
     public bool WaterAvailable => _waterAvailable || (_waterAvailable =
-        File.Exists(Path.Combine(_shadersDir, "terrain_water_textures.json"))
-        && File.Exists(Path.Combine(_shadersDir, WaterProgramName + "_extracted.frag")));
+        WaterTextures.Names.All(n => _shaders.Exists(WaterTextures.FileOf(n)))
+        && _shaders.Exists(WaterProgramName + "_extracted.frag"));
 
     public uint LinkWaterProgram(string hostSource)
     {
-        string frag = PatchedWaterFragment(_shadersDir);
+        string frag = PatchedWaterFragment(_shaders);
         return GLProgramBuilder.Build(_gl, WaterVertex(hostSource), frag, WaterProgramName);
     }
 
@@ -84,8 +85,8 @@ float krs_half_depth(vec2 uv, float waterZ)
     }
 
     // The patched fragment stage, for a check that it compiles.
-    internal static string PatchedWaterFragment(string shadersDir) => PatchWaterFragment(
-        TotkGlsl.Clean(File.ReadAllText(Path.Combine(shadersDir, WaterProgramName + "_extracted.frag"))));
+    internal static string PatchedWaterFragment(IContentFiles shaders) => PatchWaterFragment(
+        TotkGlsl.Clean(shaders.ReadText(WaterProgramName + "_extracted.frag")));
 
     static string PatchWaterFragment(string frag)
     {
@@ -99,7 +100,7 @@ float krs_half_depth(vec2 uv, float waterZ)
 
     string WaterVertex(string hostSource)
     {
-        string vert = TotkGlsl.Clean(File.ReadAllText(Path.Combine(_shadersDir, WaterProgramName + "_extracted.vert")));
+        string vert = TotkGlsl.Clean(_shaders.ReadText(WaterProgramName + "_extracted.vert"));
 
         vert = Regex.Replace(vert, @"layout \(location = 0\) in vec4 aPosition;",
             "vec4 aPosition = vec4(0.0, 0.0, 0.0, 1.0);\nvec4 krs_node[18];\nfloat krs_water_layer;");
@@ -131,14 +132,14 @@ float krs_half_depth(vec2 uv, float waterZ)
     {
         if (_waterNrm == 0)
         {
-            _waterLoad ??= Task.Run(() => WaterTextures.Load(_shadersDir));
+            _waterLoad ??= Task.Run(() => WaterTextures.Load(_shaders));
             if (!_waterLoad.IsCompleted)
                 return false;
             if (_waterLoad.Result is not { } loaded)
                 return false;
             Upload(loaded);
         }
-        _waterMaterial ??= MaterialBlock.FromFile(_gl, Path.Combine(_shadersDir, "terrain_water_material.bin"));
+        _waterMaterial ??= MaterialBlock.From(_gl, _shaders, "terrain_water_material.bin");
         _gl.BindBufferBase(BufferTargetARB.UniformBuffer, _bindings.Material, _waterMaterial.Handle);
         _gl.BindTextureAt(WaterAlbUnit, _waterAlb, TextureTarget.Texture2DArray);
         // _s0, _n0, _t0, _a1: the normals; _e0: the emission.
@@ -207,17 +208,25 @@ float krs_half_depth(vec2 uv, float waterZ)
         public byte[] Alb = [], Nrm = [], Emm = [];
         public int AlbWidth, AlbHeight, AlbLayers, NrmWidth, NrmHeight, NrmLayers, EmmWidth, EmmHeight, EmmLayers;
 
-        sealed record Entry(string name, string file, string format, int width, int height, int layers);
+        public static readonly string[] Names = ["WaterAlb", "WaterNrm", "WaterEmm"];
 
-        public static WaterTextures? Load(string dir)
+        // A texture's file in the store: its format name, size and layer count, then the first level of each layer back to back.
+        public static string FileOf(string name) => $"terrain_water_{name}.bin";
+
+        sealed record Entry(string name, string format, int width, int height, int layers);
+
+        public static WaterTextures? Load(IContentFiles files)
         {
             try
             {
-                var entries = JsonSerializer.Deserialize<List<Entry>>(File.ReadAllText(Path.Combine(dir, "terrain_water_textures.json"))) ?? [];
                 var result = new WaterTextures();
-                foreach (var e in entries)
+                foreach (string name in Names)
                 {
-                    byte[] raw = File.ReadAllBytes(Path.Combine(dir, e.file));
+                    var reader = new RecordReader(files.ReadBytes(FileOf(name)));
+                    string format = reader.String();
+                    int width = (int)reader.U32(), height = (int)reader.U32(), layers = (int)reader.U32();
+                    var e = new Entry(name, format, width, height, layers);
+                    byte[] raw = reader.Bytes().ToArray();
                     switch (e.name)
                     {
                         case "WaterAlb":

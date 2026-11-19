@@ -1,4 +1,4 @@
-using System.Text.Json;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Games.Totk.Effects;
 
@@ -15,13 +15,37 @@ public sealed record FieldHazeLevel(float Offset, float Radius, float Particles,
 /// <remarks>The levels are spheres of growing radius, the nearest around the player; their colour is shared.</remarks>
 public sealed record FieldHazeManifest(float[] Color, FieldHazeLevel[] Levels)
 {
-    const string FileName = "field_haze_v2.json";
+    public const string FileName = "field_haze.bin";
 
-    public static string Path(string effectsDirectory) => System.IO.Path.Combine(effectsDirectory, FileName);
-
-    public static bool IsPrepared(string effectsDirectory) => File.Exists(Path(effectsDirectory));
+    public static bool IsPrepared(IContentFiles effects) => effects.Exists(FileName);
 
     // Null when the haze was not prepared.
-    public static FieldHazeManifest? Load(string effectsDirectory) =>
-        IsPrepared(effectsDirectory) ? JsonSerializer.Deserialize<FieldHazeManifest>(File.ReadAllText(Path(effectsDirectory))) : null;
+    public static FieldHazeManifest? Load(IContentFiles effects) => IsPrepared(effects) ? FromBytes(effects.ReadBytes(FileName)) : null;
+
+    // The haze as bytes: the colour as an array, then the number of levels and the ten numbers of each.
+    public byte[] ToBytes()
+    {
+        using var stream = new MemoryStream();
+        using (var w = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
+        {
+            ParticleEmitterManifest.WriteFloats(w, Color);
+            w.Write(Levels.Length);
+            foreach (FieldHazeLevel l in Levels)
+                foreach (float v in new[] { l.Offset, l.Radius, l.Particles, l.Area, l.Alpha, l.NearStart, l.NearEnd, l.FarStart, l.FarEnd, l.SoftDistance })
+                    w.Write(v);
+        }
+
+        return stream.ToArray();
+    }
+
+    public static FieldHazeManifest FromBytes(byte[] bytes)
+    {
+        using var r = new BinaryReader(new MemoryStream(bytes));
+        float[] color = ParticleEmitterManifest.ReadFloats(r);
+        var levels = new FieldHazeLevel[r.ReadInt32()];
+        for (int i = 0; i < levels.Length; i++)
+            levels[i] = new FieldHazeLevel(r.ReadSingle(), r.ReadSingle(), r.ReadSingle(), r.ReadSingle(), r.ReadSingle(),
+                r.ReadSingle(), r.ReadSingle(), r.ReadSingle(), r.ReadSingle(), r.ReadSingle());
+        return new FieldHazeManifest(color, levels);
+    }
 }

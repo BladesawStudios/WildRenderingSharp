@@ -1,3 +1,4 @@
+using KingRenderingSharp.Core.Storage;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Contracts;
@@ -54,23 +55,18 @@ public sealed class DeferredPipeline : IDisposable
 
     public ExposureMeter.Result? LastExposureMeasurement => _exposure.Last;
 
-    internal DeferredPipeline(GpuApi gl, string decompiledDirectory, int width, int height,
-        IGameProfile profile, string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null)
+    internal DeferredPipeline(GpuApi gl, ContentStores stores, int width, int height, IGameProfile profile)
     {
         _gl = gl;
         Profile = profile;
 
-        string cacheRoot = Path.GetDirectoryName(decompiledDirectory) ?? decompiledDirectory;
-        var directories = new AssetDirectories(
-            decompiledDirectory,
-            deferredMaterialsDirectory ?? Path.Combine(cacheRoot, "_deferred_materials"),
-            systemTexturesDirectory ?? Path.Combine(cacheRoot, "_system_textures"),
-            Path.Combine(cacheRoot, "_effects"));
-        GLProgramBuilder.UseBinaryCache(gl, Path.Combine(cacheRoot, "_glprograms"));
+        var directories = new AssetDirectories(stores.Shaders, stores.DeferredMaterials, stores.SystemTextures, stores.Effects);
+        if (stores.ProgramCache is { } programCache)
+            GLProgramBuilder.UseBinaryCache(gl, programCache);
 
         Resources = new GLResourceCache(gl, Profile.Bindings);
         Targets = new RenderTargets(gl, width, height);
-        Programs = new ShaderProgramCache(gl, decompiledDirectory, Profile.Bindings, Profile.ShaderSources);
+        Programs = new ShaderProgramCache(gl, stores.Shaders, Profile.Bindings, Profile.ShaderSources);
         Drawer = new ShapeDrawer(gl, Programs);
         Timer = new GpuPassTimer(gl);
 

@@ -35,7 +35,7 @@ internal sealed unsafe class CloudDomePass : IDisposable
     double _animBase;
     bool _dumped;
 
-    public CloudDomePass(GpuApi gl, ShaderProgramCache programs, string? systemTexturesDirectory = null)
+    public CloudDomePass(GpuApi gl, ShaderProgramCache programs, Core.Storage.IContentFiles? systemTextures = null)
     {
         _gl = gl;
         if (!programs.Exists("agl_cloud"))
@@ -50,7 +50,7 @@ internal sealed unsafe class CloudDomePass : IDisposable
         _indexCount = indices.Length;
         (_vao, _vbo, _ibo) = UploadMesh(vertices, indices);
 
-        _masks = new CloudMasks(gl, systemTexturesDirectory);
+        _masks = new CloudMasks(gl, systemTextures);
         _composite = new CloudComposite(gl);
     }
 

@@ -1,5 +1,6 @@
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Games.Totk.Sky.Clouds;
 
@@ -14,11 +15,11 @@ public sealed class CloudMasks : IDisposable
     readonly GpuApi _gl;
     readonly uint[] _masks = new uint[Count];
 
-    public CloudMasks(GpuApi gl, string? systemTexturesDirectory)
+    public CloudMasks(GpuApi gl, IContentFiles? systemTextures)
     {
         _gl = gl;
         for (int slot = 0; slot < Count; slot++)
-            _masks[slot] = LoadOrFallback(gl, systemTexturesDirectory, FileName(slot), slot == 0 ? 0.65f : 0.5f);
+            _masks[slot] = LoadOrFallback(gl, systemTextures, FileName(slot), slot == 0 ? 0.65f : 0.5f);
         ScatterPlaceholder = CreatePlaceholder(gl, 0.05f);
     }
 
@@ -38,9 +39,9 @@ public sealed class CloudMasks : IDisposable
 
     // An R8 texture swizzled to RRRR as the game's BC4 textures are, with a full mip chain, since the dome's far end would otherwise
     // sample a 512x512 mask far below its resolution and alias into speckle.
-    static unsafe uint LoadOrFallback(GpuApi gl, string? directory, string name, float fallbackValue)
+    static unsafe uint LoadOrFallback(GpuApi gl, IContentFiles? files, string name, float fallbackValue)
     {
-        if (!TryRead(directory, name, out byte[] pixels, out int width, out int height))
+        if (!TryRead(files, name, out byte[] pixels, out int width, out int height))
             return CreatePlaceholder(gl, fallbackValue);
 
         uint texture = gl.GenTexture();
@@ -59,24 +60,15 @@ public sealed class CloudMasks : IDisposable
         return texture;
     }
 
-    static bool TryRead(string? directory, string name, out byte[] pixels, out int width, out int height)
+    static bool TryRead(IContentFiles? files, string name, out byte[] pixels, out int width, out int height)
     {
         pixels = [];
         width = height = 0;
-        if (string.IsNullOrEmpty(directory))
+        if (SystemTexture.TryRead(files, name) is not { Channels: 1 } texture)
             return false;
 
-        string dataPath = Path.Combine(directory, name + ".r8");
-        string dimsPath = Path.Combine(directory, name + ".dims.txt");
-        if (!File.Exists(dataPath) || !File.Exists(dimsPath))
-            return false;
-
-        string[] dims = File.ReadAllText(dimsPath).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (dims.Length < 2 || !int.TryParse(dims[0], out width) || !int.TryParse(dims[1], out height))
-            return false;
-
-        pixels = File.ReadAllBytes(dataPath);
-        return pixels.Length >= width * height;
+        (pixels, width, height) = (texture.Texels, texture.Width, texture.Height);
+        return true;
     }
 
     static unsafe uint CreatePlaceholder(GpuApi gl, float value)

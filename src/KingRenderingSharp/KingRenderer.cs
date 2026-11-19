@@ -75,8 +75,7 @@ public sealed class KingRenderer : IDisposable
 
         using (GLHostState.Enter(gl))
         {
-            Pipeline = new DeferredPipeline(gl, cache.Shaders, initialWidth, initialHeight, new TotkProfile(),
-                cache.DeferredMaterials, cache.SystemTextures);
+            Pipeline = new DeferredPipeline(gl, ContentStores.FromCache(cache), initialWidth, initialHeight, new TotkProfile());
             View = new SceneView(gl, Pipeline);
             ExternalTextures = new ExternalTextures(gl);
             SharedTextures = new SharedTextures(gl);

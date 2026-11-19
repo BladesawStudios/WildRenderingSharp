@@ -1,3 +1,4 @@
+using KingRenderingSharp.Core.Storage;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Games.Totk.Effects;
@@ -6,12 +7,12 @@ namespace KingRenderingSharp.Games.Totk.Effects;
 internal static class ParticleTexture
 {
     // The texture as a mipmapped, repeating GL texture, or 0 when the emitter has none.
-    public static unsafe uint Load(GpuApi gl, string path)
+    public static unsafe uint Load(GpuApi gl, IContentFiles effects, string name)
     {
-        if (!File.Exists(path))
+        if (!effects.Exists(name))
             return 0;
 
-        byte[] file = File.ReadAllBytes(path);
+        byte[] file = effects.ReadBytes(name);
         int width = BitConverter.ToInt32(file, 0), height = BitConverter.ToInt32(file, sizeof(int));
         uint handle = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, handle);

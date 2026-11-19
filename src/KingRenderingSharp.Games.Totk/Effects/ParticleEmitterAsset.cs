@@ -1,22 +1,21 @@
 using System.Runtime.InteropServices;
-using System.Text.Json;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Games.Totk.Effects;
 
-/// <summary>A prepared particle emitter read back from the cache: its manifest, its static block, and its mesh.</summary>
+/// <summary>A prepared particle emitter read back from the content: its manifest, its static block, and its mesh.</summary>
 internal sealed record ParticleEmitterAsset(
     string Id, ParticleEmitterManifest Manifest, byte[] StaticBlock, float[] Positions, float[] Colors, float[] Uvs, uint[] Indices, AreaLoop? AreaLoop)
 {
     // Null when the emitter was not prepared, which leaves the feature that needs it off.
-    public static ParticleEmitterAsset? Load(string shadersDirectory, string effectsDirectory, string id)
+    public static ParticleEmitterAsset? Load(IContentFiles shaders, IContentFiles effects, string id)
     {
-        if (!ParticleEmitterManifest.IsPrepared(shadersDirectory, effectsDirectory, id))
+        if (!ParticleEmitterManifest.IsPrepared(shaders, effects, id))
             return null;
 
-        var manifest = JsonSerializer.Deserialize<ParticleEmitterManifest>(File.ReadAllText(ParticleEmitterManifest.ManifestPath(effectsDirectory, id)))
-            ?? throw new InvalidDataException($"The manifest of effect '{id}' is empty.");
-        byte[] block = File.ReadAllBytes(ParticleEmitterManifest.StaticBlockPath(effectsDirectory, id));
-        byte[] mesh = File.ReadAllBytes(ParticleEmitterManifest.MeshPath(effectsDirectory, id));
+        var manifest = ParticleEmitterManifest.FromBytes(effects.ReadBytes(ParticleEmitterManifest.ManifestFile(id)));
+        byte[] block = effects.ReadBytes(ParticleEmitterManifest.StaticBlockFile(id));
+        byte[] mesh = effects.ReadBytes(ParticleEmitterManifest.MeshFile(id));
 
         // The mesh file holds the positions, then the colours, then the texture coordinates, then the indices.
         int positionBytes = manifest.VertexCount * 3 * sizeof(float), colorBytes = manifest.VertexCount * 4 * sizeof(float), uvBytes = manifest.VertexCount * 2 * sizeof(float);
@@ -27,6 +26,6 @@ internal sealed record ParticleEmitterAsset(
             [.. MemoryMarshal.Cast<byte, float>(mesh.AsSpan(positionBytes, colorBytes))],
             [.. MemoryMarshal.Cast<byte, float>(mesh.AsSpan(positionBytes + colorBytes, uvBytes))],
             [.. MemoryMarshal.Cast<byte, uint>(mesh.AsSpan(positionBytes + colorBytes + uvBytes))],
-            File.Exists(ParticleEmitterManifest.PluginPath(effectsDirectory, id)) ? new AreaLoop(File.ReadAllBytes(ParticleEmitterManifest.PluginPath(effectsDirectory, id))) : null);
+            effects.Exists(ParticleEmitterManifest.PluginFile(id)) ? new AreaLoop(effects.ReadBytes(ParticleEmitterManifest.PluginFile(id))) : null);
     }
 }

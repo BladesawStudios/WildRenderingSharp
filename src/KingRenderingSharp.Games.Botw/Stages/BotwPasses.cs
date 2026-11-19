@@ -26,12 +26,12 @@ internal sealed class BotwPasses(StageServices services) : IDisposable
     // The pass lighting material IDs idLow to idHigh, or null when the cache has no such pass.
     public BotwPass? Load(string name, float? idLow = null, float? idHigh = null)
     {
-        string? file = Directory.EnumerateFiles(services.Directories.Decompiled, $"deferred_{name}_prog*_extracted.frag").Order().FirstOrDefault();
-        string materialPath = Path.Combine(services.Directories.DeferredMaterials, $"{name}.gsys_material.bin");
-        if (file is null || !File.Exists(materialPath))
+        string? file = services.Directories.Decompiled.Enumerate($"deferred_{name}_prog*_extracted.frag").Order(StringComparer.Ordinal).FirstOrDefault();
+        string materialName = $"{name}.gsys_material.bin";
+        if (file is null || !services.Directories.DeferredMaterials.Exists(materialName))
             return null;
 
-        var block = new MaterialBlock(services.Gl, File.ReadAllBytes(materialPath));
+        var block = new MaterialBlock(services.Gl, services.Directories.DeferredMaterials.ReadBytes(materialName));
         _blocks.Add(block);
         float id = BitConverter.ToSingle(block.Authored[MaterialIdOffset..]);
         float low = idLow ?? id, high = idHigh ?? id;

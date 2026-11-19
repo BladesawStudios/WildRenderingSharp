@@ -1,3 +1,4 @@
+using KingRenderingSharp.Core.Storage;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Core.Logging;
@@ -98,8 +99,8 @@ internal sealed class DeferredScene(GpuApi gl, ShaderProgramCache programs, Asse
     {
         if (!_materialIds.TryGetValue(shape.GBufferShaderName, out var ids))
         {
-            string path = Path.Combine(directories.Decompiled, shape.GBufferShaderName + ".frag");
-            ids = File.Exists(path) ? GBufferMaterialIds.Parse(File.ReadAllText(path)) : [];
+            string name = shape.GBufferShaderName + ".frag";
+            ids = directories.Decompiled.Exists(name) ? GBufferMaterialIds.Parse(directories.Decompiled.ReadText(name)) : [];
             _materialIds[shape.GBufferShaderName] = ids;
         }
         return ids;

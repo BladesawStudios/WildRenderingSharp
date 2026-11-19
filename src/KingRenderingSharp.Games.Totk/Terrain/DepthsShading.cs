@@ -1,3 +1,4 @@
+using KingRenderingSharp.Core.Storage;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Games.Totk.Shaders;
 using KingRenderingSharp.Content.Shaders;
@@ -27,18 +28,17 @@ public sealed class DepthsShading
     const string ImmediatesDeclaration = "layout (binding = 2, std140) uniform _vp_c1\n{\n    precise vec4 data[4096];\n} vp_c1;\n\n";
 
     readonly GpuApi _gl;
-    readonly string _shadersDir;
+    readonly IContentFiles _shaders;
 
-    internal DepthsShading(GpuApi gl, string shadersDir)
+    internal DepthsShading(GpuApi gl, IContentFiles shaders)
     {
         _gl = gl;
-        _shadersDir = shadersDir;
+        _shaders = shaders;
     }
 
     public bool Available => new[] { "depths_prog1", "depths_prog2" }.All(p =>
-        File.Exists(Path.Combine(_shadersDir, p + "_extracted.frag")) && File.Exists(Path.Combine(_shadersDir, p + "_extracted.vert"))
-        && File.Exists(Path.Combine(_shadersDir, p + "_vp_c1.bin")))
-        && File.Exists(Path.Combine(_shadersDir, "depths_gsys_material.bin"));
+        _shaders.Exists(p + "_extracted.frag") && _shaders.Exists(p + "_extracted.vert") && _shaders.Exists(p + "_vp_c1.bin"))
+        && _shaders.Exists("depths_gsys_material.bin");
 
     public uint LinkGBufferProgram() => Link(2);
 
@@ -46,7 +46,7 @@ public sealed class DepthsShading
 
     uint Link(int program)
     {
-        var (vert, frag) = ExtractedProgramSource.Read(_shadersDir, $"depths_prog{program}");
+        var (vert, frag) = ExtractedProgramSource.Read(_shaders, $"depths_prog{program}");
         if (!vert.Contains(PageBufferDeclaration, StringComparison.Ordinal))
             throw new InvalidOperationException($"depths_prog{program}'s vertex stage declares no page buffer - the export changed?");
         vert = vert.Replace(PageBufferDeclaration, ImmediatesDeclaration + PageBufferDeclaration, StringComparison.Ordinal);
@@ -60,8 +60,8 @@ public sealed class DepthsShading
     }
 
     // The vertex stage's table of immediate constants, as the program was exported with it.
-    public byte[] ImmediateConstants() => File.ReadAllBytes(Path.Combine(_shadersDir, "depths_prog2_vp_c1.bin"));
+    public byte[] ImmediateConstants() => _shaders.ReadBytes("depths_prog2_vp_c1.bin");
 
     // The authored bytes of the program's gsys_material block, which the host pads to the block's declared size.
-    public byte[] MaterialDefaults() => File.ReadAllBytes(Path.Combine(_shadersDir, "depths_gsys_material.bin"));
+    public byte[] MaterialDefaults() => _shaders.ReadBytes("depths_gsys_material.bin");
 }

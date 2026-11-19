@@ -26,7 +26,7 @@ public static class TotkFieldHazeEffect
     const int TexelPairs = 1 << 15;
     const int TexelSeed = 0x48A2E;
 
-    public static bool IsExported(CacheLayout cache) => FieldHazeManifest.IsPrepared(cache.Effects);
+    public static bool IsExported(CacheLayout cache) => FieldHazeManifest.IsPrepared(new FolderContentFiles(cache.Effects));
 
     public static void Export(IRomAccess rom, CacheLayout cache)
     {
@@ -44,7 +44,7 @@ public static class TotkFieldHazeEffect
         }
 
         Directory.CreateDirectory(cache.Effects);
-        File.WriteAllText(FieldHazeManifest.Path(cache.Effects), JsonSerializer.Serialize(new FieldHazeManifest(color, [.. levels])));
+        System.IO.File.WriteAllBytes(Path.Combine(cache.Effects, FieldHazeManifest.FileName), (new FieldHazeManifest(color, [.. levels])).ToBytes());
     }
 
     static StructView Emitter(TotkEffectFile file, string set) =>

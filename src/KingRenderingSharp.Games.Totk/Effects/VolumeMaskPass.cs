@@ -1,3 +1,4 @@
+using KingRenderingSharp.Core.Storage;
 using System.Numerics;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Frame;
@@ -29,13 +30,13 @@ internal sealed class VolumeMaskPass : IDisposable
     readonly List<Layer> _layers = [];
     readonly uint _white;
 
-    VolumeMaskPass(GpuApi gl, ShaderProgramCache programs, string effectsDirectory, ParticleEmitterAsset fog, ParticleEmitterAsset? addFog)
+    VolumeMaskPass(GpuApi gl, ShaderProgramCache programs, IContentFiles effects, ParticleEmitterAsset fog, ParticleEmitterAsset? addFog)
     {
         _gl = gl;
         _white = ConstantTextures.Rgba(gl, 1f, 1f, 1f, 1f);
-        _layers.Add(Build(programs, effectsDirectory, fog, ParticleScatter.Single(fog.Manifest), ParticleScatter.SingleClock(fog.Manifest)));
+        _layers.Add(Build(programs, effects, fog, ParticleScatter.Single(fog.Manifest), ParticleScatter.SingleClock(fog.Manifest)));
         if (addFog is not null)
-            _layers.Add(Build(programs, effectsDirectory, addFog, ParticleScatter.InCylinder(addFog.Manifest), ParticleScatter.ShapeClock(addFog.Manifest)));
+            _layers.Add(Build(programs, effects, addFog, ParticleScatter.InCylinder(addFog.Manifest), ParticleScatter.ShapeClock(addFog.Manifest)));
     }
 
     // Null when the fog cylinder was not prepared.
@@ -85,12 +86,12 @@ internal sealed class VolumeMaskPass : IDisposable
         _gl.DeleteTexture(_white);
     }
 
-    Layer Build(ShaderProgramCache programs, string effectsDirectory, ParticleEmitterAsset asset, float[] particles, float clock)
+    Layer Build(ShaderProgramCache programs, IContentFiles effects, ParticleEmitterAsset asset, float[] particles, float clock)
     {
         uint program = programs.Load(ParticleEmitterManifest.ProgramName(asset.Id), patchVertex: ParticleBlocks.Rebind, patchFragment: ParticleBlocks.Rebind);
         var mesh = new ParticleMesh(_gl, asset);
         mesh.SetParticles(particles);
-        return new Layer(asset, program, mesh, ParticleTexture.Load(_gl, ParticleEmitterManifest.TexturePath(effectsDirectory, asset.Id)), clock);
+        return new Layer(asset, program, mesh, ParticleTexture.Load(_gl, effects, ParticleEmitterManifest.TextureFile(asset.Id)), clock);
     }
 
     void Draw(GLResourceCache resources, FrameSetup setup, Layer layer)

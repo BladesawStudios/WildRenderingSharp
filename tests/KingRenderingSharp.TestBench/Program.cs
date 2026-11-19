@@ -102,7 +102,7 @@ if (options.ContainsKey("check-water-shader"))
     // Compiles the game's terrain water fragment stage as the renderer patches it, for a host-less check of the patch.
     var patch = typeof(KingRenderer).Assembly.GetType("KingRenderingSharp.Games.Totk.Terrain.TerrainShading")!
         .GetMethod("PatchedWaterFragment", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-    string source = (string)patch.Invoke(null, [Path.Combine(cache.Root, "_shaders")])!;
+    string source = (string)patch.Invoke(null, [new FolderContentFiles(Path.Combine(cache.Root, "_shaders"))])!;
     uint shader = gl.CreateShader(ShaderType.FragmentShader);
     gl.ShaderSource(shader, source);
     gl.CompileShader(shader);

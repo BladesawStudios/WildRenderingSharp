@@ -15,13 +15,13 @@ internal sealed class ForwardNeutralInputs : IDisposable
     readonly GpuApi _gl;
     readonly uint _white, _volumeMask, _noise3D, _arrayWhite, _shadowCascades;
 
-    public ForwardNeutralInputs(GpuApi gl, string? systemTexturesDirectory)
+    public ForwardNeutralInputs(GpuApi gl, Core.Storage.IContentFiles? systemTextures)
     {
         _gl = gl;
         _white = ConstantTextures.Rgba(gl, 1, 1, 1, 1);
         _volumeMask = ConstantTextures.Rgba(gl, 0, 0, 0, 0);
         _arrayWhite = ConstantTextures.RgbaArray(gl, 1, 1, 1, 1);
-        _noise3D = NoiseVolume(systemTexturesDirectory);
+        _noise3D = NoiseVolume(systemTextures);
         _shadowCascades = NoShadowCascades();
     }
 
@@ -65,22 +65,17 @@ internal sealed class ForwardNeutralInputs : IDisposable
     }
 
     // cTex_Proc3DNoise: the extracted Worley and Perlin volume, else a flat mid-grey that makes every branch sampling it uniform.
-    uint NoiseVolume(string? systemTexturesDirectory)
+    uint NoiseVolume(Core.Storage.IContentFiles? systemTextures)
     {
-        if (systemTexturesDirectory is { } dir)
-        {
-            string data = Path.Combine(dir, "Proc3DNoise.r8"), dims = Path.Combine(dir, "Proc3DNoise.dims.txt");
-            if (File.Exists(data) && File.Exists(dims) && TryUploadNoise(data, dims) is { } handle)
-                return handle;
-        }
+        if (Core.Storage.SystemTexture.TryRead(systemTextures, "Proc3DNoise") is { Channels: 1 } texture && TryUploadNoise(texture) is { } handle)
+            return handle;
         return FallbackNoise();
     }
 
-    unsafe uint? TryUploadNoise(string dataPath, string dimsPath)
+    unsafe uint? TryUploadNoise(Core.Storage.SystemTexture texture)
     {
-        var parts = File.ReadAllText(dimsPath).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        int w = int.Parse(parts[0]), h = int.Parse(parts[1]), d = int.Parse(parts[2]);
-        byte[] raw = File.ReadAllBytes(dataPath);
+        int w = texture.Width, h = texture.Height, d = texture.Depth;
+        byte[] raw = texture.Texels;
         if (raw.Length != w * h * d)
             return null;
 

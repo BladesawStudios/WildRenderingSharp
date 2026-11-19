@@ -3,6 +3,7 @@ using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Games.Totk.Shaders;
 using KingRenderingSharp.Content.Shaders;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Games.Totk.Deferred.Resolve;
 
@@ -11,7 +12,7 @@ static class DeferredPassLoader
 {
     public const string FieldFallbackPass = "chara_nonmetal";
 
-    public static List<ResolvedDeferredPass> Load(GpuApi gl, ShaderProgramCache programs, string decompiledDir, string deferredMaterialsDir,
+    public static List<ResolvedDeferredPass> Load(GpuApi gl, ShaderProgramCache programs, IContentFiles decompiled, IContentFiles deferredMaterials,
         IEnumerable<string> passNames)
     {
         var resolved = new List<ResolvedDeferredPass>();
@@ -19,13 +20,13 @@ static class DeferredPassLoader
         foreach (string requested in passNames)
         {
             passIndex++;
-            if (FindProgram(decompiledDir, requested) is not var (name, source))
+            if (FindProgram(decompiled, requested) is not var (name, source))
                 continue;
 
             // The resolve is drawn at the frame's size, so the depth it gathers at its own pixel is the full-resolution one.
             uint program = programs.Load(source, patchFragment: f => PixelCentreGather.Anchor(f, "cTex_NormalizedLinearDepth"));
-            string materialPath = Path.Combine(deferredMaterialsDir, $"{name}.gsys_material.bin");
-            var material = MaterialBlock.FromFile(gl, materialPath);
+            string materialPath = $"{name}.gsys_material.bin";
+            var material = MaterialBlock.From(gl, deferredMaterials, materialPath);
             if (material.Authored.Length == 0)
                 Log.Warning($"  [warn] no deferred gsys_material for pass '{name}' at '{materialPath}' - resolving with an all-zero Mat block");
 
@@ -37,9 +38,9 @@ static class DeferredPassLoader
 
     // The pass and program a requested name resolves to. A pass with no program of its own (an o_material_behave nothing maps,
     // exported as an empty name) is lit as the common case rather than left unlit.
-    static (string Name, string Source)? FindProgram(string decompiledDir, string name)
+    static (string Name, string Source)? FindProgram(IContentFiles decompiled, string name)
     {
-        if (Find(decompiledDir, name) is { } own)
+        if (Find(decompiled, name) is { } own)
             return (name, own);
         if (name == FieldFallbackPass)
         {
@@ -48,15 +49,15 @@ static class DeferredPassLoader
         }
 
         Log.Warning($"  [approx] no extracted deferred shader for pass '{name}'; resolving through {FieldFallbackPass}");
-        if (Find(decompiledDir, FieldFallbackPass) is { } fallback)
+        if (Find(decompiled, FieldFallbackPass) is { } fallback)
             return (FieldFallbackPass, fallback);
         Log.Warning($"  [skip] no extracted deferred shader for pass '{FieldFallbackPass}'");
         return null;
     }
 
     // The program a pass is extracted as, by its file name without the extension, or null when it was not extracted.
-    public static string? Find(string decompiledDir, string name) =>
+    public static string? Find(IContentFiles decompiled, string name) =>
         name.Length == 0 ? null
-            : Directory.EnumerateFiles(decompiledDir, $"deferred_{name}_prog*_extracted.frag")
+            : decompiled.Enumerate($"deferred_{name}_prog*_extracted.frag")
                 .OrderBy(f => f, StringComparer.Ordinal).Select(Path.GetFileNameWithoutExtension).FirstOrDefault();
 }
