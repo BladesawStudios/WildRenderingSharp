@@ -79,50 +79,34 @@ public sealed class PackAnimationTests
     }
 
     [PackFact]
-    public void EveryMaterialPatternAndVisibilityAnimationOfAPackIsWrittenAndLoads()
+    public void EveryMaterialPatternAndVisibilityAnimationOfAPackLoadsFromTheSource()
     {
         using AssetPack pack = AssetPack.Open(Path.Combine(Folder!, "model.bfap"));
         string model = Environment.GetEnvironmentVariable("KRS_PARITY_MODEL") ?? "Npc_Zelda_AncientHyrule";
         string packModel = pack.Of(PackEntryKind.Model).Select(e => e.Name).First(n => n == model || n.StartsWith(model + "/", StringComparison.Ordinal));
         string[] stems = [.. pack.Of(PackEntryKind.MaterialAnim).Concat(pack.Of(PackEntryKind.VisibilityAnim)).Concat(pack.Of(PackEntryKind.ShapeAnim)).Select(e => e.Name[..e.Name.IndexOf('/')]).Append(model).Distinct()];
-        string output = Path.Combine(Path.GetTempPath(), "krs-anims-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(output);
-        try
+        using PackTextureFiles textures = new(pack);
+        PackModelSource source = new(pack, new PackPrograms(new Dictionary<string, BfShaderSharp.Prepared.PreparedArchive>()), textures, packModel, model, stems);
+
+        foreach (string name in source.MaterialAnims)
         {
-            List<string> problems = [];
-            using PackTextureFiles textures = new(pack);
-            int materials = new PackMaterialAnimExporter(pack, textures).Export(stems, pack.Model(packModel)!, model, output, problems);
-            int visibility = PackVisibilityAnimExporter.Export(pack, stems, model, output, problems);
-
-            foreach (string name in MaterialAnimManifest.ListAvailable(output, model))
+            MaterialAnimManifest clip = source.MaterialAnim(name);
+            Assert.NotEmpty(clip.Materials);
+            foreach (MaterialAnimTarget target in clip.Materials.SelectMany(m => m.Targets))
             {
-                MaterialAnimManifest clip = MaterialAnimManifest.Load(Path.Combine(output, $"{model}.{name}.matanim.json"));
-                Assert.NotEmpty(clip.Materials);
-                foreach (MaterialAnimTarget target in clip.Materials.SelectMany(m => m.Targets))
-                {
-                    foreach (float frame in new[] { 0f, clip.FrameCount / 2f, clip.FrameCount })
-                        Assert.True(float.IsFinite(BitConverter.UInt32BitsToSingle(target.Bits(frame))) || target.IsInt, $"{name}: {target.Param} at {frame}");
-                }
+                foreach (float frame in new[] { 0f, clip.FrameCount / 2f, clip.FrameCount })
+                    Assert.True(float.IsFinite(BitConverter.UInt32BitsToSingle(target.Bits(frame))) || target.IsInt, $"{name}: {target.Param} at {frame}");
             }
-
-            foreach (string name in TexturePatternAnimManifest.ListAvailable(output, model))
-            {
-                TexturePatternAnimManifest clip = TexturePatternAnimManifest.Load(Path.Combine(output, $"{model}.{name}.texpat.json"));
-                foreach (TexturePatternSamplerEntry sampler in clip.Materials.SelectMany(m => m.Samplers))
-                    Assert.InRange(sampler.Evaluate(0), -1, Math.Max(0, clip.Textures.Count - 1));
-            }
-
-            foreach (string name in VisibilityAnimManifest.ListAvailable(output, model))
-            {
-                VisibilityAnimManifest clip = VisibilityAnimManifest.Load(Path.Combine(output, $"{model}.{name}.visanim.json"));
-                foreach (VisibilityAnimEntry entry in clip.Entries) _ = entry.VisibleAt(0);
-            }
-
-            Assert.Equal(materials + visibility, Directory.EnumerateFiles(output, "*.json").Count());
         }
-        finally
+
+        foreach (string name in source.TexturePatternAnims)
         {
-            Directory.Delete(output, true);
+            TexturePatternAnimManifest clip = source.TexturePatternAnim(name);
+            foreach (TexturePatternSamplerEntry sampler in clip.Materials.SelectMany(m => m.Samplers))
+                Assert.InRange(sampler.Evaluate(0), -1, Math.Max(0, clip.Textures.Count - 1));
         }
+
+        foreach (string name in source.VisibilityAnims)
+            foreach (VisibilityAnimEntry entry in source.VisibilityAnim(name).Entries) _ = entry.VisibleAt(0);
     }
 }
