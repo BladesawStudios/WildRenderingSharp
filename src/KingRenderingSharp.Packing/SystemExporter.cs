@@ -28,6 +28,15 @@ internal static class SystemExporter
             }
 
             log($"{written} cloud masks written to {layout.SystemTextures}");
+            Directory.CreateDirectory(layout.Shaders);
+            int agl = 0;
+            foreach (PackEntry entry in opened.Of(PackEntryKind.GameData).Where(e => e.Name.StartsWith(AglShaderImporter.Prefix, StringComparison.Ordinal)))
+            {
+                File.WriteAllBytes(Path.Combine(layout.Shaders, entry.Name[AglShaderImporter.Prefix.Length..]), opened.Bytes(entry.Key));
+                agl++;
+            }
+
+            log($"{agl} agl shader stages written to {layout.Shaders}");
             int tiles = BakeExporter.Export(opened, layout.Bake);
             log($"{tiles} bake tiles written to {layout.Bake}");
             return 0;
