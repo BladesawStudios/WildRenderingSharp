@@ -28,6 +28,7 @@ Content.Assets.Textures.SharedTextures
 Content.Graphics.Contracts.EnvironmentLighting
 Content.Graphics.Contracts.IFrameEnvironment
 Content.Graphics.Contracts.PresentGrade
+Content.Packs.PackPrograms
 Content.Rendering.Cameras.Camera
 Content.Rendering.GLDebug
 Content.Rendering.Lighting.BackgroundMode
