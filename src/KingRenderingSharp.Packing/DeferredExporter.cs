@@ -13,7 +13,7 @@ static class DeferredExporter
     // A Tears of the Kingdom dump keeps its packs zstd compressed, a Breath of the Wild dump does not.
     public static bool IsBotw(string romfs) => File.Exists(Path.Combine(romfs, "Pack", "Bootup_Graphics.pack"));
 
-    public static int Export(string romfs, CacheLayout layout, Action<string> log)
+    public static int Export(string romfs, SystemFolders layout, Action<string> log)
     {
         string work = Path.Combine(Path.GetTempPath(), "krs-deferred-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(work);

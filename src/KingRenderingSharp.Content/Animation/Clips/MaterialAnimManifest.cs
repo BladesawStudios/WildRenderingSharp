@@ -28,16 +28,6 @@ public sealed class MaterialAnimManifest : IAnimClip
 
     public bool IsTextureSrt => string.Equals(Kind, "TexSrt", StringComparison.Ordinal);
 
-    static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public static MaterialAnimManifest Load(string path)
-    {
-        return JsonSerializer.Deserialize<MaterialAnimManifest>(CacheFiles.ReadAllBytes(path), JsonOptions)
-            ?? throw new InvalidDataException($"'{path}' did not deserialize to a material anim manifest.");
-    }
 
-    public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.matanim.json")
-            .Select(n => n[(modelName.Length + 1)..^".matanim.json".Length])
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 }

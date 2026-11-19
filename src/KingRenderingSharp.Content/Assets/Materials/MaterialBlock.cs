@@ -58,7 +58,6 @@ internal sealed class MaterialBlock : IDisposable
     public bool IsPatched { get; private set; }
 
     // A block read from an exported file; a missing file is an all-zero block.
-    public static MaterialBlock FromFile(GpuApi gl, string path) => new(gl, CacheFiles.Exists(path) ? CacheFiles.ReadAllBytes(path) : []);
 
     // A block read from a store; a file the store lacks is an all-zero block.
     public static MaterialBlock From(GpuApi gl, IContentFiles files, string name) => new(gl, files.Exists(name) ? files.ReadBytes(name) : []);

@@ -11,8 +11,7 @@ using KingRenderingSharp.Content.Shaders;
 namespace KingRenderingSharp.Games.Totk.Terrain;
 
 /// <summary>
-/// The game's terrain water - <c>Shader/terrain_water</c>'s program 98, exported by the preparer
-/// (<c>ShaderLibrary.CompileTool.ExportTerrainWater</c>) - for a host's water.
+/// The game's terrain water - <c>Shader/terrain_water</c>'s program 98, imported by the preparer into the system pack - for a host's water.
 /// </summary>
 public sealed partial class TerrainShading
 {

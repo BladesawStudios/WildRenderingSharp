@@ -5,7 +5,7 @@ namespace KingRenderingSharp.Content.Assets.Manifests;
 
 /// <summary>
 /// One shape from a model's manifest - everything <c>KingRenderingSharp.Content.Assets.ModelLoader</c> needs to draw it, with no BFRES/BNSH
-/// parsing of its own (that already happened offline in <c>ShaderLibrary.CompileTool</c>).
+/// parsing of its own (that already happened offline in <c>KingRenderingSharp.Packing</c>).
 /// </summary>
 internal sealed class ShapeManifestEntry
 {

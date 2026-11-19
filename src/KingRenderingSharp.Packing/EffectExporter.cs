@@ -63,7 +63,7 @@ internal static class EffectExporter
     static StructView Fields(EffectFile file, string set, string emitter) => new(PtclLayouts.For(PtclVersion.TotK_NintendoWareVfx2_15_3_1).Emitter, file.EmitterData(set, emitter));
 
     /// <summary>Returns the number of emitters and the haze levels written.</summary>
-    public static (int Emitters, int HazeLevels) Export(AssetPack pack, CacheLayout layout, Action<string> log)
+    public static (int Emitters, int HazeLevels) Export(AssetPack pack, SystemFolders layout, Action<string> log)
     {
         if (pack.GameData(EffectImporter.FileEntry(File_)) is not { } bytes) return (0, 0);
         EffectFile file = EffectFile.Open(bytes);
@@ -73,7 +73,7 @@ internal static class EffectExporter
         return (VolumeMask.Length, levels);
     }
 
-    static void ExportEmitter(AssetPack pack, EffectFile file, Emitter emitter, CacheLayout layout)
+    static void ExportEmitter(AssetPack pack, EffectFile file, Emitter emitter, SystemFolders layout)
     {
         byte[] data = file.EmitterData(emitter.Set, emitter.Name);
         StructView fields = new(PtclLayouts.For(PtclVersion.TotK_NintendoWareVfx2_15_3_1).Emitter, data);
@@ -130,7 +130,7 @@ internal static class EffectExporter
         }
     }
 
-    static int ExportHaze(AssetPack pack, EffectFile file, CacheLayout layout)
+    static int ExportHaze(AssetPack pack, EffectFile file, SystemFolders layout)
     {
         (byte[] resource, IReadOnlyList<uint> modelIds) = file.Models();
         List<FieldHazeLevel> levels = [];

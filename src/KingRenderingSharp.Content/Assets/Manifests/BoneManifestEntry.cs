@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace KingRenderingSharp.Content.Assets.Manifests;
 
-/// <summary>One bone from <c>&lt;Model&gt;.skeleton.json</c>, written by <c>ShaderLibrary.CompileTool.ExportTestBench.ExportSkeleton</c>.</summary>
+/// <summary>One bone of a model's skeleton, as the pack's records say.</summary>
 public sealed class BoneManifestEntry
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";

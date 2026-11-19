@@ -26,16 +26,6 @@ public sealed class SkeletalAnimManifest : IAnimClip
     // All animation curves for all bones being animated.
     [JsonPropertyName("bone_anims")] public List<BoneAnimManifestEntry> BoneAnims { get; set; } = [];
 
-    static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public static SkeletalAnimManifest Load(string path)
-    {
-        return JsonSerializer.Deserialize<SkeletalAnimManifest>(CacheFiles.ReadAllBytes(path), JsonOptions)
-            ?? throw new InvalidDataException($"'{path}' did not deserialize to a skeletal anim manifest.");
-    }
 
-    public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.anim.json")
-            .Select(n => n[(modelName.Length + 1)..^".anim.json".Length])
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 }

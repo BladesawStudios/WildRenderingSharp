@@ -6,17 +6,4 @@ namespace KingRenderingSharp.Core.Storage;
 /// <param name="SystemTextures">The sky and noise textures (<c>SunDisc.tex</c>).</param>
 /// <param name="Effects">The effect data: particle emitters, the field haze.</param>
 /// <param name="ProgramCache">A folder to keep linked program binaries in, or null for none.</param>
-public sealed record ContentStores(IContentFiles Shaders, IContentFiles DeferredMaterials, IContentFiles SystemTextures, IContentFiles Effects, string? ProgramCache)
-{
-    /// <summary>The stores of a cache folder prepared the older way.</summary>
-    public static ContentStores FromCache(CacheLayout cache) => new(
-        new FolderContentFiles(cache.Shaders), new FolderContentFiles(cache.DeferredMaterials), new FolderContentFiles(cache.SystemTextures),
-        new FolderContentFiles(cache.Effects), Path.Combine(cache.Root, "_glprograms"));
-
-    /// <summary>The stores of a folder of shaders alone, with its neighbours named as a cache names them.</summary>
-    public static ContentStores FromShaders(string shadersDirectory)
-    {
-        string root = Path.GetDirectoryName(shadersDirectory) ?? shadersDirectory;
-        return FromCache(new CacheLayout(root));
-    }
-}
+public sealed record ContentStores(IContentFiles Shaders, IContentFiles DeferredMaterials, IContentFiles SystemTextures, IContentFiles Effects, string? ProgramCache);

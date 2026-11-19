@@ -10,7 +10,7 @@ namespace KingRenderingSharp.Packing;
 internal static class SystemExporter
 {
     /// <summary>Writes the system data into the cache's loose folders, for <see cref="SystemSealer"/> to fold into the pack. A step that fails costs the feature it makes and is logged; the pass that composes the picture is what the renderer cannot start without.</summary>
-    public static int Export(string romfs, CacheLayout layout, Action<string> log)
+    public static int Export(string romfs, SystemFolders layout, Action<string> log)
     {
         List<string> failures = [];
         void Step(string name, Action step)
@@ -69,7 +69,7 @@ internal static class SystemExporter
     }
 
     // The cloud dome's masks and the sky bodies' textures, as the files of the system textures store.
-    static int WriteSystemTextures(AssetPack opened, CacheLayout layout)
+    static int WriteSystemTextures(AssetPack opened, SystemFolders layout)
     {
         Directory.CreateDirectory(layout.SystemTextures);
         int written = 0;
@@ -89,7 +89,7 @@ internal static class SystemExporter
         return written;
     }
 
-    static int WriteAglShaders(AssetPack opened, CacheLayout layout)
+    static int WriteAglShaders(AssetPack opened, SystemFolders layout)
     {
         Directory.CreateDirectory(layout.Shaders);
         int written = 0;

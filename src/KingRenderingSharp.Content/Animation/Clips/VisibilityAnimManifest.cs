@@ -21,16 +21,7 @@ public sealed class VisibilityAnimManifest : IAnimClip
 
     public bool IsBone => string.Equals(Kind, "Bone", StringComparison.Ordinal);
 
-    static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public static VisibilityAnimManifest Load(string path) =>
-        JsonSerializer.Deserialize<VisibilityAnimManifest>(CacheFiles.ReadAllBytes(path), JsonOptions)
-            ?? throw new InvalidDataException($"'{path}' did not deserialize to a visibility anim manifest.");
-
-    public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.visanim.json")
-            .Select(n => n[(modelName.Length + 1)..^".visanim.json".Length])
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>One bone or material of a visibility animation: its visibility before any key and the curve that drives it, if any.</summary>

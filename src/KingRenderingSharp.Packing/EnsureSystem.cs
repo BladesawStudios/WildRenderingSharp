@@ -11,7 +11,11 @@ static class EnsureSystem
         // Preparer processes start together, so the one that gets here first makes the pack and the others wait and find it there.
         using CacheLock gate = CacheLock.Acquire(layout, "system-assets");
         if (File.Exists(layout.SystemPack)) return 0;
-        int exit = SystemExporter.Export(romfs, layout, log);
-        return exit != 0 ? exit : SystemSealer.Seal(layout, log);
+        SystemFolders folders = new(layout);
+        folders.Clear();
+        int exit = SystemExporter.Export(romfs, folders, log);
+        int result = exit != 0 ? exit : SystemSealer.Seal(folders, log);
+        folders.Clear();
+        return result;
     }
 }

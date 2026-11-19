@@ -28,9 +28,9 @@ public sealed class FolderContentFiles(string directory) : IContentFiles
 {
     public string Directory { get; } = directory;
 
-    public bool Exists(string name) => CacheFiles.Exists(Path.Combine(Directory, name));
+    public bool Exists(string name) => File.Exists(Path.Combine(Directory, name));
 
-    public byte[] ReadBytes(string name) => CacheFiles.ReadAllBytes(Path.Combine(Directory, name));
+    public byte[] ReadBytes(string name) => File.ReadAllBytes(Path.Combine(Directory, name));
 
     public IEnumerable<string> Enumerate(string pattern) =>
         System.IO.Directory.Exists(Directory) ? System.IO.Directory.EnumerateFiles(Directory, pattern).Select(f => Path.GetFileName(f)!) : [];

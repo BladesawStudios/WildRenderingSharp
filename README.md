@@ -13,7 +13,7 @@ using KingRenderingSharp.Rom.Games;
 using KingRenderingSharp.Storage;
 
 // Off the GL thread: shared assets (cheap after the first run), then the actor.
-IModelPreparer preparer = new OutOfProcessPreparer();      // or new InProcessPreparer()
+IModelPreparer preparer = new OutOfProcessPreparer();
 await preparer.EnsureSystemAssetsAsync(romfs, CacheLayout.Default);
 string model = await preparer.PrepareAsync(new PrepareRequest(romfs, "Npc_Zelda", CacheLayout.Default));
 
@@ -39,16 +39,16 @@ uint? texture = renderer.Render(camera, width, height, deltaSeconds);
 
 ### Build integration
 
-Reference `src/KingRenderingSharp/KingRenderingSharp.csproj` (and the Preparation project, for
-in-process preparation), and import the targets file:
+Reference `src/KingRenderingSharp/KingRenderingSharp.csproj` and import the targets file:
 
 ```xml
 <ProjectReference Include="vendor\KingRenderingSharp\src\KingRenderingSharp\KingRenderingSharp.csproj" />
 <Import Project="vendor\KingRenderingSharp\build\KingRenderingSharp.targets" />
 ```
 
-It builds the out-of-process preparer into `krs-prepare\` beside your executable, on build and on publish. Set
-`<KrsOutOfProcessPreparer>false</KrsOutOfProcessPreparer>` if you prepare in-process.
+It builds the pack tool, `KingRenderingSharp.Packing`, into `krs-pack\` beside your executable, on build and on publish; `OutOfProcessPreparer` runs it.
+The cache it writes is one `system.bfgd` (programs, deferred material blocks, system textures, effects and grass programs), a `.bfap` pack with a folder of
+prepared shader archives for each model under `_packs\`, and the packs of baked lighting under `_bake\`. `GrassPrograms.Of(cache)` reads the grass programs.
 
 ## Architecture
 
@@ -63,11 +63,13 @@ dotnet build KingRenderingSharp.slnx
 
 The dependencies are managed submodules under `vendor/`, so preparation needs no Windows binaries (it has not been run on Linux yet). Everything targets net10.0.
 
-`KingRenderingSharp.Preparation` on its own:
+`KingRenderingSharp.Packing` on its own:
 
 ```bash
-KingRenderingSharp.Preparation ensure-system --romfs <romfs> [--cache <dir>]
-KingRenderingSharp.Preparation prepare --romfs <romfs> --actor <name> [--cache <dir>] [--game totk|botw] [--mod <romfs dir>]... [--no-anims] [--force]
+KingRenderingSharp.Packing ensure-system --romfs <romfs> [--cache <dir>]
+KingRenderingSharp.Packing prepare --romfs <romfs> --actor <name> [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]
+KingRenderingSharp.Packing prepare-batch --romfs <romfs> --list <file> [--cache <dir>] [--mod <romfs dir>]... [--jobs <n>]
+KingRenderingSharp.Packing prepare-bake --romfs <romfs> --list <file> [--cache <dir>]
 ```
 
 A headless GL bench renders one actor to a PNG for checking changes without a host:

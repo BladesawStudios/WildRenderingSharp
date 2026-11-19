@@ -20,9 +20,6 @@ internal sealed class ModelLoader(GpuApi gl, ShaderProgramCache programs, Extern
     public bool DeferVertexArrays { get; init; }
 
     /// <summary>Loads a prepared model folder, the way an older preparation wrote it.</summary>
-    public LoadedModel Load(string directory, bool enableKnownDecompilerCorrections = true) =>
-        Load(new DirectoryModelSource(directory), enableKnownDecompilerCorrections);
-
     public LoadedModel Load(IModelSource source, bool enableKnownDecompilerCorrections = true)
     {
         var manifest = source.Manifest;

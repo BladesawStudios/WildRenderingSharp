@@ -4,23 +4,13 @@ using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Content.Assets.Manifests;
 
-/// <summary>Deserialized <c>&lt;Model&gt;.manifest.json</c>, written by <c>ShaderLibrary.CompileTool.ExportManifest</c>.</summary>
+/// <summary>What a model's shapes are: their materials, programs, samplers and render state, as the pack's records say.</summary>
 internal sealed class ModelManifest
 {
     [JsonPropertyName("model")] public string Model { get; set; } = "";
     [JsonPropertyName("vertex_stride")] public int VertexStride { get; set; } = 192;
     [JsonPropertyName("vertex_layout")] public List<VertexLayoutEntry> VertexLayout { get; set; } = [];
     [JsonPropertyName("shapes")] public List<ShapeManifestEntry> Shapes { get; set; } = [];
-
-    static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
-
-    public static ModelManifest Load(string manifestPath)
-    {
-        var manifest = JsonSerializer.Deserialize<ModelManifest>(CacheFiles.ReadAllBytes(manifestPath), JsonOptions)
-            ?? throw new InvalidDataException($"'{manifestPath}' did not deserialize to a manifest.");
-        manifest.ClampEyes();
-        return manifest;
-    }
 
     // An eye's textures are read through coordinates that are moved, scaled and turned by hand, which the game never does, so a texture the game tiles would tile in the eye again once the
     // coordinates leave 0..1. Every sampler of a material named for an eye clamps instead, which is the same everywhere the coordinates stay inside.
@@ -31,16 +21,12 @@ internal sealed class ModelManifest
                 (sampler.WrapU, sampler.WrapV) = ("Clamp", "Clamp");
     }
 
+    /// <summary>The names of the models a cache has packs for.</summary>
     public static IEnumerable<string> ListAvailableModels(string cacheRoot)
     {
-        IEnumerable<string> folders = Directory.Exists(cacheRoot)
-            ? Directory.EnumerateDirectories(cacheRoot)
-                .Select(Path.GetFileName)
-                .Where(n => n is not null && ModelFiles.IsPrepared(Path.Combine(cacheRoot, n), $"{n}.manifest.json"))
-                .Select(n => n!)
-            : [];
         string packs = Path.Combine(cacheRoot, "_packs");
-        IEnumerable<string> packed = Directory.Exists(packs) ? Directory.EnumerateFiles(packs, "*.bfap").Select(f => Path.GetFileNameWithoutExtension(f)) : [];
-        return folders.Concat(packed).Distinct(StringComparer.Ordinal).OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+        return Directory.Exists(packs)
+            ? Directory.EnumerateFiles(packs, "*.bfap").Select(f => Path.GetFileNameWithoutExtension(f)).Order(StringComparer.OrdinalIgnoreCase)
+            : [];
     }
 }

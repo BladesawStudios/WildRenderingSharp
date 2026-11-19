@@ -8,8 +8,7 @@
     loading, the model preparers and per-actor posing. The layers it draws with are the projects it references.
 
     Parses no BFRES/BFSHA of its own. Everything it draws comes from a cache written by
-    KingRenderingSharp.Preparation (in-process, or out-of-process through OutOfProcessPreparer for
-    hosts whose own BfresLibrary build would clash with ShaderLibrary's - see that class).
+    KingRenderingSharp.Packing, which OutOfProcessPreparer runs as a child process.
   -->
 
   <PropertyGroup>

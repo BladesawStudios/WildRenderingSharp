@@ -20,18 +20,8 @@ public sealed class TexturePatternAnimManifest : IAnimClip
     [JsonPropertyName("textures")] public List<TexturePatternTextureEntry> Textures { get; set; } = [];
     [JsonPropertyName("materials")] public List<TexturePatternMaterialEntry> Materials { get; set; } = [];
 
-    static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public static TexturePatternAnimManifest Load(string path)
-    {
-        return JsonSerializer.Deserialize<TexturePatternAnimManifest>(CacheFiles.ReadAllBytes(path), JsonOptions)
-            ?? throw new InvalidDataException($"'{path}' did not deserialize to a texture pattern anim manifest.");
-    }
 
-    public static IEnumerable<string> ListAvailable(string dataDirectory, string modelName) =>
-        ModelFiles.EnumerateFiles(dataDirectory, $"{modelName}.*.texpat.json")
-            .Select(n => n[(modelName.Length + 1)..^".texpat.json".Length])
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
 
     public SamplerBinding? BindingFor(int textureIndex, string samplerKey)
     {

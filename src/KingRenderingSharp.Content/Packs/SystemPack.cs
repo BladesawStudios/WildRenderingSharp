@@ -21,14 +21,12 @@ public sealed class SystemPack : IDisposable
 
     public ContentStores Stores { get; }
 
-    /// <summary>The stores of a cache: the system pack's when it has one, with the folder's programs behind them (a game whose models are not packed prepares its programs into the folder), otherwise the folders'. The pack stays open for the life of the process, for a tool that holds no owner for it.</summary>
+    /// <summary>The stores of a cache's system pack, the shaders layered so the programs of models can be added to them. The pack stays open for the life of the process, for a tool that holds no owner for it.</summary>
     public static ContentStores StoresOf(CacheLayout cache)
     {
-        if (!File.Exists(cache.SystemPack)) return ContentStores.FromCache(cache);
+        if (!File.Exists(cache.SystemPack)) throw new FileNotFoundException($"The cache at '{cache.Root}' has no system pack; run the preparer's ensure-system first.", cache.SystemPack);
         ContentStores stores = new SystemPack(cache.SystemPack, Path.Combine(cache.Root, "_glprograms")).Stores;
-        LayeredContentFiles shaders = new(stores.Shaders);
-        shaders.Add(new FolderContentFiles(cache.Shaders));
-        return stores with { Shaders = shaders };
+        return stores with { Shaders = new LayeredContentFiles(stores.Shaders) };
     }
 
     public PackContentFiles Store(string name) => new(_pack, name, _stamp);

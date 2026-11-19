@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Prepares a model of a game's romfs through BfShaderSharp (an asset pack and prepared shader archives) and writes it as the cache KingRenderingSharp loads.
-    A tool of its own: BfShaderSharp's shader translator and the ShaderLibrary build the older preparer uses are both assemblies named Ryujinx.Graphics.Shader and
-    cannot share a process.
+    The offline half of the renderer: reads a game's romfs through BfShaderSharp and writes the cache KingRenderingSharp loads, a system pack for the data that belongs
+    to no model and a pack with its prepared shader archives for each model. A tool of its own, run as a child process by the host, so the libraries it reads the game
+    with never meet the host's.
   -->
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <Description>Prepares Breath of the Wild / Tears of the Kingdom models into a KingRenderingSharp cache through BfShaderSharp's asset packs.</Description>
+    <Description>Prepares Breath of the Wild / Tears of the Kingdom data into a KingRenderingSharp cache through BfShaderSharp's asset packs.</Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -101,13 +101,29 @@ if (options.ContainsKey("check-water-shader"))
     // Compiles the game's terrain water fragment stage as the renderer patches it, for a host-less check of the patch.
     var patch = typeof(KingRenderer).Assembly.GetType("KingRenderingSharp.Games.Totk.Terrain.TerrainShading")!
         .GetMethod("PatchedWaterFragment", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-    string source = (string)patch.Invoke(null, [new FolderContentFiles(Path.Combine(cache.Root, "_shaders"))])!;
+    string source = (string)patch.Invoke(null, [KingRenderingSharp.Content.Packs.SystemPack.StoresOf(cache).Shaders])!;
     uint shader = gl.CreateShader(ShaderType.FragmentShader);
     gl.ShaderSource(shader, source);
     gl.CompileShader(shader);
     gl.GetShader(shader, ShaderParameterName.CompileStatus, out int compiled);
     Console.WriteLine(compiled != 0 ? "water fragment: compiles" : "water fragment: FAILED " + gl.GetShaderInfoLog(shader));
     return compiled != 0 ? 0 : 1;
+}
+
+if (options.ContainsKey("check-grass-programs"))
+{
+    // Reads every grass program of the cache's system pack through the public reader.
+    var grass = KingRenderingSharp.Content.Packs.GrassPrograms.Of(cache) ?? throw new InvalidOperationException("the cache has no grass programs");
+    int missing = 0;
+    foreach (string kind in KingRenderingSharp.Content.Packs.GrassPrograms.Kinds)
+        foreach (string stage in KingRenderingSharp.Content.Packs.GrassPrograms.Stages)
+        {
+            var read = grass.Read(kind, stage);
+            if (read is null) { missing++; Console.WriteLine($"{kind}{stage}: missing"); }
+            else Console.WriteLine($"{kind}{stage}: {read.Glsl.Length} chars, {read.Constants.Count} constants, {read.Blocks.Count} blocks, {read.Samplers.Count} samplers");
+        }
+    Console.WriteLine($"material block {grass.Material.Length} bytes; {missing} missing");
+    return missing == 0 && grass.Material.Length > 0 ? 0 : 1;
 }
 
 if (options.ContainsKey("check-terrain-programs"))
@@ -163,15 +179,6 @@ if (instanceCount == 0 && mixModels.Count == 0)
     if (options.TryGetValue("force-forward", out var forceForward))
         foreach (var shape in actor.Model.Shapes.Where(s => s.Material.Contains(forceForward, StringComparison.OrdinalIgnoreCase)))
             shape.ForceForward = true;
-    // Animations held at a frame, as "m:<name>=<frame>" (shader parameters) or "t:<name>=<frame>" (texture patterns), comma separated.
-    foreach (string held in Option("hold", "").Split(',', StringSplitOptions.RemoveEmptyEntries))
-    {
-        string[] part = held[2..].Split('=');
-        string file = Path.Combine(cache.ModelDirectory(model), $"{model}.{part[0]}.{(held[0] == 'm' ? "matanim" : "texpat")}.json");
-        if (!File.Exists(file)) { Console.WriteLine($"hold: no {file}"); continue; }
-        if (held[0] == 'm') actor.ShaderParam.Add(KingRenderingSharp.Content.Animation.Clips.MaterialAnimManifest.Load(file)).Seek(float.Parse(part[1]));
-        else actor.TexturePattern.Add(KingRenderingSharp.Content.Animation.Clips.TexturePatternAnimManifest.Load(file)).Seek(float.Parse(part[1]));
-    }
 }
 if (game == "totk")
     TotkBenchOptions.Apply(renderer, options);

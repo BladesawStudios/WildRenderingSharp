@@ -14,7 +14,7 @@ internal static class TerrainWaterExporter
     const string Material = "TranslucentNear";
 
     /// <summary>Returns the number of files written.</summary>
-    public static int Export(AssetPack pack, string romfs, CacheLayout layout, Action<string> log)
+    public static int Export(AssetPack pack, string romfs, SystemFolders layout, Action<string> log)
     {
         if (pack.GameData(TerrainWaterImporter.EntryName("frag")) is null) return 0;
         Directory.CreateDirectory(layout.Shaders);

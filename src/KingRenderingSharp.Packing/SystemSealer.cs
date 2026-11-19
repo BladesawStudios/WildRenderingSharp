@@ -5,10 +5,10 @@ using KingRenderingSharp.Core.Storage;
 namespace KingRenderingSharp.Packing;
 
 /// <summary>Folds the loose folders the system data was prepared into (programs, deferred material blocks, system textures, effects, grass programs) into the one pack the renderer reads, and removes them.</summary>
-/// <remarks>The renderer draws from <see cref="CacheLayout.SystemPack"/> alone once it exists. The bake tiles, which are prepared on demand and later, stay where they are.</remarks>
+/// <remarks>The renderer draws from the system pack alone. The bake tiles, which are prepared on demand and later, stay where they are.</remarks>
 static class SystemSealer
 {
-    public static int Seal(CacheLayout layout, Action<string> log)
+    public static int Seal(SystemFolders layout, Action<string> log)
     {
         (string Store, string Folder)[] stores =
         [
@@ -35,8 +35,6 @@ static class SystemSealer
         }
 
         File.Move(temporary, layout.SystemPack, true);
-        foreach ((_, string folder) in stores)
-            if (Directory.Exists(folder)) Directory.Delete(folder, true);
         log($"{files} system files sealed into {layout.SystemPack}");
         return 0;
     }

@@ -9,11 +9,3 @@ internal interface IFileSource
 
     byte[] Bytes(string file);
 }
-
-/// <summary>The files of a folder, read through the cache's compression.</summary>
-internal sealed class FolderFiles(string directory) : IFileSource
-{
-    public bool Has(string file) => CacheFiles.Exists(Path.Combine(directory, file));
-
-    public byte[] Bytes(string file) => CacheFiles.ReadAllBytes(Path.Combine(directory, file));
-}

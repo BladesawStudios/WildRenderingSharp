@@ -7,7 +7,7 @@ namespace KingRenderingSharp.Packing;
 /// <summary>Writes the terrain, cave and depths programs a pack holds as the files the renderer reads from the shaders folder: each program's stages, the default material block and, for the depths, the immediate constants.</summary>
 internal static class ShadingExporter
 {
-    public static int Export(AssetPack pack, CacheLayout layout)
+    public static int Export(AssetPack pack, SystemFolders layout)
     {
         Directory.CreateDirectory(layout.Shaders);
         int written = 0;

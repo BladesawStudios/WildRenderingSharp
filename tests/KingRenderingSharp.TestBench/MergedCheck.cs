@@ -1,4 +1,3 @@
-using System.Text.Json;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Games.Totk.Shaders;
 using KingRenderingSharp.Core.Storage;
@@ -10,29 +9,28 @@ static class MergedCheck
 {
     public static int Run(GpuApi gl, CacheLayout cache, int limit)
     {
-        string shaders = Path.Combine(cache.Root, "_shaders");
-        var names = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (string manifest in Directory.EnumerateFiles(cache.Root, "*.manifest.json", SearchOption.AllDirectories))
+        // The programs of every model the cache has a pack for, by the names its shapes give them.
+        var packs = new List<KingRenderingSharp.Content.Packs.ModelPack>();
+        var names = new SortedDictionary<string, KingRenderingSharp.Content.Packs.ModelPack>(StringComparer.Ordinal);
+        foreach (string model in KingRenderingSharp.Content.Assets.Manifests.ModelManifest.ListAvailableModels(cache.Root))
         {
-            string text = File.ReadAllText(manifest);
-            if (text.Length == 0)
-                continue;
-            using var doc = JsonDocument.Parse(text);
-            foreach (var shape in doc.RootElement.GetProperty("shapes").EnumerateArray())
-                foreach (string key in new[] { "gbuffer_shader", "zonly_shader" })
-                    if (shape.TryGetProperty(key, out var value) && value.GetString() is { Length: > 0 } name)
-                        names.Add(name);
+            var pack = new KingRenderingSharp.Content.Packs.ModelPack(cache.ModelPack(model), cache.ModelShaders(model), model);
+            packs.Add(pack);
+            foreach (var shape in pack.Source.Manifest.Shapes)
+                foreach (string name in new[] { shape.GBufferShader, shape.ZOnlyShader })
+                    if (name.Length > 0) names.TryAdd(name, pack);
         }
 
         var sources = new TotkShaderSources();
         int compiled = 0, ordinary = 0, failed = 0;
         var failures = new Dictionary<string, List<string>>();
-        foreach (string name in names.Take(limit))
+        foreach (string name in names.Keys.Take(limit))
         {
-            if (!File.Exists(Path.Combine(shaders, name + ".vert")) || !File.Exists(Path.Combine(shaders, name + ".frag")))
+            var programs = names[name].Programs;
+            if (!programs.Exists(name + ".vert") || !programs.Exists(name + ".frag"))
                 continue;
-            string vertex = sources.Clean(File.ReadAllText(Path.Combine(shaders, name + ".vert")));
-            string fragment = sources.Clean(File.ReadAllText(Path.Combine(shaders, name + ".frag")));
+            string vertex = sources.Clean(programs.ReadText(name + ".vert"));
+            string fragment = sources.Clean(programs.ReadText(name + ".frag"));
             if (MergedShaderPatch.Apply(vertex, fragment) is not var (v, f))
             {
                 ordinary++;
@@ -57,6 +55,7 @@ static class MergedCheck
         Console.WriteLine($"merged programs: {compiled} compiled, {ordinary} left to the ordinary draw, {failed} failed, of {Math.Min(limit, names.Count)}");
         foreach (var (kind, list) in failures.OrderByDescending(p => p.Value.Count).Take(8))
             Console.WriteLine($"  {list.Count} x {kind}   e.g. {list[0]}");
+        foreach (var pack in packs) pack.Dispose();
         return failed == 0 ? 0 : 1;
     }
 }

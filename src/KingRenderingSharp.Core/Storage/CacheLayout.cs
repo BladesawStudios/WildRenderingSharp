@@ -1,8 +1,8 @@
 namespace KingRenderingSharp.Core.Storage;
 
 /// <summary>
-/// Where prepared data lives on disk - the one contract between the offline half (<c>KingRenderingSharp.Preparation</c>, which
-/// writes it) and the live half (this assembly, which reads it and parses nothing else).
+/// Where prepared data lives on disk - the one contract between the offline half (<c>KingRenderingSharp.Packing</c>, which
+/// writes it) and the live half (this assembly, which reads it and parses nothing else): the system pack, a pack and its shader archives for each model, and the bake packs.
 /// </summary>
 public sealed record CacheLayout(string Root)
 {
@@ -16,26 +16,9 @@ public sealed record CacheLayout(string Root)
 
     public static CacheLayout Default => new(DefaultRoot);
 
-    // Where the textures of every prepared model are kept, once each.
-    public string Textures => Path.Combine(Root, CacheFiles.TextureFolder);
-
-    public string Shaders => Path.Combine(Root, "_shaders");
-
-    public string DeferredMaterials => Path.Combine(Root, "_deferred_materials");
-
-    public string SystemTextures => Path.Combine(Root, "_system_textures");
-
-    public string GrassShaders => Path.Combine(Root, "_grass_shaders");
-
-    public string Effects => Path.Combine(Root, "_effects");
-
-
     public string Bake => Path.Combine(Root, "_bake");
 
     public string ModelDirectory(string resolvedModelName) => Path.Combine(Root, resolvedModelName);
-
-    public string ManifestPath(string resolvedModelName) =>
-        Path.Combine(ModelDirectory(resolvedModelName), $"{resolvedModelName}.manifest.json");
 
     // Where the packs of the prepared models are kept: <name>.bfap, and beside it <name>.shaders with the prepared archives of the shaders it uses.
     public string Packs => Path.Combine(Root, "_packs");
@@ -47,8 +30,7 @@ public sealed record CacheLayout(string Root)
     // The pack of the data that belongs to no model: programs, system textures, effects.
     public string SystemPack => Path.Combine(Root, "system.bfgd");
 
-    public bool IsPrepared(string resolvedModelName) =>
-        File.Exists(ModelPack(resolvedModelName)) || ModelFiles.IsPrepared(ModelDirectory(resolvedModelName), $"{resolvedModelName}.manifest.json");
+    public bool IsPrepared(string resolvedModelName) => File.Exists(ModelPack(resolvedModelName));
 
-    public bool HasSystemAssets => File.Exists(SystemPack) || File.Exists(Path.Combine(Shaders, "agl_hdr_compose.vert"));
+    public bool HasSystemAssets => File.Exists(SystemPack);
 }

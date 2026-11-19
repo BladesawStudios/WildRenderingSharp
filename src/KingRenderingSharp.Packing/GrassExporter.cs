@@ -8,7 +8,7 @@ namespace KingRenderingSharp.Packing;
 internal static class GrassExporter
 {
     /// <summary>Returns the number of files written; none when the pack has no grass programs.</summary>
-    public static int Export(AssetPack pack, CacheLayout layout)
+    public static int Export(AssetPack pack, SystemFolders layout)
     {
         if (pack.GameData(GrassShaderImporter.MaterialEntry) is not { } material) return 0;
         Directory.CreateDirectory(layout.GrassShaders);
