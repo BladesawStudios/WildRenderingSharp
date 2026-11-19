@@ -1,5 +1,3 @@
-using Silk.NET.OpenGL;
-using Silk.NET.OpenGL.Extensions.ARB;
 
 namespace KingRenderingSharp.Gpu;
 
@@ -11,8 +9,8 @@ public sealed class GLHostState : IDisposable
 {
     public const int SavedBufferBindings = 16;
 
-    readonly GL _gl;
-    readonly ArbClipControl? _clipControl;
+    readonly GpuApi _gl;
+    readonly bool _clipControl;
     bool _disposed;
 
     // Saved host state.
@@ -40,12 +38,12 @@ public sealed class GLHostState : IDisposable
         EnableCap.RasterizerDiscard, EnableCap.SampleAlphaToCoverage, EnableCap.Multisample,
     ];
 
-    GLHostState(GL gl)
+    GLHostState(GpuApi gl)
     {
         _gl = gl;
-        _clipControl = ClipOrigin.Extension(gl);
+        _clipControl = gl.SupportsClipControl;
 
-        if (_clipControl is not null)
+        if (_clipControl)
         {
             // An error the host left pending would otherwise read as "clip control queries are unsupported" below.
             DrainErrors(gl);
@@ -102,7 +100,7 @@ public sealed class GLHostState : IDisposable
         ApplyDefaults();
     }
 
-    public static GLHostState Enter(GL gl) => new(gl);
+    public static GLHostState Enter(GpuApi gl) => new(gl);
 
     (int, long, long) ReadIndexed(GLEnum binding, GLEnum start, GLEnum size, uint index)
     {
@@ -116,7 +114,7 @@ public sealed class GLHostState : IDisposable
     {
         var gl = _gl;
         if (_clipKnown && (_clipOrigin != (int)GLEnum.LowerLeft || _clipDepth != (int)GLEnum.NegativeOneToOne))
-            _clipControl!.ClipControl((ARB)GLEnum.LowerLeft, (ARB)GLEnum.NegativeOneToOne);
+            _gl.SetClipControl(GLEnum.LowerLeft, GLEnum.NegativeOneToOne);
 
         gl.ColorMask(true, true, true, true);
         gl.DepthMask(true);
@@ -149,7 +147,7 @@ public sealed class GLHostState : IDisposable
         var gl = _gl;
 
         if (_clipKnown)
-            _clipControl!.ClipControl((ARB)_clipOrigin, (ARB)_clipDepth);
+            _gl.SetClipControl((GLEnum)_clipOrigin, (GLEnum)_clipDepth);
 
         gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)_readFbo);
         gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, (uint)_drawFbo);
@@ -188,7 +186,7 @@ public sealed class GLHostState : IDisposable
         DrainErrors(gl);
     }
 
-    static void DrainErrors(GL gl)
+    static void DrainErrors(GpuApi gl)
     {
         for (int i = 0; i < 32 && gl.GetError() != GLEnum.NoError; i++) { }
     }

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Ubos;
 using KingRenderingSharp.Graph.Pipeline.Frame;
@@ -36,7 +35,7 @@ internal sealed class GamePreShading(StageServices services, DeferredScene scene
     // The field programs read their tiles' flags from a storage buffer at this binding.
     const uint TileFlagsBinding = 0;
 
-    readonly GL _gl = services.Gl;
+    readonly GpuApi _gl = services.Gl;
     readonly PreShadingFramebuffer _charaFramebuffer = new(services.Gl, writesAmbient: false);
     readonly PreShadingFramebuffer _fieldFramebuffer = new(services.Gl, writesAmbient: true);
     readonly PreShadingTextures _textures = new(services.Gl);

@@ -1,11 +1,10 @@
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Gpu;
 
 /// <summary>Single-texel textures that stand in for inputs a shader reads but the frame has nothing for.</summary>
 internal static class ConstantTextures
 {
-    public static unsafe uint Rgba(GL gl, float r, float g, float b, float a)
+    public static unsafe uint Rgba(GpuApi gl, float r, float g, float b, float a)
     {
         uint handle = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, handle);
@@ -16,7 +15,7 @@ internal static class ConstantTextures
         return handle;
     }
 
-    public static unsafe uint RgbaArray(GL gl, float r, float g, float b, float a)
+    public static unsafe uint RgbaArray(GpuApi gl, float r, float g, float b, float a)
     {
         uint handle = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2DArray, handle);

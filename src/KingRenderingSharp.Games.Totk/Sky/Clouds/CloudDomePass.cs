@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Data;
 using KingRenderingSharp.Content.Graphics.Ubos;
@@ -23,7 +22,7 @@ internal sealed unsafe class CloudDomePass : IDisposable
     // Drawn at the dome's true size, which the shader's distance fades are calibrated against.
     const float DomeScale = 1f;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
     readonly uint _vao, _vbo, _ibo;
     readonly int _indexCount;
@@ -36,7 +35,7 @@ internal sealed unsafe class CloudDomePass : IDisposable
     double _animBase;
     bool _dumped;
 
-    public CloudDomePass(GL gl, ShaderProgramCache programs, string? systemTexturesDirectory = null)
+    public CloudDomePass(GpuApi gl, ShaderProgramCache programs, string? systemTexturesDirectory = null)
     {
         _gl = gl;
         if (!programs.Exists("agl_cloud"))

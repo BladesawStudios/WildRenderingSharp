@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Targets;
@@ -7,10 +6,10 @@ namespace KingRenderingSharp.Graph.Pipeline.Targets;
 /// <summary>Reads a colour texture back to the CPU through a framebuffer of its own.</summary>
 sealed unsafe class PixelReadback : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _framebuffer;
 
-    public PixelReadback(GL gl)
+    public PixelReadback(GpuApi gl)
     {
         _gl = gl;
         _framebuffer = gl.GenFramebuffer();

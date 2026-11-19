@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Ubos;
@@ -12,7 +11,7 @@ namespace KingRenderingSharp.Graph.Pipeline.Passes;
 /// Draws blended materials forward after the deferred resolve, as the engine does with <c>gsys_assign_material</c> once the scene behind
 /// them is resolved.
 /// </summary>
-internal sealed class ForwardPass(GL gl, FlipBlit flip, ForwardNeutralInputs neutral)
+internal sealed class ForwardPass(GpuApi gl, FlipBlit flip, ForwardNeutralInputs neutral)
 {
     // The forward programs' own inputs go on units the rest of the frame binds once and relies on, so the bindings are put back afterwards.
     readonly TextureBindingSnapshot _bindings = new();

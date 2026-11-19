@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Baking;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -28,7 +27,7 @@ namespace KingRenderingSharp;
 /// </summary>
 public sealed class KingRenderer : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly List<RenderActor> _actors = [];
     readonly List<InstanceBatch> _instances = [];
     readonly ModelFactory _models;
@@ -63,7 +62,7 @@ public sealed class KingRenderer : IDisposable
 
     public (int ActorIndex, int ShapeIndex)? Highlight { get; set; }
 
-    public KingRenderer(GL gl, CacheLayout cache, IRomAccess? rom, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
+    public KingRenderer(GpuApi gl, CacheLayout cache, IRomAccess? rom, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
     {
         GLDebug.GLInit(gl);
         if (!cache.HasSystemAssets)

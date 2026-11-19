@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
 using KingRenderingSharp.Graph.Pipeline.Resources;
 using KingRenderingSharp.Graph.Pipeline.Targets;
@@ -13,9 +13,9 @@ namespace KingRenderingSharp.Graph.Pipeline.Shadows;
 /// </summary>
 internal sealed class ShadowPass
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
 
-    public ShadowPass(GL gl) => _gl = gl;
+    public ShadowPass(GpuApi gl) => _gl = gl;
 
     public readonly record struct LightMatrices(Matrix4x4 View, Matrix4x4 Proj, Matrix4x4 ViewProj);
 

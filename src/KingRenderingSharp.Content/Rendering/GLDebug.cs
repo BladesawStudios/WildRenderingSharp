@@ -1,5 +1,5 @@
-﻿using System.Runtime.InteropServices;
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
+using System.Runtime.InteropServices;
 
 using KingRenderingSharp.Core.Logging;
 namespace KingRenderingSharp.Content.Rendering;
@@ -14,7 +14,7 @@ public class GLDebug {
     /// Register debug callbacks with OpenGL, that output to the current logger
     /// </summary>
     /// <param name="gl">The OpenGL context</param>
-    public static void GLInit(GL gl) {
+    public static void GLInit(GpuApi gl) {
         // The driver reports through a synchronous callback once this is on, which keeps it from queueing work ahead of the thread and costs every call after it.
         if (Environment.GetEnvironmentVariable("PRISM_GLDEBUG") is null && Environment.GetEnvironmentVariable("KRS_GLDEBUG") is null)
             return;
@@ -24,7 +24,7 @@ public class GLDebug {
     }
 
     // OpenGL debug logger callback
-    public readonly static DebugProc DebugProcCallback = DebugCallback;
+    internal readonly static DebugProc DebugProcCallback = DebugCallback;
     private static void DebugCallback(GLEnum source, GLEnum type, int id, GLEnum severity, int length, nint message, nint userParam)
     {
         string msgStr = Marshal.PtrToStringAnsi(message, length);

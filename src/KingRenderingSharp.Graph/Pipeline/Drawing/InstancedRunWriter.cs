@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Textures;
 using KingRenderingSharp.Gpu;
@@ -10,7 +9,7 @@ namespace KingRenderingSharp.Graph.Pipeline.Drawing;
 readonly record struct BakeSlot(int Unit, LoadedTexture Own, int[] AtlasOf);
 
 /// <summary>Draws a batch's visible runs of one shape, merging neighbouring runs and splitting them wherever the baked-lighting atlas changes.</summary>
-sealed unsafe class InstancedRunWriter(GL gl, IndirectStream stream, DrawBindingCache bound)
+sealed unsafe class InstancedRunWriter(GpuApi gl, IndirectStream stream, DrawBindingCache bound)
 {
     const int NoAtlas = int.MinValue;
 

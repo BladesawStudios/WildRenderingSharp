@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Frame;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -26,11 +25,11 @@ internal sealed class VolumeMaskPass : IDisposable
 
     sealed record Layer(ParticleEmitterAsset Asset, uint Program, ParticleMesh Mesh, uint Texture, float Clock);
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly List<Layer> _layers = [];
     readonly uint _white;
 
-    VolumeMaskPass(GL gl, ShaderProgramCache programs, string effectsDirectory, ParticleEmitterAsset fog, ParticleEmitterAsset? addFog)
+    VolumeMaskPass(GpuApi gl, ShaderProgramCache programs, string effectsDirectory, ParticleEmitterAsset fog, ParticleEmitterAsset? addFog)
     {
         _gl = gl;
         _white = ConstantTextures.Rgba(gl, 1f, 1f, 1f, 1f);
@@ -40,7 +39,7 @@ internal sealed class VolumeMaskPass : IDisposable
     }
 
     // Null when the fog cylinder was not prepared.
-    public static VolumeMaskPass? Create(GL gl, ShaderProgramCache programs, AssetDirectories directories) =>
+    public static VolumeMaskPass? Create(GpuApi gl, ShaderProgramCache programs, AssetDirectories directories) =>
         ParticleEmitterAsset.Load(directories.Decompiled, directories.Effects, ParticleEmitterManifest.VolumeMaskId) is { } fog
             ? new VolumeMaskPass(gl, programs, directories.Effects, fog, ParticleEmitterAsset.Load(directories.Decompiled, directories.Effects, ParticleEmitterManifest.AddFogId))
             : null;

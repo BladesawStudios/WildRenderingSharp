@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Ubos;
 using KingRenderingSharp.Graph.Pipeline.Passes;
@@ -20,7 +19,7 @@ internal sealed class DeferredResolvePass : IDisposable
 
     static readonly string ComposeFragmentSource = GlslFiles.Load("Totk/Deferred/DeferredResolve/Compose.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _composeProgram;
     readonly uint _texVolumeMask;
     readonly CubeEnvironment _cubeEnvironment;
@@ -29,7 +28,7 @@ internal sealed class DeferredResolvePass : IDisposable
     string? _tracePass;
     Func<ResolvedDeferredPass, ResolveTrace>? _traceStart;
 
-    public DeferredResolvePass(GL gl, CubeEnvironment cubeEnvironment)
+    public DeferredResolvePass(GpuApi gl, CubeEnvironment cubeEnvironment)
     {
         _gl = gl;
         _composeProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, ComposeFragmentSource, "mask_compose");

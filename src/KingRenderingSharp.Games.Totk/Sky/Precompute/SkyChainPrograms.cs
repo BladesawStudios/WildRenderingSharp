@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Content.Shaders;
@@ -36,7 +35,7 @@ sealed class SkyChainPrograms
     public uint this[string name] => _programs[name];
 
     // Links every program of the chain, or returns null when the shader cache lacks one.
-    public static SkyChainPrograms? Load(GL gl, ShaderProgramCache cache)
+    public static SkyChainPrograms? Load(GpuApi gl, ShaderProgramCache cache)
     {
         foreach (string name in Names.Where(n => !cache.Exists(n)))
         {
@@ -51,7 +50,7 @@ sealed class SkyChainPrograms
     }
 
     // The decompiled per-stage block indices collide once both stages share one program, so each block is rebound explicitly.
-    uint Link(GL gl, ShaderProgramCache cache, string name)
+    uint Link(GpuApi gl, ShaderProgramCache cache, string name)
     {
         uint program = cache.Load(name);
         uint c4 = UsesRenderInfo.Contains(name) ? SkyPrecomputeBlocks.RenderInfo.Binding : SkyPrecomputeBlocks.Config.Binding;

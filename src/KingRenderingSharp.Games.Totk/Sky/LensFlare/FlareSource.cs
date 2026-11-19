@@ -1,9 +1,9 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Games.Totk.Sky.LensFlare;
 
 /// <summary>A ping-pong pair of small HDR targets the flare's bright pass is blurred in; slot 0 is where each blur ends and what the flare samples.</summary>
-sealed class FlareSource(GL gl) : IDisposable
+sealed class FlareSource(GpuApi gl) : IDisposable
 {
     readonly uint[] _textures = new uint[2], _framebuffers = new uint[2];
 

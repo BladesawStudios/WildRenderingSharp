@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Rendering.Cameras;
 using KingRenderingSharp.Content.Rendering.Lighting;
@@ -16,7 +16,7 @@ sealed class TotkScene : ISnapshotScene
     readonly KingRenderer _renderer;
     readonly Scene.RenderActor _actor;
 
-    public TotkScene(GL gl, string romfs, CacheLayout cache, string model, int size)
+    public TotkScene(GpuApi gl, string romfs, CacheLayout cache, string model, int size)
     {
         _rom = TotkRom.Open(romfs);
         _renderer = new KingRenderer(gl, cache, _rom, initialWidth: size, initialHeight: size);

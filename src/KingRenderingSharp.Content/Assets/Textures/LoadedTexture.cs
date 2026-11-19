@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Content.Assets.Textures;
 
@@ -7,7 +7,7 @@ public sealed class LoadedTexture
 {
     public required uint Handle { get; set; }
 
-    public TextureTarget Target { get; init; } = TextureTarget.Texture2D;
+    internal TextureTarget Target { get; init; } = TextureTarget.Texture2D;
     public required int Width { get; init; }
     public required int Height { get; init; }
 

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Graph.Debug;
 using KingRenderingSharp.Gpu;

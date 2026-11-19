@@ -1,5 +1,4 @@
 using System.Text;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Ubos;
 using KingRenderingSharp.Graph.Pipeline;
@@ -11,7 +10,7 @@ namespace KingRenderingSharp.Hosting.Views;
 /// <summary>Describes the exact values of every input the deferred resolve reads, and what it wrote, at the middle of the frame (the same texel in each).</summary>
 static class FrameProbe
 {
-    public static string Describe(GL gl, DeferredPipeline pipeline, RenderTargets targets)
+    public static string Describe(GpuApi gl, DeferredPipeline pipeline, RenderTargets targets)
     {
         var text = new StringBuilder();
         DescribeTextures(text, targets);
@@ -193,11 +192,11 @@ static class FrameProbe
         text.AppendLine("Ctx[16] " + Slot(context, 16) + " | [17] " + Slot(context, 17) + " | [18] " + Slot(context, 18));
     }
 
-    static void DescribeGlState(StringBuilder text, GL gl)
+    static void DescribeGlState(StringBuilder text, GpuApi gl)
     {
         Span<bool> mask = stackalloc bool[4];
         gl.GetBoolean(GetPName.ColorWritemask, mask);
-        text.AppendLine($"GL colour mask {mask[0]} {mask[1]} {mask[2]} {mask[3]}; blend {gl.IsEnabled(EnableCap.Blend)}, " +
+        text.AppendLine($"GpuApi colour mask {mask[0]} {mask[1]} {mask[2]} {mask[3]}; blend {gl.IsEnabled(EnableCap.Blend)}, " +
             $"scissor {gl.IsEnabled(EnableCap.ScissorTest)}, cull {gl.IsEnabled(EnableCap.CullFace)}, depth {gl.IsEnabled(EnableCap.DepthTest)}, stencil {gl.IsEnabled(EnableCap.StencilTest)}");
         Span<bool> indexed = stackalloc bool[4];
         for (uint i = 0; i < 2; i++)

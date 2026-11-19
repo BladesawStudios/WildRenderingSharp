@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Passes;
@@ -13,10 +12,10 @@ internal sealed class ForwardNeutralInputs : IDisposable
 
     static readonly int[] WhiteUnits = [7, 11, 13, 14, 15, 31];
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _white, _volumeMask, _noise3D, _arrayWhite, _shadowCascades;
 
-    public ForwardNeutralInputs(GL gl, string? systemTexturesDirectory)
+    public ForwardNeutralInputs(GpuApi gl, string? systemTexturesDirectory)
     {
         _gl = gl;
         _white = ConstantTextures.Rgba(gl, 1, 1, 1, 1);

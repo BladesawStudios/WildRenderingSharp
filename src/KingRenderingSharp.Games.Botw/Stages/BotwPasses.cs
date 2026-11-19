@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Frame;
@@ -92,7 +91,7 @@ internal sealed class BotwPasses(StageServices services) : IDisposable
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
     }
 
-    static unsafe uint Texture1x1(GL gl, Vector4 color)
+    static unsafe uint Texture1x1(GpuApi gl, Vector4 color)
     {
         uint handle = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, handle);

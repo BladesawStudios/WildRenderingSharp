@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Gpu;
 
@@ -9,10 +8,10 @@ namespace KingRenderingSharp.Gpu;
 /// </remarks>
 sealed unsafe class HalfUnitQuad : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _vao, _vbo;
 
-    public HalfUnitQuad(GL gl, bool topFirst = false)
+    public HalfUnitQuad(GpuApi gl, bool topFirst = false)
     {
         _gl = gl;
         float bottom = topFirst ? 1f : 0f, top = topFirst ? 0f : 1f;

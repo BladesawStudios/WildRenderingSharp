@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Manifests;
 
 namespace KingRenderingSharp.Graph.Pipeline.Drawing;
@@ -7,7 +7,7 @@ namespace KingRenderingSharp.Graph.Pipeline.Drawing;
 internal static class FaceCulling
 {
     // A double-sided lens shaded on both faces became a solid disc, its far side being a fresnel-opaque back face.
-    public static void Apply(GL gl, RenderState state)
+    public static void Apply(GpuApi gl, RenderState state)
     {
         if (state.CulledFace is not { } face)
         {
@@ -19,7 +19,7 @@ internal static class FaceCulling
         gl.CullFace(face);
     }
 
-    public static void Reset(GL gl)
+    public static void Reset(GpuApi gl)
     {
         gl.Disable(EnableCap.CullFace);
         gl.FrontFace(FrontFaceDirection.Ccw);

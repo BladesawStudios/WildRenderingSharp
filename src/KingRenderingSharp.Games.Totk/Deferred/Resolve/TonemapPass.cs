@@ -1,6 +1,5 @@
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Ubos;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
 using KingRenderingSharp.Graph.Pipeline.Targets;
@@ -14,14 +13,14 @@ namespace KingRenderingSharp.Games.Totk.Deferred.Resolve;
 /// </summary>
 internal sealed class TonemapPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _exposureProgram;
     uint _hdrQuadVbo, _hdrQuadVao;
     uint _hdrQuadVaoProgram;
 
     static readonly string ExposureFragmentSource = GlslFiles.Load("Totk/Deferred/Tonemap/Exposure.frag");
 
-    public TonemapPass(GL gl)
+    public TonemapPass(GpuApi gl)
     {
         _gl = gl;
         _exposureProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, ExposureFragmentSource, "exposure");

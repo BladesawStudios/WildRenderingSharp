@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -17,10 +16,10 @@ internal sealed class ShadowFadePass : IDisposable
 {
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/PreShading/ShadowFade.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
-    public ShadowFadePass(GL gl)
+    public ShadowFadePass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "preshading_shadow_fade");

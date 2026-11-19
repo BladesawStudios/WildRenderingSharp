@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Data;
@@ -23,7 +22,7 @@ namespace KingRenderingSharp.Games.Totk.Deferred;
 /// where the hall is seen (<see cref="Stamp"/>), and how far each surface lies behind where the view entered the rock is given to its haze as
 /// <see cref="Thickness"/>.
 /// </remarks>
-internal sealed class EntranceInterior(GL gl) : IDisposable
+internal sealed class EntranceInterior(GpuApi gl) : IDisposable
 {
     readonly uint _stampProgram = Program(gl, "PortalStamp"), _thicknessProgram = Program(gl, "Thickness");
 
@@ -39,7 +38,7 @@ internal sealed class EntranceInterior(GL gl) : IDisposable
     readonly ScreenTarget _thickness = new(gl, InternalFormat.R16f);
     readonly MaskedDepth _depth = new(gl), _hallDepth = new(gl);
 
-    static uint Program(GL gl, string name) =>
+    static uint Program(GpuApi gl, string name) =>
         GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, GlslFiles.Load($"Totk/Deferred/EntranceInterior/{name}.frag"), $"entrance_{name}");
 
     // cTex_LocalReflection for the entrance's pre-shading pass, or 0 when no entrance was drawn this frame.

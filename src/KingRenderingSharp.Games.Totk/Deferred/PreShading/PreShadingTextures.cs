@@ -1,11 +1,10 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Targets;
 
 namespace KingRenderingSharp.Games.Totk.Deferred.PreShading;
 
 /// <summary>The textures the game's pre-shading passes sample, at the units its programs bind them to: the frame's own, and neutral stand-ins for the rest.</summary>
-internal sealed class PreShadingTextures(GL gl) : IDisposable
+internal sealed class PreShadingTextures(GpuApi gl) : IDisposable
 {
     // The programs' sampler bindings.
     const int Albedo = 0, Normal = 1, MaterialId = 2, Emission = 3, LinearDepth = 4, HalfLinearDepth = 5, ShadowCascades = 6,
@@ -77,7 +76,7 @@ internal sealed class PreShadingTextures(GL gl) : IDisposable
         gl.DeleteTexture(_volumeMask);
     }
 
-    static unsafe uint CascadeSampler(GL gl)
+    static unsafe uint CascadeSampler(GpuApi gl)
     {
         uint sampler = gl.GenSampler();
         gl.SamplerParameter(sampler, SamplerParameterI.MinFilter, (int)GLEnum.Linear);

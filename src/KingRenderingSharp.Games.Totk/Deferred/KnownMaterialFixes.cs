@@ -1,6 +1,5 @@
 using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -15,7 +14,7 @@ namespace KingRenderingSharp.Games.Totk.Deferred;
 /// </summary>
 internal sealed class KnownMaterialFixes : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
     public const string EyeVisibilityMaskTextureName = "Cmn_Enemy_DungeonBoss_Eye_Alb";
@@ -32,7 +31,7 @@ internal sealed class KnownMaterialFixes : IDisposable
 
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/KnownMaterialFixes/Main.frag");
 
-    public KnownMaterialFixes(GL gl)
+    public KnownMaterialFixes(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "known_material_fix_eye_visibility_mask");

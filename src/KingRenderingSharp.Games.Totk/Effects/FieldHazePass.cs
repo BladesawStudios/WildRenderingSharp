@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Frame;
 using KingRenderingSharp.Graph.Pipeline.Passes;
@@ -25,11 +24,11 @@ internal sealed class FieldHazePass : IDisposable
 
     static readonly string FragmentSource = GlslFiles.Load("Totk/Effects/FieldHaze.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
     readonly FieldHazeManifest _haze;
 
-    FieldHazePass(GL gl, FieldHazeManifest haze)
+    FieldHazePass(GpuApi gl, FieldHazeManifest haze)
     {
         _gl = gl;
         _haze = haze;
@@ -37,7 +36,7 @@ internal sealed class FieldHazePass : IDisposable
     }
 
     // Null when the haze was not prepared.
-    public static FieldHazePass? Create(GL gl, AssetDirectories directories) =>
+    public static FieldHazePass? Create(GpuApi gl, AssetDirectories directories) =>
         FieldHazeManifest.Load(directories.Effects) is { } haze ? new FieldHazePass(gl, haze) : null;
 
     public void Run(GLResourceCache resources, RenderTargets targets, GpuTexture image, Camera camera, Vector3 tint, float strength, float falloff, float skyInfluence)

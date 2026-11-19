@@ -1,12 +1,11 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Shaders;
 
 namespace KingRenderingSharp.Hosting.Views;
 
 /// <summary>Puts a <see cref="SceneView"/>'s output into a host's framebuffer: copied, blended over its background, or written with depth.</summary>
-internal sealed class FrameCompositor(GL gl) : IDisposable
+internal sealed class FrameCompositor(GpuApi gl) : IDisposable
 {
     // How a host's depth buffer is laid out. Pass is the ordinary in-front test, restored afterwards.
     public readonly record struct DepthLayout(bool Reversed, float ClearDepth, DepthFunction PassOrEqual, DepthFunction Pass);

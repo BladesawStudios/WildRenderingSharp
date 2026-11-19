@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -40,14 +39,14 @@ internal sealed class SkyPrecomputePass : IDisposable
     static readonly string CalibVert = GlslFiles.Load("Totk/Sky/SkyPrecompute/Calib.vert");
     static readonly string CalibFrag = GlslFiles.Load("Totk/Sky/SkyPrecompute/Calib.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly SkyTables? _tables;
     readonly SkyCanvas? _canvas;
     Vector3 _sunWorld = Vector3.UnitY;
     SkyLook _look = SkyLook.Noon;
     uint _calibProgram;
 
-    public SkyPrecomputePass(GL gl, ShaderProgramCache programs)
+    public SkyPrecomputePass(GpuApi gl, ShaderProgramCache programs)
     {
         _gl = gl;
         if (SkyChainPrograms.Load(gl, programs) is not { } chain)

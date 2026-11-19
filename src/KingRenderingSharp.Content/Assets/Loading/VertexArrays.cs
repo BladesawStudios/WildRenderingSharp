@@ -1,10 +1,10 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Manifests;
 
 namespace KingRenderingSharp.Content.Assets.Loading;
 
 /// <summary>Builds the vertex arrays that read a shape's buffers for a program, and for the pass-ID stamp.</summary>
-sealed unsafe class VertexArrays(GL gl)
+sealed unsafe class VertexArrays(GpuApi gl)
 {
     // The pass-ID shader declares position and the four blend attributes, which the stamp skins with so its silhouette and depth match the real draw.
     static readonly string[] PassIdAttributes = ["aPosition", .. VertexCompactor.BlendAttributes];

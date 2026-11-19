@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Graph.Pipeline.Frame;
@@ -8,7 +8,7 @@ using KingRenderingSharp.Content.Shaders;
 namespace KingRenderingSharp.Games.Totk.Deferred.Resolve;
 
 /// <summary>The deferred passes the loaded models (and a terrain host) need, resolved to compiled programs and material buffers.</summary>
-internal sealed class DeferredScene(GL gl, ShaderProgramCache programs, AssetDirectories directories) : IDisposable
+internal sealed class DeferredScene(GpuApi gl, ShaderProgramCache programs, AssetDirectories directories) : IDisposable
 {
     // The pass that lights a host's terrain, and every pixel the pass-ID mask leaves unstamped.
     public const string DefaultPass = "field_hybrid";

@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using KingRenderingSharp;
 using KingRenderingSharp.Content.Graphics;
@@ -66,28 +66,28 @@ var window = Window.Create(WindowOptions.Default with
     API = new GraphicsAPI(ContextAPI.OpenGL, ContextProfile.Core, ContextFlags.ForwardCompatible, new APIVersion(4, 5)),
 });
 window.Initialize();
-using var gl = GL.GetApi(window.GLContext);
+using var gl = GpuApi.Create(window.GLContext);
 Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
 if (options.TryGetValue("bindless-limit", out var limitText))
 {
     // How many bindless handles the driver will keep resident at once, and whether each stays so.
-    var bindless = gl.TryGetExtension(out Silk.NET.OpenGL.Extensions.ARB.ArbBindlessTexture ext) ? ext : throw new InvalidOperationException("no bindless");
+    var bindless = gl.Bindless ?? throw new InvalidOperationException("no bindless");
     int count = int.Parse(limitText), notResident = 0, firstFail = -1, glFaults = 0;
     var handles = new ulong[count];
     for (int i = 0; i < count; i++)
     {
         uint tex = gl.GenTexture();
-        gl.BindTexture(Silk.NET.OpenGL.TextureTarget.Texture2D, tex);
-        gl.TexImage2D(Silk.NET.OpenGL.TextureTarget.Texture2D, 0, Silk.NET.OpenGL.InternalFormat.Rgba8, 16, 16, 0, Silk.NET.OpenGL.PixelFormat.Rgba, Silk.NET.OpenGL.PixelType.UnsignedByte, (ReadOnlySpan<byte>)new byte[16 * 16 * 4]);
-        gl.TexParameter(Silk.NET.OpenGL.TextureTarget.Texture2D, Silk.NET.OpenGL.TextureParameterName.TextureMinFilter, (int)Silk.NET.OpenGL.TextureMinFilter.Linear);
+        gl.BindTexture(TextureTarget.Texture2D, tex);
+        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba8, 16, 16, 0, PixelFormat.Rgba, PixelType.UnsignedByte, (ReadOnlySpan<byte>)new byte[16 * 16 * 4]);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
         handles[i] = bindless.GetTextureHandle(tex);
         bindless.MakeTextureHandleResident(handles[i]);
-        if (gl.GetError() != Silk.NET.OpenGL.GLEnum.NoError) { glFaults++; if (firstFail < 0) firstFail = i; }
+        if (gl.GetError() != GLEnum.NoError) { glFaults++; if (firstFail < 0) firstFail = i; }
     }
     for (int i = 0; i < count; i++)
         if (!bindless.IsTextureHandleResident(handles[i])) { notResident++; if (firstFail < 0) firstFail = i; }
-    Console.WriteLine($"bindless handles: {count} made, {notResident} not resident, {glFaults} GL errors, first problem at {firstFail}");
+    Console.WriteLine($"bindless handles: {count} made, {notResident} not resident, {glFaults} GpuApi errors, first problem at {firstFail}");
     return 0;
 }
 
@@ -271,7 +271,7 @@ Console.WriteLine($"actor draws: {draws.Calls} calls with {draws.Commands} comma
 
 int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
 double luma = Enumerable.Range(0, rgba.Length / 4).Average(i => (rgba[i * 4] + rgba[i * 4 + 1] + rgba[i * 4 + 2]) / 765.0);
-Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, mean luminance {luma:F3}, GL errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
+Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, mean luminance {luma:F3}, GpuApi errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
 
 renderer.Dispose();
 window.Dispose();

@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
 using KingRenderingSharp.Graph.Pipeline.Frame;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -8,7 +8,7 @@ using KingRenderingSharp.Games.Totk.Terrain;
 namespace KingRenderingSharp.Games.Totk.Deferred.PassIds;
 
 /// <summary>Fills the pass-ID mask: first from each shape's named pass, then from the material IDs the G-buffer programs wrote, then with the entrance's pass over a shrine's doorway.</summary>
-internal sealed class PassIdStamper(GL gl, ShapeDrawer drawer, DeferredScene scene, TerrainRenderer terrain, EntranceInterior interior) : IDisposable
+internal sealed class PassIdStamper(GpuApi gl, ShapeDrawer drawer, DeferredScene scene, TerrainRenderer terrain, EntranceInterior interior) : IDisposable
 {
     // The gloom is composed into the G-buffer after the host's draws, so the material ID it writes is not one a host's draw left stale.
     const int GloomId = 32;

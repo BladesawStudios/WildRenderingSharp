@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Graph.Pipeline.Passes;
@@ -22,13 +21,13 @@ internal sealed class LensFlarePass : IDisposable
     public readonly record struct Params(
         float Threshold, float GhostSpacing, Vector3 HaloTint, float HaloRadius, Vector3 Intensity, float Exposure, bool SkyOnly);
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program, _brightProgram, _blurProgram;
     readonly FlareSource _source;
     readonly HalfUnitQuad? _quad;
     bool _logged;
 
-    public LensFlarePass(GL gl, ShaderProgramCache programs)
+    public LensFlarePass(GpuApi gl, ShaderProgramCache programs)
     {
         _gl = gl;
         _source = new FlareSource(gl);

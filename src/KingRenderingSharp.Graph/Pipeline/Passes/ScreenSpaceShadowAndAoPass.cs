@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Graph.Debug;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -36,10 +35,10 @@ internal sealed class ScreenSpaceShadowAndAoPass : IDisposable
     // The cascades a frame's shadows come from - see ShadowCascades.
     public sealed record CascadeParams(uint Texture, Matrix4x4[] ViewProj, float[] TexelWorld, float[] Bias, float[] InvDepthRange, int Size);
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _preshadowProgram, _preshadingFilterProgram, _aoProgram, _blurProgram;
 
-    public ScreenSpaceShadowAndAoPass(GL gl)
+    public ScreenSpaceShadowAndAoPass(GpuApi gl)
     {
         _gl = gl;
         _preshadowProgram = Build("preshadow", PreshadowFragmentSource);

@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Data;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -19,14 +18,14 @@ internal sealed class GloomPass : IDisposable
     // The attachments the compose program's three output locations are written to: emission, albedo and material ID.
     const int EmissionAttachment = 5, AlbedoAttachment = RenderTargets.AlbedoAttachment, MaterialIdAttachment = 0;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly GloomPrograms _programs;
     readonly ScreenTarget _density;
     readonly GloomCube _cube;
     readonly HalfUnitQuad _quad;
     readonly uint _white;
 
-    public GloomPass(GL gl, ShaderProgramCache programs)
+    public GloomPass(GpuApi gl, ShaderProgramCache programs)
     {
         _gl = gl;
         _programs = new GloomPrograms(gl, programs);

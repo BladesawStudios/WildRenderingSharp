@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Materials;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Graphics.Contracts;
 using KingRenderingSharp.Content.Graphics.Ubos;
 
@@ -11,19 +11,19 @@ namespace KingRenderingSharp.Graph.Pipeline.Resources;
 /// </summary>
 internal sealed class GLResourceCache : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly Dictionary<string, UniformBuffer> _ubos = new(StringComparer.Ordinal);
     readonly Dictionary<int, uint> _zeroed = [];
     readonly uint _attributelessVao;
 
-    public GLResourceCache(GL gl, ShaderBindings bindings)
+    public GLResourceCache(GpuApi gl, ShaderBindings bindings)
     {
         _gl = gl;
         Bindings = bindings;
         _attributelessVao = gl.GenVertexArray();
     }
 
-    public GL Gl => _gl;
+    public GpuApi Gl => _gl;
 
     public ShaderBindings Bindings { get; }
 

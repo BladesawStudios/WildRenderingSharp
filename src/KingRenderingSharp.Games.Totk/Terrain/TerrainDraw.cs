@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Games.Totk.Terrain;
 
@@ -11,4 +11,4 @@ namespace KingRenderingSharp.Games.Totk.Terrain;
 /// is a unit direction and <see cref="LightRadius"/> is the half width of the light's view, both zero outside a shadow draw.
 /// </remarks>
 public readonly record struct TerrainDraw(
-    GL Gl, Vector3 CameraPosition, int Cascade, Vector4 Region, Vector3 TowardSun = default, float LightRadius = 0f, int GBufferTargets = 0);
+    GpuApi Gl, Vector3 CameraPosition, int Cascade, Vector4 Region, Vector3 TowardSun = default, float LightRadius = 0f, int GBufferTargets = 0);

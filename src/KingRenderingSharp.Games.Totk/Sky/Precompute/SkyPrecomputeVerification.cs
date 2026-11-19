@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
 using static KingRenderingSharp.Games.Totk.Sky.Precompute.SkyPrecomputePass;
 
@@ -39,7 +39,7 @@ static class SkyPrecomputeVerification
         return (worst < 1e-6f, worst, worstIndex / 4);
     }
 
-    public static bool Run(GL gl, SkyTables tables, int scatteringOrders)
+    public static bool Run(GpuApi gl, SkyTables tables, int scatteringOrders)
     {
         var (sizeOk, sizeError, sizeSlot) = VerifySizeInfoAgainstCapture();
         Log.Info("[SkyPrecomputePass] SizeInfo vs real capture: " +
@@ -87,7 +87,7 @@ static class SkyPrecomputeVerification
     }
 
     // Written when KRS_SKY_DUMP names a file, for diffing against a table lifted from a GPU capture (8 MB).
-    static void DumpInscatter(GL gl, SkyTables tables)
+    static void DumpInscatter(GpuApi gl, SkyTables tables)
     {
         string? path = Environment.GetEnvironmentVariable("KRS_SKY_DUMP");
         if (string.IsNullOrEmpty(path))
@@ -99,7 +99,7 @@ static class SkyPrecomputeVerification
         Log.Info($"[SkyPrecomputePass] dumped inscatter ({InscatterW}x{InscatterH}x{InscatterD}, float32 RGBA) to {path}");
     }
 
-    static unsafe float[] ReadBack2D(GL gl, uint texture, int width, int height)
+    static unsafe float[] ReadBack2D(GpuApi gl, uint texture, int width, int height)
     {
         var texels = new float[width * height * 4];
         gl.BindTexture(TextureTarget.Texture2D, texture);
@@ -108,7 +108,7 @@ static class SkyPrecomputeVerification
         return texels;
     }
 
-    static unsafe float[] ReadBack3D(GL gl, uint texture)
+    static unsafe float[] ReadBack3D(GpuApi gl, uint texture)
     {
         var texels = new float[InscatterW * InscatterH * InscatterD * 4];
         gl.BindTexture(TextureTarget.Texture3D, texture);

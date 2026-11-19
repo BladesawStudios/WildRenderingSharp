@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Targets;
@@ -9,13 +8,13 @@ sealed class ShadowTargets : IDisposable
 {
     public const int MapSize = 4096, DefaultCascadeSize = 2048, MaxCascades = 4;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly TargetTextureFactory _textures;
     readonly uint _mapFramebuffer;
     uint _cascadeFramebuffer, _staticFramebuffer;
     GpuTexture? _cascades, _staticCascades;
 
-    public ShadowTargets(GL gl, TargetTextureFactory textures)
+    public ShadowTargets(GpuApi gl, TargetTextureFactory textures)
     {
         _gl = gl;
         _textures = textures;

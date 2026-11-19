@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Contracts;
 using KingRenderingSharp.Graph.Pipeline;
@@ -10,7 +9,7 @@ using KingRenderingSharp.Content.Rendering.Lighting;
 namespace KingRenderingSharp.Hosting.Views;
 
 /// <summary>Draws a rendered frame into a view's output for the chosen mode: graded and anti-aliased for the beauty views, raw for the diagnostic ones.</summary>
-sealed class ScenePresenter(GL gl) : IDisposable
+sealed class ScenePresenter(GpuApi gl) : IDisposable
 {
     // PassId values are i/255 for a handful of i, scaled up so distinct passes are visible.
     const float PassIdScale = 40f, LastResolveScale = 0.1f;

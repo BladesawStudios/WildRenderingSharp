@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Diagnostics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Rendering.Cameras;
 
 namespace KingRenderingSharp.TestBench;
@@ -9,7 +9,7 @@ static class Timing
 {
     const int Warmup = 30;
 
-    public static void Report(KingRenderer renderer, GL gl, Camera camera, int size, int frames)
+    public static void Report(KingRenderer renderer, GpuApi gl, Camera camera, int size, int frames)
     {
         for (int i = 0; i < Warmup; i++)
             renderer.Render(camera, size, size, 1f / 60f);

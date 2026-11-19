@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Frame;
@@ -32,11 +31,11 @@ internal sealed class PreShadingPass : IDisposable
     // Linear depth at or past this is the sky.
     const float SkyDepth = 0.9999f;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
     readonly MaterialBlock _material;
 
-    PreShadingPass(GL gl, uint program, MaterialBlock material)
+    PreShadingPass(GpuApi gl, uint program, MaterialBlock material)
     {
         _gl = gl;
         _program = program;
@@ -44,7 +43,7 @@ internal sealed class PreShadingPass : IDisposable
     }
 
     // The pass named, or null when its program or its material was not exported.
-    public static PreShadingPass? Load(GL gl, ShaderProgramCache programs, AssetDirectories directories, string name)
+    public static PreShadingPass? Load(GpuApi gl, ShaderProgramCache programs, AssetDirectories directories, string name)
     {
         string? baseName = DeferredPassLoader.Find(directories.Decompiled, name);
         string materialPath = Path.Combine(directories.DeferredMaterials, $"{name}.gsys_material.bin");

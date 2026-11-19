@@ -1,10 +1,9 @@
 using KingRenderingSharp.Gpu;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Games.Botw.Stages;
 
 /// <summary>The buffers the pre-shading passes write, as attachments of one framebuffer, since each pass writes to the locations the game's engine gave it.</summary>
-internal sealed class PreShadingTargets(GL gl) : IDisposable
+internal sealed class PreShadingTargets(GpuApi gl) : IDisposable
 {
     public const int Count = 6;
 

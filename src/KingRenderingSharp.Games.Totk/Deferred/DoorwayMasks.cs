@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
@@ -16,7 +15,7 @@ namespace KingRenderingSharp.Games.Totk.Deferred;
 /// the rock's own alpha test cuts almost nothing there, and its depth is kept so that rock standing in front of it hides it. See PortalMask.frag for how they
 /// combine.
 /// </remarks>
-internal sealed class DoorwayMasks(GL gl) : IDisposable
+internal sealed class DoorwayMasks(GpuApi gl) : IDisposable
 {
     readonly uint _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, GlslFiles.Load("Totk/Deferred/EntranceInterior/PortalMask.frag"),
         "entrance_PortalMask");

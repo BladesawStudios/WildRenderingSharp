@@ -18,6 +18,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Only the context handle a host gives the background loader; the GL API itself stays behind the Gpu project. -->
+    <PackageReference Include="Silk.NET.Core" Version="2.23.0" />
     <ProjectReference Include="..\KingRenderingSharp.Games.Totk\KingRenderingSharp.Games.Totk.csproj" />
     <ProjectReference Include="..\KingRenderingSharp.Games.Botw\KingRenderingSharp.Games.Botw.csproj" />
   </ItemGroup>

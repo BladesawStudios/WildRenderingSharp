@@ -1,10 +1,9 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Targets;
 
 /// <summary>Copies of frame textures kept for looking at the frame between passes.</summary>
-sealed class FrameSnapshots(GL gl, TargetTextureFactory textures)
+sealed class FrameSnapshots(GpuApi gl, TargetTextureFactory textures)
 {
     public const int Slots = 4;
 

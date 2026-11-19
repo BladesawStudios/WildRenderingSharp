@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Games.Totk.Shaders;
@@ -11,7 +11,7 @@ static class DeferredPassLoader
 {
     public const string FieldFallbackPass = "chara_nonmetal";
 
-    public static List<ResolvedDeferredPass> Load(GL gl, ShaderProgramCache programs, string decompiledDir, string deferredMaterialsDir,
+    public static List<ResolvedDeferredPass> Load(GpuApi gl, ShaderProgramCache programs, string decompiledDir, string deferredMaterialsDir,
         IEnumerable<string> passNames)
     {
         var resolved = new List<ResolvedDeferredPass>();

@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
 
@@ -12,10 +11,10 @@ public sealed class CloudMasks : IDisposable
 {
     public const int Count = 3;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint[] _masks = new uint[Count];
 
-    public CloudMasks(GL gl, string? systemTexturesDirectory)
+    public CloudMasks(GpuApi gl, string? systemTexturesDirectory)
     {
         _gl = gl;
         for (int slot = 0; slot < Count; slot++)
@@ -39,7 +38,7 @@ public sealed class CloudMasks : IDisposable
 
     // An R8 texture swizzled to RRRR as the game's BC4 textures are, with a full mip chain, since the dome's far end would otherwise
     // sample a 512x512 mask far below its resolution and alias into speckle.
-    static unsafe uint LoadOrFallback(GL gl, string? directory, string name, float fallbackValue)
+    static unsafe uint LoadOrFallback(GpuApi gl, string? directory, string name, float fallbackValue)
     {
         if (!TryRead(directory, name, out byte[] pixels, out int width, out int height))
             return CreatePlaceholder(gl, fallbackValue);
@@ -80,7 +79,7 @@ public sealed class CloudMasks : IDisposable
         return pixels.Length >= width * height;
     }
 
-    static unsafe uint CreatePlaceholder(GL gl, float value)
+    static unsafe uint CreatePlaceholder(GpuApi gl, float value)
     {
         uint texture = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, texture);

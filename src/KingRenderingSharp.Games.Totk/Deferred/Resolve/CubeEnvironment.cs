@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Games.Totk.Deferred.Resolve;
 
@@ -9,10 +9,10 @@ sealed class CubeEnvironment : IDisposable
     // The cube's edge in texels at its finest level; the field programs read down to level 3, by roughness.
     const int Size = 16;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     Vector3 _sky = new(float.NaN), _ground = new(float.NaN);
 
-    public CubeEnvironment(GL gl)
+    public CubeEnvironment(GpuApi gl)
     {
         _gl = gl;
         Handle = gl.GenTexture();

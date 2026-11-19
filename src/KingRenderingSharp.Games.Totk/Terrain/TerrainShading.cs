@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Contracts;
@@ -14,7 +13,7 @@ namespace KingRenderingSharp.Games.Totk.Terrain;
 /// </summary>
 public sealed partial class TerrainShading : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly string _shadersDir;
     readonly ShaderBindings _bindings;
     MaterialBlock? _material;
@@ -26,7 +25,7 @@ public sealed partial class TerrainShading : IDisposable
     public const int NormalUnit = 17, MaterialUnit = 18, MaterialLinearUnit = 19, BakeUnit = 20, AlbedoArrayUnit = 13, CombinedArrayUnit = 14;
     public const uint TerrainSystemBinding = 11;
 
-    internal TerrainShading(GL gl, string shadersDir, ShaderBindings bindings)
+    internal TerrainShading(GpuApi gl, string shadersDir, ShaderBindings bindings)
     {
         _gl = gl;
         _shadersDir = shadersDir;

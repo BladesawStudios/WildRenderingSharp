@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Core.Logging;
 
 namespace KingRenderingSharp.Gpu;
@@ -9,7 +8,7 @@ internal static class GLDiagnostics
     public static bool VerbosePerPass { get; set; }
         = Environment.GetEnvironmentVariable("KRS_GL_TRACE") == "1";
 
-    public static bool CheckPass(GL gl, string context)
+    public static bool CheckPass(GpuApi gl, string context)
     {
         GpuPassTimer.On(gl)?.Mark(context);
         return VerbosePerPass && Check(gl, context);
@@ -19,7 +18,7 @@ internal static class GLDiagnostics
     // hanging is worse than a truncated report.
     const int MaxDrain = 32;
 
-    public static List<GLEnum> Drain(GL gl)
+    public static List<GLEnum> Drain(GpuApi gl)
     {
         var errors = new List<GLEnum>();
         for (int i = 0; i < MaxDrain; i++)
@@ -32,7 +31,7 @@ internal static class GLDiagnostics
         return errors;
     }
 
-    public static bool Check(GL gl, string context)
+    public static bool Check(GpuApi gl, string context)
     {
         var errors = Drain(gl);
         foreach (var error in errors)
@@ -40,7 +39,7 @@ internal static class GLDiagnostics
         return errors.Count > 0;
     }
 
-    public static bool CheckPending(GL gl, string context)
+    public static bool CheckPending(GpuApi gl, string context)
     {
         var errors = Drain(gl);
         foreach (var error in errors)

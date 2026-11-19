@@ -1,11 +1,10 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Content.Assets.Textures;
 
 /// <summary>Uploads one exported texture, its mip chain and its sampling state, to a new GL texture.</summary>
-sealed class TextureUploader(GL gl, int maxSize = 0)
+sealed class TextureUploader(GpuApi gl, int maxSize = 0)
 {
     bool? _anisotropy;
 

@@ -3,7 +3,6 @@ using KingRenderingSharp.Graph.Pipeline.Resources;
 using KingRenderingSharp.Graph.Pipeline.Targets;
 using KingRenderingSharp.Content.Shaders;
 using System.Numerics;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Graph.Pipeline.Passes;
 
@@ -13,14 +12,14 @@ namespace KingRenderingSharp.Graph.Pipeline.Passes;
 /// </summary>
 internal sealed class LightPrePass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
     // decodeGBuffNormal/viewPos are a direct copy of ScreenSpaceShadowAndAoPass's own (already
     // real-game-verified) versions - same packed-normal encoding, same linear-depth reconstruction.
     static readonly string FragmentSource = GlslFiles.Load("Pipeline/LightPrePass/Main.frag");
 
-    public LightPrePass(GL gl)
+    public LightPrePass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "light_prepass");

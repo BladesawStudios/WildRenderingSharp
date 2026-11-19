@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Textures;
 
 namespace KingRenderingSharp.Graph.Pipeline.Merged;
@@ -33,7 +33,7 @@ internal sealed class TextureResidency : IResidency
     }
 
     // Makes the waiting handles resident, in the current context, which is the one that draws.
-    public void MakeResident(GL gl)
+    public void MakeResident(GpuApi gl)
     {
         ulong[] wanted;
         lock (_handles)
@@ -50,7 +50,7 @@ internal sealed class TextureResidency : IResidency
     }
 
     // Lets go of the handles taken from a texture, just before the texture is deleted, on the render thread that made them resident.
-    public void Release(GL gl, uint texture)
+    public void Release(GpuApi gl, uint texture)
     {
         List<ulong> resident = [];
         lock (_handles)
@@ -72,7 +72,7 @@ internal sealed class TextureResidency : IResidency
     }
 
     // Makes every handle non-resident, for a renderer that is going away, on its render thread.
-    public void ReleaseAll(GL gl)
+    public void ReleaseAll(GpuApi gl)
     {
         ulong[] held;
         lock (_handles)

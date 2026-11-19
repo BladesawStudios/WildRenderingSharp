@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using System.Numerics;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
 
@@ -33,7 +33,7 @@ internal sealed class MergedInstances : IDisposable
     readonly BindlessHandles _handles;
     readonly object _sync;
 
-    public MergedInstances(GL gl, BindlessHandles handles, object sync)
+    public MergedInstances(GpuApi gl, BindlessHandles handles, object sync)
     {
         (_handles, _sync) = (handles, sync);
         Instances = new GrowingBuffer(gl, 16, 1 << 16);

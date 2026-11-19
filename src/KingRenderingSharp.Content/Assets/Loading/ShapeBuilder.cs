@@ -1,5 +1,4 @@
 using KingRenderingSharp.Core.Storage;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -18,7 +17,7 @@ readonly record struct ShapeBuildOptions(bool CompactVertices, bool DeferVertexA
 readonly record struct ShapePrograms(uint GBuffer, uint ZOnly, uint Forward);
 
 /// <summary>Builds the shapes of one model from its manifest: programs, buffers, samplers, material block and vertex arrays.</summary>
-sealed class ShapeBuilder(GL gl, ShaderProgramCache programs, string dataDirectory, TextureCache textures, ModelManifest manifest,
+sealed class ShapeBuilder(GpuApi gl, ShaderProgramCache programs, string dataDirectory, TextureCache textures, ModelManifest manifest,
     ShapeBuildOptions options, bool weightsInert)
 {
     readonly VertexArrays _arrays = new(gl);

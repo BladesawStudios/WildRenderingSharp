@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -13,7 +12,7 @@ internal sealed unsafe class ShapeDrawer : IDisposable
 {
     public const uint BakeTableBinding = 0;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly DrawBindingCache _bound = new();
     readonly IndirectStream _stream;
     readonly InstancedRunWriter _runs;
@@ -21,7 +20,7 @@ internal sealed unsafe class ShapeDrawer : IDisposable
     readonly List<DrawCommand> _commands = [];
     InstanceUniforms _current;
 
-    public ShapeDrawer(GL gl, ShaderProgramCache programs)
+    public ShapeDrawer(GpuApi gl, ShaderProgramCache programs)
     {
         _gl = gl;
         Programs = programs;

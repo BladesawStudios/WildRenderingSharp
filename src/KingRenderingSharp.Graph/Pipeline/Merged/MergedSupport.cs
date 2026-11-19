@@ -1,5 +1,3 @@
-using Silk.NET.OpenGL;
-using Silk.NET.OpenGL.Extensions.ARB;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Merged;
@@ -10,21 +8,21 @@ internal static class MergedSupport
     sealed class State
     {
         public bool? Available;
-        public ArbBindlessTexture? Bindless;
+        public GpuBindless? Bindless;
     }
 
-    public static bool Available(GL gl)
+    public static bool Available(GpuApi gl)
     {
         var state = ContextState<State>.For(gl);
         return state.Available ??= Check(gl, state);
     }
 
-    public static ArbBindlessTexture Bindless(GL gl) =>
+    public static GpuBindless Bindless(GpuApi gl) =>
         ContextState<State>.For(gl).Bindless ?? throw new InvalidOperationException("The context has no bindless textures.");
 
-    static bool Check(GL gl, State state)
+    static bool Check(GpuApi gl, State state)
     {
-        if (!gl.IsExtensionPresent("GL_ARB_shader_draw_parameters") || !gl.TryGetExtension(out ArbBindlessTexture bindless))
+        if (!gl.IsExtensionPresent("GL_ARB_shader_draw_parameters") || gl.Bindless is not { } bindless)
             return false;
         state.Bindless = bindless;
         return true;

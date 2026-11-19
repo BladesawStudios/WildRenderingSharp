@@ -1,15 +1,15 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Content.Assets.Textures;
 
 /// <summary>Textures a host supplies by name instead of each model carrying its own - the terrain's material arrays above all.</summary>
 public sealed class ExternalTextures : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly Dictionary<string, LoadedTexture> _byName = new(StringComparer.Ordinal);
     uint _whiteArray;
 
-    public ExternalTextures(GL gl) => _gl = gl;
+    public ExternalTextures(GpuApi gl) => _gl = gl;
 
     public static bool IsArraySampler(string key) => key.StartsWith("array", StringComparison.Ordinal);
 

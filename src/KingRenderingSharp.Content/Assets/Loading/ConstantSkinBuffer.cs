@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Content.Assets.Loading;
@@ -21,7 +20,7 @@ static class ConstantSkinBuffer
         0, 0, 0, 0,
     ];
 
-    public static uint For(GL gl)
+    public static uint For(GpuApi gl)
     {
         var holder = ContextState<Holder>.For(gl);
         lock (holder)

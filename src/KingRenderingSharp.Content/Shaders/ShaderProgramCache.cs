@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Contracts;
 
@@ -11,7 +10,7 @@ namespace KingRenderingSharp.Content.Shaders;
 /// </summary>
 internal sealed class ShaderProgramCache : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly string _decompiledDir;
     readonly ConcurrentDictionary<string, Lazy<uint>> _programs = new(StringComparer.Ordinal);
 
@@ -19,7 +18,7 @@ internal sealed class ShaderProgramCache : IDisposable
 
     readonly IShaderSources _sources;
 
-    public ShaderProgramCache(GL gl, string decompiledDir, ShaderBindings bindings, IShaderSources sources)
+    public ShaderProgramCache(GpuApi gl, string decompiledDir, ShaderBindings bindings, IShaderSources sources)
     {
         _gl = gl;
         Bindings = bindings;

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -13,10 +12,10 @@ internal sealed class GroundPass : IDisposable
 {
     static readonly string FragmentSource = GlslFiles.Load("Totk/Sky/Ground/Main.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
-    public GroundPass(GL gl)
+    public GroundPass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "sky_ground");

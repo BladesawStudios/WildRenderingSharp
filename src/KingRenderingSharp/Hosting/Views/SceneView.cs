@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Contracts;
 using KingRenderingSharp.Graph.Pipeline;
@@ -15,7 +14,7 @@ namespace KingRenderingSharp.Hosting.Views;
 /// </summary>
 public sealed class SceneView : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly ScenePresenter _presenter;
     readonly ViewOutput _output;
     readonly RenderTargets? _ownTargets;
@@ -24,7 +23,7 @@ public sealed class SceneView : IDisposable
     PresentGrade? _lastGrade;
     BackgroundMode _lastBackground;
 
-    public SceneView(GL gl, DeferredPipeline pipeline, bool ownTargets = false)
+    public SceneView(GpuApi gl, DeferredPipeline pipeline, bool ownTargets = false)
     {
         _gl = gl;
         Pipeline = pipeline;

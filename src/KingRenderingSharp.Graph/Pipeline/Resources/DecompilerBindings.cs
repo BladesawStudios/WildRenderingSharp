@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Shaders;
 
 namespace KingRenderingSharp.Graph.Pipeline.Resources;
@@ -11,11 +11,11 @@ internal sealed class DecompilerBindings : IDisposable
 {
     const int StorageBytes = 65536;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly GLResourceCache _resources;
     readonly uint _zeroStorage;
 
-    public DecompilerBindings(GL gl, GLResourceCache resources)
+    public DecompilerBindings(GpuApi gl, GLResourceCache resources)
     {
         _gl = gl;
         _resources = resources;

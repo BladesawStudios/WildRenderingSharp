@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Gpu;
@@ -18,7 +17,7 @@ internal static class GLProgramBuilder
     }
 
     // Keeps compiled programs in the directory for this context, unless it already has one.
-    public static void UseBinaryCache(GL gl, string directory) => ContextState<BinaryCache>.For(gl).Directory ??= directory;
+    public static void UseBinaryCache(GpuApi gl, string directory) => ContextState<BinaryCache>.For(gl).Directory ??= directory;
 
     /// <summary>
     /// A program kept under a name, so that a program already built needs none of the work of making its source: no reading it, no cleaning it, no patching it and no hashing it.
@@ -28,7 +27,7 @@ internal static class GLProgramBuilder
     /// The identity has to say everything the source depends on: the program's name, which form of it this is, the files it came from as they stood, and the version of the code
     /// that patches them. A binary already kept under the hash of the source it came to is taken over, so a cache from before this one is not built again.
     /// </remarks>
-    public static uint BuildNamed(GL gl, string identity, Func<(string Vertex, string Fragment)?> make, string label)
+    public static uint BuildNamed(GpuApi gl, string identity, Func<(string Vertex, string Fragment)?> make, string label)
     {
         string? path = NamedPath(gl, identity);
         if (path is not null)
@@ -81,7 +80,7 @@ internal static class GLProgramBuilder
         return program;
     }
 
-    static string? NamedPath(GL gl, string identity)
+    static string? NamedPath(GpuApi gl, string identity)
     {
         var cache = ContextState<BinaryCache>.For(gl);
         if (cache.Directory is not { } directory)
@@ -96,7 +95,7 @@ internal static class GLProgramBuilder
         return Path.Combine(directory, "n" + Convert.ToHexString(key) + ".zbin");
     }
 
-    static uint BuildUnkept(GL gl, string vertexSource, string fragmentSource, string label, bool retrievable)
+    static uint BuildUnkept(GpuApi gl, string vertexSource, string fragmentSource, string label, bool retrievable)
     {
         uint vs = CompileShader(gl, ShaderType.VertexShader, vertexSource, label + ".vert");
         uint fs = CompileShader(gl, ShaderType.FragmentShader, fragmentSource, label + ".frag");
@@ -121,7 +120,7 @@ internal static class GLProgramBuilder
         return program;
     }
 
-    public static uint Build(GL gl, string vertexSource, string fragmentSource, string label = "")
+    public static uint Build(GpuApi gl, string vertexSource, string fragmentSource, string label = "")
     {
         string? cachePath = BinaryCachePath(gl, vertexSource, fragmentSource);
         if (cachePath is not null && TryLoadBinary(gl, cachePath) is uint cached)
@@ -153,7 +152,7 @@ internal static class GLProgramBuilder
         return program;
     }
 
-    static uint CompileShader(GL gl, ShaderType type, string source, string label)
+    static uint CompileShader(GpuApi gl, ShaderType type, string source, string label)
     {
         uint shader = gl.CreateShader(type);
         gl.ShaderSource(shader, source);
@@ -168,7 +167,7 @@ internal static class GLProgramBuilder
         return shader;
     }
 
-    static string? BinaryCachePath(GL gl, string vertexSource, string fragmentSource)
+    static string? BinaryCachePath(GpuApi gl, string vertexSource, string fragmentSource)
     {
         var cache = ContextState<BinaryCache>.For(gl);
         if (cache.Directory is not { } directory)
@@ -194,7 +193,7 @@ internal static class GLProgramBuilder
         return compressor.Wrap(file).ToArray();
     }
 
-    static uint? TryLoadBinary(GL gl, string path)
+    static uint? TryLoadBinary(GpuApi gl, string path)
     {
         byte[] file;
         try
@@ -223,7 +222,7 @@ internal static class GLProgramBuilder
         return null;
     }
 
-    static void SaveBinary(GL gl, uint program, string path)
+    static void SaveBinary(GpuApi gl, uint program, string path)
     {
         try
         {

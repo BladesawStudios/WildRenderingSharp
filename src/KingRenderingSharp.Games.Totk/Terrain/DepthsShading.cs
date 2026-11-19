@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Games.Totk.Shaders;
 using KingRenderingSharp.Content.Shaders;
@@ -27,10 +26,10 @@ public sealed class DepthsShading
 
     const string ImmediatesDeclaration = "layout (binding = 2, std140) uniform _vp_c1\n{\n    precise vec4 data[4096];\n} vp_c1;\n\n";
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly string _shadersDir;
 
-    internal DepthsShading(GL gl, string shadersDir)
+    internal DepthsShading(GpuApi gl, string shadersDir)
     {
         _gl = gl;
         _shadersDir = shadersDir;

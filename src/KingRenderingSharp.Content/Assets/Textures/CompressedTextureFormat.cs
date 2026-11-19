@@ -1,7 +1,7 @@
+using KingRenderingSharp.Gpu;
 using System.Text.RegularExpressions;
 using AstcSharp;
 using AstcSharp.Core;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Content.Assets.Textures;
 

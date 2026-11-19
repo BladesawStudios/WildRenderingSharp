@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Shaders;
 
@@ -11,7 +10,7 @@ namespace KingRenderingSharp.Games.Totk.Gloom;
 /// context block, so what the adding variants read as their context, view and area, it reads as view and area one slot sooner. A sampler is named for its location
 /// in the program, so what each location is depends on the variant - see the unit tables here.
 /// </remarks>
-internal sealed class GloomPrograms(GL gl, ShaderProgramCache programs)
+internal sealed class GloomPrograms(GpuApi gl, ShaderProgramCache programs)
 {
     // The texture units the passes bind the gloom's inputs at.
     public const int DepthUnit = 0, SimpleUnit = 1, FbmUnit = 2, RidgeUnit = 3, AltitudeUnit = 4, Altitude2Unit = 5;

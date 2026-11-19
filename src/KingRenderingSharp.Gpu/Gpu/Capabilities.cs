@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Gpu;
 
@@ -11,6 +10,6 @@ internal static class Capabilities
     }
 
     // Whether a shader can read gl_BaseInstance, which a multi-draw uses to say where each run's instances start.
-    public static bool SupportsBaseInstance(this GL gl) =>
+    public static bool SupportsBaseInstance(this GpuApi gl) =>
         ContextState<Support>.For(gl).BaseInstance ??= gl.IsExtensionPresent("GL_ARB_shader_draw_parameters");
 }

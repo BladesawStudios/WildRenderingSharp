@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Loading;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -27,7 +26,7 @@ sealed class BotwScene : ISnapshotScene
     readonly BotwEnvironment _environment = new();
     ulong _frame;
 
-    public BotwScene(GL gl, CacheLayout cache, string model, int size)
+    public BotwScene(GpuApi gl, CacheLayout cache, string model, int size)
     {
         _host = GLHostState.Enter(gl);
         var pipeline = new DeferredPipeline(gl, cache.Shaders, size, size, profile: new BotwProfile());

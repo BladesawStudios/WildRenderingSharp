@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Targets;
@@ -8,7 +7,7 @@ namespace KingRenderingSharp.Graph.Pipeline.Targets;
 /// Made on first use and made again when the screen's size changes; sampled by texel, nearest. A depth format has no framebuffer of its own: it is copied
 /// into, or drawn into as another's depth (<see cref="AttachDepth"/>).
 /// </remarks>
-internal sealed class ScreenTarget(GL gl, InternalFormat format) : IDisposable
+internal sealed class ScreenTarget(GpuApi gl, InternalFormat format) : IDisposable
 {
     uint _framebuffer;
     int _width, _height;

@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using static KingRenderingSharp.Games.Totk.Sky.Precompute.SkyPrecomputePass;
 
 namespace KingRenderingSharp.Games.Totk.Sky.Precompute;
@@ -10,11 +10,11 @@ namespace KingRenderingSharp.Games.Totk.Sky.Precompute;
 /// </summary>
 sealed unsafe class SkyCanvas : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly SkyChainPrograms _programs;
     readonly uint _framebuffer, _vao, _vbo;
 
-    public SkyCanvas(GL gl, SkyChainPrograms programs)
+    public SkyCanvas(GpuApi gl, SkyChainPrograms programs)
     {
         _gl = gl;
         _programs = programs;
@@ -87,8 +87,7 @@ sealed unsafe class SkyCanvas : IDisposable
     void DrawBuffers(int count)
     {
         Span<GLEnum> buffers = [GLEnum.ColorAttachment0, GLEnum.ColorAttachment1];
-        fixed (GLEnum* p = buffers)
-            _gl.DrawBuffers((uint)count, p);
+        _gl.DrawBuffers(buffers[..count]);
         if (count < 2)
             _gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, TextureTarget.Texture2D, 0, 0);
     }

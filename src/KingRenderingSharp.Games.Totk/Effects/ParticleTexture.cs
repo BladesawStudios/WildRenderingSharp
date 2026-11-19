@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Games.Totk.Effects;
 
@@ -6,7 +6,7 @@ namespace KingRenderingSharp.Games.Totk.Effects;
 internal static class ParticleTexture
 {
     // The texture as a mipmapped, repeating GL texture, or 0 when the emitter has none.
-    public static unsafe uint Load(GL gl, string path)
+    public static unsafe uint Load(GpuApi gl, string path)
     {
         if (!File.Exists(path))
             return 0;

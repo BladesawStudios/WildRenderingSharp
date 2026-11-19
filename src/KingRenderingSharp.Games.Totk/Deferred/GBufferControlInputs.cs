@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Games.Totk.Deferred;
@@ -17,10 +16,10 @@ internal sealed class GBufferControlInputs : IDisposable
 {
     const int AlbedoUnit = 0, MaterialIdUnit = 2, DepthUnit = 6, DungeonEntranceMaskUnit = 24, HallClipUnit = 10, HallMaskUnit = 26;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _plainMode, _depthMode, _empty;
 
-    public GBufferControlInputs(GL gl)
+    public GBufferControlInputs(GpuApi gl)
     {
         _gl = gl;
         _plainMode = ConstantTextures.Rgba(gl, 1f, 0f, 0f, 0f);

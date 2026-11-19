@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Drawing;
@@ -7,7 +6,7 @@ namespace KingRenderingSharp.Graph.Pipeline.Drawing;
 /// <summary>The locations of an instanced program's instancing uniforms.</summary>
 readonly record struct InstanceUniforms(int First, int Stride, int PaletteVec4s, int PaletteRepeat)
 {
-    public static InstanceUniforms Find(GL gl, uint program) => new(
+    public static InstanceUniforms Find(GpuApi gl, uint program) => new(
         gl.UniformLocation(program, InstancingContract.FirstInstanceUniform),
         gl.UniformLocation(program, InstancingContract.StrideUniform),
         gl.UniformLocation(program, InstancingContract.PaletteVec4sUniform),

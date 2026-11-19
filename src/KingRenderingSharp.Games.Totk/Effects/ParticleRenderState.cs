@@ -1,11 +1,11 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Games.Totk.Effects;
 
 /// <summary>Maps an emitter's serialized blend mode and cull mode to GL state, for a pass drawn with the game's upper-left window origin.</summary>
 internal static class ParticleRenderState
 {
-    public static void Apply(GL gl, ParticleEmitterManifest emitter)
+    public static void Apply(GpuApi gl, ParticleEmitterManifest emitter)
     {
         (BlendingFactor source, BlendingFactor destination, BlendEquationModeEXT equation) = emitter.BlendMode switch
         {
@@ -31,7 +31,7 @@ internal static class ParticleRenderState
     }
 
     // Puts back the state the frame's passes expect.
-    public static void Restore(GL gl)
+    public static void Restore(GpuApi gl)
     {
         gl.Disable(EnableCap.Blend);
         gl.BlendEquationSeparate(BlendEquationModeEXT.FuncAdd, BlendEquationModeEXT.FuncAdd);

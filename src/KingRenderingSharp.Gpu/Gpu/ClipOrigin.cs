@@ -1,33 +1,15 @@
-using Silk.NET.OpenGL;
-using Silk.NET.OpenGL.Extensions.ARB;
+using System.Runtime.CompilerServices;
 
 namespace KingRenderingSharp.Gpu;
 
 /// <summary>Draws the game's own programs the way they were written to be drawn: with an upper-left window origin.</summary>
 internal static class ClipOrigin
 {
-    sealed class Holder
+    public static bool Supported(GpuApi gl) => gl.SupportsClipControl;
+
+    public static void Game(GpuApi gl, bool on)
     {
-        public ArbClipControl? Extension;
-        public bool Looked;
+        if (gl.SupportsClipControl)
+            gl.SetClipControl(on ? GLEnum.UpperLeft : GLEnum.LowerLeft, GLEnum.NegativeOneToOne);
     }
-
-    public static bool Supported(GL gl) => Extension(gl) is not null;
-
-    // Null when the context lacks ARB_clip_control.
-    public static ArbClipControl? Extension(GL gl)
-    {
-        var holder = ContextState<Holder>.For(gl);
-        if (!holder.Looked)
-        {
-            try { holder.Extension = gl.TryGetExtension(out ArbClipControl ext) ? ext : null; }
-            // A driver that cannot enumerate its extensions counts as lacking this one.
-            catch { holder.Extension = null; }
-            holder.Looked = true;
-        }
-        return holder.Extension;
-    }
-
-    public static void Game(GL gl, bool on) =>
-        Extension(gl)?.ClipControl((ARB)(on ? GLEnum.UpperLeft : GLEnum.LowerLeft), (ARB)GLEnum.NegativeOneToOne);
 }

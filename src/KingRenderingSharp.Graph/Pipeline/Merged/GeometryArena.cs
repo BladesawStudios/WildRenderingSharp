@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Loading;
 using KingRenderingSharp.Content.Assets.Manifests;
@@ -9,7 +9,7 @@ namespace KingRenderingSharp.Graph.Pipeline.Merged;
 internal sealed record GeometrySlice(GeometryChunk Chunk, int BaseVertex, int FirstIndex, int VertexCount, int IndexCount);
 
 /// <summary>A pair of buffers holding the vertices and indices of many shapes that share a vertex layout, so one vertex array reads them all.</summary>
-internal sealed class GeometryChunk(GL gl, int id, string key, ShapeBuffers format, int vertexCapacity, int indexCapacity)
+internal sealed class GeometryChunk(GpuApi gl, int id, string key, ShapeBuffers format, int vertexCapacity, int indexCapacity)
 {
     public int Id { get; } = id;
 
@@ -47,7 +47,7 @@ internal sealed class GeometryChunk(GL gl, int id, string key, ShapeBuffers form
         Gpu.GpuMemory.Merged(-Bytes);
     }
 
-    static unsafe uint GLBufferOf(GL gl, BufferTargetARB target, long bytes)
+    static unsafe uint GLBufferOf(GpuApi gl, BufferTargetARB target, long bytes)
     {
         uint buffer = gl.GenBuffer();
         gl.BindBuffer(target, buffer);
@@ -57,7 +57,7 @@ internal sealed class GeometryChunk(GL gl, int id, string key, ShapeBuffers form
 }
 
 /// <summary>Copies shapes' vertices and indices into shared chunks, one set of chunks for each vertex layout, so shapes of any model can be drawn by one call.</summary>
-internal sealed class GeometryArena(GL gl) : IDisposable
+internal sealed class GeometryArena(GpuApi gl) : IDisposable
 {
     // The first chunk of a vertex layout holds this many bytes of vertices and each one after it twice the one before, up to the largest; a shape larger than
     // that gets a chunk of its own. A scene uses a few dozen layouts and most hold little, so chunks that were all the largest size held gigabytes of nothing.

@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -11,7 +10,7 @@ namespace KingRenderingSharp.Games.Totk.Sky.Clouds;
 /// The reduced-resolution HDR target the clouds are drawn into, and the composite that blends it over the scene. The cloud program is
 /// large and the dome covers most of the screen, so the cost is pure fill rate.
 /// </summary>
-sealed unsafe class CloudComposite(GL gl) : IDisposable
+sealed unsafe class CloudComposite(GpuApi gl) : IDisposable
 {
     static readonly string CompositeFrag = GlslFiles.Load("Totk/Sky/CloudDome/Composite.frag");
 

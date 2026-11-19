@@ -1,7 +1,7 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Content.Assets.Textures;
 
@@ -13,7 +13,7 @@ namespace KingRenderingSharp.Content.Assets.Baking;
 /// </summary>
 public sealed class BakeLibrary : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly string _dir;
     readonly TextureCache _textures;
     // Each atlas's own sampling, as uploaded, and whether the finest-level-only setting is on it now.
@@ -26,7 +26,7 @@ public sealed class BakeLibrary : IDisposable
 
     sealed record Tile(LoadedTexture?[] Textures, Dictionary<ulong, JsonElement> Actors);
 
-    public BakeLibrary(GL gl, string bakeDirectory)
+    public BakeLibrary(GpuApi gl, string bakeDirectory)
     {
         _gl = gl;
         _dir = bakeDirectory;

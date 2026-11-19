@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Games.Totk.Effects;
 
@@ -13,12 +13,12 @@ internal sealed class ParticleMesh : IDisposable
     // Each particle holds its local position (with its life), local vector (with its birth time), scale, random numbers and initial rotation, as four floats each.
     public const int ParticleFloats = 5 * 4;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _array, _vertices, _indices, _particles;
     readonly PrimitiveType _primitive;
     readonly uint _indexCount;
 
-    public unsafe ParticleMesh(GL gl, ParticleEmitterAsset asset)
+    public unsafe ParticleMesh(GpuApi gl, ParticleEmitterAsset asset)
     {
         _gl = gl;
         _primitive = asset.Manifest.TriangleStrip ? PrimitiveType.TriangleStrip : PrimitiveType.Triangles;

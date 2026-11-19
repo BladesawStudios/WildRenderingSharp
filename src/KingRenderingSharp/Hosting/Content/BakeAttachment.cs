@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Baking;
 using KingRenderingSharp.Gpu;
@@ -8,7 +7,7 @@ using KingRenderingSharp.Core.Storage;
 namespace KingRenderingSharp.Hosting.Content;
 
 /// <summary>Finds the baked lighting for a batch's instances and attaches it, so each draws with its own atlas.</summary>
-internal sealed class BakeAttachment(GL gl, CacheLayout cache) : IDisposable
+internal sealed class BakeAttachment(GpuApi gl, CacheLayout cache) : IDisposable
 {
     BakeLibrary? _library;
 

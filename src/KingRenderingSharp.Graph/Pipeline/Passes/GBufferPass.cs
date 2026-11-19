@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
@@ -8,7 +7,7 @@ using KingRenderingSharp.Graph.Pipeline.Targets;
 namespace KingRenderingSharp.Graph.Pipeline.Passes;
 
 /// <summary>Depth prepass (z-only, where a material has one) followed by the real G-buffer draw.</summary>
-internal sealed class GBufferPass(GL gl)
+internal sealed class GBufferPass(GpuApi gl)
 {
     // The offset toward the camera of the main draw after a prepass: the share of the surface's depth slope, and units of the depth buffer's own steps.
     const float MainDrawSlopeOffset = -2f, MainDrawConstantOffset = -4f;

@@ -1,6 +1,6 @@
+using KingRenderingSharp.Gpu;
 using System.Collections.Concurrent;
 using Silk.NET.Core.Contexts;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Hosting.Preparers;
 
@@ -25,7 +25,7 @@ public sealed class BackgroundLoader : IDisposable
 {
     sealed record Job(object Owner, int Generation, long Order, Func<LoaderResult> Run);
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly Func<int, IGLContext?> _createContext;
     readonly Func<Exception, LoaderResult> _failed;
     readonly Action<string>? _log;
@@ -49,7 +49,7 @@ public sealed class BackgroundLoader : IDisposable
     int _generation;
 
     // createContext makes the context for worker i on the render thread (null keeps loading there), and failed gives the result for a job that threw.
-    public BackgroundLoader(GL gl, Func<int, IGLContext?> createContext, Func<Exception, LoaderResult> failed, Action<string>? log = null, int workers = 1, Action<int>? release = null)
+    public BackgroundLoader(GpuApi gl, Func<int, IGLContext?> createContext, Func<Exception, LoaderResult> failed, Action<string>? log = null, int workers = 1, Action<int>? release = null)
     {
         _release = release;
         _gl = gl;

@@ -2,19 +2,18 @@ using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Resources;
 using KingRenderingSharp.Content.Shaders;
 using System.Numerics;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Graph.Pipeline.Passes;
 
 /// <summary>A simplified single-pass FXAA-style edge-aware blur, the anti-aliasing used instead of supersampling by default.</summary>
 internal sealed class FxaaPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
     static readonly string FragmentSource = GlslFiles.Load("Pipeline/Fxaa/Main.frag");
 
-    public FxaaPass(GL gl)
+    public FxaaPass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "fxaa");

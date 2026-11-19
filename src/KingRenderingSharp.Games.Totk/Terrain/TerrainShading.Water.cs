@@ -2,7 +2,6 @@ using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Content.Assets.Textures;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Games.Totk.Shaders;

@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Text.Json.Serialization;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Content.Assets.Manifests;
 

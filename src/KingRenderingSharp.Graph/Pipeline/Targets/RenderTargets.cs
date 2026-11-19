@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Targets;
@@ -12,7 +11,7 @@ public sealed class RenderTargets : IDisposable
 
     const int GBufferCount = 6;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly TargetTextureFactory _textures;
     readonly ShadowTargets _shadow;
     readonly PixelReadback _readback;
@@ -20,7 +19,7 @@ public sealed class RenderTargets : IDisposable
     readonly uint _scratchColorFbo, _scratchColorDepthFbo;
     uint _gbufferFbo, _passIdFbo;
 
-    public RenderTargets(GL gl, int width, int height)
+    public RenderTargets(GpuApi gl, int width, int height)
     {
         _gl = gl;
         _textures = new TargetTextureFactory(gl);

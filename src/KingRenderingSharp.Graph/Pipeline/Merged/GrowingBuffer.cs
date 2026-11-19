@@ -1,14 +1,14 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Merged;
 
 /// <summary>A storage buffer of fixed-size elements that is made larger, its contents carried over, when more room is needed.</summary>
 internal sealed unsafe class GrowingBuffer : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly int _elementBytes;
 
-    public GrowingBuffer(GL gl, int elementBytes, int initialElements)
+    public GrowingBuffer(GpuApi gl, int elementBytes, int initialElements)
     {
         _gl = gl;
         _elementBytes = elementBytes;

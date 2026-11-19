@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Loading;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -12,7 +11,7 @@ using KingRenderingSharp.Core.Storage;
 namespace KingRenderingSharp.Hosting.Content;
 
 /// <summary>Loads prepared models from a cache into GL objects, on the render thread or on a worker with the vertex arrays left for the render thread.</summary>
-internal sealed class ModelFactory(GL gl, ShaderProgramCache programs, CacheLayout cache, ExternalTextures externalTextures,
+internal sealed class ModelFactory(GpuApi gl, ShaderProgramCache programs, CacheLayout cache, ExternalTextures externalTextures,
     SharedTextures sharedTextures, TotkSettings totk, MergedDrawing merged)
 {
     public bool CompactVertices { get; set; }

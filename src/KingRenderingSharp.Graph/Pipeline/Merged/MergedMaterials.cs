@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Materials;
 
 namespace KingRenderingSharp.Graph.Pipeline.Merged;
@@ -9,7 +9,7 @@ internal sealed class MergedMaterials : IDisposable
     readonly RegionAllocator _slots = new(MergedLayout.MaterialVec4s * 256);
     readonly object _sync;
 
-    public MergedMaterials(GL gl, object sync)
+    public MergedMaterials(GpuApi gl, object sync)
     {
         _sync = sync;
         Buffer = new GrowingBuffer(gl, 16, MergedLayout.MaterialVec4s * 256);

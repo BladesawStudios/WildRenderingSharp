@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -14,7 +13,7 @@ namespace KingRenderingSharp.Games.Totk.PostProcess;
 /// </summary>
 internal sealed class ColorCorrectionPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
     readonly uint _blitProgram;
 
@@ -29,7 +28,7 @@ internal sealed class ColorCorrectionPass : IDisposable
 
     static readonly string FragmentSource = GlslFiles.Load("Totk/PostProcess/ColorCorrection/Main.frag");
 
-    public ColorCorrectionPass(GL gl)
+    public ColorCorrectionPass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "color_correction");

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Graph.Pipeline.Passes;
@@ -12,7 +11,7 @@ namespace KingRenderingSharp.Games.Totk.Sky;
 /// <summary>The sun and the moon, drawn from the game's own sprites.</summary>
 internal sealed class SkyBodyPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
     readonly uint _sunTex;
     readonly uint[] _moonTex = new uint[8];
@@ -22,7 +21,7 @@ internal sealed class SkyBodyPass : IDisposable
 
     static readonly string FragmentSource = GlslFiles.Load("Totk/Sky/SkyBody/Main.frag");
 
-    public SkyBodyPass(GL gl, string? systemTexturesDirectory)
+    public SkyBodyPass(GpuApi gl, string? systemTexturesDirectory)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex330, FragmentSource, "sky_body");

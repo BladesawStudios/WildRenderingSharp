@@ -1,6 +1,5 @@
 using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
 using KingRenderingSharp.Graph.Pipeline.Merged;
@@ -18,7 +17,7 @@ namespace KingRenderingSharp.Games.Totk.Deferred.PassIds;
 /// </summary>
 internal sealed class PassIdMaskPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly ShapeDrawer _drawer;
     readonly uint _program;
 
@@ -35,7 +34,7 @@ internal sealed class PassIdMaskPass : IDisposable
     // Without it, mask-mode quads would be stamped whole and cover pixels the G-buffer does not.
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/PassIdMask/Main.frag");
 
-    public PassIdMaskPass(GL gl, ShapeDrawer drawer)
+    public PassIdMaskPass(GpuApi gl, ShapeDrawer drawer)
     {
         _gl = gl;
         _drawer = drawer;

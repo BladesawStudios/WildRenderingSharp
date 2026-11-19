@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Games.Totk.Shaders;
@@ -14,11 +13,11 @@ public sealed class CaveShading : IDisposable
 {
     public const uint ChunkBinding = 3, InstanceBinding = 12, PaletteBinding = 13;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly string _shadersDir;
     MaterialBlock? _material;
 
-    internal CaveShading(GL gl, string shadersDir)
+    internal CaveShading(GpuApi gl, string shadersDir)
     {
         _gl = gl;
         _shadersDir = shadersDir;

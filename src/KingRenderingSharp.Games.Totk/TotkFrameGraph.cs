@@ -1,3 +1,4 @@
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Graph.Debug;
 using KingRenderingSharp.Content.Graphics.Contracts;
@@ -32,7 +33,7 @@ internal sealed class TotkFrameGraph : IFrameGraph, IDeferredDebug
     // The game's programs for the Depths' quad mesh.
     public DepthsShading Depths { get; }
 
-    readonly Silk.NET.OpenGL.GL _gl;
+    readonly GpuApi _gl;
 
     public TotkFrameGraph(StageServices services)
     {

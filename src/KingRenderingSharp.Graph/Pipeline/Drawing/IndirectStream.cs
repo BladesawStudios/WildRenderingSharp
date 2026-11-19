@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using Silk.NET.OpenGL;
 
 using KingRenderingSharp.Gpu;
 
@@ -15,14 +14,14 @@ sealed unsafe class IndirectStream : IDisposable
 {
     const int Capacity = 8 << 20, Chunks = 8, ChunkSize = Capacity / Chunks;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _buffer;
     readonly byte* _mapped;
     readonly nint[] _fences = new nint[Chunks];
     int _offset, _chunk;
     bool _bound;
 
-    public IndirectStream(GL gl)
+    public IndirectStream(GpuApi gl)
     {
         _gl = gl;
         _buffer = gl.GenBuffer();

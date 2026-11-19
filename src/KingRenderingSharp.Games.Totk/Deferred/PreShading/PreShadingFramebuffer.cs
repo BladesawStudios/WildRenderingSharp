@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Targets;
 
@@ -9,7 +8,7 @@ namespace KingRenderingSharp.Games.Totk.Deferred.PreShading;
 /// PreMisc and, for the field pass, the ambient layer of the light pre-pass. Output 5, the premultiplied diffuse light, is not read by any resolve and
 /// has no buffer.
 /// </summary>
-internal sealed class PreShadingFramebuffer(GL gl, bool writesAmbient) : IDisposable
+internal sealed class PreShadingFramebuffer(GpuApi gl, bool writesAmbient) : IDisposable
 {
     const int PreShadowLocation = 0, PreFogLocation = 1, AmbientLocation = 2, PreMiscLocation = 4, Locations = 6;
 

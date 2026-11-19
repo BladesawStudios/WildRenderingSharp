@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Games.Totk.Shaders;
 using KingRenderingSharp.Core.Storage;
@@ -9,7 +8,7 @@ namespace KingRenderingSharp.TestBench;
 /// <summary>Patches and compiles the merged-draw form of every G-buffer and z-only program the prepared models name, and says how many came out, were left to the ordinary draw, or failed.</summary>
 static class MergedCheck
 {
-    public static int Run(GL gl, CacheLayout cache, int limit)
+    public static int Run(GpuApi gl, CacheLayout cache, int limit)
     {
         string shaders = Path.Combine(cache.Root, "_shaders");
         var names = new SortedSet<string>(StringComparer.Ordinal);

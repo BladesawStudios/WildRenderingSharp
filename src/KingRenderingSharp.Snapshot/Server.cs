@@ -1,7 +1,7 @@
+using KingRenderingSharp.Gpu;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
-using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Rendering.Cameras;
@@ -16,7 +16,7 @@ sealed class Server(Stream input, Stream output) : IDisposable
     readonly StreamReader _in = new(input, Encoding.UTF8);
     readonly StreamWriter _lines = new(output, new UTF8Encoding(false)) { AutoFlush = true, NewLine = "\n" };
     IWindow? _window;
-    GL? _gl;
+    GpuApi? _gl;
     ISnapshotScene? _scene;
     HashSet<string> _hidden = new(StringComparer.Ordinal);
 
@@ -72,7 +72,7 @@ sealed class Server(Stream input, Stream output) : IDisposable
         if (_gl is null)
         {
             _window.Initialize();
-            _gl = GL.GetApi(_window.GLContext);
+            _gl = GpuApi.Create(_window.GLContext);
         }
 
         Status("Loading the model");

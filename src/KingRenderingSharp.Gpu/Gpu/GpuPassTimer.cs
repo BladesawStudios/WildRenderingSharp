@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Gpu;
 
@@ -9,7 +8,7 @@ namespace KingRenderingSharp.Gpu;
 public sealed class GpuPassTimer : IDisposable
 {
     const int Latency = 4;
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly List<(string Name, uint Query)>[] _frames = new List<(string, uint)>[Latency];
     readonly List<(string Name, uint Query)>[] _details = new List<(string, uint)>[Latency];
 
@@ -29,7 +28,7 @@ public sealed class GpuPassTimer : IDisposable
     }
 
     // The timer marking passes on this context, set while one of its frames is being drawn.
-    internal static GpuPassTimer? On(GL gl) => ContextState<Active>.For(gl).Timer;
+    internal static GpuPassTimer? On(GpuApi gl) => ContextState<Active>.For(gl).Timer;
 
     public IReadOnlyList<(string Pass, double Ms)> Last { get; private set; } = [];
 
@@ -37,7 +36,7 @@ public sealed class GpuPassTimer : IDisposable
 
     public double LastTotalMs { get; private set; }
 
-    public GpuPassTimer(GL gl)
+    public GpuPassTimer(GpuApi gl)
     {
         _gl = gl;
         for (int i = 0; i < Latency; i++)

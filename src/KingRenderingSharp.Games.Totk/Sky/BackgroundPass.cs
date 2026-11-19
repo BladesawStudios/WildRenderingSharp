@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -17,7 +16,7 @@ namespace KingRenderingSharp.Games.Totk.Sky;
 /// </summary>
 internal sealed class BackgroundPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _skyProgram;
 
     public const float SkyColorAnchor = 0.03f;
@@ -26,7 +25,7 @@ internal sealed class BackgroundPass : IDisposable
     // camera's rotation, so the sky sits at infinity and only turning the camera moves it.
     static readonly string SkyFragmentSource = GlslFiles.Load("Totk/Sky/Background/Sky.frag");
 
-    public BackgroundPass(GL gl)
+    public BackgroundPass(GpuApi gl)
     {
         _gl = gl;
         _skyProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, SkyFragmentSource, "background_sky");

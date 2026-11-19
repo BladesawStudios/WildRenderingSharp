@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
@@ -15,14 +14,14 @@ namespace KingRenderingSharp.Graph.Pipeline.Passes;
 /// </summary>
 internal sealed class HighlightOverlayPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
     static readonly string VertexSource = GlslFiles.Load("Pipeline/HighlightOverlay/Main.vert");
 
     static readonly string FragmentSource = GlslFiles.Load("Pipeline/HighlightOverlay/Main.frag");
 
-    public HighlightOverlayPass(GL gl)
+    public HighlightOverlayPass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, VertexSource, FragmentSource, "highlight_overlay");

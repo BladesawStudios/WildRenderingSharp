@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Animation.Clips;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -13,7 +13,7 @@ namespace KingRenderingSharp.Content.Assets;
 /// </summary>
 public sealed class LoadedModel : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
 
     internal ModelManifest Manifest { get; init; } = null!;
     public required IReadOnlyList<LoadedShape> Shapes { get; init; }
@@ -66,7 +66,7 @@ public sealed class LoadedModel : IDisposable
     public Vector3 BoundsCenter => (BoundsMin + BoundsMax) * 0.5f;
     public float BoundsRadius => (BoundsMax - BoundsMin).Length() * 0.5f;
 
-    internal LoadedModel(GL gl, TextureCache textures)
+    internal LoadedModel(GpuApi gl, TextureCache textures)
     {
         _gl = gl;
         Textures = textures;

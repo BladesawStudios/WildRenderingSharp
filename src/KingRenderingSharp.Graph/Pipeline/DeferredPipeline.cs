@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Contracts;
@@ -14,7 +13,7 @@ namespace KingRenderingSharp.Graph.Pipeline;
 /// <summary>Renders frames: owns the GL resources, render targets and shadow cache, and runs the stages its game profile defines.</summary>
 public sealed class DeferredPipeline : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly ExposureProbe _exposure = new();
     readonly ShadowCache _mainShadowCache = new();
 
@@ -55,7 +54,7 @@ public sealed class DeferredPipeline : IDisposable
 
     public ExposureMeter.Result? LastExposureMeasurement => _exposure.Last;
 
-    internal DeferredPipeline(GL gl, string decompiledDirectory, int width, int height,
+    internal DeferredPipeline(GpuApi gl, string decompiledDirectory, int width, int height,
         IGameProfile profile, string? deferredMaterialsDirectory = null, string? systemTexturesDirectory = null)
     {
         _gl = gl;

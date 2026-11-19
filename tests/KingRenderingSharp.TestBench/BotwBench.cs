@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Loading;
@@ -33,7 +32,7 @@ static class BotwBench
             API = new GraphicsAPI(ContextAPI.OpenGL, ContextProfile.Core, ContextFlags.ForwardCompatible, new APIVersion(4, 5)),
         });
         window.Initialize();
-        using var gl = GL.GetApi(window.GLContext);
+        using var gl = GpuApi.Create(window.GLContext);
         Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
         using var host = GLHostState.Enter(gl);
@@ -81,7 +80,7 @@ static class BotwBench
         byte[] rgba = view.ReadOutputRgba8();
         PngWriter.WriteRgba(outPath, size, size, rgba);
         int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
-        Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, GL errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
+        Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, GpuApi errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
         return distinct < 64 || errors.Count > 0 ? 4 : 0;
     }
 }

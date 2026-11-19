@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Gpu;
 
@@ -7,11 +6,11 @@ namespace KingRenderingSharp.Content.Assets.Textures;
 /// <summary>Textures shared between models, counted by how many models hold each.</summary>
 public sealed class SharedTextures : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly Dictionary<string, (LoadedTexture Texture, int Refs)> _byKey = new(StringComparer.Ordinal);
     readonly Dictionary<LoadedTexture, string> _keyOf = new(ReferenceEqualityComparer.Instance);
 
-    public SharedTextures(GL gl) => _gl = gl;
+    public SharedTextures(GpuApi gl) => _gl = gl;
 
     // Set by the renderer that takes handles from these textures.
     internal IResidency? Residency { get; set; }

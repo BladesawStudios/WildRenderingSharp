@@ -1,7 +1,7 @@
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Contracts;
 using KingRenderingSharp.Games.Botw.Shaders;
 using KingRenderingSharp.Games.Totk.Shaders;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.TestBench;
 
@@ -18,11 +18,11 @@ static class ShaderCheck
             API = new Silk.NET.Windowing.GraphicsAPI(Silk.NET.Windowing.ContextAPI.OpenGL, Silk.NET.Windowing.ContextProfile.Core, Silk.NET.Windowing.ContextFlags.ForwardCompatible, new Silk.NET.Windowing.APIVersion(4, 5)),
         });
         window.Initialize();
-        using var gl = GL.GetApi(window.GLContext);
+        using var gl = GpuApi.Create(window.GLContext);
         return Run(gl, folder, limit, botw);
     }
 
-    public static int Run(GL gl, string folder, int limit, bool botw)
+    public static int Run(GpuApi gl, string folder, int limit, bool botw)
     {
         IShaderSources sources = botw ? new BotwShaderSources() : new TotkShaderSources();
         string[] names = [.. Directory.EnumerateFiles(folder, "*.frag").Select(f => Path.GetFileNameWithoutExtension(f)).Where(n => File.Exists(Path.Combine(folder, n + ".vert"))).Order(StringComparer.Ordinal)];
@@ -47,7 +47,7 @@ static class ShaderCheck
         return failed.Count == 0 ? 0 : 1;
     }
 
-    static string Build(GL gl, string vertex, string fragment)
+    static string Build(GpuApi gl, string vertex, string fragment)
     {
         uint program = gl.CreateProgram();
         uint[] shaders = [Compile(gl, ShaderType.VertexShader, vertex, out string vlog), Compile(gl, ShaderType.FragmentShader, fragment, out string flog)];
@@ -67,7 +67,7 @@ static class ShaderCheck
         }
     }
 
-    static uint Compile(GL gl, ShaderType type, string source, out string log)
+    static uint Compile(GpuApi gl, ShaderType type, string source, out string log)
     {
         uint shader = gl.CreateShader(type);
         gl.ShaderSource(shader, source);

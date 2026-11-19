@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Gpu;
 
@@ -18,7 +17,7 @@ internal sealed class TextureBindingSnapshot
     readonly int[,] _bound = new int[Units, Targets.Length];
     int _active;
 
-    public void Capture(GL gl)
+    public void Capture(GpuApi gl)
     {
         _active = gl.GetInteger(GetPName.ActiveTexture);
         for (int unit = 0; unit < Units; unit++)
@@ -30,7 +29,7 @@ internal sealed class TextureBindingSnapshot
         gl.ActiveTexture((TextureUnit)_active);
     }
 
-    public void Restore(GL gl)
+    public void Restore(GpuApi gl)
     {
         for (int unit = 0; unit < Units; unit++)
         {

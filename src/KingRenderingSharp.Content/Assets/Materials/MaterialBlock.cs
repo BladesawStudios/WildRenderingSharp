@@ -1,5 +1,4 @@
 using KingRenderingSharp.Core.Storage;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Content.Assets.Materials;
@@ -18,7 +17,7 @@ internal sealed class MaterialBlock : IDisposable
 
     static int _nextId;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     byte[] _authored;
 
     // The buffer is made when something first binds it. The merged draws read a shape's block from their own arena, so a scene drawn that way never makes
@@ -28,7 +27,7 @@ internal sealed class MaterialBlock : IDisposable
     // What the block shows in place of the authored bytes, kept until the buffer exists to show it in.
     byte[]? _shown;
 
-    public MaterialBlock(GL gl, ReadOnlySpan<byte> authored)
+    public MaterialBlock(GpuApi gl, ReadOnlySpan<byte> authored)
     {
         _gl = gl;
         _authored = authored.ToArray();
@@ -61,7 +60,7 @@ internal sealed class MaterialBlock : IDisposable
     public bool IsPatched { get; private set; }
 
     // A block read from an exported file; a missing file is an all-zero block.
-    public static MaterialBlock FromFile(GL gl, string path) => new(gl, CacheFiles.Exists(path) ? CacheFiles.ReadAllBytes(path) : []);
+    public static MaterialBlock FromFile(GpuApi gl, string path) => new(gl, CacheFiles.Exists(path) ? CacheFiles.ReadAllBytes(path) : []);
 
     internal static byte[] Padded(ReadOnlySpan<byte> authored)
     {

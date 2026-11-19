@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Graphics.Data;
 using KingRenderingSharp.Content.Graphics.Ubos;
@@ -23,7 +22,7 @@ internal sealed class TerrainRenderer(StageServices services, TerrainShading sha
 
     uint _underDepthProgram;
 
-    GL Gl => services.Gl;
+    GpuApi Gl => services.Gl;
 
     GLResourceCache Resources => services.Resources;
 

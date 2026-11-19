@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Animation.Clips;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -8,7 +8,7 @@ using KingRenderingSharp.Core.Storage;
 namespace KingRenderingSharp.Content.Assets.Loading;
 
 /// <summary>Turns a <see cref="ModelManifest"/> into a ready-to-draw <see cref="LoadedModel"/>: GL buffers, VAOs, textures and material blocks for every shape.</summary>
-internal sealed class ModelLoader(GL gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
+internal sealed class ModelLoader(GpuApi gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
 {
     public SharedTextures? SharedTextures { get; init; }
 

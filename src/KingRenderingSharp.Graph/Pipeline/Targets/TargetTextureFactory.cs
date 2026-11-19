@@ -1,10 +1,9 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Graph.Pipeline.Targets;
 
 /// <summary>Creates the cleared textures the render targets are made of, and remembers the viewport-sized ones so a resize can delete them together.</summary>
-sealed unsafe class TargetTextureFactory(GL gl)
+sealed unsafe class TargetTextureFactory(GpuApi gl)
 {
     readonly List<uint> _owned = [];
 

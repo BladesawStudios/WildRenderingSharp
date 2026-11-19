@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Loading;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -16,7 +16,7 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
 {
     // Held while anything of the merged buffers is changed, which models loading on another thread do.
     readonly object _sync = new();
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly ShaderProgramCache _programs;
     readonly IndirectStream _stream;
     readonly DefaultBake _defaultBake;
@@ -36,7 +36,7 @@ internal sealed unsafe partial class MergedDrawing : IDisposable
     MergedInstances? _batches;
     LoadedTexture? _white;
 
-    public MergedDrawing(GL gl, ShaderProgramCache programs, IndirectStream stream, DefaultBake defaultBake, Action invalidate)
+    public MergedDrawing(GpuApi gl, ShaderProgramCache programs, IndirectStream stream, DefaultBake defaultBake, Action invalidate)
     {
         (_gl, _programs, _stream, _defaultBake, _invalidate) = (gl, programs, stream, defaultBake, invalidate);
         _vertexArrays = new VertexArrays(gl);

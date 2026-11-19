@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -19,7 +18,7 @@ internal sealed class SkyPostFxPass : IDisposable
     // pixel stage but 1 in the vertex stage).
     // Rebinding explicitly is the only way that coexists.
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
     readonly uint _fogProgram;
     readonly uint _vao, _vbo;
@@ -28,7 +27,7 @@ internal sealed class SkyPostFxPass : IDisposable
     public bool FogAvailable => _fogProgram != 0;
     bool _logged;
 
-    public unsafe SkyPostFxPass(GL gl, ShaderProgramCache programs)
+    public unsafe SkyPostFxPass(GpuApi gl, ShaderProgramCache programs)
     {
         _gl = gl;
         if (!programs.Exists("agl_sky_postfx_sky"))

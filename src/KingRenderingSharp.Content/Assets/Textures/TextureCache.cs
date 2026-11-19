@@ -1,5 +1,4 @@
 using KingRenderingSharp.Core.Storage;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
@@ -9,7 +8,7 @@ namespace KingRenderingSharp.Content.Assets.Textures;
 /// <summary>Loads and caches textures by name so shapes sharing a texture share one GL object.</summary>
 internal sealed class TextureCache : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly string _dataDirectory;
     readonly SharedTextures? _shared;
     readonly TextureUploader _uploader;
@@ -19,7 +18,7 @@ internal sealed class TextureCache : IDisposable
     bool _ownsExternal;
     LoadedTexture? _white;
 
-    public TextureCache(GL gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null, int maxTextureSize = 0)
+    public TextureCache(GpuApi gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null, int maxTextureSize = 0)
     {
         _gl = gl;
         _dataDirectory = dataDirectory;

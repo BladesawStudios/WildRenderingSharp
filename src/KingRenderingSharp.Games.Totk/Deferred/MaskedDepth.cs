@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -13,7 +12,7 @@ namespace KingRenderingSharp.Games.Totk.Deferred;
 /// plane (whatever is drawn next wins there), the kept depth (to put it back) or another window depth where that is under one, and leaves the other side
 /// alone. The G-buffer is left bound with its colour on.
 /// </remarks>
-internal sealed class MaskedDepth(GL gl) : IDisposable
+internal sealed class MaskedDepth(GpuApi gl) : IDisposable
 {
     public enum Value { Near, Far, Kept, From }
 

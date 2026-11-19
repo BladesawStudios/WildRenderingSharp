@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Shaders;
 
@@ -20,7 +19,7 @@ internal sealed class ResolveTrace : IDisposable
     static readonly Regex Input = new(@"layout\s*\(\s*location\s*=\s*\d+\s*\)\s*in\s+vec4\s+(in_attr\d+)\s*;", RegexOptions.Compiled);
     static readonly Regex UniformSlot = new(@"\b(fp_c\d+)\.data\[(\d+)\]", RegexOptions.Compiled);
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly List<string> _names;
     readonly uint _buffer;
     readonly string _path;
@@ -29,7 +28,7 @@ internal sealed class ResolveTrace : IDisposable
 
     public uint Program { get; }
 
-    ResolveTrace(GL gl, uint program, List<string> names, string path, string header, int x, int y)
+    ResolveTrace(GpuApi gl, uint program, List<string> names, string path, string header, int x, int y)
     {
         _gl = gl;
         Program = program;
@@ -46,7 +45,7 @@ internal sealed class ResolveTrace : IDisposable
     }
 
     // Makes the traced program for baseName, recording the pixel (x, y).
-    public static ResolveTrace Begin(GL gl, ShaderProgramCache programs, string baseName, string path, string header, int x, int y)
+    public static ResolveTrace Begin(GpuApi gl, ShaderProgramCache programs, string baseName, string path, string header, int x, int y)
     {
         List<string> names = [];
         uint program = programs.Load(baseName, patchFragment: source => Instrument(source, names));

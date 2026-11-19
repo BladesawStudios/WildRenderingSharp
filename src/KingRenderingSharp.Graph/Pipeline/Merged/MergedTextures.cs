@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Textures;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
 
@@ -16,7 +16,7 @@ internal sealed class MergedTextures : IDisposable
     ulong _white;
     float _strength = float.NaN;
 
-    public MergedTextures(GL gl, BindlessHandles handles, DefaultBake defaultBake)
+    public MergedTextures(GpuApi gl, BindlessHandles handles, DefaultBake defaultBake)
     {
         (_handles, _defaultBake) = (handles, defaultBake);
         Buffer = new GrowingBuffer(gl, 8, MergedLayout.HandleSlots * 1024);

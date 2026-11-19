@@ -82,6 +82,7 @@ Games.Totk.Terrain.ITerrainHost
 Games.Totk.Terrain.TerrainDraw
 Games.Totk.Terrain.TerrainShading
 Gpu.GLHostState
+Gpu.GpuApi
 Gpu.GpuMemory
 Gpu.GpuPassTimer
 Gpu.GpuTexture

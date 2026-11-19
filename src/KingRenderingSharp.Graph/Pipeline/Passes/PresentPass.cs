@@ -2,7 +2,6 @@ using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Resources;
 using KingRenderingSharp.Content.Shaders;
 using System.Numerics;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Graph.Pipeline.Passes;
 
@@ -12,12 +11,12 @@ namespace KingRenderingSharp.Graph.Pipeline.Passes;
 /// </summary>
 internal sealed class PresentPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
     static readonly string FragmentSource = GlslFiles.Load("Pipeline/Present/Main.frag");
 
-    public PresentPass(GL gl)
+    public PresentPass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "present_blit");

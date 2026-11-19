@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Animation.Posing;
 using KingRenderingSharp.Content.Assets;
 using KingRenderingSharp.Content.Assets.Baking;
@@ -16,10 +16,10 @@ public sealed class InstanceBatch : IDisposable
 {
     internal const int Row8Offset = InstanceData.Row8Offset, PaletteOffset = InstanceData.PaletteOffset;
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly Vector4[] _data;
 
-    public InstanceBatch(GL gl, LoadedModel model, IReadOnlyList<Vector4[]> placements)
+    public InstanceBatch(GpuApi gl, LoadedModel model, IReadOnlyList<Vector4[]> placements)
     {
         _gl = gl;
         Model = model;

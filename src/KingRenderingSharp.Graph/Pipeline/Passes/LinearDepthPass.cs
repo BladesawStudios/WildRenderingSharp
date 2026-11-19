@@ -2,21 +2,20 @@ using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Resources;
 using KingRenderingSharp.Graph.Pipeline.Targets;
 using KingRenderingSharp.Content.Shaders;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Graph.Pipeline.Passes;
 
 /// <summary>Builds <c>cTex_NormalizedLinearDepth</c>, <c>(viewZ - near) / (far - near)</c>, from the G-buffer depth at full and half resolution.</summary>
 internal sealed class LinearDepthPass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _fullProgram, _halfProgram;
 
     static readonly string FullFragmentSource = GlslFiles.Load("Pipeline/LinearDepth/Full.frag");
 
     static readonly string HalfFragmentSource = GlslFiles.Load("Pipeline/LinearDepth/Half.frag");
 
-    public LinearDepthPass(GL gl)
+    public LinearDepthPass(GpuApi gl)
     {
         _gl = gl;
         _fullProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FullFragmentSource, "linear_depth_full");

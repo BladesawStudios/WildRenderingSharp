@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Resources;
 using KingRenderingSharp.Graph.Pipeline.Targets;
@@ -27,10 +26,10 @@ internal sealed class BloomPass : IDisposable
     static readonly string BlurFragmentSource = GlslFiles.Load("Pipeline/Bloom/Blur.frag");
     static readonly string ComposeFragmentSource = GlslFiles.Load("Pipeline/Bloom/Compose.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _brightProgram, _blurProgram, _composeProgram;
 
-    public BloomPass(GL gl)
+    public BloomPass(GpuApi gl)
     {
         _gl = gl;
         _brightProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, BrightFragmentSource, "bloom_bright");

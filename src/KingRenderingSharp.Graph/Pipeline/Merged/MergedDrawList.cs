@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using System.Runtime.InteropServices;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
 

@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -15,10 +14,10 @@ internal sealed class FogExpandPass : IDisposable
 {
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/PreShading/FogExpand.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
-    public FogExpandPass(GL gl)
+    public FogExpandPass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "preshading_fog_expand");

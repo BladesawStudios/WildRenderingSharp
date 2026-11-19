@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Textures;
 
 namespace KingRenderingSharp.Graph.Pipeline.Drawing;
@@ -7,7 +7,7 @@ namespace KingRenderingSharp.Graph.Pipeline.Drawing;
 /// The baked lighting every static object samples when it has none of its own (<c>CmnTex_BakeDefault</c>), at a strength the viewer sets: the game's
 /// is full, which makes its G-buffer programs write the largest outline radius and the full toon amount.
 /// </summary>
-internal sealed unsafe class DefaultBake(GL gl) : IDisposable
+internal sealed unsafe class DefaultBake(GpuApi gl) : IDisposable
 {
     const string DefaultName = "CmnTex_BakeDefault", BakeSampler = "bake0";
     const float FullStrength = 1f;

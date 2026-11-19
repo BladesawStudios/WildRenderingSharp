@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Numerics;
-using Silk.NET.OpenGL;
 using KingRenderingSharp;
 using KingRenderingSharp.Games.Totk.Gloom;
 
@@ -27,7 +27,7 @@ sealed unsafe class GloomBench : IGloomSource
         Console.WriteLine($"gloom: composed={renderer.Pipeline.GloomComposed}, material-ID-32 pixels {claimed} of {ids.Length / 4}");
     }
 
-    public GloomBench(GL gl, Vector3 centre, float size)
+    public GloomBench(GpuApi gl, Vector3 centre, float size)
     {
         uint noise = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture3D, noise);

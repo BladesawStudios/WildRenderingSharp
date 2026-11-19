@@ -1,10 +1,9 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Hosting.Views;
 
 /// <summary>The RGBA8 texture a view hands the host, and the same-sized intermediate the graded views are composed in before anti-aliasing.</summary>
-sealed class ViewOutput(GL gl) : IDisposable
+sealed class ViewOutput(GpuApi gl) : IDisposable
 {
     readonly uint _framebuffer = gl.GenFramebuffer(), _gradedFramebuffer = gl.GenFramebuffer();
     uint _gradedTexture;

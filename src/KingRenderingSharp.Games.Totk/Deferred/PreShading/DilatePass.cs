@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Passes;
 using KingRenderingSharp.Graph.Pipeline.Resources;
@@ -15,10 +14,10 @@ internal sealed class DilatePass : IDisposable
 {
     static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/PreShading/Dilate.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _program;
 
-    public DilatePass(GL gl)
+    public DilatePass(GpuApi gl)
     {
         _gl = gl;
         _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "preshading_dilate");

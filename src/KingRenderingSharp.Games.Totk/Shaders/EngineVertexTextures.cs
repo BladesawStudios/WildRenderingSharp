@@ -1,5 +1,4 @@
 using KingRenderingSharp.Gpu;
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Games.Totk.Shaders;
 
@@ -7,7 +6,7 @@ namespace KingRenderingSharp.Games.Totk.Shaders;
 /// Neutral stand-ins for the vertex textures the game's engine renders itself: no wind swell, grass pressed nowhere (the lie map is
 /// read as <c>2x - 1</c>, so 0.5 is no push), no thickness.
 /// </summary>
-internal sealed class EngineVertexTextures(GL gl) : IDisposable
+internal sealed class EngineVertexTextures(GpuApi gl) : IDisposable
 {
     uint _windSwell, _lieMap, _thickness;
 

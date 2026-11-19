@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Resources;
 using KingRenderingSharp.Graph.Pipeline.Targets;
@@ -14,10 +13,10 @@ internal sealed class FlipBlit : IDisposable
     // The combine step after forward drawing: the scene back in the frame's units, keeping the coverage the deferred pass wrote.
     static readonly string CoverageFragmentSource = GlslFiles.Load("Pipeline/Forward/Coverage.frag");
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _flipProgram, _coverageProgram;
 
-    public FlipBlit(GL gl)
+    public FlipBlit(GpuApi gl)
     {
         _gl = gl;
         _flipProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FlipFragmentSource, "flip_blit");

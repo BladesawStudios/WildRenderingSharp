@@ -16,6 +16,10 @@ Dependencies point one way: each layer is a project that references only the lay
 
 Each layer project keeps its own shaders under its `Glsl/`, one file each, embedded: `Pipeline/` in Graph, `Totk/` and `Botw/` in their game projects.
 
+## GL stays in `Gpu`
+
+Only `KingRenderingSharp.Gpu` references Silk.NET.OpenGL (its compile assets do not flow to other projects), so a pass cannot reach the driver any other way than `GpuApi`. `GpuApi` has the GL calls the renderer makes, under the same names, with its own enums (`Gpu/Api/GpuApi.Generated.cs`, `GpuEnums.Generated.cs`). They are generated: when code needs a call or an enum value that is not there, write it, then run `dotnet run --project tools/GpuApiGenerator -- <repo root> src/KingRenderingSharp.Gpu/Gpu/Api`. Calls that take pointers or spans of enums, and the extensions, are written by hand in `GpuApi.cs`.
+
 ## The contract: `Graphics/`
 
 The renderer describes a frame in neutral terms and a profile turns that into the bytes its

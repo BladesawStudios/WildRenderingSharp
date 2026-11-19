@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Graph.Pipeline.Drawing;
 using KingRenderingSharp.Graph.Pipeline.Passes;
@@ -14,14 +13,14 @@ namespace KingRenderingSharp.Games.Totk.Deferred.Resolve;
 /// </summary>
 internal sealed class SceneColorShapePass : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _copyProgram, _white, _black;
 
     public const int MaterialIdUnit = 2, LinearDepthUnit = 4, LinearDepthHalfUnit = 5, PreFogUnit = 13, PreMiscUnit = 14, ColorBufferUnit = 27;
 
     static readonly string CopyFragmentSource = GlslFiles.Load("Totk/Deferred/SceneColorShape/Copy.frag");
 
-    public SceneColorShapePass(GL gl)
+    public SceneColorShapePass(GpuApi gl)
     {
         _gl = gl;
         _copyProgram = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, CopyFragmentSource, "scene_color_copy");

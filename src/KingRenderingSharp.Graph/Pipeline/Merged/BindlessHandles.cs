@@ -1,5 +1,5 @@
+using KingRenderingSharp.Gpu;
 using System.Runtime.CompilerServices;
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Content.Assets.Textures;
 
 namespace KingRenderingSharp.Graph.Pipeline.Merged;
@@ -9,7 +9,7 @@ namespace KingRenderingSharp.Graph.Pipeline.Merged;
 /// A handle is kept with the texture it was taken from, not under the texture's GL name, which is handed out again once a texture is deleted. A texture the
 /// host has since swapped for another has a new name, which is what makes its handle be taken again.
 /// </remarks>
-internal sealed class BindlessHandles(GL gl, TextureResidency residency)
+internal sealed class BindlessHandles(GpuApi gl, TextureResidency residency)
 {
     sealed class Taken(uint texture, ulong handle)
     {

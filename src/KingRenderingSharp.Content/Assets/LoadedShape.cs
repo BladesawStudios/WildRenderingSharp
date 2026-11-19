@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Content.Assets.Loading;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Content.Assets.Materials;
@@ -39,7 +39,7 @@ public sealed class LoadedShape
         Merged!.Restore(this);
     }
 
-    internal void Demote(GL gl)
+    internal void Demote(GpuApi gl)
     {
         if (Demoted || Merged is null)
             return;
@@ -54,7 +54,7 @@ public sealed class LoadedShape
     }
 
     // Deletes whatever of the shape's own GL objects exists, without making any of it first.
-    internal void DeleteGl(GL gl)
+    internal void DeleteGl(GpuApi gl)
     {
         if (_gBufferVao != 0) gl.DeleteVertexArray(_gBufferVao);
         if (_zOnlyVao != 0) gl.DeleteVertexArray(_zOnlyVao);

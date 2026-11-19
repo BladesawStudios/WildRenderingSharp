@@ -1,4 +1,4 @@
-using Silk.NET.OpenGL;
+using KingRenderingSharp.Gpu;
 
 namespace KingRenderingSharp.Games.Totk.Gloom;
 
@@ -15,10 +15,10 @@ sealed unsafe class GloomCube : IDisposable
         0, 2, 6, 0, 6, 4, 1, 5, 7, 1, 7, 3,
     ];
 
-    readonly GL _gl;
+    readonly GpuApi _gl;
     readonly uint _vao, _vbo;
 
-    public GloomCube(GL gl)
+    public GloomCube(GpuApi gl)
     {
         _gl = gl;
         var positions = new float[VertexCount * 3];

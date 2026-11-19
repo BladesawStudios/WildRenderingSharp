@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 
 namespace KingRenderingSharp.Gpu;
 
@@ -14,7 +13,7 @@ internal static class UniformLocations
     }
 
     // The location of the uniform, or -1 when the program has none by that name (which is cached too).
-    public static int UniformLocation(this GL gl, uint program, string name)
+    public static int UniformLocation(this GpuApi gl, uint program, string name)
     {
         var programs = ContextState<Cache>.For(gl).Programs;
         lock (programs)
@@ -27,7 +26,7 @@ internal static class UniformLocations
         }
     }
 
-    public static void ReleaseProgram(this GL gl, uint program)
+    public static void ReleaseProgram(this GpuApi gl, uint program)
     {
         var programs = ContextState<Cache>.For(gl).Programs;
         lock (programs)

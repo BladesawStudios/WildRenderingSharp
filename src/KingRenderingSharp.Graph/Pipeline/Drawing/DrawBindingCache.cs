@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 
 using KingRenderingSharp.Gpu;
 
@@ -58,7 +57,7 @@ sealed class DrawBindingCache
 
     public void ForgetBatchUniforms() => _uniformBatch = null;
 
-    public void BindTexture(GL gl, int unit, TextureTarget target, uint handle)
+    public void BindTexture(GpuApi gl, int unit, TextureTarget target, uint handle)
     {
         bool tracked = Enabled && (uint)unit < (uint)TrackedUnits;
         if (tracked && _textures[unit] == handle)

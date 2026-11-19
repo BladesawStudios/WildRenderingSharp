@@ -1,4 +1,3 @@
-using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
 using static KingRenderingSharp.Games.Totk.Sky.Precompute.SkyPrecomputePass;
 
@@ -7,9 +6,9 @@ namespace KingRenderingSharp.Games.Totk.Sky.Precompute;
 /// <summary>The textures the sky precompute chain solves into: the 2D tables, the 3D scattering tables, and the baked 2D inscatter the per-frame sky samples.</summary>
 sealed class SkyTables : IDisposable
 {
-    readonly GL _gl;
+    readonly GpuApi _gl;
 
-    public SkyTables(GL gl)
+    public SkyTables(GpuApi gl)
     {
         _gl = gl;
         Transmittance = CreateTable2D(gl, TransmittanceW, TransmittanceH);
@@ -35,7 +34,7 @@ sealed class SkyTables : IDisposable
 
     // 16F as in the game's allocation, since transmittance spans orders of magnitude along a grazing ray; clamped, since wrapping an edge
     // would fold a grazing ray onto a zenith ray.
-    public static unsafe uint CreateTable2D(GL gl, int width, int height)
+    public static unsafe uint CreateTable2D(GpuApi gl, int width, int height)
     {
         uint texture = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, texture);
@@ -44,7 +43,7 @@ sealed class SkyTables : IDisposable
         return texture;
     }
 
-    static unsafe uint CreateTable3D(GL gl, int width, int height, int depth)
+    static unsafe uint CreateTable3D(GpuApi gl, int width, int height, int depth)
     {
         uint texture = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture3D, texture);
