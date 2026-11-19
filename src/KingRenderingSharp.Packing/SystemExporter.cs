@@ -15,7 +15,7 @@ internal static class SystemExporter
         try
         {
             using (FileStream output = File.Create(pack))
-                SystemAssetPreparer.Prepare(romfs, output, bakeTiles, jobs);
+                SystemAssetPreparer.Prepare(romfs, output, bakeTiles, jobs, []);
             using AssetPack opened = AssetPack.Open(pack);
             Directory.CreateDirectory(layout.SystemTextures);
             int written = 0;

@@ -1,3 +1,4 @@
+using BfShaderSharp.Assets;
 using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Packing;
@@ -66,6 +67,20 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
 
     string Prepare(string name, IReadOnlyList<string> animationPacks, Action<string>? log, bool animatedAnyway = false, string? modelFile = null)
     {
+        string? actorName = null;
+        // A name that is an actor's resolves to its model, with the animation archives its pack lists unless the caller named some; a model name resolves to itself.
+        using (RomfsFiles files = new(romfs))
+        {
+            ActorImporter.Resolved? actor = modelFile is null ? ActorImporter.Resolve(files, name) : null;
+            if (actor is not null)
+            {
+                log?.Invoke($"[prepare] resolved actor '{name}' -> model '{actor.ModelName}', anim archives: {(actor.AnimPackNames.Count == 0 ? "(none named)" : string.Join(", ", actor.AnimPackNames))}");
+                if (animationPacks.Count == 0) animationPacks = actor.AnimPackNames;
+                actorName = name;
+                name = actor.ModelName;
+            }
+        }
+
         if (!force && cache.IsPrepared(name))
         {
             log?.Invoke($"[prepare] {name} is already prepared.");
@@ -74,6 +89,13 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
 
         PreparedPackModel prepared = PackPreparer.Prepare(romfs, name, cache.ModelDirectory(name), cache.Shaders, log, animations || animatedAnyway, animationPacks, modelFile);
         foreach (string problem in prepared.Problems) log?.Invoke("[prepare] " + problem);
+        using (RomfsFiles files = new(romfs))
+            foreach ((string file, byte[] data) in ActorImporter.Physics(files, actorName ?? name, name))
+            {
+                File.WriteAllBytes(Path.Combine(cache.ModelDirectory(name), file), data);
+                log?.Invoke($"[prepare] extracted physics asset '{file}'");
+            }
+
         log?.Invoke($"[prepare] {prepared.Name}: {prepared.Shapes} shapes, {prepared.Programs} programs, {prepared.Textures} textures, {prepared.Animations} animations");
         return prepared.Name;
     }
