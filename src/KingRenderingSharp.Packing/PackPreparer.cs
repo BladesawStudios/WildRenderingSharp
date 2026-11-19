@@ -19,6 +19,13 @@ static class PackPreparer
     static readonly object ExportGate = new();
     static readonly string[] Passes = ["gsys_assign_gbuffer", "gsys_assign_zonly", "gsys_assign_material"];
 
+    // A host names a model file for the file it came from and the hash of its bytes (Animal_Bass-3BFC81E3A401); the stem of the file is what the game's Tex files are named for.
+    static string OriginalStem(string name)
+    {
+        int dash = name.LastIndexOf('-');
+        return dash > 0 && name.Length - dash - 1 == 12 && name[(dash + 1)..].All(Uri.IsHexDigit) ? name[..dash] : name;
+    }
+
     /// <summary>Prepares the model of an actor or model name, which is a file stem or Stem.Model: its pack is written to <paramref name="packPath"/> and the prepared archives of the shaders it uses to <paramref name="shaderFolder"/>.</summary>
     public static PreparedPackModel Prepare(string romfs, string name, string packPath, string shaderFolder, Action<string>? log = null, bool animations = true, IReadOnlyList<string>? animationPacks = null, string? modelFile = null, IReadOnlyList<string>? layers = null)
     {
@@ -31,7 +38,7 @@ static class PackPreparer
         AssetResult result;
         // A model file is prepared as it is (an edited model, say) and the pack holds only it; otherwise the model is found in the romfs.
         using (FileStream output = File.Create(temporary))
-            result = modelFile is null ? AssetPreparer.Prepare(options, output, u => use = u) : ModelAssetPreparer.Prepare(options, stem, File.ReadAllBytes(modelFile), [], output, u => use = u);
+            result = modelFile is null ? AssetPreparer.Prepare(options, output, u => use = u) : ModelAssetPreparer.Prepare(options, stem, File.ReadAllBytes(modelFile), [], output, u => use = u, OriginalStem(stem));
         if (result.Models == 0)
         {
             File.Delete(temporary);
