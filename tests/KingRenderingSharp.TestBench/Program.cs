@@ -42,6 +42,9 @@ if (!Directory.Exists(romfs))
     return 2;
 }
 
+if (options.TryGetValue("check-shaders", out var checkFolder))
+    return ShaderCheck.RunHeadless(checkFolder, int.Parse(Option("limit", "0")), game == "botw");
+
 if (game == "botw")
     return BotwBench.Run(romfs, actorName, cache, size, outPath, options);
 
@@ -87,6 +90,9 @@ if (options.TryGetValue("bindless-limit", out var limitText))
     Console.WriteLine($"bindless handles: {count} made, {notResident} not resident, {glFaults} GL errors, first problem at {firstFail}");
     return 0;
 }
+
+if (options.TryGetValue("check-shaders", out var shaderFolder))
+    return ShaderCheck.Run(gl, shaderFolder, int.Parse(Option("limit", "0")), game == "botw");
 
 if (options.ContainsKey("check-merged"))
     return MergedCheck.Run(gl, cache, int.Parse(options["check-merged"]));

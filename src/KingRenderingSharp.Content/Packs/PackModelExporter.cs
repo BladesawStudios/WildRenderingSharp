@@ -185,9 +185,11 @@ sealed partial class PackModelExporter(AssetPack pack, Func<string, PreparedArch
     {
         _written.GetOrAdd((shaderDir + "|" + shading, program), _ =>
         {
-            foreach ((ShaderStage stage, string extension) in new[] { (ShaderStage.Vertex, "vert"), (ShaderStage.Fragment, "frag") })
+            string? vertex = model.Glsl(program, ShaderStage.Vertex), fragment = model.Glsl(program, ShaderStage.Fragment);
+            if (vertex is not null && fragment is not null) vertex = UnifySamplerBindings(vertex, fragment);
+            foreach ((string? text, string extension) in new[] { (vertex, "vert"), (fragment, "frag") })
             {
-                if (model.Glsl(program, stage) is not { } text) continue;
+                if (text is null) continue;
                 string path = Path.Combine(shaderDir, $"{shading}_prog{program}_extracted.{extension}");
                 string temp = $"{path}.{Environment.ProcessId}.{Environment.CurrentManagedThreadId}.tmp";
                 File.WriteAllText(temp, text);
@@ -196,6 +198,20 @@ sealed partial class PackModelExporter(AssetPack pack, Func<string, PreparedArch
 
             return null;
         });
+    }
+
+    [GeneratedRegex(@"layout\s*\(\s*binding\s*=\s*(?<binding>\d+)\s*\)\s*uniform\s+(?<type>\w+)\s+(?<name>\w+)\s*;")]
+    private static partial Regex SamplerDeclaration();
+
+    // A texture is bound once for a program, and a GL uniform of one name has one binding, while the game numbers each stage's texture slots on its own: a sampler both stages
+    // declare takes the fragment stage's binding in the vertex stage too.
+    static string UnifySamplerBindings(string vertex, string fragment)
+    {
+        Dictionary<string, string> fragmentBindings = [];
+        foreach (Match match in SamplerDeclaration().Matches(fragment)) fragmentBindings[match.Groups["name"].Value] = match.Groups["binding"].Value;
+        return SamplerDeclaration().Replace(vertex, match => fragmentBindings.TryGetValue(match.Groups["name"].Value, out string? binding)
+            ? $"layout (binding = {binding}) uniform {match.Groups["type"].Value} {match.Groups["name"].Value};"
+            : match.Value);
     }
 
     [GeneratedRegex(@"layout\s*\(\s*location\s*=\s*(?<location>\d+)\s*\)\s*in\s+\w+\s+(?<name>\w+)\s*;")]
@@ -239,10 +255,7 @@ sealed partial class PackModelExporter(AssetPack pack, Func<string, PreparedArch
                             textureFiles[file] = texture;
                         }
                     }
-                    else
-                    {
-                        problems.Add($"Texture {texture}: not in the pack, or in a format the renderer cannot upload");
-                    }
+                    // A texture the pack lacks, or one in a format the uploader cannot put on the GPU (an uncompressed or 3D one), leaves the sampler without a file, as the older preparer did.
                 }
                 catch (Exception ex) when (ex is BfShaderFormatException or BfShaderUnsupportedException)
                 {
