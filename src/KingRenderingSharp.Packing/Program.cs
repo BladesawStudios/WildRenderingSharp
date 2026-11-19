@@ -1,39 +1,47 @@
 using KingRenderingSharp.Core.Storage;
 using KingRenderingSharp.Packing;
 
-// pack --romfs <dir> --actor <name> [--cache <dir>] [--no-anims]
-string? romfs = null, actor = null, cache = null;
-bool animations = true;
-for (int i = 0; i < args.Length; i++)
+// [prepare] --romfs <dir> --actor <model> [--anim <pack>]... [--cache <dir>] [--no-anims] [--force]
+// prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--no-anims] [--force]
+// Both answer in the protocol the model preparer's host reads: KRS_RESULT, KRS_BEGIN, KRS_DONE and KRS_FAIL lines.
+string command = args.Length > 0 && !args[0].StartsWith("--", StringComparison.Ordinal) ? args[0] : "prepare";
+string? romfs = null, actor = null, cache = null, list = null;
+List<string> animationPacks = [];
+bool animations = true, force = false;
+int jobs = 0;
+for (int i = command == args.FirstOrDefault() ? 1 : 0; i < args.Length; i++)
 {
     switch (args[i])
     {
         case "--romfs" when i + 1 < args.Length: romfs = args[++i]; break;
         case "--actor" when i + 1 < args.Length: actor = args[++i]; break;
         case "--cache" when i + 1 < args.Length: cache = args[++i]; break;
+        case "--list" when i + 1 < args.Length: list = args[++i]; break;
+        case "--anim" when i + 1 < args.Length: animationPacks.Add(args[++i]); break;
+        case "--jobs" when i + 1 < args.Length && int.TryParse(args[i + 1], out int count): jobs = count; i++; break;
         case "--no-anims": animations = false; break;
+        case "--force": force = true; break;
         default:
-            Console.Error.WriteLine("usage: pack --romfs <dir> --actor <name> [--cache <dir>] [--no-anims]");
+            Console.Error.WriteLine("usage: [prepare] --romfs <dir> --actor <model> [--anim <pack>]... [--cache <dir>] [--no-anims] [--force]\n       prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--no-anims] [--force]");
             return 2;
     }
 }
 
-if (string.IsNullOrEmpty(romfs) || !Directory.Exists(romfs) || string.IsNullOrEmpty(actor))
+if (string.IsNullOrEmpty(romfs) || !Directory.Exists(romfs))
 {
-    Console.Error.WriteLine("pack needs --romfs <existing directory> and --actor <name>.");
+    Console.Error.WriteLine("--romfs must name an existing directory.");
     return 2;
 }
 
 CacheLayout layout = new(cache ?? CacheLayout.DefaultRoot);
-try
+PackRun run = new(romfs, layout, animations, force);
+switch (command)
 {
-    PreparedPackModel prepared = PackPreparer.Prepare(romfs, actor, layout.ModelDirectory(actor), layout.Shaders, Console.WriteLine, animations);
-    foreach (string problem in prepared.Problems) Console.Error.WriteLine(problem);
-    Console.WriteLine($"{prepared.Name}: {prepared.Shapes} shapes, {prepared.Programs} programs, {prepared.Textures} textures, {prepared.Animations} animations");
-    return prepared.Problems.Count == 0 ? 0 : 1;
-}
-catch (Exception exception)
-{
-    Console.Error.WriteLine(exception);
-    return 1;
+    case "prepare" when !string.IsNullOrEmpty(actor):
+        return run.One(actor, animationPacks);
+    case "prepare-batch" when !string.IsNullOrEmpty(list) && File.Exists(list):
+        return run.Batch(File.ReadAllLines(list), jobs);
+    default:
+        Console.Error.WriteLine("prepare needs --actor <model>; prepare-batch needs --list <existing file>.");
+        return 2;
 }

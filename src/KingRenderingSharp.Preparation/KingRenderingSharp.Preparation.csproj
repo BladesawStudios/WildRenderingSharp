@@ -62,6 +62,18 @@
     <ProjectReference Include="$(KrsLibRoot)\PtclSharp\src\PtclSharp\PtclSharp.csproj" />
   </ItemGroup>
 
+  <!-- The pack tool, built with this and copied to krs-pack beside it: prepare and prepare-batch run it. It is not referenced as an assembly, since its shader translator shares a name with ShaderLibrary's. -->
+  <ItemGroup>
+    <ProjectReference Include="..\KingRenderingSharp.Packing\KingRenderingSharp.Packing.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="KrsCopyPackTool" AfterTargets="Build">
+    <ItemGroup>
+      <_KrsPackFiles Include="$(MSBuildThisFileDirectory)..\KingRenderingSharp.Packing\bin\$(Configuration)\$(TargetFramework)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_KrsPackFiles)" DestinationFiles="@(_KrsPackFiles->'$(OutDir)krs-pack\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
   <!-- The managed BNTX reader, with its own Tegra deswizzle. -->
   <ItemGroup>
     <ProjectReference Include="$(KrsLibRoot)\BntxSharp\src\BntxSharp\BntxSharp.csproj" />

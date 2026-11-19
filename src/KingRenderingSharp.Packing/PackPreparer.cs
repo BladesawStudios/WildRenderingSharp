@@ -16,10 +16,11 @@ namespace KingRenderingSharp.Packing;
 /// </remarks>
 static class PackPreparer
 {
+    static readonly object ExportGate = new();
     static readonly string[] Passes = ["gsys_assign_gbuffer", "gsys_assign_zonly", "gsys_assign_material"];
 
     /// <summary>Prepares the model of an actor or model name, which is a file stem or Stem.Model, into <paramref name="modelFolder"/> and <paramref name="shaderFolder"/>; returns what the export wrote.</summary>
-    public static PreparedPackModel Prepare(string romfs, string name, string modelFolder, string shaderFolder, Action<string>? log = null, bool animations = true)
+    public static PreparedPackModel Prepare(string romfs, string name, string modelFolder, string shaderFolder, Action<string>? log = null, bool animations = true, IReadOnlyList<string>? animationPacks = null)
     {
         string stem = name.Contains('.') ? name[..name.IndexOf('.')] : name;
         string work = Path.Combine(Path.GetTempPath(), "krs-pack-" + Guid.NewGuid().ToString("N"));
@@ -27,7 +28,8 @@ static class PackPreparer
         try
         {
             string packPath = Path.Combine(work, "model.bfap");
-            AssetOptions options = new(romfs, [stem, stem + "_Animation"], TextureSelection.Used, Storage: TextureStorage.Linear, AssignTypes: Passes);
+            string[] stems = [stem, stem + "_Animation", .. animationPacks ?? []];
+            AssetOptions options = new(romfs, stems, TextureSelection.Used, Storage: TextureStorage.Linear, AssignTypes: Passes);
             ProgramUse? use = null;
             AssetResult result;
             using (FileStream output = File.Create(packPath)) result = AssetPreparer.Prepare(options, output, u => use = u);
@@ -56,12 +58,14 @@ static class PackPreparer
                 string packModel = pack.Of(PackEntryKind.Model).Select(e => e.Name).FirstOrDefault(n => n == stem || n.StartsWith(stem + "/", StringComparison.Ordinal) && (name == stem || n.EndsWith("/" + name[(stem.Length + 1)..], StringComparison.Ordinal)))
                     ?? throw new FileNotFoundException($"The pack has no model for '{name}'");
                 using PackModelExporter exporter = new(pack, shader => opened[shader]);
-                ExportedModel exported = exporter.Export(packModel, name, modelFolder, shaderFolder);
+                ExportedModel exported;
+                // Models prepared side by side share the program files, so their writes take turns.
+                lock (ExportGate) exported = exporter.Export(packModel, name, modelFolder, shaderFolder);
                 int anims = 0;
                 if (animations)
                 {
                     List<string> skipped = [];
-                    anims = PackAnimExporter.Export(pack, [stem, stem + "_Animation"], name, modelFolder, skipped);
+                    anims = PackAnimExporter.Export(pack, stems, name, modelFolder, skipped);
                     foreach (string line in skipped.Take(20)) log?.Invoke("animation: " + line);
                 }
 

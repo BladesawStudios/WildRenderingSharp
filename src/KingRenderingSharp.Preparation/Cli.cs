@@ -69,8 +69,18 @@ static class Cli
         }
     }
 
+    // The pack tool prepares by default. Mod layers and --legacy keep the older ShaderLibrary path, which reads layered romfs.
+    static bool UsesPackTool(CliOptions options) => !options.Legacy && options.Mods.Count == 0 && PackTool.Executable() is not null;
+
     static int Prepare(CliOptions options, string actor, string romfs, CacheLayout cache)
     {
+        if (UsesPackTool(options))
+        {
+            if (options.Game == "botw") BotwSystemAssets.Ensure(BotwRom.Open(romfs), cache, Console.WriteLine);
+            else ModelPreparer.EnsureSystemAssets(romfs, cache, Console.WriteLine);
+            return PackTool.Prepare(options, actor, romfs, cache);
+        }
+
         string model;
         if (options.Game == "botw")
         {
@@ -112,6 +122,9 @@ static class Cli
         }
         if (!options.Verbose)
             Console.SetOut(TextWriter.Null);
+
+        if (UsesPackTool(options))
+            return PackTool.PrepareBatch(options, romfs, cache, [.. File.ReadAllLines(options.List!).Select(l => l.Trim()).Where(l => l.Length > 0)], protocol);
 
         ModelPreparer.PrepareMany(romfs, names, cache, parallelism,
             name => protocol.Say($"KRS_BEGIN {name}"),
@@ -186,6 +199,7 @@ static class Cli
         Console.WriteLine("  prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]");
         Console.WriteLine("  prepare-grass-shaders --romfs <dir> [--cache <dir>] [--force]");
         Console.WriteLine();
+        Console.WriteLine("  prepare and prepare-batch go through the pack tool (BfShaderSharp asset packs); --legacy, or a --mod layer, keeps the older path.");
         Console.WriteLine($"  --cache defaults to {CacheLayout.DefaultRoot}");
     }
 }
