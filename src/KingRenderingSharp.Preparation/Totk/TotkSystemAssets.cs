@@ -21,13 +21,6 @@ public static class TotkSystemAssets
         Step("system shaders", () => Once(Path.Combine(cache.Shaders, "agl_hdr_compose.vert"), cache.Shaders, () => TotkAglShaders.HdrCompose(romfs.Base, cache.Shaders)));
         Step("deferred materials", () => DeferredPasses(romfs, cache));
         Step("gloom shaders", () => Once(Path.Combine(cache.Shaders, "agl_miasma_renderer_compose.frag"), cache.Shaders, () => TotkAglShaders.Gloom(romfs.Base, cache.Shaders)));
-        Step("system textures", () => Once(Path.Combine(cache.SystemTextures, SystemTexture.FileOf("Proc3DNoise")), null, () => TotkSystemTextures.ExtractProc3DNoise(romfs.Base, cache.SystemTextures)));
-        Step("cloud textures", () =>
-        {
-            if (!TotkCloudMasks.IsInstalled(cache.SystemTextures))
-                TotkCloudMasks.Install(romfs.Base, cache.SystemTextures);
-        });
-        Step("sky bodies", () => Once(Path.Combine(cache.SystemTextures, SystemTexture.FileOf("Moon8")), cache.SystemTextures, () => TotkSystemTextures.ExtractSkyBodies(romfs.Base, cache.SystemTextures)));
         Step("lens flare", () => Once(Path.Combine(cache.Shaders, "agl_flare_filter_flare.frag"), cache.Shaders, () => TotkAglShaders.LensFlare(romfs.Base, cache.Shaders)));
         Step("cloud shader", () => Once(Path.Combine(cache.Shaders, "agl_cloud.frag"), cache.Shaders, () => TotkAglShaders.Cloud(romfs.Base, cache.Shaders)));
         // Checks the newest file this extractor produces, so a cache built before the adhoc-fog variant existed gains it.

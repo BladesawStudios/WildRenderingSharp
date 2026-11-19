@@ -29,7 +29,13 @@ internal static class SystemExporter
                 written++;
             }
 
-            log($"{written} cloud masks written to {layout.SystemTextures}");
+            foreach (PackEntry entry in opened.Of(PackEntryKind.GameData).Where(e => e.Name.StartsWith(SystemTextureImporter.Group + "/", StringComparison.Ordinal)))
+            {
+                File.WriteAllBytes(Path.Combine(layout.SystemTextures, SystemTexture.FileOf(entry.Name[(SystemTextureImporter.Group.Length + 1)..])), opened.Bytes(entry.Key));
+                written++;
+            }
+
+            log($"{written} system textures written to {layout.SystemTextures}");
             if (packShaders)
             {
                 Directory.CreateDirectory(layout.Shaders);

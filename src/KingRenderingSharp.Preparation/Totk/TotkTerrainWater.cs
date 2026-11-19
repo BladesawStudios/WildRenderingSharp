@@ -77,7 +77,8 @@ public static class TotkTerrainWater
     static byte[] DecodeMask(byte[] blocks, int width, int height)
     {
         var decoded = new byte[width * height];
-        TotkSystemTextures.RedChannel(TextureFormat.Bc4, blocks, width, height, decoded);
+        byte[] rgba = TextureDecoder.ToRgba8(TextureFormat.Bc4, blocks, width, height);
+        for (int i = 0; i < width * height; i++) decoded[i] = rgba[i * 4];
         return decoded;
     }
 }

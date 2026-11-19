@@ -23,7 +23,7 @@ public static class ModelPreparer
         using var romfs = new TotkRomfs(romfsRoot);
         using var strings = ExternalStringTable.Use(romfs.Base);
         TotkSystemAssets.Ensure(romfs, cache, log);
-        SystemSealing.Seal(cache, log);
+        SystemSealing.Seal(cache, log, romfsRoot);
     }
 
     public static string ResolveModelName(string romfsRoot, string actorOrModelName, IEnumerable<string>? modRomfsLayers = null)
