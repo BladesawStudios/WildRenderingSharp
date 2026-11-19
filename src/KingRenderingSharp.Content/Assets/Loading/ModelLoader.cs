@@ -3,12 +3,12 @@ using KingRenderingSharp.Content.Animation.Clips;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Content.Assets.Textures;
 using KingRenderingSharp.Content.Shaders;
-using KingRenderingSharp.Core.Storage;
+using KingRenderingSharp.Content.Assets.Sources;
 
 namespace KingRenderingSharp.Content.Assets.Loading;
 
 /// <summary>Turns a <see cref="ModelManifest"/> into a ready-to-draw <see cref="LoadedModel"/>: GL buffers, VAOs, textures and material blocks for every shape.</summary>
-internal sealed class ModelLoader(GpuApi gl, ShaderProgramCache programs, string dataDirectory, ExternalTextures? external = null)
+internal sealed class ModelLoader(GpuApi gl, ShaderProgramCache programs, ExternalTextures? external = null)
 {
     public SharedTextures? SharedTextures { get; init; }
 
@@ -19,20 +19,23 @@ internal sealed class ModelLoader(GpuApi gl, ShaderProgramCache programs, string
 
     public bool DeferVertexArrays { get; init; }
 
-    public LoadedModel Load(string modelName, bool enableKnownDecompilerCorrections = true)
-    {
-        var manifest = ModelManifest.Load(Path.Combine(dataDirectory, $"{modelName}.manifest.json"));
-        var textures = new TextureCache(gl, dataDirectory, external, SharedTextures, TextureMaxSize);
+    /// <summary>Loads a prepared model folder, the way an older preparation wrote it.</summary>
+    public LoadedModel Load(string directory, bool enableKnownDecompilerCorrections = true) =>
+        Load(new DirectoryModelSource(directory), enableKnownDecompilerCorrections);
 
-        string skeletonPath = Path.Combine(dataDirectory, $"{modelName}.skeleton.json");
-        SkeletonManifest? skeleton = ModelFiles.FileExists(skeletonPath) ? SkeletonManifest.Load(skeletonPath) : null;
+    public LoadedModel Load(IModelSource source, bool enableKnownDecompilerCorrections = true)
+    {
+        var manifest = source.Manifest;
+        var textures = new TextureCache(gl, source, external, SharedTextures, TextureMaxSize);
+
+        SkeletonManifest? skeleton = source.Skeleton;
         bool weightsInert = CompactVertices && VertexCompactor.SmoothPaletteIsIdentity(skeleton);
 
         var options = new ShapeBuildOptions(CompactVertices, DeferVertexArrays, enableKnownDecompilerCorrections);
-        var builder = new ShapeBuilder(gl, programs, dataDirectory, textures, manifest, options, weightsInert);
+        var builder = new ShapeBuilder(gl, programs, source, textures, manifest, options, weightsInert);
         var shapes = manifest.Shapes.Select(builder.Build).OfType<LoadedShape>().ToList();
         if (shapes.Count == 0)
-            throw new InvalidOperationException($"Manifest '{modelName}' resolved no drawable shapes.");
+            throw new InvalidOperationException($"Manifest '{source.Name}' resolved no drawable shapes.");
 
         return new LoadedModel(gl, textures)
         {
@@ -41,11 +44,11 @@ internal sealed class ModelLoader(GpuApi gl, ShaderProgramCache programs, string
             BoundsMin = builder.Bounds.Min,
             BoundsMax = builder.Bounds.Max,
             Skeleton = skeleton,
-            DataDirectory = dataDirectory,
-            AvailableAnims = SkeletalAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),
-            AvailableTexturePatternAnims = TexturePatternAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),
-            AvailableMaterialAnims = MaterialAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),
-            AvailableVisibilityAnims = VisibilityAnimManifest.ListAvailable(dataDirectory, modelName).ToList(),
+            Source = source,
+            AvailableAnims = source.SkeletalAnims,
+            AvailableTexturePatternAnims = source.TexturePatternAnims,
+            AvailableMaterialAnims = source.MaterialAnims,
+            AvailableVisibilityAnims = source.VisibilityAnims,
             PendingVertexArrays = builder.PendingVertexArrays.Count > 0 ? builder.PendingVertexArrays : null,
         };
     }

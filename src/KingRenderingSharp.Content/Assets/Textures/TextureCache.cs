@@ -1,4 +1,4 @@
-using KingRenderingSharp.Core.Storage;
+using KingRenderingSharp.Content.Assets.Sources;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Gpu;
 using KingRenderingSharp.Core.Logging;
@@ -9,7 +9,7 @@ namespace KingRenderingSharp.Content.Assets.Textures;
 internal sealed class TextureCache : IDisposable
 {
     readonly GpuApi _gl;
-    readonly string _dataDirectory;
+    readonly IFileSource _source;
     readonly SharedTextures? _shared;
     readonly TextureUploader _uploader;
     readonly Dictionary<string, LoadedTexture> _byTextureName = new(StringComparer.Ordinal);
@@ -18,10 +18,10 @@ internal sealed class TextureCache : IDisposable
     bool _ownsExternal;
     LoadedTexture? _white;
 
-    public TextureCache(GpuApi gl, string dataDirectory, ExternalTextures? external = null, SharedTextures? shared = null, int maxTextureSize = 0)
+    public TextureCache(GpuApi gl, IFileSource source, ExternalTextures? external = null, SharedTextures? shared = null, int maxTextureSize = 0)
     {
         _gl = gl;
-        _dataDirectory = dataDirectory;
+        _source = source;
         _external = external;
         _shared = shared;
         _uploader = new TextureUploader(gl, maxTextureSize);
@@ -94,14 +94,13 @@ internal sealed class TextureCache : IDisposable
         if (sharedKey is not null && _shared!.TryAcquire(sharedKey, out var held))
             return _byTextureName[s.Texture] = held;
 
-        string path = Path.Combine(_dataDirectory, s.File);
-        if (!CacheFiles.Exists(path))
+        if (!_source.Has(s.File))
         {
             Log.Warning($"[TextureCache] SKIPPED '{s.Texture}': missing file '{s.File}'");
             return null;
         }
 
-        var loaded = _uploader.Upload(s, info, CacheFiles.ReadAllBytes(path));
+        var loaded = _uploader.Upload(s, info, _source.Bytes(s.File));
         _byTextureName[s.Texture] = loaded;
         if (sharedKey is not null)
             _shared!.Add(sharedKey, loaded);

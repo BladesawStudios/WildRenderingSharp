@@ -30,7 +30,7 @@ public sealed class BakeLibrary : IDisposable
     {
         _gl = gl;
         _dir = bakeDirectory;
-        _textures = new TextureCache(gl, bakeDirectory);
+        _textures = new TextureCache(gl, new Sources.FolderFiles(bakeDirectory));
     }
 
     /// <summary>

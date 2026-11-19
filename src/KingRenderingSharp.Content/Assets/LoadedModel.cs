@@ -22,7 +22,19 @@ public sealed class LoadedModel : IDisposable
 
     public SkeletonManifest? Skeleton { get; init; }
 
-    public required string DataDirectory { get; init; }
+    internal Sources.IModelSource Source { get; init; } = null!;
+
+    /// <summary>The model's name.</summary>
+    public string Name => Source.Name;
+
+    /// <summary>Reads one of the animations the model lists, whichever kind.</summary>
+    public SkeletalAnimManifest LoadSkeletalAnim(string name) => Source.SkeletalAnim(name);
+
+    public TexturePatternAnimManifest LoadTexturePatternAnim(string name) => Source.TexturePatternAnim(name);
+
+    public MaterialAnimManifest LoadMaterialAnim(string name) => Source.MaterialAnim(name);
+
+    public VisibilityAnimManifest LoadVisibilityAnim(string name) => Source.VisibilityAnim(name);
 
     public IReadOnlyList<string> AvailableAnims { get; init; } = [];
 

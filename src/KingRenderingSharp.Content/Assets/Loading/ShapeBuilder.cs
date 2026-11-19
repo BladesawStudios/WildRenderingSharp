@@ -1,4 +1,4 @@
-using KingRenderingSharp.Core.Storage;
+using KingRenderingSharp.Content.Assets.Sources;
 using KingRenderingSharp.Content.Assets.Manifests;
 using KingRenderingSharp.Content.Assets.Materials;
 using KingRenderingSharp.Content.Assets.Textures;
@@ -17,7 +17,7 @@ readonly record struct ShapeBuildOptions(bool CompactVertices, bool DeferVertexA
 readonly record struct ShapePrograms(uint GBuffer, uint ZOnly, uint Forward);
 
 /// <summary>Builds the shapes of one model from its manifest: programs, buffers, samplers, material block and vertex arrays.</summary>
-sealed class ShapeBuilder(GpuApi gl, ShaderProgramCache programs, string dataDirectory, TextureCache textures, ModelManifest manifest,
+sealed class ShapeBuilder(GpuApi gl, ShaderProgramCache programs, IModelSource source, TextureCache textures, ModelManifest manifest,
     ShapeBuildOptions options, bool weightsInert)
 {
     readonly VertexArrays _arrays = new(gl);
@@ -36,7 +36,7 @@ sealed class ShapeBuilder(GpuApi gl, ShaderProgramCache programs, string dataDir
             return null;
         }
 
-        byte[] vertexBytes = CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.VertexFile));
+        byte[] vertexBytes = source.Bytes(sh.VertexFile);
         Bounds.Add(vertexBytes, manifest.VertexStride);
 
         var shapePrograms = LinkPrograms(sh);
@@ -71,7 +71,7 @@ sealed class ShapeBuilder(GpuApi gl, ShaderProgramCache programs, string dataDir
             (layout, stride, vertexBytes) = VertexCompactor.Compact(layout, stride, vertexBytes, used);
         }
 
-        byte[] indexBytes = CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.IndexFile));
+        byte[] indexBytes = source.Bytes(sh.IndexFile);
         uint vbo = GLBuffer.Create(gl, BufferTargetARB.ArrayBuffer, vertexBytes);
         uint ibo = GLBuffer.Create(gl, BufferTargetARB.ElementArrayBuffer, indexBytes);
         gl.Memory.Shape(vertexBytes.Length + indexBytes.Length);
@@ -80,7 +80,7 @@ sealed class ShapeBuilder(GpuApi gl, ShaderProgramCache programs, string dataDir
 
     LoadedShape Assemble(ShapeManifestEntry sh, ShapePrograms shapePrograms, ShapeBuffers buffers)
     {
-        var shapeOptions = ShapeOptions.Read(sh, dataDirectory);
+        var shapeOptions = ShapeOptions.Read(sh, source);
         return new LoadedShape
         {
             Hidden = shapeOptions.HidesNormalPass || sh.Samplers.Count == 0,
@@ -115,9 +115,9 @@ sealed class ShapeBuilder(GpuApi gl, ShaderProgramCache programs, string dataDir
             ReadsSceneColor = gl.UniformLocation(shapePrograms.GBuffer, "cTex_ColorBuffer") >= 0,
             FogsSceneColor = gl.UniformLocation(shapePrograms.GBuffer, "cTex_PreFog") >= 0,
             CullsFaces = sh.RenderState.CulledFace is not null && CutsOut(sh),
-            IsFarStandIn = Path.GetFileName(dataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)).StartsWith("Far_", StringComparison.Ordinal),
-            MaterialBlock = new MaterialBlock(gl, CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.MaterialFile))),
-            MaterialParams = MaterialParamLayout.TryLoadBeside(dataDirectory, sh.MaterialFile),
+            IsFarStandIn = source.Name.StartsWith("Far_", StringComparison.Ordinal),
+            MaterialBlock = new MaterialBlock(gl, source.Bytes(sh.MaterialFile)),
+            MaterialParams = source.ParamLayout(sh.MaterialFile),
         };
     }
 

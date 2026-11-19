@@ -22,7 +22,7 @@ internal readonly record struct ActorDrawGroup(IReadOnlyList<Ubo> Uniforms, Vect
     List<(int First, int Count, int Lod)>? Runs => Batch is null ? null
         : ShadowRuns ? (Cascade >= 0 ? Batch.Shadow.Cascade(Cascade) : Batch.Shadow.Visible) : Batch.Visible;
 
-    public string Label => Batch is { } b ? Path.GetFileName(b.Model.DataDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)) : (Shapes.Count > 0 ? Shapes[0].Name : "actor");
+    public string Label => Batch is { } b ? b.Model.Name : (Shapes.Count > 0 ? Shapes[0].Name : "actor");
 
     public void BindInstanceBuffer(GLResourceCache resources) =>
         resources.Gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, InstancingContract.InstanceBinding, Batch!.Buffer);

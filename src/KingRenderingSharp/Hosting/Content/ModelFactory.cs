@@ -21,13 +21,13 @@ internal sealed class ModelFactory(GpuApi gl, ShaderProgramCache programs, Cache
     public LoadedModel Load(string resolvedModelName)
     {
         using var _ = GLHostState.Enter(gl);
-        return NewLoader(resolvedModelName, deferVertexArrays: false).Load(resolvedModelName, totk.EnableKnownMaterialFixes);
+        return NewLoader(deferVertexArrays: false).Load(cache.ModelDirectory(resolvedModelName), totk.EnableKnownMaterialFixes);
     }
 
     // Safe off the render thread: the instanced programs are linked here and the vertex arrays wait for the render thread to create them.
     public LoadedModel LoadOnWorker(string resolvedModelName)
     {
-        var model = NewLoader(resolvedModelName, deferVertexArrays: true).Load(resolvedModelName, totk.EnableKnownMaterialFixes);
+        var model = NewLoader(deferVertexArrays: true).Load(cache.ModelDirectory(resolvedModelName), totk.EnableKnownMaterialFixes);
         foreach (var shape in model.Shapes)
             ActorDrawGroup.EnsureInstancedPrograms(programs, shape);
         merged.Prepare(model);
@@ -35,8 +35,8 @@ internal sealed class ModelFactory(GpuApi gl, ShaderProgramCache programs, Cache
         return model;
     }
 
-    ModelLoader NewLoader(string resolvedModelName, bool deferVertexArrays) =>
-        new(gl, programs, cache.ModelDirectory(resolvedModelName), externalTextures)
+    ModelLoader NewLoader(bool deferVertexArrays) =>
+        new(gl, programs, externalTextures)
         {
             CompactVertices = CompactVertices,
             TextureMaxSize = TextureMaxSize,

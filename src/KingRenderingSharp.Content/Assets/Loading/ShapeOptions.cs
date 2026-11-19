@@ -1,6 +1,6 @@
 using System.Text.Json;
 using KingRenderingSharp.Content.Assets.Manifests;
-using KingRenderingSharp.Core.Storage;
+using KingRenderingSharp.Content.Assets.Sources;
 
 namespace KingRenderingSharp.Content.Assets.Loading;
 
@@ -10,13 +10,12 @@ sealed record ShapeOptions(Dictionary<string, string> Tags, bool HidesNormalPass
     const string HideNormalPass = "o_enable_hide_normal_pass=True";
 
     // The manifest's extra string and number fields, plus each key=value line of the options file as option.key.
-    public static ShapeOptions Read(ShapeManifestEntry shape, string dataDirectory)
+    public static ShapeOptions Read(ShapeManifestEntry shape, IModelSource source)
     {
         var tags = shape.Extensions.Where(e => e.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number)
             .ToDictionary(e => e.Key, e => e.Value.ToString());
 
-        string path = Path.Combine(dataDirectory, $"{shape.Name}_options.txt");
-        if (ModelFiles.TryReadText(path) is not { } text)
+        if (source.Options(shape.Name) is not { } text)
             return new ShapeOptions(tags, false);
 
         bool hidesNormalPass = false;

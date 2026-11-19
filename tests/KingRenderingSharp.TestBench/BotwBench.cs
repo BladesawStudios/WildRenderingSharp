@@ -39,8 +39,8 @@ static class BotwBench
         var pipeline = new DeferredPipeline(gl, cache.Shaders, size, size, profile: new BotwProfile());
         var view = new SceneView(gl, pipeline);
         var textures = new ExternalTextures(gl);
-        var loader = new ModelLoader(gl, pipeline.Programs, cache.ModelDirectory(model), textures) { SharedTextures = new SharedTextures(gl) };
-        var actor = new RenderActor { Model = loader.Load(model, enableKnownDecompilerCorrections: false), ModelName = model, Name = model };
+        var loader = new ModelLoader(gl, pipeline.Programs, textures) { SharedTextures = new SharedTextures(gl) };
+        var actor = new RenderActor { Model = loader.Load(cache.ModelDirectory(model), enableKnownDecompilerCorrections: false), ModelName = model, Name = model };
         pipeline.SetScene([actor.Model]);
 
         var environment = new BotwEnvironment { DebugPreShading = options.TryGetValue("debug-attachment", out var a) ? int.Parse(a) : -1 };
