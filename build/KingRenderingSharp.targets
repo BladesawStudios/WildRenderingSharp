@@ -7,19 +7,18 @@
 
     The renderer needs one helper that it deliberately does NOT reference:
 
-      krs-prepare\  KingRenderingSharp.Preparation - the offline model preparer, run as a child
-                    process by KingRenderingSharp.Hosting.OutOfProcessPreparer. It carries
-                    the BfresLibrary build ShaderLibrary builds against, which need not be the one
-                    a host builds itself. Built when KrsOutOfProcessPreparer is
-                    true (the default). A host that references KingRenderingSharp.Preparation
-                    directly and prepares in-process can set it to false.
+      krs-pack\  KingRenderingSharp.Packing - the offline preparer, run as a child process by
+                  KingRenderingSharp.Hosting.OutOfProcessPreparer. It carries the BfShaderSharp
+                  libraries and their own builds of the readers a host may also use, which need
+                  not be the ones the host builds itself. Built when KrsOutOfProcessPreparer is
+                  true (the default).
 
     It lands beside the host's executable on build, and beside the published executable on publish.
   -->
 
   <PropertyGroup>
     <KrsRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</KrsRoot>
-    <KrsPreparationProject>$(KrsRoot)\src\KingRenderingSharp.Preparation\KingRenderingSharp.Preparation.csproj</KrsPreparationProject>
+    <KrsPreparationProject>$(KrsRoot)\src\KingRenderingSharp.Packing\KingRenderingSharp.Packing.csproj</KrsPreparationProject>
     <KrsOutOfProcessPreparer Condition="'$(KrsOutOfProcessPreparer)' == ''">true</KrsOutOfProcessPreparer>
   </PropertyGroup>
 
@@ -55,23 +54,22 @@
       <_KrsPreparationFiles Include="$(_KrsPreparationDir)**\*" Condition="'$(_KrsPreparationDir)' != ''" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(_KrsPreparationFiles)" DestinationFiles="@(_KrsPreparationFiles->'$(TargetDir)krs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_KrsPreparationFiles)" DestinationFiles="@(_KrsPreparationFiles->'$(TargetDir)krs-pack\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
   <!--
     On publish. The preparer is a process of its own: beside a framework-dependent host
     the build output is right, but beside a SELF-CONTAINED host - one handed to people who have no
     .NET installed - a framework-dependent preparer would not start. So for those it is published
-    self-contained for the host's runtime identifier (not single-file: ShaderLibrary's native
-    helpers and MeshCodec's decoder have to sit beside it as plain files).
+    self-contained for the host's runtime identifier (not single-file: the native decoders have to sit beside it as plain files).
   -->
   <Target Name="KrsPublishHelpers" AfterTargets="Publish" DependsOnTargets="KrsBuildHelpers">
     <PropertyGroup>
       <_KrsSelfContainedPreparer Condition="'$(KrsOutOfProcessPreparer)' == 'true' And '$(SelfContained)' == 'true' And '$(RuntimeIdentifier)' != ''">true</_KrsSelfContainedPreparer>
-      <_KrsPreparationPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)krs-prepare-publish\$(RuntimeIdentifier)\'))</_KrsPreparationPublishDir>
+      <_KrsPreparationPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)krs-pack-publish\$(RuntimeIdentifier)\'))</_KrsPreparationPublishDir>
     </PropertyGroup>
 
-    <Copy Condition="'$(_KrsSelfContainedPreparer)' != 'true'" SourceFiles="@(_KrsPreparationFiles)" DestinationFiles="@(_KrsPreparationFiles->'$(PublishDir)krs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy Condition="'$(_KrsSelfContainedPreparer)' != 'true'" SourceFiles="@(_KrsPreparationFiles)" DestinationFiles="@(_KrsPreparationFiles->'$(PublishDir)krs-pack\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
 
     <MSBuild Condition="'$(_KrsSelfContainedPreparer)' == 'true'" Projects="$(KrsPreparationProject)" Targets="Restore"
              Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;_KrsRestoreEvaluation=true"
@@ -82,7 +80,7 @@
     <ItemGroup Condition="'$(_KrsSelfContainedPreparer)' == 'true'">
       <_KrsPreparationPublished Include="$(_KrsPreparationPublishDir)**\*" />
     </ItemGroup>
-    <Copy Condition="'$(_KrsSelfContainedPreparer)' == 'true'" SourceFiles="@(_KrsPreparationPublished)" DestinationFiles="@(_KrsPreparationPublished->'$(PublishDir)krs-prepare\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy Condition="'$(_KrsSelfContainedPreparer)' == 'true'" SourceFiles="@(_KrsPreparationPublished)" DestinationFiles="@(_KrsPreparationPublished->'$(PublishDir)krs-pack\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

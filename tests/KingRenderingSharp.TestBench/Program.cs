@@ -6,7 +6,6 @@ using KingRenderingSharp.Content.Graphics;
 using KingRenderingSharp.Hosting;
 using KingRenderingSharp.Hosting.Preparers;
 using KingRenderingSharp.Core.Imaging;
-using KingRenderingSharp.Preparation;
 using KingRenderingSharp.Content.Rendering;
 using KingRenderingSharp.Content.Rendering.Cameras;
 using KingRenderingSharp.Content.Rendering.Lighting;
@@ -48,7 +47,7 @@ if (options.TryGetValue("check-shaders", out var checkFolder))
 if (game == "botw")
     return BotwBench.Run(romfs, actorName, cache, size, outPath, options);
 
-IModelPreparer preparer = new InProcessPreparer();
+IModelPreparer preparer = new OutOfProcessPreparer();
 await preparer.EnsureSystemAssetsAsync(romfs, cache, Console.WriteLine);
 string model = await preparer.PrepareAsync(new PrepareRequest(romfs, actorName, cache), Console.WriteLine);
 var mixModels = new List<string>();
@@ -109,6 +108,40 @@ if (options.ContainsKey("check-water-shader"))
     gl.GetShader(shader, ShaderParameterName.CompileStatus, out int compiled);
     Console.WriteLine(compiled != 0 ? "water fragment: compiles" : "water fragment: FAILED " + gl.GetShaderInfoLog(shader));
     return compiled != 0 ? 0 : 1;
+}
+
+if (options.ContainsKey("check-terrain-programs"))
+{
+    // Links the cave and depths programs as the renderer does and compiles the terrain fragment stages as it patches them, for a host-less check of what the terrain, cave and depths preparation wrote.
+    using var checkRom = TotkRom.Open(romfs);
+    using var checkRenderer = new KingRenderer(gl, cache, checkRom, initialWidth: 64, initialHeight: 64);
+    int failures = 0;
+    void Check(string name, Func<uint> link)
+    {
+        try { Console.WriteLine($"{name}: linked {link()}"); }
+        catch (Exception ex) { failures++; Console.WriteLine($"{name}: FAILED {ex.Message}"); }
+    }
+    var cave = checkRenderer.CaveShading ?? throw new InvalidOperationException("no cave shading");
+    var depths = checkRenderer.DepthsShading ?? throw new InvalidOperationException("no depths shading");
+    Check("cave_prog1", cave.LinkDepthProgram);
+    Check("cave_prog2", cave.LinkGBufferProgram);
+    Check("depths_prog1", depths.LinkDepthProgram);
+    Check("depths_prog2", depths.LinkGBufferProgram);
+    var terrain = checkRenderer.TerrainShading ?? throw new InvalidOperationException("no terrain shading");
+    foreach (int program in new[] { 2, 32, 62 })
+        Check($"terrain_prog{program} fragment", () =>
+        {
+            string frag = (string)terrain.GetType()
+                .GetMethod("PatchedGBufferFragment", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance)!
+                .Invoke(terrain, [program])!;
+            uint shader = gl.CreateShader(ShaderType.FragmentShader);
+            gl.ShaderSource(shader, frag);
+            gl.CompileShader(shader);
+            gl.GetShader(shader, ShaderParameterName.CompileStatus, out int compiled);
+            return compiled != 0 ? shader : throw new InvalidOperationException(gl.GetShaderInfoLog(shader));
+        });
+    Console.WriteLine(failures == 0 ? "all terrain, cave and depths programs build" : $"{failures} failed");
+    return failures == 0 ? 0 : 1;
 }
 
 using var rom = TotkRom.Open(romfs);

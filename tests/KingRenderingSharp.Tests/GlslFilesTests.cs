@@ -15,8 +15,7 @@ public sealed class GlslFilesTests
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "KingRenderingSharp.slnx")))
             dir = dir.Parent;
         string root = dir?.FullName ?? throw new InvalidOperationException("repository root not found");
-        return Directory.EnumerateDirectories(Path.Combine(root, "src"), "KingRenderingSharp*")
-            .Where(d => !d.EndsWith(".Preparation", StringComparison.Ordinal));
+        return Directory.EnumerateDirectories(Path.Combine(root, "src"), "KingRenderingSharp*");
     }
 
     static IEnumerable<string> GlslRoots() => LayerRoots().Select(r => Path.Combine(r, "Glsl")).Where(Directory.Exists);

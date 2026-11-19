@@ -22,6 +22,7 @@ sealed class BotwScene : ISnapshotScene
     readonly GLHostState _host;
     readonly SceneView _view;
     readonly RenderActor _actor;
+    readonly KingRenderingSharp.Content.Packs.ModelPack _modelPack;
     readonly LightingContext _lighting = new() { Background = BackgroundMode.Transparent };
     readonly BotwEnvironment _environment = new();
     ulong _frame;
@@ -29,10 +30,14 @@ sealed class BotwScene : ISnapshotScene
     public BotwScene(GpuApi gl, CacheLayout cache, string model, int size)
     {
         _host = GLHostState.Enter(gl);
-        var pipeline = new DeferredPipeline(gl, KingRenderingSharp.Content.Packs.SystemPack.StoresOf(cache), size, size, new BotwProfile());
+        var stores = KingRenderingSharp.Content.Packs.SystemPack.StoresOf(cache);
+        var pipeline = new DeferredPipeline(gl, stores, size, size, new BotwProfile());
+        // The model's pack stays open as long as the scene is drawn.
+        _modelPack = new KingRenderingSharp.Content.Packs.ModelPack(cache.ModelPack(model), cache.ModelShaders(model), model);
+        ((KingRenderingSharp.Core.Storage.LayeredContentFiles)stores.Shaders).Add(_modelPack.Programs);
         _view = new SceneView(gl, pipeline);
         var loader = new ModelLoader(gl, pipeline.Programs, new ExternalTextures(gl)) { SharedTextures = new SharedTextures(gl) };
-        _actor = new RenderActor { Model = loader.Load(cache.ModelDirectory(model), enableKnownDecompilerCorrections: false), ModelName = model, Name = model };
+        _actor = new RenderActor { Model = loader.Load(_modelPack.Source, enableKnownDecompilerCorrections: false), ModelName = model, Name = model };
         pipeline.SetScene([_actor.Model]);
     }
 
@@ -80,5 +85,9 @@ sealed class BotwScene : ISnapshotScene
         return rgba;
     }
 
-    public void Dispose() => _host.Dispose();
+    public void Dispose()
+    {
+        _host.Dispose();
+        _modelPack.Dispose();
+    }
 }

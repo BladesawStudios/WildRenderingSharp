@@ -4,8 +4,8 @@ using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Packing;
 
-/// <summary>Folds the loose folders the system data was prepared into (programs, deferred material blocks, system textures, effects) into the one pack the renderer reads, and removes them.</summary>
-/// <remarks>The renderer draws from <see cref="CacheLayout.SystemPack"/> alone once it exists. The bake tiles and the grass programs, which are prepared on demand and later, stay where they are.</remarks>
+/// <summary>Folds the loose folders the system data was prepared into (programs, deferred material blocks, system textures, effects, grass programs) into the one pack the renderer reads, and removes them.</summary>
+/// <remarks>The renderer draws from <see cref="CacheLayout.SystemPack"/> alone once it exists. The bake tiles, which are prepared on demand and later, stay where they are.</remarks>
 static class SystemSealer
 {
     public static int Seal(CacheLayout layout, Action<string> log)
@@ -13,7 +13,7 @@ static class SystemSealer
         (string Store, string Folder)[] stores =
         [
             (SystemPack.ShadersStore, layout.Shaders), (SystemPack.DeferredMaterialsStore, layout.DeferredMaterials),
-            (SystemPack.SystemTexturesStore, layout.SystemTextures), (SystemPack.EffectsStore, layout.Effects),
+            (SystemPack.SystemTexturesStore, layout.SystemTextures), (SystemPack.EffectsStore, layout.Effects), (SystemPack.GrassStore, layout.GrassShaders),
         ];
         string temporary = layout.SystemPack + ".tmp";
         int files = 0;

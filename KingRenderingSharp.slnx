@@ -7,7 +7,6 @@
     <Project Path="src/KingRenderingSharp.Games.Botw/KingRenderingSharp.Games.Botw.csproj" />
     <Project Path="src/KingRenderingSharp.Games.Totk/KingRenderingSharp.Games.Totk.csproj" />
     <Project Path="src/KingRenderingSharp/KingRenderingSharp.csproj" />
-    <Project Path="src/KingRenderingSharp.Preparation/KingRenderingSharp.Preparation.csproj" />
     <Project Path="src/KingRenderingSharp.Packing/KingRenderingSharp.Packing.csproj" />
     <Project Path="src/KingRenderingSharp.Snapshot/KingRenderingSharp.Snapshot.csproj" />
   </Folder>

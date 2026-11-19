@@ -20,13 +20,13 @@ static class PackPreparer
     static readonly string[] Passes = ["gsys_assign_gbuffer", "gsys_assign_zonly", "gsys_assign_material"];
 
     /// <summary>Prepares the model of an actor or model name, which is a file stem or Stem.Model: its pack is written to <paramref name="packPath"/> and the prepared archives of the shaders it uses to <paramref name="shaderFolder"/>.</summary>
-    public static PreparedPackModel Prepare(string romfs, string name, string packPath, string shaderFolder, Action<string>? log = null, bool animations = true, IReadOnlyList<string>? animationPacks = null, string? modelFile = null)
+    public static PreparedPackModel Prepare(string romfs, string name, string packPath, string shaderFolder, Action<string>? log = null, bool animations = true, IReadOnlyList<string>? animationPacks = null, string? modelFile = null, IReadOnlyList<string>? layers = null)
     {
         string stem = name.Contains('.') ? name[..name.IndexOf('.')] : name;
         Directory.CreateDirectory(Path.GetDirectoryName(packPath)!);
         string temporary = packPath + ".tmp";
         string[] stems = animations ? [stem, stem + "_Animation", .. animationPacks ?? []] : [stem];
-        AssetOptions options = new(romfs, stems, TextureSelection.Used, Storage: TextureStorage.Linear, AssignTypes: Passes);
+        AssetOptions options = new(romfs, stems, TextureSelection.Used, Storage: TextureStorage.Linear, AssignTypes: Passes, Layers: layers);
         ProgramUse? use = null;
         AssetResult result;
         // A model file is prepared as it is (an edited model, say) and the pack holds only it; otherwise the model is found in the romfs.

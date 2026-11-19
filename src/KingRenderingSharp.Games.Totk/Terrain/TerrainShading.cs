@@ -38,12 +38,12 @@ public sealed partial class TerrainShading : IDisposable
     // Once the programs are there they stay; asking the disk every frame costs more than the rest of the question.
     public bool Available => _available || (_available = _shaders.Exists("terrain_prog2_extracted.frag"));
 
-    public uint LinkGBufferProgram(string hostVertexSource, int program = 2)
-    {
-        string frag = _shaders.ReadText($"terrain_prog{program}_extracted.frag");
-        frag = UnwrittenOutputs.Apply(PatchTileSamplers(TotkGlsl.Clean(frag)));
-        return GLProgramBuilder.Build(_gl, hostVertexSource, frag, $"terrain_prog{program}");
-    }
+    public uint LinkGBufferProgram(string hostVertexSource, int program = 2) =>
+        GLProgramBuilder.Build(_gl, hostVertexSource, PatchedGBufferFragment(program), $"terrain_prog{program}");
+
+    // The program's fragment stage as it is linked with the host's vertex stage.
+    string PatchedGBufferFragment(int program) =>
+        UnwrittenOutputs.Apply(PatchTileSamplers(TotkGlsl.Clean(_shaders.ReadText($"terrain_prog{program}_extracted.frag"))));
 
     public uint LinkShadowProgram(string hostVertexSource) =>
         GLProgramBuilder.Build(_gl, hostVertexSource, GlslFiles.Load("Totk/Terrain/TerrainShading/ShadowStub.frag"), "terrain_shadow");

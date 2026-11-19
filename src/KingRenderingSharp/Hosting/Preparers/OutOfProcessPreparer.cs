@@ -3,7 +3,7 @@ using KingRenderingSharp.Core.Storage;
 namespace KingRenderingSharp.Hosting.Preparers;
 
 /// <summary>
-/// Runs <c>KingRenderingSharp.Preparation</c> as a child process - see <see cref="IModelPreparer"/> for when a host needs this
+/// Runs the pack tool, <c>KingRenderingSharp.Packing</c>, as a child process - see <see cref="IModelPreparer"/> for when a host needs this
 /// rather than preparing in-process.
 /// </summary>
 public sealed class OutOfProcessPreparer : IModelPreparer
@@ -26,10 +26,10 @@ public sealed class OutOfProcessPreparer : IModelPreparer
 
     public static string DefaultExecutablePath()
     {
-        string dir = Path.Combine(AppContext.BaseDirectory, "krs-prepare");
-        string exe = Path.Combine(dir, OperatingSystem.IsWindows() ? "KingRenderingSharp.Preparation.exe" : "KingRenderingSharp.Preparation");
+        string dir = Path.Combine(AppContext.BaseDirectory, "krs-pack");
+        string exe = Path.Combine(dir, OperatingSystem.IsWindows() ? "KingRenderingSharp.Packing.exe" : "KingRenderingSharp.Packing");
         // Framework-dependent builds always have the .dll; the native apphost may be missing on some platforms.
-        return File.Exists(exe) ? exe : Path.Combine(dir, "KingRenderingSharp.Preparation.dll");
+        return File.Exists(exe) ? exe : Path.Combine(dir, "KingRenderingSharp.Packing.dll");
     }
 
     public async Task EnsureSystemAssetsAsync(string romfsRoot, CacheLayout cache, Action<string>? log = null, CancellationToken cancellationToken = default, string? game = null)
@@ -80,13 +80,6 @@ public sealed class OutOfProcessPreparer : IModelPreparer
             try { File.Delete(listFile); } catch { /* temp file */ }
         }
         return failed;
-    }
-
-    // Exports the grass kinds' decompiled programs from the romfs, and returns the folder they are in.
-    public async Task<string> PrepareGrassShadersAsync(string romfsRoot, CacheLayout cache, Action<string>? log = null, CancellationToken cancellationToken = default)
-    {
-        string? folder = await RunForResultAsync(PreparerProtocol.PrepareGrassShaders(romfsRoot, cache.Root), log, cancellationToken).ConfigureAwait(false);
-        return folder ?? throw new InvalidOperationException("The preparer finished without naming the folder of the grass programs.");
     }
 
     // Runs a command whose output is progress, with the model it names on a result line; a nonzero exit throws with the output's tail.

@@ -3,7 +3,7 @@
   <!--
     A render server for tools that want pictures of game models without linking the renderer: it prepares a model of a Breath of the Wild or Tears of the Kingdom romfs, draws it
     offscreen through KingRenderingSharp and answers each request with an RGBA frame over its standard input and output (see Protocol.cs). A process of its own, so its
-    BfShaderSharp and ShaderLibrary assemblies never meet the host's.
+    BfShaderSharp assemblies never meet the host's.
   -->
 
   <PropertyGroup>
@@ -21,7 +21,7 @@
     <ProjectReference Include="..\KingRenderingSharp\KingRenderingSharp.csproj" />
   </ItemGroup>
 
-  <!-- Builds krs-prepare (and the pack tool inside it) beside this executable, which the preparation runs through. -->
+  <!-- Builds the pack tool beside this executable as krs-pack, which the preparation runs through. -->
   <Import Project="..\..\build\KingRenderingSharp.targets" />
 
 </Project>

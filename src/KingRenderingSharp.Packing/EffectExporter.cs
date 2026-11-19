@@ -63,17 +63,17 @@ internal static class EffectExporter
     static StructView Fields(EffectFile file, string set, string emitter) => new(PtclLayouts.For(PtclVersion.TotK_NintendoWareVfx2_15_3_1).Emitter, file.EmitterData(set, emitter));
 
     /// <summary>Returns the number of emitters and the haze levels written.</summary>
-    public static (int Emitters, int HazeLevels) Export(AssetPack pack, CacheLayout layout, bool programs, Action<string> log)
+    public static (int Emitters, int HazeLevels) Export(AssetPack pack, CacheLayout layout, Action<string> log)
     {
         if (pack.GameData(EffectImporter.FileEntry(File_)) is not { } bytes) return (0, 0);
         EffectFile file = EffectFile.Open(bytes);
         Directory.CreateDirectory(layout.Effects);
-        foreach (Emitter emitter in VolumeMask) ExportEmitter(pack, file, emitter, layout, programs);
+        foreach (Emitter emitter in VolumeMask) ExportEmitter(pack, file, emitter, layout);
         int levels = ExportHaze(pack, file, layout);
         return (VolumeMask.Length, levels);
     }
 
-    static void ExportEmitter(AssetPack pack, EffectFile file, Emitter emitter, CacheLayout layout, bool programs)
+    static void ExportEmitter(AssetPack pack, EffectFile file, Emitter emitter, CacheLayout layout)
     {
         byte[] data = file.EmitterData(emitter.Set, emitter.Name);
         StructView fields = new(PtclLayouts.For(PtclVersion.TotK_NintendoWareVfx2_15_3_1).Emitter, data);
@@ -92,7 +92,7 @@ internal static class EffectExporter
         if (fields.GetUInt64("tex_slot0_guid") is var texture and not ulong.MaxValue)
             System.IO.File.WriteAllBytes(Path.Combine(layout.Effects, ParticleEmitterManifest.TextureFile(emitter.Id)), pack.GameData(EffectImporter.TextureEntry(file.TextureName((uint)texture))) ?? throw new InvalidDataException($"The pack holds no texture for emitter '{emitter.Name}'."));
         System.IO.File.WriteAllBytes(Path.Combine(layout.Effects, ParticleEmitterManifest.ManifestFile(emitter.Id)), Manifest(fields, mesh).ToBytes());
-        if (programs) WriteProgram(file.ShaderArchive(), fields.GetInt32("shader_idx_normal"), ParticleEmitterManifest.ProgramName(emitter.Id), layout.Shaders);
+        WriteProgram(file.ShaderArchive(), fields.GetInt32("shader_idx_normal"), ParticleEmitterManifest.ProgramName(emitter.Id), layout.Shaders);
     }
 
     static ParticleEmitterManifest Manifest(StructView fields, Mesh mesh) => new(

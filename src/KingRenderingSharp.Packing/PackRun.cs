@@ -4,7 +4,7 @@ using KingRenderingSharp.Core.Storage;
 namespace KingRenderingSharp.Packing;
 
 /// <summary>Runs the pack preparer for one model or a list of them and reports in the preparer protocol.</summary>
-sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool force)
+sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool force, IReadOnlyList<string>? layers = null)
 {
     const string ResultPrefix = "KRS_RESULT ";
     readonly object _output = new();
@@ -69,7 +69,7 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
     {
         string? actorName = null;
         // A name that is an actor's resolves to its model, with the animation archives its pack lists unless the caller named some; a model name resolves to itself.
-        using (RomfsFiles files = new(romfs))
+        using (RomfsFiles files = new(romfs, layers))
         {
             ActorImporter.Resolved? actor = modelFile is null ? ActorImporter.Resolve(files, name) : null;
             if (actor is not null)
@@ -81,15 +81,16 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
             }
         }
 
-        if (!force && cache.IsPrepared(name))
+        if (!force && cache.IsPrepared(name) && File.Exists(StampFile(name)) == (Stamp.Length > 0) && (Stamp.Length == 0 || File.ReadAllText(StampFile(name)) == Stamp))
         {
             log?.Invoke($"[prepare] {name} is already prepared.");
             return name;
         }
 
-        PreparedPackModel prepared = PackPreparer.Prepare(romfs, name, cache.ModelPack(name), cache.ModelShaders(name), log, animations || animatedAnyway, animationPacks, modelFile);
+        PreparedPackModel prepared = PackPreparer.Prepare(romfs, name, cache.ModelPack(name), cache.ModelShaders(name), log, animations || animatedAnyway, animationPacks, modelFile, layers);
+        WriteStamp(name);
         foreach (string problem in prepared.Problems) log?.Invoke("[prepare] " + problem);
-        using (RomfsFiles files = new(romfs))
+        using (RomfsFiles files = new(romfs, layers))
             foreach ((string file, byte[] data) in ActorImporter.Physics(files, actorName ?? name, name))
             {
                 Directory.CreateDirectory(cache.ModelDirectory(name));
@@ -99,5 +100,34 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
 
         log?.Invoke($"[prepare] {prepared.Name}: {prepared.Shapes} shapes, {prepared.Programs} programs, {prepared.Textures} textures, {prepared.Animations} animations");
         return prepared.Name;
+    }
+
+    // What the mod layers were when a model was prepared: their folders and the newest write time of the files that reach a model, so a changed mod is prepared again.
+    string? _stamp;
+
+    string Stamp => _stamp ??= MakeStamp();
+
+    string StampFile(string name) => cache.ModelPack(name) + ".layers";
+
+    string MakeStamp()
+    {
+        if (layers is null || layers.Count == 0) return "";
+        long newest = 0;
+        foreach (string layer in layers.Where(Directory.Exists))
+            foreach (string folder in new[] { "Model", "Tex", "TexToGo", "Pack/Actor" })
+            {
+                string path = Path.Combine(layer, folder);
+                if (!Directory.Exists(path)) continue;
+                foreach (string file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+                    newest = Math.Max(newest, File.GetLastWriteTimeUtc(file).Ticks);
+            }
+
+        return string.Join('|', layers.Select(Path.GetFullPath)) + "#" + newest;
+    }
+
+    void WriteStamp(string name)
+    {
+        if (Stamp.Length == 0) File.Delete(StampFile(name));
+        else File.WriteAllText(StampFile(name), Stamp);
     }
 }

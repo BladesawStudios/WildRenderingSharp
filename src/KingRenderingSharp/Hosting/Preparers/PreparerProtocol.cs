@@ -42,9 +42,6 @@ static class PreparerProtocol
     public static List<string> PrepareBake(string romfsRoot, string cacheRoot, string listFile) =>
         ["prepare-bake", "--romfs", romfsRoot, "--cache", cacheRoot, "--list", listFile];
 
-    public static List<string> PrepareGrassShaders(string romfsRoot, string cacheRoot) =>
-        ["prepare-grass-shaders", "--romfs", romfsRoot, "--cache", cacheRoot];
-
     // A line that starts with the prefix and carries a tab-separated name and value.
     public static bool TrySplit(string line, string prefix, out string name, out string value)
     {

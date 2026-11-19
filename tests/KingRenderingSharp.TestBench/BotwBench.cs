@@ -8,7 +8,7 @@ using KingRenderingSharp.Hosting;
 using KingRenderingSharp.Hosting.Views;
 using KingRenderingSharp.Core.Imaging;
 using KingRenderingSharp.Graph.Pipeline;
-using KingRenderingSharp.Preparation.Botw;
+using KingRenderingSharp.Hosting.Preparers;
 using KingRenderingSharp.Games.Botw;
 using KingRenderingSharp.Content.Rendering;
 using KingRenderingSharp.Content.Rendering.Cameras;
@@ -23,7 +23,9 @@ static class BotwBench
 {
     public static int Run(string rom, string model, CacheLayout cache, int size, string outPath, IReadOnlyDictionary<string, string> options)
     {
-        BotwModelPreparer.PrepareIfNeeded(rom, model, cache, Console.WriteLine, force: options.ContainsKey("force"));
+        OutOfProcessPreparer preparer = new();
+        preparer.EnsureSystemAssetsAsync(rom, cache, Console.WriteLine, game: "botw").GetAwaiter().GetResult();
+        preparer.PrepareAsync(new PrepareRequest(rom, model, cache, Force: options.ContainsKey("force"), Game: "botw"), Console.WriteLine).GetAwaiter().GetResult();
 
         var window = Window.Create(WindowOptions.Default with
         {
@@ -36,11 +38,14 @@ static class BotwBench
         Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
         using var host = GLHostState.Enter(gl);
-        var pipeline = new DeferredPipeline(gl, KingRenderingSharp.Content.Packs.SystemPack.StoresOf(cache), size, size, new BotwProfile());
+        var stores = KingRenderingSharp.Content.Packs.SystemPack.StoresOf(cache);
+        var pipeline = new DeferredPipeline(gl, stores, size, size, new BotwProfile());
+        using var modelPack = new KingRenderingSharp.Content.Packs.ModelPack(cache.ModelPack(model), cache.ModelShaders(model), model);
+        ((LayeredContentFiles)stores.Shaders).Add(modelPack.Programs);
         var view = new SceneView(gl, pipeline);
         var textures = new ExternalTextures(gl);
         var loader = new ModelLoader(gl, pipeline.Programs, textures) { SharedTextures = new SharedTextures(gl) };
-        var actor = new RenderActor { Model = loader.Load(cache.ModelDirectory(model), enableKnownDecompilerCorrections: false), ModelName = model, Name = model };
+        var actor = new RenderActor { Model = loader.Load(modelPack.Source, enableKnownDecompilerCorrections: false), ModelName = model, Name = model };
         pipeline.SetScene([actor.Model]);
 
         var environment = new BotwEnvironment { DebugPreShading = options.TryGetValue("debug-attachment", out var a) ? int.Parse(a) : -1 };
