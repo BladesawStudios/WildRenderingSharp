@@ -1,0 +1,187 @@
+using Silk.NET.OpenGL;
+using KingRenderingSharp.Assets;
+using KingRenderingSharp.Gpu;
+using KingRenderingSharp.Pipeline.Drawing;
+using KingRenderingSharp.Pipeline.Resources;
+using KingRenderingSharp.Pipeline.Targets;
+
+namespace KingRenderingSharp.Pipeline.Passes;
+
+/// <summary>Depth prepass (z-only, where a material has one) followed by the real G-buffer draw.</summary>
+internal sealed class GBufferPass(GL gl)
+{
+    // The offset toward the camera of the main draw after a prepass: the share of the surface's depth slope, and units of the depth buffer's own steps.
+    const float MainDrawSlopeOffset = -2f, MainDrawConstantOffset = -4f;
+
+    readonly List<(ulong Key, int Group, LoadedShape Shape)> _items = [];
+
+    public void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
+    {
+        targets.BindGBuffer();
+        gl.ClearColor(0, 0, 0, 0);
+        gl.ClearDepth(1.0);
+        gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        gl.Disable(EnableCap.CullFace);
+        gl.Enable(EnableCap.DepthTest);
+        gl.DepthFunc(DepthFunction.Less);
+        GpuPassTimer.On(gl)?.Mark("G-buffer setup");
+        GpuPassTimer.On(gl)?.Detail("");
+
+        drawer.BeginStateCache();
+        DrawStages(resources, targets, groups, drawer);
+        drawer.EndStateCache();
+        gl.ActiveTexture(TextureUnit.Texture0);
+
+        DrawStepDebugger(resources, targets, groups, drawer);
+    }
+
+    // A z-prepass pays only where the z-only program discards and the G-buffer program does not: that shape's G-buffer program takes its cutout from the prepass
+    // depth. One that cuts out for itself needs no prepass, and with one the two programs' depths have to agree to the last step or the main draw loses the
+    // pixels the prepass kept, as a dissolving ribbon did, leaving flat patches where it should have been dark scales.
+    // Asked of every shape every frame, so what the program source said is remembered here rather than looked up under the cache's lock.
+    readonly Dictionary<(string ZOnly, string GBuffer), bool> _needsPrepass = [];
+
+    bool NeedsPrepass(ShapeDrawer drawer, LoadedShape shape)
+    {
+        if (!shape.HasZOnly || !shape.RenderState.DepthWriteEnabled)
+            return false;
+        var key = (shape.ZOnlyShaderName, shape.GBufferShaderName);
+        if (!_needsPrepass.TryGetValue(key, out bool needed))
+            _needsPrepass[key] = needed = drawer.Programs.FragmentDiscards(key.ZOnlyShaderName) && !drawer.Programs.FragmentDiscards(key.GBufferShaderName);
+        return needed;
+    }
+
+    void DrawStages(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
+    {
+        var timer = GpuPassTimer.On(gl);
+        bool Prepassed(LoadedShape s) => NeedsPrepass(drawer, s);
+
+        if (groups.Any(g => g.Shapes.Any(Prepassed)))
+        {
+            targets.SetGBufferColorMask(false);
+            DrawSorted(resources, groups, drawer, Prepassed, ShapeProgram.ZOnly, "z ");
+            targets.SetGBufferColorMask(true);
+            timer?.Mark("G-buffer z-prepass");
+
+            // The main draw's vertex program is compiled apart from the prepass's, so the two can land a few ULPs apart, and far from the origin a surface seen at a
+            // graze changes depth by several steps across one pixel: an equality test then loses the pixels along such an edge, and what is behind shows through in
+            // thin lines. The test passes at the prepass depth or nearer, and the offset, which grows with the surface's slope, covers the difference.
+            gl.DepthFunc(DepthFunction.Lequal);
+            gl.DepthMask(false);
+            gl.Enable(EnableCap.PolygonOffsetFill);
+            gl.PolygonOffset(MainDrawSlopeOffset, MainDrawConstantOffset);
+            DrawSorted(resources, groups, drawer, Prepassed, ShapeProgram.GBuffer, "");
+            gl.Disable(EnableCap.PolygonOffsetFill);
+            gl.DepthMask(true);
+            timer?.Mark("G-buffer main");
+        }
+
+        gl.DepthFunc(DepthFunction.Less);
+        DrawSorted(resources, groups, drawer, s => !Prepassed(s) && s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-z ");
+
+        // Shapes that write no depth (a see-through surface the game blends into its G-buffer) draw last, tested but not written, and never
+        // in the prepass, where writing them hid what is behind.
+        gl.DepthMask(false);
+        DrawSorted(resources, groups, drawer, s => !s.RenderState.DepthWriteEnabled, ShapeProgram.GBuffer, "no-depth ");
+        gl.DepthMask(true);
+    }
+
+    // An extra draw over just the shape being stepped, with depth testing forced to always pass: the normal draws only show fragments the
+    // z-only prepass let through, which hides a value computed before a discard that fires. It runs last with depth writes off.
+    void DrawStepDebugger(GLResourceCache resources, RenderTargets targets, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer)
+    {
+        if (!groups.Any(g => g.Shapes.Any(s => s.DebugGBufferProgram is not null)))
+            return;
+
+        targets.SetGBufferColorMask(true);
+        gl.DepthFunc(DepthFunction.Always);
+        gl.DepthMask(false);
+        foreach (var group in groups)
+        {
+            var debugging = group.Shapes.Where(s => s.DebugGBufferProgram is not null).ToList();
+            if (group.Batch is not null || debugging.Count == 0)
+                continue;
+
+            group.BindUbos(resources);
+            foreach (var shape in debugging)
+            {
+                uint program = shape.DebugGBufferProgram!.Value;
+                // The debugger's program declares uDebugStepTarget and the real one does not, so it is set before the draw's own UseProgram.
+                gl.UseProgram(program);
+                gl.SetInt(program, "uDebugStepTarget", shape.DebugGBufferStepTarget);
+                drawer.Draw(program, shape.GBufferVao, shape.MaterialBlock, shape.GBufferSamplers, shape.IndexCount, shape.SamplerOverrides);
+            }
+        }
+        gl.DepthMask(true);
+        gl.DepthFunc(DepthFunction.Less);
+    }
+
+    // Draws every group's shapes ordered by program then material, since re-binding per shape left the CPU behind the GPU.
+    // A placed actor's shapes keep their order and go first, because their per-actor uniforms make them unsortable.
+    void DrawSorted(GLResourceCache resources, IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer,
+        Func<LoadedShape, bool> include, ShapeProgram which, string detailPrefix)
+    {
+        CollectItems(groups, drawer, include, which);
+        drawer.Merged.BeginCollecting();
+
+        var timer = GpuPassTimer.On(gl);
+        bool detailed = timer?.Detailed == true;
+        int bound = -1;
+        bool batchBlocks = false;
+        foreach (var (_, g, shape) in _items)
+        {
+            var group = groups[g];
+            if (g != bound)
+            {
+                if (group.Batch is not null && batchBlocks)
+                    group.BindInstanceBuffer(resources);
+                else
+                    group.BindUbos(resources);
+                batchBlocks = group.Batch is not null;
+                bound = g;
+            }
+            SetCulling(shape);
+            group.Draw(drawer, shape, which);
+            if (detailed)
+                timer!.Detail(detailPrefix + group.Label);
+        }
+        // The merged draws are issued below for every shape of a program together, with the state they were collected under.
+        SetCulling(null);
+        drawer.Merged.Flush();
+    }
+
+    // The face a material hides is left out for the shapes that cut out their front face and would show it through the cut; everything else is drawn double-sided.
+    void SetCulling(LoadedShape? shape)
+    {
+        bool cull = shape is { CullsFaces: true };
+        if (cull)
+            FaceCulling.Apply(gl, shape!.RenderState);
+        else if (_culling)
+            FaceCulling.Reset(gl);
+        _culling = cull;
+    }
+
+    bool _culling;
+
+    void CollectItems(IReadOnlyList<ActorDrawGroup> groups, ShapeDrawer drawer, Func<LoadedShape, bool> include, ShapeProgram which)
+    {
+        _items.Clear();
+        for (int g = 0; g < groups.Count; g++)
+        {
+            bool instanced = groups[g].Batch is { Visible.Count: > 0 };
+            foreach (var shape in groups[g].Shapes.Where(s => !s.ProfileDrawsGBuffer && include(s)))
+            {
+                ulong key = 0;
+                if (instanced)
+                {
+                    ActorDrawGroup.EnsureInstancedPrograms(drawer.Programs, shape);
+                    uint program = which == ShapeProgram.ZOnly ? shape.InstancedZOnlyProgram : shape.InstancedGBufferProgram;
+                    key = (1UL << 63) | ((ulong)program << 32) | (uint)shape.MaterialBlock.Id;
+                }
+                _items.Add((key, g, shape));
+            }
+        }
+        // Stable for the actors (key 0), whose order is the caller's.
+        _items.Sort((a, b) => a.Key != b.Key ? a.Key.CompareTo(b.Key) : a.Group.CompareTo(b.Group));
+    }
+}

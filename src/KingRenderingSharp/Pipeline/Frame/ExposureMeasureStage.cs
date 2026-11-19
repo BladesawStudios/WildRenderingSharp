@@ -1,0 +1,8 @@
+namespace KingRenderingSharp.Pipeline.Frame;
+
+/// <summary>Answers a pending exposure measurement while the image is still pre-exposure HDR.</summary>
+internal sealed class ExposureMeasureStage(StageServices services) : IFrameStage
+{
+    public void Run(FrameContext frame) =>
+        services.Exposure.MeasureIfRequested(frame.Targets, frame.Lighting.Exposure);
+}

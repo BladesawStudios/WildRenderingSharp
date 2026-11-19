@@ -19,7 +19,7 @@ Dependencies point one way. A namespace may use the ones with a lower layer numb
 | 8 | `Profiles` | everything specific to one game |
 | 9 | `Scene` | `RenderActor` and the posing of a model for an actor |
 | 10 | `Hosting` | views, background loading, the model preparers, content loading for a host |
-| 11 | the root namespace | `WildRenderingSharp.WildRenderer` |
+| 11 | the root namespace | `KingRenderingSharp.KingRenderer` |
 
 `Glsl/` holds the renderer's own shaders, one file each, embedded; `Pipeline/` is shared and `Totk/` is TotK's.
 
@@ -41,7 +41,7 @@ of the GL buffer it is kept in) and also supplies:
 - `IShaderSources` - how a game's decompiled GLSL is cleaned, corrected and instanced
 - `CreateFrameGraph` - the ordered stages of its frame
 
-The renderer's world is right-handed and Y-up, the Wild games' own. Cameras, actor placements and the sun are given in it as they are, and the
+The renderer's world is right-handed and Y-up, the Wild-era games' own. Cameras, actor placements and the sun are given in it as they are, and the
 uniform blocks are written without any conversion.
 
 ## A frame
@@ -62,7 +62,7 @@ Stages that use nothing game-specific (`FrameSetupStage`, `ScreenSpaceLightingSt
 
 1. Create `Profiles/<Game>/` with a `<Game>Bindings` class naming each binding point.
 2. Describe each uniform block as a `UboSpec` beside the slot constants of its layout, and fill it with a `UboWriter`. The camera, light and
-   scene-material slots the Wild games share are in `Graphics/Ubos/Gsys*`, so write those through them. Build blocks from the neutral inputs, not from
+   scene-material slots the Wild-era games share are in `Graphics/Ubos/Gsys*`, so write those through them. Build blocks from the neutral inputs, not from
    renderer internals; what each slot holds is in `uniform_blocks.md`.
 3. Write the three small builders (camera, lighting, actor) and a `<Game>Profile : IGameProfile`
    that exposes them, its `ShaderBindings` and its `IShaderSources` (start from `DecompiledGlsl.Clean`).
@@ -77,7 +77,7 @@ The renderer carries a game's palette, sky, cloud and grade data as an opaque `I
 `EnvPalette`, `SkyPostFx` and the rest of its data models; a profile's stages read the concrete type.
 
 `LightingContext` holds only what every game reads: exposure, sun, scales, background mode. A game's own
-live settings sit beside it (`WildRenderer.Totk` is a `TotkSettings`) and travel on its environment.
+live settings sit beside it (`KingRenderer.Totk` is a `TotkSettings`) and travel on its environment.
 
 The prepared-model manifest carries what every game needs. Keys the loader does not know are kept in
 `ShapeManifestEntry.Extensions`, surface as `LoadedShape.Tags`, and the profile reads them through its own
@@ -88,7 +88,7 @@ profile decides which fields it takes from them (`PostFxAamp` for TotK).
 
 ## Shaders
 
-The renderer's own GLSL lives as files under `src/WildRenderingSharp/Glsl/` and is read with
+The renderer's own GLSL lives as files under `src/KingRenderingSharp/Glsl/` and is read with
 `GlslFiles.Load("Totk/Sky/LensFlare/Bright.frag")`. The game's decompiled shaders are never committed: the
 preparer writes them into the cache and the pipeline loads them from there. `GlslFilesTests` fails the build if
 GLSL reappears inside C# or a decompiler-named symbol turns up in `Glsl/`.
@@ -96,21 +96,21 @@ GLSL reappears inside C# or a decompiler-named symbol turns up in `Glsl/`.
 ## Tests
 
 ```bash
-dotnet test tests/WildRenderingSharp.Tests
+dotnet test tests/KingRenderingSharp.Tests
 ```
 
-`UboSnapshotTests` pins the exact bytes of every UBO builder to a recorded SHA-256 in `tests/WildRenderingSharp.Tests/Snapshots`; re-record after a
-deliberate layout change with `WRS_UPDATE_SNAPSHOTS=1`. `LayeringTests` and `PublicApiTests` pin the layers and the public types. None of them needs a GL context.
+`UboSnapshotTests` pins the exact bytes of every UBO builder to a recorded SHA-256 in `tests/KingRenderingSharp.Tests/Snapshots`; re-record after a
+deliberate layout change with `KRS_UPDATE_SNAPSHOTS=1`. `LayeringTests` and `PublicApiTests` pin the layers and the public types. None of them needs a GL context.
 
-`tests/WildRenderingSharp.TestBench` is the GL check: it prepares one actor from a romfs, renders it through the real pipeline in a hidden GL 4.5 window
+`tests/KingRenderingSharp.TestBench` is the GL check: it prepares one actor from a romfs, renders it through the real pipeline in a hidden GL 4.5 window
 and writes a PNG, failing on GL errors or a blank image. `--frames <n>` reports per-frame CPU and GPU time and allocations, and `--instances <n>` draws
 that many copies as one batch.
 
 ```bash
-dotnet run --project tests/WildRenderingSharp.TestBench -- --game totk --romfs <romfs dir> --actor Npc_Zelda_AncientHyrule --out zelda.png
+dotnet run --project tests/KingRenderingSharp.TestBench -- --game totk --romfs <romfs dir> --actor Npc_Zelda_AncientHyrule --out zelda.png
 ```
 
-`tests/WildRenderingSharp.RenderRegression` runs the test bench over a fixed set of scenes and compares each render with a baseline recorded on the same
+`tests/KingRenderingSharp.RenderRegression` runs the test bench over a fixed set of scenes and compares each render with a baseline recorded on the same
 machine; see its README.
 
 What is known about the games' renderers is in [game-research.md](game-research.md).

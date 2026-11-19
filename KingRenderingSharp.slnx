@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/KingRenderingSharp/KingRenderingSharp.csproj" />
+    <Project Path="src/KingRenderingSharp.Preparation/KingRenderingSharp.Preparation.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/KingRenderingSharp.RenderRegression/KingRenderingSharp.RenderRegression.csproj" />
+    <Project Path="tests/KingRenderingSharp.Tests/KingRenderingSharp.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.TestBench/KingRenderingSharp.TestBench.csproj" />
+  </Folder>
+  <Folder Name="/vendor/" />
+  <Folder Name="/vendor/AampSharp/" />
+  <Folder Name="/vendor/AampSharp/src/">
+    <Project Path="vendor/AampSharp/src/AampSharp/AampSharp.csproj" />
+  </Folder>
+</Solution>

@@ -5,6 +5,6 @@ obj/
 *.user
 
 
-# Per-machine render baselines and outputs (see tests/WildRenderingSharp.RenderRegression/README.md)
-tests/WildRenderingSharp.RenderRegression/golden/
-tests/WildRenderingSharp.RenderRegression/out/
+# Per-machine render baselines and outputs (see tests/KingRenderingSharp.RenderRegression/README.md)
+tests/KingRenderingSharp.RenderRegression/golden/
+tests/KingRenderingSharp.RenderRegression/out/

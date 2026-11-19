@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <KrsLibRoot Condition="'$(KrsLibRoot)' == ''">$(MSBuildThisFileDirectory)..\..\vendor</KrsLibRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KingRenderingSharp\KingRenderingSharp.csproj" />
+    <ProjectReference Include="..\KingRenderingSharp.RenderRegression\KingRenderingSharp.RenderRegression.csproj" />
+    <ProjectReference Include="..\..\src\KingRenderingSharp.Preparation\KingRenderingSharp.Preparation.csproj" />
+    <ProjectReference Include="$(KrsLibRoot)\ShaderLibrary\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Snapshots\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

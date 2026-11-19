@@ -1,0 +1,286 @@
+using System.Numerics;
+using Silk.NET.OpenGL;
+using KingRenderingSharp.Assets;
+using KingRenderingSharp.Assets.Baking;
+using KingRenderingSharp.Assets.Textures;
+using KingRenderingSharp.Gpu;
+using KingRenderingSharp.Hosting.Content;
+using KingRenderingSharp.Hosting.Views;
+using KingRenderingSharp.Pipeline;
+using KingRenderingSharp.Pipeline.Drawing;
+using KingRenderingSharp.Pipeline.Shadows;
+using KingRenderingSharp.Profiles.Totk;
+using KingRenderingSharp.Profiles.Totk.Atmosphere;
+using KingRenderingSharp.Profiles.Totk.Gloom;
+using KingRenderingSharp.Profiles.Totk.Terrain;
+using KingRenderingSharp.Rendering;
+using KingRenderingSharp.Rendering.Cameras;
+using KingRenderingSharp.Rendering.Lighting;
+using KingRenderingSharp.Rom;
+using KingRenderingSharp.Scene;
+using KingRenderingSharp.Storage;
+
+namespace KingRenderingSharp;
+
+/// <summary>
+/// The whole live renderer in one object: a pipeline, the world it is lit by, the actors placed in it, and a view to draw them
+/// into.
+/// </summary>
+public sealed class KingRenderer : IDisposable
+{
+    readonly GL _gl;
+    readonly List<RenderActor> _actors = [];
+    readonly List<InstanceBatch> _instances = [];
+    readonly ModelFactory _models;
+    readonly BakeAttachment _bakes;
+
+    public CacheLayout Cache { get; }
+    public RenderEnvironment Environment { get; }
+    public LightingContext Lighting { get; } = new();
+    public TotkSettings Totk { get; } = new();
+    public DeferredPipeline Pipeline { get; }
+
+    public SceneView View { get; }
+
+    public ExternalTextures ExternalTextures { get; }
+
+    public SharedTextures SharedTextures { get; }
+
+    // The game's terrain programs, for a host that hands its terrain over (Terrain); null when the pipeline is not TotK's.
+    public TerrainShading? TerrainShading => (Pipeline.Graph as TotkFrameGraph)?.Terrain;
+
+    // The game's programs for a crbin mesh, for a host that draws caves, sky islands and the like; null when the pipeline is not TotK's.
+    public CaveShading? CaveShading => (Pipeline.Graph as TotkFrameGraph)?.Cave;
+
+    public DepthsShading? DepthsShading => (Pipeline.Graph as TotkFrameGraph)?.Depths;
+
+    public IReadOnlyList<RenderActor> Actors => _actors;
+
+    public ulong FrameId { get; private set; }
+
+    public float AoRadius { get; set; } = 0.035f;
+    public float ShadowBias { get; set; } = 0.0015f;
+
+    public (int ActorIndex, int ShapeIndex)? Highlight { get; set; }
+
+    public KingRenderer(GL gl, CacheLayout cache, IRomAccess? rom, RenderEnvironment? environment = null, int initialWidth = 1280, int initialHeight = 720)
+    {
+        GLDebug.GLInit(gl);
+        if (!cache.HasSystemAssets)
+            throw new InvalidOperationException(
+                $"The cache at '{cache.Root}' has no system assets yet. Run IModelPreparer.EnsureSystemAssetsAsync against the romfs first.");
+
+        _gl = gl;
+        Cache = cache;
+        Environment = environment ?? RenderEnvironment.Load(rom);
+
+        using (GLHostState.Enter(gl))
+        {
+            Pipeline = new DeferredPipeline(gl, cache.Shaders, initialWidth, initialHeight, new TotkProfile(),
+                cache.DeferredMaterials, cache.SystemTextures);
+            View = new SceneView(gl, Pipeline);
+            ExternalTextures = new ExternalTextures(gl);
+            SharedTextures = new SharedTextures(gl);
+            SharedTextures.Residency = Pipeline.Drawer.Merged.Residency;
+            _models = new ModelFactory(gl, Pipeline.Programs, cache, ExternalTextures, SharedTextures, Totk, Pipeline.Drawer.Merged);
+            _bakes = new BakeAttachment(gl, cache);
+            // The atmosphere bake is scene-independent and about 600 draw calls, so it runs once here against the palette that will be used.
+            Pipeline.PrepareEnvironment(Environment.Resolve(Totk));
+        }
+    }
+
+    public bool CompactModelVertices
+    {
+        get => _models.CompactVertices;
+        set => _models.CompactVertices = value;
+    }
+
+    /// <summary>The largest a model's texture may be in pixels on its longest side, the levels above it left out of the card; 0 for no limit. Applies to models loaded after it is set.</summary>
+    public int TextureMaxSize
+    {
+        get => _models.TextureMaxSize;
+        set => _models.TextureMaxSize = value;
+    }
+
+    public BakeLibrary Bakes => _bakes.Library;
+
+    public IReadOnlyList<string> AttachBake(InstanceBatch batch, IReadOnlyList<ulong> hashes) => _bakes.Attach(batch, hashes);
+
+    public void ApplyBake(InstanceBatch batch, BakeActor?[] perInstance) => _bakes.Apply(batch, perInstance);
+
+    public LoadedModel LoadModelOnWorker(string resolvedModelName) => _models.LoadOnWorker(resolvedModelName);
+
+    public (BakeActor?[] PerInstance, IReadOnlyList<string> Missing) FindBakes(IReadOnlyList<ulong> hashes) => _bakes.Find(hashes);
+
+    public LoadedModel LoadModel(string resolvedModelName) => _models.Load(resolvedModelName);
+
+    public RenderActor AddActor(string resolvedModelName)
+    {
+        var actor = new RenderActor { Model = LoadModel(resolvedModelName), ModelName = resolvedModelName, Name = resolvedModelName };
+        AddActor(actor);
+        return actor;
+    }
+
+    public IReadOnlyList<InstanceBatch> Instances => _instances;
+
+    public ShadowFocus? ShadowFocus { get; set; }
+
+    public IReadOnlyList<ShadowFocus>? ShadowCascades { get; set; }
+
+    // The view depths at which the first cascades end, in metres. Each of those cascades is fitted to the slice of the view from the one before to its end and drawn afresh every
+    // frame, and the cascades after them are the ShadowCascades' own regions, kept between frames.
+    public IReadOnlyList<float>? ShadowSliceEnds { get; set; }
+
+    public ITerrainHost? Terrain { get; set; }
+
+    // The host's gloom, composed into the G-buffer with the game's own programs; null for none.
+    public IGloomSource? Gloom { get; set; }
+
+    public InstanceBatch AddInstances(LoadedModel model, IReadOnlyList<Vector4[]> placements, bool updateScene = true)
+    {
+        using var _ = GLHostState.Enter(_gl);
+        var batch = new InstanceBatch(_gl, model, placements);
+        // Linked now, while the host is loading: a link that misses the program binary cache costs 100-500 ms and would hitch the first visible frame.
+        foreach (var shape in model.Shapes)
+            ActorDrawGroup.EnsureInstancedPrograms(Pipeline.Programs, shape);
+        Pipeline.Drawer.Merged.Prepare(batch);
+        _instances.Add(batch);
+        if (updateScene)
+            SceneChanged();
+        return batch;
+    }
+
+    public void RemoveInstances(InstanceBatch batch, bool disposeModel = true)
+    {
+        if (!_instances.Remove(batch))
+            return;
+        SceneChanged();
+        using var _ = GLHostState.Enter(_gl);
+        batch.Dispose();
+        if (disposeModel)
+            DisposeModelIfUnused(batch.Model);
+    }
+
+    public void ClearInstances()
+    {
+        var all = _instances.ToList();
+        _instances.Clear();
+        SceneChanged();
+        using var _ = GLHostState.Enter(_gl);
+        foreach (var batch in all)
+            batch.Dispose();
+        foreach (var model in all.Select(b => b.Model).Distinct())
+            DisposeModelIfUnused(model);
+    }
+
+    void DisposeModelIfUnused(LoadedModel model)
+    {
+        if (!_instances.Any(b => ReferenceEquals(b.Model, model)) && !_actors.Any(a => ReferenceEquals(a.Model, model)))
+            model.Dispose();
+    }
+
+    public void AddActor(RenderActor actor)
+    {
+        _actors.Add(actor);
+        SceneChanged();
+    }
+
+    public void RemoveActor(RenderActor actor, bool dispose = true)
+    {
+        if (!_actors.Remove(actor))
+            return;
+        SceneChanged();
+        if (dispose)
+        {
+            using var _ = GLHostState.Enter(_gl);
+            actor.Dispose();
+        }
+    }
+
+    public void ClearActors(bool dispose = true)
+    {
+        var all = _actors.ToList();
+        _actors.Clear();
+        SceneChanged();
+        if (dispose)
+        {
+            using var _ = GLHostState.Enter(_gl);
+            foreach (var a in all)
+                a.Dispose();
+        }
+    }
+
+    public void SceneChanged()
+    {
+        using var _ = GLHostState.Enter(_gl);
+        Pipeline.SetScene(_actors.Select(a => a.Model).Concat(_instances.Select(b => b.Model)).Distinct().ToList());
+        Pipeline.InvalidateShadowCache();
+    }
+
+    public bool Advance(float deltaSeconds)
+    {
+        bool moved = false;
+        foreach (var actor in _actors)
+            moved |= actor.AdvanceAnimation(deltaSeconds);
+        return moved;
+    }
+
+    public (Vector3 Center, float Radius) FrameFor(Camera camera)
+    {
+        var (center, radius) = RenderActor.CombinedBounds(_actors.Where(a => a.Visible));
+        var framing = SceneFramingCalculator.ForModelRadius(radius);
+        AoRadius = framing.AoRadius;
+        ShadowBias = framing.ShadowBias;
+        camera.NearPlane = framing.Near;
+        camera.FarPlane = framing.Far;
+        return (center, radius);
+    }
+
+    public FrameRequest BuildRequest(Camera camera, float deltaSeconds)
+    {
+        FrameId++;
+        foreach (var actor in _actors)
+            actor.ApplyMaterialAnimations();
+        var inputs = RenderActor.BuildRenderInputs(_actors, deltaSeconds, FrameId);
+        return new FrameRequest(camera, Lighting, Environment.Resolve(Totk, Terrain, Gloom), inputs,
+            AoRadius, ShadowBias, Highlight, _instances, ShadowFocus, ShadowCascades, ShadowSliceEnds);
+    }
+
+    public uint? Render(Camera camera, int width, int height, float deltaSeconds)
+    {
+        // A host's ground is something to draw on its own: a cave, a sky island or a shrine has no placed actors.
+        if (!_actors.Any(a => a.Visible) && !_instances.Any(b => b.Visible.Count > 0) && Terrain is null)
+            return null;
+
+        using var _ = GLHostState.Enter(_gl);
+        var request = BuildRequest(camera, deltaSeconds);
+        View.Render(request, width, height);
+        return View.OutputTexture;
+    }
+
+    public void ReleaseTargets()
+    {
+        using var _ = GLHostState.Enter(_gl);
+        View.ReleaseTargets();
+    }
+
+    public void Dispose()
+    {
+        using var _ = GLHostState.Enter(_gl);
+        // Ahead of everything that deletes a texture: handles still resident then keep their textures on the card.
+        Pipeline.Drawer.Merged.Residency.ReleaseAll(_gl);
+        foreach (var actor in _actors)
+            actor.Dispose();
+        _actors.Clear();
+        foreach (var batch in _instances)
+            batch.Dispose();
+        foreach (var model in _instances.Select(b => b.Model).Distinct())
+            model.Dispose();
+        _instances.Clear();
+        View.Dispose();
+        ExternalTextures.Dispose();
+        SharedTextures.Dispose();
+        _bakes.Dispose();
+        Pipeline.Dispose();
+    }
+}
