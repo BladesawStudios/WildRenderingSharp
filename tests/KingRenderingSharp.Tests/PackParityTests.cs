@@ -52,7 +52,8 @@ public sealed class PackParityTests
                     File.WriteAllText(Path.Combine(dump, "differences.txt"), string.Join('\n', differences));
                     File.WriteAllBytes(Path.Combine(dump, "oracle.manifest.json"), CacheFiles.ReadAllBytes(Path.Combine(folder, "oracle", Model, $"{Model}.manifest.json")));
                     File.Copy(Path.Combine(models, $"{Model}.manifest.json"), Path.Combine(dump, "ours.manifest.json"), true);
-                    foreach (string file in new[] { "Aprom_Ace__Mt_Accessory_A_vtx.bin", "Aprom_Ace__Mt_Accessory_A_idx.bin" })
+                    JsonElement first = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(dump, "oracle.manifest.json"))).RootElement.GetProperty("shapes")[0];
+                    foreach (string file in new[] { first.GetProperty("vertex_file").GetString()!, first.GetProperty("index_file").GetString()! })
                     {
                         File.WriteAllBytes(Path.Combine(dump, "oracle_" + file), CacheFiles.ReadAllBytes(Path.Combine(folder, "oracle", Model, file)));
                         File.Copy(Path.Combine(models, file), Path.Combine(dump, "ours_" + file), true);
@@ -146,7 +147,8 @@ public sealed class PackParityTests
                     differences.Add($"{what}[{i}]: {y.GetProperty("width")}x{y.GetProperty("height")} (oracle {x.GetProperty("width")}x{x.GetProperty("height")})");
                 // The preparer read a texture's selectors with an older TxtgSharp that gave the identity for the textures whose header says otherwise (a constant one for alpha, a grey texture read as red three times); the pack's are the header's. Only a selector set the oracle knew to be non-identity is compared.
                 if (!Json.Equal(JsonDocument.Parse("[0,1,2,3]").RootElement, x.GetProperty("comp_select")) && !Json.Equal(JsonDocument.Parse("[5,5,5,5]").RootElement, y.GetProperty("comp_select")) && !Json.Equal(x.GetProperty("comp_select"), y.GetProperty("comp_select"))) differences.Add($"{what}[{i}]: comp_select {y.GetProperty("comp_select")} (oracle {x.GetProperty("comp_select")})");
-                Bytes($"{what}[{i}] {x.GetProperty("texture")}", oracleModels, models, file, Exact, y.GetProperty("file").GetString());
+                // The preparer kept only the largest level of a texture it read from a BNTX; the pack keeps the chain, whose first level must be the same bytes (the uploader reads the levels that follow).
+                Bytes($"{what}[{i}] {x.GetProperty("texture")}", oracleModels, models, file, FirstLevel, y.GetProperty("file").GetString());
             }
         }
 
@@ -203,6 +205,8 @@ public sealed class PackParityTests
             if (!File.Exists(path)) { differences.Add($"{what}: {ourFile ?? file} not written"); return; }
             if (compare(e, File.ReadAllBytes(path)) is { } message) differences.Add($"{what}: {message}");
         }
+
+        static string? FirstLevel(byte[] e, byte[] a) => a.Length >= e.Length && a.AsSpan(0, e.Length).SequenceEqual(e) ? null : $"{a.Length} bytes do not start with the oracle's {e.Length}";
 
         static string? Exact(byte[] e, byte[] a) => e.AsSpan().SequenceEqual(a) ? null : $"{a.Length} bytes differ from the oracle's {e.Length}";
 
