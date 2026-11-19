@@ -21,4 +21,10 @@
   <ItemGroup>
     <ProjectReference Include="..\KingRenderingSharp.Gpu\KingRenderingSharp.Gpu.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- The asset packs and prepared shader files BfShaderSharp writes, and the zstd reader their textures need. -->
+    <ProjectReference Include="..\..\vendor\BfShaderSharp\src\BfShaderSharp\BfShaderSharp.csproj" />
+    <ProjectReference Include="..\..\vendor\BfShaderSharp\lib\vendor\ZsDicSharp\src\ZsDicSharp\ZsDicSharp.csproj" />
+  </ItemGroup>
 </Project>
