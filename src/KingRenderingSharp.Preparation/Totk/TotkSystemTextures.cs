@@ -3,6 +3,7 @@ using ShaderLibrary.CompileTool;
 using TexSharp;
 using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Core.Rom;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Preparation.Totk;
 
@@ -93,8 +94,8 @@ public static class TotkSystemTextures
 
     static void Write(string outDir, string name, string extension, byte[] texels, string dims)
     {
-        File.WriteAllBytes(Path.Combine(outDir, name + extension), texels);
-        File.WriteAllText(Path.Combine(outDir, name + ".dims.txt"), dims);
+        int[] size = [.. dims.Split(' ').Select(int.Parse)];
+        File.WriteAllBytes(Path.Combine(outDir, SystemTexture.FileOf(name)), new SystemTexture(size[0], size[1], size[2], extension == ".rg8" ? 2 : 1, texels).ToBytes());
     }
 
     static void Try(Action work, string what)

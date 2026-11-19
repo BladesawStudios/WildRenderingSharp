@@ -1,3 +1,4 @@
+using KingRenderingSharp.Core.Storage;
 using BntxSharp;
 using KingRenderingSharp.Games.Totk.Sky;
 using KingRenderingSharp.Games.Totk.Sky.Clouds;
@@ -15,7 +16,7 @@ public static class TotkCloudMasks
     static readonly string[] SlotTextures = ["cloudtexture03", "cloudtexture02", "cloudtexture04"];
 
     public static bool IsInstalled(string systemTexturesDirectory) =>
-        SlotTextures.Select((_, slot) => Path.Combine(systemTexturesDirectory, CloudMasks.FileName(slot) + ".r8")).All(File.Exists);
+        SlotTextures.Select((_, slot) => Path.Combine(systemTexturesDirectory, SystemTexture.FileOf(CloudMasks.FileName(slot)))).All(File.Exists);
 
     public static IReadOnlyList<byte[]> ReadMasks(IRomAccess rom)
     {
@@ -49,8 +50,7 @@ public static class TotkCloudMasks
         for (int slot = 0; slot < masks.Count; slot++)
         {
             string name = CloudMasks.FileName(slot);
-            File.WriteAllBytes(Path.Combine(systemTexturesDirectory, name + ".r8"), masks[slot]);
-            File.WriteAllText(Path.Combine(systemTexturesDirectory, name + ".dims.txt"), $"{Size} {Size} 1");
+            File.WriteAllBytes(Path.Combine(systemTexturesDirectory, SystemTexture.FileOf(name)), new SystemTexture(Size, Size, 1, 1, masks[slot]).ToBytes());
         }
     }
 }
