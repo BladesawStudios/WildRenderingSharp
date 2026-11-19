@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+    Imported by every layer project of KingRenderingSharp. The layers share their internal types, so the
+    public surface of the library stays the types a host is meant to see (pinned by PublicApiTests).
+  -->
+
+  <PropertyGroup>
+    <KrsLibRoot Condition="'$(KrsLibRoot)' == ''">$(MSBuildThisFileDirectory)..\vendor</KrsLibRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="KingRenderingSharp" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Core" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Gpu" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Content" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Graph" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Games.Botw" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Games.Totk" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Preparation" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Tests" />
+    <InternalsVisibleTo Include="KingRenderingSharp.TestBench" />
+  </ItemGroup>
+
+</Project>

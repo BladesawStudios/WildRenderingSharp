@@ -1,0 +1,32 @@
+using KingRenderingSharp.Graph.Pipeline.Frame;
+using KingRenderingSharp.Graph.Pipeline.Resources;
+using KingRenderingSharp.Games.Totk.Shaders;
+using KingRenderingSharp.Games.Totk.Ubos;
+
+namespace KingRenderingSharp.Games.Totk.Stages;
+
+/// <summary>
+/// Binds what the decompiled shaders expect whatever the scene, plus a zeroed block for orphaned bindings and neutral stand-ins for
+/// the vertex textures the game's engine renders itself.
+/// </summary>
+internal sealed class TotkFrameConstantsStage(StageServices services) : IFrameStage, IDisposable
+{
+    readonly DecompilerBindings _decompiler = new(services.Gl, services.Resources);
+    readonly EngineVertexTextures _vertexTextures = new(services.Gl);
+
+    public void Run(FrameContext frame)
+    {
+        _decompiler.Bind();
+        services.Resources.BindZeroed(TotkBlocks.Orphan);
+        _vertexTextures.Bind();
+
+        // Uploaded without a binding: the resolve pass binds it itself, in place of the scene camera, for the passes that tile the screen.
+        services.Resources.Upload(TotkCameraUniforms.BuildField(frame.Setup.Cam));
+    }
+
+    public void Dispose()
+    {
+        _vertexTextures.Dispose();
+        _decompiler.Dispose();
+    }
+}

@@ -1,5 +1,5 @@
-using KingRenderingSharp.Assets;
-using KingRenderingSharp.Assets.Materials;
+using KingRenderingSharp.Content.Assets;
+using KingRenderingSharp.Content.Assets.Materials;
 
 namespace KingRenderingSharp.Tests;
 

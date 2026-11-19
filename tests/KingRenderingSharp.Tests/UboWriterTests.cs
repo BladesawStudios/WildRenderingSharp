@@ -1,11 +1,11 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Graphics;
-using KingRenderingSharp.Graphics.Data;
-using KingRenderingSharp.Graphics.Ubos;
-using KingRenderingSharp.Profiles.Totk.Sky;
-using KingRenderingSharp.Profiles.Totk.Sky.Precompute;
+using KingRenderingSharp.Content.Graphics;
+using KingRenderingSharp.Content.Graphics.Data;
+using KingRenderingSharp.Content.Graphics.Ubos;
+using KingRenderingSharp.Games.Totk.Sky;
+using KingRenderingSharp.Games.Totk.Sky.Precompute;
 
 namespace KingRenderingSharp.Tests;
 

@@ -1,9 +1,9 @@
 using ShaderLibrary.CompileTool;
 using KingRenderingSharp.Hosting;
 using KingRenderingSharp.Preparation.Totk;
-using KingRenderingSharp.Rom;
-using KingRenderingSharp.Rom.Games;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Core.Rom;
+using KingRenderingSharp.Core.Rom.Games;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Preparation.Botw;
 

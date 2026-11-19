@@ -1,5 +1,5 @@
-using KingRenderingSharp.Rom;
-using KingRenderingSharp.Rom.Games;
+using KingRenderingSharp.Core.Rom;
+using KingRenderingSharp.Core.Rom.Games;
 
 namespace KingRenderingSharp.Preparation.Totk;
 

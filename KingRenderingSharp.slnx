@@ -1,5 +1,11 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/KingRenderingSharp.Core/KingRenderingSharp.Core.csproj" />
+    <Project Path="src/KingRenderingSharp.Gpu/KingRenderingSharp.Gpu.csproj" />
+    <Project Path="src/KingRenderingSharp.Content/KingRenderingSharp.Content.csproj" />
+    <Project Path="src/KingRenderingSharp.Graph/KingRenderingSharp.Graph.csproj" />
+    <Project Path="src/KingRenderingSharp.Games.Botw/KingRenderingSharp.Games.Botw.csproj" />
+    <Project Path="src/KingRenderingSharp.Games.Totk/KingRenderingSharp.Games.Totk.csproj" />
     <Project Path="src/KingRenderingSharp/KingRenderingSharp.csproj" />
     <Project Path="src/KingRenderingSharp.Preparation/KingRenderingSharp.Preparation.csproj" />
   </Folder>

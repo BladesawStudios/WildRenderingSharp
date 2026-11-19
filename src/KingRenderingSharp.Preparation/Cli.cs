@@ -1,8 +1,8 @@
 using KingRenderingSharp.Hosting.Preparers;
 using KingRenderingSharp.Preparation.Botw;
 using KingRenderingSharp.Preparation.Totk;
-using KingRenderingSharp.Rom.Games;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Core.Rom.Games;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Preparation;
 

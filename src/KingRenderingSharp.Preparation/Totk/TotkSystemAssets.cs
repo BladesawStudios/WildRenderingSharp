@@ -1,8 +1,8 @@
 using ShaderLibrary.CompileTool;
-using KingRenderingSharp.Logging;
+using KingRenderingSharp.Core.Logging;
 using KingRenderingSharp.Preparation.Totk.Effects;
-using KingRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Games.Totk.Atmosphere.Palettes;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Preparation.Totk;
 

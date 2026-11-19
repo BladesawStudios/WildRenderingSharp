@@ -1,4 +1,4 @@
-using KingRenderingSharp.Pipeline.Merged;
+using KingRenderingSharp.Graph.Pipeline.Merged;
 using Xunit;
 
 namespace KingRenderingSharp.Tests;

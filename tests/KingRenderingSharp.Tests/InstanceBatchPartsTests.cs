@@ -1,6 +1,6 @@
 using System.Numerics;
-using KingRenderingSharp.Pipeline.Drawing;
-using KingRenderingSharp.Pipeline.Shadows;
+using KingRenderingSharp.Graph.Pipeline.Drawing;
+using KingRenderingSharp.Graph.Pipeline.Shadows;
 
 namespace KingRenderingSharp.Tests;
 

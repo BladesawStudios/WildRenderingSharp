@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using KingRenderingSharp.Hosting;
 using KingRenderingSharp.Hosting.Preparers;
 using KingRenderingSharp.Preparation.Totk;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Preparation;
 

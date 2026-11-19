@@ -3,8 +3,8 @@ using BfresLibrary;
 using ShaderLibrary;
 using ShaderLibrary.CompileTool;
 using TexSharp;
-using KingRenderingSharp.Logging;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Core.Logging;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Preparation.Totk;
 

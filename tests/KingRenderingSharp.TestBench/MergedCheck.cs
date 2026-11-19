@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Profiles.Totk.Shaders;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Games.Totk.Shaders;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.TestBench;
 

@@ -1,7 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using KingRenderingSharp;
-using KingRenderingSharp.Profiles.Totk.Gloom;
+using KingRenderingSharp.Games.Totk.Gloom;
 
 namespace KingRenderingSharp.TestBench;
 

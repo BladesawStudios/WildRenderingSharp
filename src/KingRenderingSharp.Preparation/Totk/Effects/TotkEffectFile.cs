@@ -1,6 +1,6 @@
 using BymlSharp;
 using PtclSharp;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Preparation.Totk.Effects;
 

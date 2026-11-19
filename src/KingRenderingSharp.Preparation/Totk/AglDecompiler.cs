@@ -3,8 +3,8 @@ using EffectLibraryTest;
 using ShaderLibrary;
 using CompileToolControlShader = ShaderLibrary.CompileTool.ControlShader;
 using ShaderLibrary.Sharc;
-using KingRenderingSharp.Logging;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Core.Logging;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Preparation.Totk;
 

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="../../build/KingRenderingSharp.Layer.props" />
+
+
+  <PropertyGroup>
+    <Description>Camera and lighting state, animation, the game-neutral contracts, the shader program cache and prepared-model loading of KingRenderingSharp.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ASTC has no guaranteed desktop GPU/driver support (GL_KHR_texture_compression_astc_ldr is genuinely optional), so it is decoded on the CPU to plain RGBA. BC1/3/4/5/7 stay on the GPU-native compressed-upload path. -->
+    <PackageReference Include="AstcSharp" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The code that cleans, corrects and patches the games' shaders, kept with the build so a program kept by name is found by what made it. -->
+    <EmbeddedResource Include="Shaders\*.cs" LogicalName="Patch/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KingRenderingSharp.Gpu\KingRenderingSharp.Gpu.csproj" />
+  </ItemGroup>
+</Project>

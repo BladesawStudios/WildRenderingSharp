@@ -1,4 +1,4 @@
-using KingRenderingSharp.Shaders;
+using KingRenderingSharp.Content.Shaders;
 
 namespace KingRenderingSharp.Tests;
 

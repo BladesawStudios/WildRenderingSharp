@@ -1,7 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Shaders;
+using KingRenderingSharp.Content.Shaders;
 
 namespace KingRenderingSharp.Hosting.Views;
 

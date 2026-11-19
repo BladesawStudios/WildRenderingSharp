@@ -1,4 +1,4 @@
-using KingRenderingSharp.Profiles.Totk.Shaders;
+using KingRenderingSharp.Games.Totk.Shaders;
 using Xunit;
 
 namespace KingRenderingSharp.Tests;

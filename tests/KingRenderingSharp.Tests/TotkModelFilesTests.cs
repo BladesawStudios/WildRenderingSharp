@@ -1,5 +1,5 @@
 using KingRenderingSharp.Preparation.Totk;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Tests;
 

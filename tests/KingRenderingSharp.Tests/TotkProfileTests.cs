@@ -1,12 +1,12 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
-using KingRenderingSharp.Graphics;
-using KingRenderingSharp.Graphics.Data;
-using KingRenderingSharp.Graphics.Ubos;
-using KingRenderingSharp.Pipeline;
-using KingRenderingSharp.Profiles.Totk;
-using KingRenderingSharp.Profiles.Totk.Ubos;
-using KingRenderingSharp.Rendering;
+using KingRenderingSharp.Content.Graphics;
+using KingRenderingSharp.Content.Graphics.Data;
+using KingRenderingSharp.Content.Graphics.Ubos;
+using KingRenderingSharp.Graph.Pipeline;
+using KingRenderingSharp.Games.Totk;
+using KingRenderingSharp.Games.Totk.Ubos;
+using KingRenderingSharp.Content.Rendering;
 
 namespace KingRenderingSharp.Tests;
 

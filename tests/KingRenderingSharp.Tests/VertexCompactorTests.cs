@@ -1,6 +1,6 @@
-using KingRenderingSharp.Assets;
-using KingRenderingSharp.Assets.Loading;
-using KingRenderingSharp.Assets.Manifests;
+using KingRenderingSharp.Content.Assets;
+using KingRenderingSharp.Content.Assets.Loading;
+using KingRenderingSharp.Content.Assets.Manifests;
 
 namespace KingRenderingSharp.Tests;
 

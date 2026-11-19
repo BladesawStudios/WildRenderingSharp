@@ -1,11 +1,11 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Graphics.Contracts;
-using KingRenderingSharp.Pipeline;
-using KingRenderingSharp.Pipeline.Shadows;
-using KingRenderingSharp.Pipeline.Targets;
-using KingRenderingSharp.Rendering.Lighting;
+using KingRenderingSharp.Content.Graphics.Contracts;
+using KingRenderingSharp.Graph.Pipeline;
+using KingRenderingSharp.Graph.Pipeline.Shadows;
+using KingRenderingSharp.Graph.Pipeline.Targets;
+using KingRenderingSharp.Content.Rendering.Lighting;
 
 namespace KingRenderingSharp.Hosting.Views;
 

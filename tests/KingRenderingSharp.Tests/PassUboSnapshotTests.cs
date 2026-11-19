@@ -1,20 +1,20 @@
 using System.Numerics;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Graphics;
-using KingRenderingSharp.Graphics.Data;
-using KingRenderingSharp.Profiles.Botw;
-using KingRenderingSharp.Profiles.Botw.Ubos;
-using KingRenderingSharp.Profiles.Totk;
-using KingRenderingSharp.Profiles.Totk.Atmosphere;
-using KingRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
-using KingRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
-using KingRenderingSharp.Profiles.Totk.Sky;
-using KingRenderingSharp.Profiles.Totk.Sky.Clouds;
-using KingRenderingSharp.Profiles.Totk.Sky.LensFlare;
-using KingRenderingSharp.Profiles.Totk.Sky.PostFx;
-using KingRenderingSharp.Profiles.Totk.Sky.Precompute;
-using KingRenderingSharp.Profiles.Totk.Ubos;
-using KingRenderingSharp.Rendering.Cameras;
+using KingRenderingSharp.Content.Graphics;
+using KingRenderingSharp.Content.Graphics.Data;
+using KingRenderingSharp.Games.Botw;
+using KingRenderingSharp.Games.Botw.Ubos;
+using KingRenderingSharp.Games.Totk;
+using KingRenderingSharp.Games.Totk.Atmosphere;
+using KingRenderingSharp.Games.Totk.Atmosphere.Clouds;
+using KingRenderingSharp.Games.Totk.Atmosphere.Palettes;
+using KingRenderingSharp.Games.Totk.Sky;
+using KingRenderingSharp.Games.Totk.Sky.Clouds;
+using KingRenderingSharp.Games.Totk.Sky.LensFlare;
+using KingRenderingSharp.Games.Totk.Sky.PostFx;
+using KingRenderingSharp.Games.Totk.Sky.Precompute;
+using KingRenderingSharp.Games.Totk.Ubos;
+using KingRenderingSharp.Content.Rendering.Cameras;
 
 namespace KingRenderingSharp.Tests;
 

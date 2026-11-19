@@ -1,7 +1,7 @@
 using BntxSharp;
-using KingRenderingSharp.Profiles.Totk.Sky;
-using KingRenderingSharp.Profiles.Totk.Sky.Clouds;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Games.Totk.Sky;
+using KingRenderingSharp.Games.Totk.Sky.Clouds;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Preparation.Totk;
 

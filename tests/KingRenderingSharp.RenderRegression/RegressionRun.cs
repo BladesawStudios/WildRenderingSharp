@@ -1,4 +1,4 @@
-using KingRenderingSharp.Imaging;
+using KingRenderingSharp.Core.Imaging;
 
 namespace KingRenderingSharp.RenderRegression;
 

@@ -1,5 +1,5 @@
 using SarcLibrary;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Core.Rom;
 using Yaz0Sharp;
 
 namespace KingRenderingSharp.Tests;

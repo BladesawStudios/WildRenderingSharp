@@ -1,13 +1,13 @@
 using Silk.NET.OpenGL;
-using KingRenderingSharp.Assets;
-using KingRenderingSharp.Assets.Loading;
-using KingRenderingSharp.Assets.Textures;
+using KingRenderingSharp.Content.Assets;
+using KingRenderingSharp.Content.Assets.Loading;
+using KingRenderingSharp.Content.Assets.Textures;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Pipeline.Drawing;
-using KingRenderingSharp.Pipeline.Merged;
-using KingRenderingSharp.Profiles.Totk.Atmosphere;
-using KingRenderingSharp.Shaders;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Graph.Pipeline.Drawing;
+using KingRenderingSharp.Graph.Pipeline.Merged;
+using KingRenderingSharp.Games.Totk.Atmosphere;
+using KingRenderingSharp.Content.Shaders;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Hosting.Content;
 

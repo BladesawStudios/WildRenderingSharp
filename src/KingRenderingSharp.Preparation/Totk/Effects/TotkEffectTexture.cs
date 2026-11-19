@@ -1,6 +1,6 @@
 using ShaderLibrary.CompileTool;
 using TexSharp;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Preparation.Totk.Effects;
 

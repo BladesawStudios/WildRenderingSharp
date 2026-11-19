@@ -1,9 +1,9 @@
 using Silk.NET.OpenGL;
-using KingRenderingSharp.Assets;
-using KingRenderingSharp.Assets.Baking;
+using KingRenderingSharp.Content.Assets;
+using KingRenderingSharp.Content.Assets.Baking;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Pipeline.Drawing;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Graph.Pipeline.Drawing;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Hosting.Content;
 

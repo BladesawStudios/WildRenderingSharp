@@ -1,7 +1,7 @@
 using System.Numerics;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Graphics;
-using KingRenderingSharp.Graphics.Data;
+using KingRenderingSharp.Content.Graphics;
+using KingRenderingSharp.Content.Graphics.Data;
 
 namespace KingRenderingSharp.Tests;
 

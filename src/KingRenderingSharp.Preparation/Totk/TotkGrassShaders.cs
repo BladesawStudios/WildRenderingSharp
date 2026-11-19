@@ -3,9 +3,9 @@ using System.Text.Json;
 using BfresLibrary;
 using EffectLibraryTest;
 using ShaderLibrary;
-using KingRenderingSharp.Logging;
-using KingRenderingSharp.Rom;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Core.Logging;
+using KingRenderingSharp.Core.Rom;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Preparation.Totk;
 

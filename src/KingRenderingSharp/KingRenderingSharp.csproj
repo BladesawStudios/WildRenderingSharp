@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="../../build/KingRenderingSharp.Layer.props" />
+
+
   <!--
-    The renderer: model/texture/material loading from a prepared cache, the deferred pipeline that
-    drives the game's own decompiled shaders, the sky/cloud/post-processing passes, per-actor
-    animation and physics evaluation, and an offscreen view a host can display however it likes.
+    The host-facing renderer: KingRenderer, the views and offscreen targets a host displays, background content
+    loading, the model preparers and per-actor posing. The layers it draws with are the projects it references.
 
     Parses no BFRES/BFSHA of its own. Everything it draws comes from a cache written by
     KingRenderingSharp.Preparation (in-process, or out-of-process through OutOfProcessPreparer for
@@ -13,41 +15,11 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Description>Renders Breath of the Wild / Tears of the Kingdom models with the games' own decompiled shaders through a deferred OpenGL pipeline.</Description>
-    <KrsLibRoot Condition="'$(KrsLibRoot)' == ''">$(MSBuildThisFileDirectory)..\..\vendor</KrsLibRoot>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BymlLibrary" Version="2.1.18" />
-    <PackageReference Include="SarcLibrary" Version="3.3.5" />
-    <PackageReference Include="Silk.NET.OpenGL" Version="2.23.0" />
-    <!-- glClipControl as an extension, for hosts that asked for a pre-4.5 context: see GLHostState. -->
-    <PackageReference Include="Silk.NET.OpenGL.Extensions.ARB" Version="2.23.0" />
-    <!-- ASTC has no guaranteed desktop GPU/driver support (GL_KHR_texture_compression_astc_ldr
-         is genuinely optional, and several common desktop cards/drivers lack it) - decoded on
-         the CPU to plain RGBA instead of gambling on hardware support. BC1/3/4/5/7 stay on the
-         GPU-native compressed-upload path, which desktop GL supports universally. -->
-    <PackageReference Include="AstcSharp" Version="3.1.0" />
-    <PackageReference Include="System.IO.Hashing" Version="10.0.3" />
-    <PackageReference Include="SkiaSharp" Version="4.153.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.153.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="4.153.1" />
-    <PackageReference Include="TotkCommon" Version="1.3.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="KingRenderingSharp.Tests" />
-    <InternalsVisibleTo Include="KingRenderingSharp.TestBench" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Glsl\**\*" LogicalName="Glsl/%(RecursiveDir)%(Filename)%(Extension)" />
-    <!-- The code that cleans, corrects and patches the games' shaders, kept with the build so a program kept by name is found by what made it. -->
-    <EmbeddedResource Include="Shaders\*.cs;Profiles\**\Shaders\*.cs" LogicalName="Patch/%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="$(KrsLibRoot)\AampSharp\src\AampSharp\AampSharp.csproj" />
-    <ProjectReference Include="$(KrsLibRoot)\Yaz0Sharp\src\Yaz0Sharp\Yaz0Sharp.csproj" />
+    <ProjectReference Include="..\KingRenderingSharp.Games.Totk\KingRenderingSharp.Games.Totk.csproj" />
+    <ProjectReference Include="..\KingRenderingSharp.Games.Botw\KingRenderingSharp.Games.Botw.csproj" />
   </ItemGroup>
 
 </Project>

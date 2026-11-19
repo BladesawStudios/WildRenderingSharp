@@ -1,4 +1,4 @@
-using KingRenderingSharp.Logging;
+using KingRenderingSharp.Core.Logging;
 
 namespace KingRenderingSharp.Tests;
 

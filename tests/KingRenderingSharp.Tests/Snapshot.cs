@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using KingRenderingSharp.Graphics.Ubos;
+using KingRenderingSharp.Content.Graphics.Ubos;
 
 namespace KingRenderingSharp.Tests;
 
@@ -9,7 +9,7 @@ namespace KingRenderingSharp.Tests;
 /// </summary>
 static class Snapshot
 {
-    public static void Verify(string name, KingRenderingSharp.Graphics.Ubos.Ubo ubo) => Verify(name, ubo.Bytes.ToArray());
+    public static void Verify(string name, KingRenderingSharp.Content.Graphics.Ubos.Ubo ubo) => Verify(name, ubo.Bytes.ToArray());
 
     public static void Verify(string name, byte[] bytes)
     {

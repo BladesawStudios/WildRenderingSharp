@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Silk.NET.OpenGL;
-using KingRenderingSharp.Rendering.Cameras;
+using KingRenderingSharp.Content.Rendering.Cameras;
 
 namespace KingRenderingSharp.TestBench;
 

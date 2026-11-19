@@ -1,21 +1,21 @@
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using KingRenderingSharp.Assets;
-using KingRenderingSharp.Assets.Loading;
-using KingRenderingSharp.Assets.Textures;
+using KingRenderingSharp.Content.Assets;
+using KingRenderingSharp.Content.Assets.Loading;
+using KingRenderingSharp.Content.Assets.Textures;
 using KingRenderingSharp.Gpu;
-using KingRenderingSharp.Graphics;
+using KingRenderingSharp.Content.Graphics;
 using KingRenderingSharp.Hosting;
 using KingRenderingSharp.Hosting.Views;
-using KingRenderingSharp.Imaging;
-using KingRenderingSharp.Pipeline;
+using KingRenderingSharp.Core.Imaging;
+using KingRenderingSharp.Graph.Pipeline;
 using KingRenderingSharp.Preparation.Botw;
-using KingRenderingSharp.Profiles.Botw;
-using KingRenderingSharp.Rendering;
-using KingRenderingSharp.Rendering.Cameras;
-using KingRenderingSharp.Rendering.Lighting;
+using KingRenderingSharp.Games.Botw;
+using KingRenderingSharp.Content.Rendering;
+using KingRenderingSharp.Content.Rendering.Cameras;
+using KingRenderingSharp.Content.Rendering.Lighting;
 using KingRenderingSharp.Scene;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.TestBench;
 

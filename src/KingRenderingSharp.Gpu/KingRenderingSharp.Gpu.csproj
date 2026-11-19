@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="../../build/KingRenderingSharp.Layer.props" />
+
+
+  <PropertyGroup>
+    <Description>The GL helpers of KingRenderingSharp: program building, uniform and texture helpers, the host GL state and the GPU matrix layout.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.23.0" />
+    <!-- glClipControl as an extension, for hosts that asked for a pre-4.5 context: see GLHostState. -->
+    <PackageReference Include="Silk.NET.OpenGL.Extensions.ARB" Version="2.23.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KingRenderingSharp.Core\KingRenderingSharp.Core.csproj" />
+  </ItemGroup>
+</Project>

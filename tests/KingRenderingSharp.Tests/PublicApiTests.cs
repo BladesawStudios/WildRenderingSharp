@@ -8,7 +8,7 @@ public class PublicApiTests
     [Fact]
     public void ThePublicTypesAreTheRecordedOnes()
     {
-        var actual = typeof(KingRenderer).Assembly.GetExportedTypes()
+        var actual = typeof(KingRenderer).Assembly.GetReferencedAssemblies().Where(a => a.Name!.StartsWith("KingRenderingSharp.", StringComparison.Ordinal) && a.Name != "KingRenderingSharp.Preparation").Select(Assembly.Load).Prepend(typeof(KingRenderer).Assembly).SelectMany(a => a.GetExportedTypes())
             .Where(t => !t.IsNested)
             .Select(t => t.FullName!.Replace("KingRenderingSharp.", ""))
             .Order(StringComparer.Ordinal)

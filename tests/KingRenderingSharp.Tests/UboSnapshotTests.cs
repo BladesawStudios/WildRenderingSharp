@@ -1,12 +1,12 @@
 using System.Numerics;
-using KingRenderingSharp.Graphics;
-using KingRenderingSharp.Graphics.Data;
-using KingRenderingSharp.Graphics.Ubos;
-using KingRenderingSharp.Profiles.Totk;
-using KingRenderingSharp.Profiles.Totk.Atmosphere;
-using KingRenderingSharp.Profiles.Totk.Stages;
-using KingRenderingSharp.Profiles.Totk.Ubos;
-using KingRenderingSharp.Shaders;
+using KingRenderingSharp.Content.Graphics;
+using KingRenderingSharp.Content.Graphics.Data;
+using KingRenderingSharp.Content.Graphics.Ubos;
+using KingRenderingSharp.Games.Totk;
+using KingRenderingSharp.Games.Totk.Atmosphere;
+using KingRenderingSharp.Games.Totk.Stages;
+using KingRenderingSharp.Games.Totk.Ubos;
+using KingRenderingSharp.Content.Shaders;
 
 namespace KingRenderingSharp.Tests;
 

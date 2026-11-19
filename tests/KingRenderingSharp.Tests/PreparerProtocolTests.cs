@@ -1,5 +1,5 @@
 using KingRenderingSharp.Hosting.Preparers;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Tests;
 

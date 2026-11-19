@@ -2,18 +2,18 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using KingRenderingSharp;
-using KingRenderingSharp.Graphics;
+using KingRenderingSharp.Content.Graphics;
 using KingRenderingSharp.Hosting;
 using KingRenderingSharp.Hosting.Preparers;
-using KingRenderingSharp.Imaging;
+using KingRenderingSharp.Core.Imaging;
 using KingRenderingSharp.Preparation;
-using KingRenderingSharp.Rendering;
-using KingRenderingSharp.Rendering.Cameras;
-using KingRenderingSharp.Rendering.Lighting;
-using KingRenderingSharp.Pipeline.Shadows;
-using KingRenderingSharp.Rom;
-using KingRenderingSharp.Rom.Games;
-using KingRenderingSharp.Storage;
+using KingRenderingSharp.Content.Rendering;
+using KingRenderingSharp.Content.Rendering.Cameras;
+using KingRenderingSharp.Content.Rendering.Lighting;
+using KingRenderingSharp.Graph.Pipeline.Shadows;
+using KingRenderingSharp.Core.Rom;
+using KingRenderingSharp.Core.Rom.Games;
+using KingRenderingSharp.Core.Storage;
 using KingRenderingSharp.TestBench;
 
 // Prepares one actor from a romfs and renders it to a PNG through the real GL pipeline; the options are in the usage text.
@@ -94,7 +94,7 @@ if (options.ContainsKey("check-merged"))
 if (options.ContainsKey("check-water-shader"))
 {
     // Compiles the game's terrain water fragment stage as the renderer patches it, for a host-less check of the patch.
-    var patch = typeof(KingRenderer).Assembly.GetType("KingRenderingSharp.Profiles.Totk.Terrain.TerrainShading")!
+    var patch = typeof(KingRenderer).Assembly.GetType("KingRenderingSharp.Games.Totk.Terrain.TerrainShading")!
         .GetMethod("PatchedWaterFragment", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
     string source = (string)patch.Invoke(null, [Path.Combine(cache.Root, "_shaders")])!;
     uint shader = gl.CreateShader(ShaderType.FragmentShader);
@@ -130,8 +130,8 @@ if (instanceCount == 0 && mixModels.Count == 0)
         string[] part = held[2..].Split('=');
         string file = Path.Combine(cache.ModelDirectory(model), $"{model}.{part[0]}.{(held[0] == 'm' ? "matanim" : "texpat")}.json");
         if (!File.Exists(file)) { Console.WriteLine($"hold: no {file}"); continue; }
-        if (held[0] == 'm') actor.ShaderParam.Add(KingRenderingSharp.Animation.Clips.MaterialAnimManifest.Load(file)).Seek(float.Parse(part[1]));
-        else actor.TexturePattern.Add(KingRenderingSharp.Animation.Clips.TexturePatternAnimManifest.Load(file)).Seek(float.Parse(part[1]));
+        if (held[0] == 'm') actor.ShaderParam.Add(KingRenderingSharp.Content.Animation.Clips.MaterialAnimManifest.Load(file)).Seek(float.Parse(part[1]));
+        else actor.TexturePattern.Add(KingRenderingSharp.Content.Animation.Clips.TexturePatternAnimManifest.Load(file)).Seek(float.Parse(part[1]));
     }
 }
 if (game == "totk")
@@ -280,6 +280,6 @@ static Vector3 ParseOrigin(string text)
 // The kept cascades' reaches for a fitted slice that ends at sliceEnd: their slices end in an even ratio out to where the last stops serving, as a host lays them out.
 static float[] KeptReaches(float sliceEnd)
 {
-    float ratio = MathF.Pow(KingRenderingSharp.Pipeline.Shadows.ShadowCascadeLayout.ReachShare * 4096f / sliceEnd, 1f / 3f);
-    return [KingRenderingSharp.Pipeline.Shadows.ShadowCascadeLayout.ReachFor(sliceEnd * ratio), KingRenderingSharp.Pipeline.Shadows.ShadowCascadeLayout.ReachFor(sliceEnd * ratio * ratio), 4096f];
+    float ratio = MathF.Pow(KingRenderingSharp.Graph.Pipeline.Shadows.ShadowCascadeLayout.ReachShare * 4096f / sliceEnd, 1f / 3f);
+    return [KingRenderingSharp.Graph.Pipeline.Shadows.ShadowCascadeLayout.ReachFor(sliceEnd * ratio), KingRenderingSharp.Graph.Pipeline.Shadows.ShadowCascadeLayout.ReachFor(sliceEnd * ratio * ratio), 4096f];
 }

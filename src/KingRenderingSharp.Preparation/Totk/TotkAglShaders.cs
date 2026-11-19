@@ -1,6 +1,6 @@
 using ShaderLibrary;
-using KingRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Games.Totk.Atmosphere.Palettes;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Preparation.Totk;
 

@@ -1,6 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
-using KingRenderingSharp.Profiles.Totk.Effects;
+using KingRenderingSharp.Games.Totk.Effects;
 
 namespace KingRenderingSharp.Tests;
 

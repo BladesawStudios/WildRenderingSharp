@@ -1,6 +1,6 @@
 using System.Numerics;
-using KingRenderingSharp.Profiles.Totk.Atmosphere;
-using KingRenderingSharp.Profiles.Totk.Atmosphere.Clouds;
+using KingRenderingSharp.Games.Totk.Atmosphere;
+using KingRenderingSharp.Games.Totk.Atmosphere.Clouds;
 
 namespace KingRenderingSharp.Tests;
 

@@ -1,8 +1,8 @@
 using BfresLibrary;
 using BntxSharp;
 using ShaderLibrary.CompileTool;
-using KingRenderingSharp.Logging;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Core.Logging;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Preparation.Botw;
 

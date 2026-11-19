@@ -1,11 +1,11 @@
-using KingRenderingSharp.Animation.Clips;
-using KingRenderingSharp.Animation.Posing;
+using KingRenderingSharp.Content.Animation.Clips;
+using KingRenderingSharp.Content.Animation.Posing;
 using KingRenderingSharp.Gpu;
 using System.Numerics;
-using KingRenderingSharp.Assets;
-using KingRenderingSharp.Pipeline;
-using KingRenderingSharp.Rendering.Cameras;
-using KingRenderingSharp.Scene.Posing;
+using KingRenderingSharp.Content.Assets;
+using KingRenderingSharp.Graph.Pipeline;
+using KingRenderingSharp.Content.Rendering.Cameras;
+using KingRenderingSharp.Content.Animation.Posing;
 
 namespace KingRenderingSharp.Scene;
 

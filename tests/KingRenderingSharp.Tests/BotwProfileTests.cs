@@ -1,10 +1,10 @@
 using System.Numerics;
-using KingRenderingSharp.Graphics;
-using KingRenderingSharp.Graphics.Data;
-using KingRenderingSharp.Graphics.Ubos;
-using KingRenderingSharp.Profiles.Botw;
-using KingRenderingSharp.Profiles.Botw.Shaders;
-using KingRenderingSharp.Rendering.Cameras;
+using KingRenderingSharp.Content.Graphics;
+using KingRenderingSharp.Content.Graphics.Data;
+using KingRenderingSharp.Content.Graphics.Ubos;
+using KingRenderingSharp.Games.Botw;
+using KingRenderingSharp.Games.Botw.Shaders;
+using KingRenderingSharp.Content.Rendering.Cameras;
 
 namespace KingRenderingSharp.Tests;
 

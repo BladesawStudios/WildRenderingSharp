@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
 using System.Numerics;
-using KingRenderingSharp.Graphics.Data;
-using KingRenderingSharp.Graphics.Ubos;
-using KingRenderingSharp.Profiles.Totk.Gloom;
-using KingRenderingSharp.Rendering.Cameras;
+using KingRenderingSharp.Content.Graphics.Data;
+using KingRenderingSharp.Content.Graphics.Ubos;
+using KingRenderingSharp.Games.Totk.Gloom;
+using KingRenderingSharp.Content.Rendering.Cameras;
 
 namespace KingRenderingSharp.Tests;
 

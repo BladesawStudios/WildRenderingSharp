@@ -1,5 +1,5 @@
-using KingRenderingSharp.Profiles.Totk.Atmosphere;
-using KingRenderingSharp.Profiles.Totk.Atmosphere.Palettes;
+using KingRenderingSharp.Games.Totk.Atmosphere;
+using KingRenderingSharp.Games.Totk.Atmosphere.Palettes;
 
 namespace KingRenderingSharp.Tests;
 

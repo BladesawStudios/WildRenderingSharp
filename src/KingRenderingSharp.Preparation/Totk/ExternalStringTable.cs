@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using BfresLibrary;
-using KingRenderingSharp.Rom;
+using KingRenderingSharp.Core.Rom;
 
 namespace KingRenderingSharp.Preparation.Totk;
 

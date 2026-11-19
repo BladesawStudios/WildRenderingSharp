@@ -1,6 +1,6 @@
 using System.Numerics;
-using KingRenderingSharp.Pipeline.Drawing;
-using KingRenderingSharp.Rendering.Cameras;
+using KingRenderingSharp.Graph.Pipeline.Drawing;
+using KingRenderingSharp.Content.Rendering.Cameras;
 
 namespace KingRenderingSharp.TestBench;
 
@@ -58,7 +58,7 @@ static class InstanceGrid
         batch.ShowAll();
         // The baked lighting a placement of this hash has in the map, applied to every copy.
         if (bakeHash != 0 && renderer.FindBakes([bakeHash]).PerInstance[0] is { } bake)
-            renderer.ApplyBake(batch, [.. Enumerable.Repeat<KingRenderingSharp.Assets.Baking.BakeActor?>(bake, count)]);
+            renderer.ApplyBake(batch, [.. Enumerable.Repeat<KingRenderingSharp.Content.Assets.Baking.BakeActor?>(bake, count)]);
         var center = (batch.BoundsMin + batch.BoundsMax) / 2f;
         float radius = (batch.BoundsMax - batch.BoundsMin).Length() / 2f;
 
