@@ -8,13 +8,14 @@ sealed class CliUsageException(string message, bool showUsage = false) : Excepti
 
 /// <summary>The command and options of a preparation command line.</summary>
 sealed record CliOptions(string Command, string? Romfs, string? Actor, string? CacheRoot, string? List, string Game,
-    IReadOnlyList<string> Mods, bool ImportAnims, bool Force, bool Verbose, int Jobs, bool Legacy = false)
+    IReadOnlyList<string> Mods, bool ImportAnims, bool Force, bool Verbose, int Jobs, bool Legacy = false, string? ModelFile = null)
 {
     public static CliOptions Parse(string[] args)
     {
         string? romfs = null, actor = null, cacheRoot = null, list = null, game = "totk";
         var mods = new List<string>();
         bool importAnims = true, force = false, verbose = false, legacy = false;
+        string? modelFile = null;
         int jobs = 0;
 
         for (int i = 1; i < args.Length; i++)
@@ -34,9 +35,10 @@ sealed record CliOptions(string Command, string? Romfs, string? Actor, string? C
                 case "--jobs": jobs = int.TryParse(Value(), out int parsed) ? parsed : throw new CliUsageException("--jobs needs a number"); break;
                 case "--verbose": verbose = true; break;
                 case "--legacy": legacy = true; break;
+                case "--model-file": modelFile = Value(); break;
                 default: throw new CliUsageException($"Unknown argument '{option}'.", showUsage: true);
             }
         }
-        return new CliOptions(args[0], romfs, actor, cacheRoot, list, game, mods, importAnims, force, verbose, jobs, legacy);
+        return new CliOptions(args[0], romfs, actor, cacheRoot, list, game, mods, importAnims, force, verbose, jobs, legacy, modelFile);
     }
 }

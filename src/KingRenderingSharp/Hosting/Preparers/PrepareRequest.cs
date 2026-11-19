@@ -10,4 +10,5 @@ public sealed record PrepareRequest(
     IReadOnlyList<string>? ModRomfsLayers = null,
     bool ImportAnimations = true,
     bool Force = false,
-    string? Game = null);
+    string? Game = null,
+    string? ModelFile = null);

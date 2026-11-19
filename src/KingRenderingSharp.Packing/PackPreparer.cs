@@ -20,7 +20,7 @@ static class PackPreparer
     static readonly string[] Passes = ["gsys_assign_gbuffer", "gsys_assign_zonly", "gsys_assign_material"];
 
     /// <summary>Prepares the model of an actor or model name, which is a file stem or Stem.Model, into <paramref name="modelFolder"/> and <paramref name="shaderFolder"/>; returns what the export wrote.</summary>
-    public static PreparedPackModel Prepare(string romfs, string name, string modelFolder, string shaderFolder, Action<string>? log = null, bool animations = true, IReadOnlyList<string>? animationPacks = null)
+    public static PreparedPackModel Prepare(string romfs, string name, string modelFolder, string shaderFolder, Action<string>? log = null, bool animations = true, IReadOnlyList<string>? animationPacks = null, string? modelFile = null)
     {
         string stem = name.Contains('.') ? name[..name.IndexOf('.')] : name;
         string work = Path.Combine(Path.GetTempPath(), "krs-pack-" + Guid.NewGuid().ToString("N"));
@@ -32,7 +32,9 @@ static class PackPreparer
             AssetOptions options = new(romfs, stems, TextureSelection.Used, Storage: TextureStorage.Linear, AssignTypes: Passes);
             ProgramUse? use = null;
             AssetResult result;
-            using (FileStream output = File.Create(packPath)) result = AssetPreparer.Prepare(options, output, u => use = u);
+            // A model file is prepared as it is (an edited model, say) and the pack holds only it; otherwise the model is found in the romfs.
+            using (FileStream output = File.Create(packPath))
+                result = modelFile is null ? AssetPreparer.Prepare(options, output, u => use = u) : ModelAssetPreparer.Prepare(options, stem, File.ReadAllBytes(modelFile), [], output, u => use = u);
             if (result.Models == 0) throw new FileNotFoundException($"No model matches '{name}' in {romfs}. {string.Join("; ", result.Failures.Take(3).Select(f => f.Reason))}");
 
             string archives = Path.Combine(work, "shaders");
@@ -55,7 +57,7 @@ static class PackPreparer
             try
             {
                 foreach (string file in Directory.EnumerateFiles(archives, "*.bfsp")) opened[Path.GetFileNameWithoutExtension(file)] = PreparedArchive.Open(file);
-                string packModel = pack.Of(PackEntryKind.Model).Select(e => e.Name).FirstOrDefault(n => n == stem || n.StartsWith(stem + "/", StringComparison.Ordinal) && (name == stem || n.EndsWith("/" + name[(stem.Length + 1)..], StringComparison.Ordinal)))
+                string packModel = modelFile is not null ? pack.Of(PackEntryKind.Model).Select(e => e.Name).First() : pack.Of(PackEntryKind.Model).Select(e => e.Name).FirstOrDefault(n => n == stem || n.StartsWith(stem + "/", StringComparison.Ordinal) && (name == stem || n.EndsWith("/" + name[(stem.Length + 1)..], StringComparison.Ordinal)))
                     ?? throw new FileNotFoundException($"The pack has no model for '{name}'");
                 using PackModelExporter exporter = new(pack, shader => opened[shader]);
                 ExportedModel exported;

@@ -73,8 +73,14 @@ static class Cli
     // The pack tool prepares by default. Mod layers and --legacy keep the older ShaderLibrary path, which reads layered romfs.
     static bool UsesPackTool(CliOptions options) => !options.Legacy && options.Mods.Count == 0 && PackTool.Executable() is not null;
 
+    static void RequirePackTool(CliOptions options)
+    {
+        if (options.ModelFile is not null && !UsesPackTool(options)) throw new InvalidOperationException("--model-file prepares through the pack tool, which --legacy, a --mod layer or a missing krs-pack folder rules out.");
+    }
+
     static int Prepare(CliOptions options, string actor, string romfs, CacheLayout cache)
     {
+        RequirePackTool(options);
         if (UsesPackTool(options))
         {
             if (options.Game == "botw") BotwSystemAssets.Ensure(BotwRom.Open(romfs), cache, Console.WriteLine);

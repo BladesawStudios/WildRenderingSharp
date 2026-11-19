@@ -52,6 +52,7 @@ sealed class Server(Stream input, Stream output) : IDisposable
     void Open(string[] arguments)
     {
         string game = arguments[0], romfs = arguments[1], actor = arguments[3];
+        string? modelFile = arguments.Length > 4 && arguments[4].Length > 0 ? arguments[4] : null;
         CacheLayout cache = new(arguments[2]);
         OutOfProcessPreparer preparer = new();
         if (!preparer.IsAvailable) throw new FileNotFoundException($"The model preparer is not beside the server ({preparer.ExecutablePath}).");
@@ -59,7 +60,7 @@ sealed class Server(Stream input, Stream output) : IDisposable
         Status("Preparing the shared assets");
         preparer.EnsureSystemAssetsAsync(romfs, cache, Status, game: game).GetAwaiter().GetResult();
         Status($"Preparing {actor}");
-        string model = preparer.PrepareAsync(new PrepareRequest(romfs, actor, cache, Game: game), Status).GetAwaiter().GetResult();
+        string model = preparer.PrepareAsync(new PrepareRequest(romfs, actor, cache, Game: game, ModelFile: modelFile, Force: modelFile is not null), Status).GetAwaiter().GetResult();
 
         _scene?.Dispose();
         _window ??= Window.Create(WindowOptions.Default with

@@ -83,7 +83,8 @@ public sealed class InProcessPreparer : IModelPreparer
             return await Task.Run(() =>
             {
                 if (UsesPackTool(request))
-                    return PackTool.PrepareModel(request.RomfsRoot, request.ActorOrModelName, request.Cache, request.ImportAnimations, request.Force, log);
+                    return PackTool.PrepareModel(request.RomfsRoot, request.ActorOrModelName, request.Cache, request.ImportAnimations, request.Force, log, request.ModelFile);
+                if (request.ModelFile is not null) throw new InvalidOperationException("A model file is prepared through the pack tool, which is not beside the preparer or is ruled out by a mod layer.");
                 return ModelPreparer.PrepareIfNeeded(request.RomfsRoot, request.ActorOrModelName, request.Cache,
                     log, request.ImportAnimations, request.Force, request.ModRomfsLayers);
             }, cancellationToken).ConfigureAwait(false);

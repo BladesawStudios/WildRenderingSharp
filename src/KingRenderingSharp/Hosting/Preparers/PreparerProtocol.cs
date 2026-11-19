@@ -27,6 +27,7 @@ static class PreparerProtocol
         List<string> args = ["prepare", "--romfs", request.RomfsRoot, "--actor", request.ActorOrModelName, "--cache", request.Cache.Root];
         AddShared(args, request.ModRomfsLayers, request.ImportAnimations, request.Force);
         AddGame(args, request.Game);
+        if (!string.IsNullOrEmpty(request.ModelFile)) args.AddRange(["--model-file", request.ModelFile]);
         return args;
     }
 

@@ -18,11 +18,11 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
     }
 
     /// <summary>Prepares one model, unless a manifest for it is already in the cache and <c>force</c> is not set.</summary>
-    public int One(string name, IReadOnlyList<string> animationPacks)
+    public int One(string name, IReadOnlyList<string> animationPacks, string? modelFile = null)
     {
         try
         {
-            string model = Prepare(name, animationPacks, Say);
+            string model = Prepare(name, animationPacks, Say, modelFile: modelFile);
             Say(ResultPrefix + model);
             return 0;
         }
@@ -64,15 +64,15 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
         return 0;
     }
 
-    string Prepare(string name, IReadOnlyList<string> animationPacks, Action<string>? log, bool animatedAnyway = false)
+    string Prepare(string name, IReadOnlyList<string> animationPacks, Action<string>? log, bool animatedAnyway = false, string? modelFile = null)
     {
-        if (!force && cache.IsPrepared(name))
+        if (!force && modelFile is null && cache.IsPrepared(name))
         {
             log?.Invoke($"[prepare] {name} is already prepared.");
             return name;
         }
 
-        PreparedPackModel prepared = PackPreparer.Prepare(romfs, name, cache.ModelDirectory(name), cache.Shaders, log, animations || animatedAnyway, animationPacks);
+        PreparedPackModel prepared = PackPreparer.Prepare(romfs, name, cache.ModelDirectory(name), cache.Shaders, log, animations || animatedAnyway, animationPacks, modelFile);
         foreach (string problem in prepared.Problems) log?.Invoke("[prepare] " + problem);
         log?.Invoke($"[prepare] {prepared.Name}: {prepared.Shapes} shapes, {prepared.Programs} programs, {prepared.Textures} textures, {prepared.Animations} animations");
         return prepared.Name;

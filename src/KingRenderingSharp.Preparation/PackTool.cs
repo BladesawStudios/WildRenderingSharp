@@ -51,7 +51,7 @@ static class PackTool
     }
 
     /// <summary>Prepares one model through the tool and returns the model name it reports; a failure throws with the tool's output.</summary>
-    public static string PrepareModel(string romfs, string name, CacheLayout cache, bool animations, bool force, Action<string>? log)
+    public static string PrepareModel(string romfs, string name, CacheLayout cache, bool animations, bool force, Action<string>? log, string? modelFile = null)
     {
         // The game is told by the dump: a Breath of the Wild romfs has no Tears of the Kingdom actor info.
         string game = Directory.EnumerateFiles(Path.Combine(romfs, "Pack"), "*.pack.zs").Any() ? "totk" : "botw";
@@ -60,6 +60,7 @@ static class PackTool
         foreach (string pack in packs) arguments.AddRange(["--anim", pack]);
         if (!animations) arguments.Add("--no-anims");
         if (force) arguments.Add("--force");
+        if (modelFile is not null) arguments.AddRange(["--model-file", modelFile]);
         string? result = null;
         List<string> tail = [];
         int exit = Run(arguments, line =>
@@ -81,6 +82,7 @@ static class PackTool
         foreach (string pack in packs) arguments.AddRange(["--anim", pack]);
         if (!options.ImportAnims) arguments.Add("--no-anims");
         if (options.Force) arguments.Add("--force");
+        if (options.ModelFile is not null) arguments.AddRange(["--model-file", options.ModelFile]);
         return Run(arguments, Console.WriteLine);
     }
 
