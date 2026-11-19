@@ -81,7 +81,7 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
             }
         }
 
-        if (!force && cache.IsPrepared(name) && File.Exists(StampFile(name)) == (Stamp.Length > 0) && (Stamp.Length == 0 || File.ReadAllText(StampFile(name)) == Stamp))
+        if (!force && cache.IsPrepared(name) && !IsOlderThanTool(cache.ModelPack(name)) && File.Exists(StampFile(name)) == (Stamp.Length > 0) && (Stamp.Length == 0 || File.ReadAllText(StampFile(name)) == Stamp))
         {
             log?.Invoke($"[prepare] {name} is already prepared.");
             return name;
@@ -129,5 +129,13 @@ sealed class PackRun(string romfs, CacheLayout cache, bool animations, bool forc
     {
         if (Stamp.Length == 0) File.Delete(StampFile(name));
         else File.WriteAllText(StampFile(name), Stamp);
+    }
+
+    // A pack made by an older build of the tool is made again, so a fix to the preparation reaches models prepared before it.
+    static bool IsOlderThanTool(string pack)
+    {
+        DateTime built = new[] { typeof(PackRun).Assembly, typeof(BfShaderSharp.Assets.AssetPreparer).Assembly }
+            .Select(a => a.Location).Where(File.Exists).Select(File.GetLastWriteTimeUtc).DefaultIfEmpty(DateTime.MinValue).Max();
+        return File.GetLastWriteTimeUtc(pack) < built;
     }
 }
