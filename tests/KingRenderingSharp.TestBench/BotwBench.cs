@@ -36,7 +36,7 @@ static class BotwBench
         Console.WriteLine($"GL: {gl.GetStringS(StringName.Renderer)} / {gl.GetStringS(StringName.Version)}");
 
         using var host = GLHostState.Enter(gl);
-        var pipeline = new DeferredPipeline(gl, ContentStores.FromCache(cache), size, size, new BotwProfile());
+        var pipeline = new DeferredPipeline(gl, KingRenderingSharp.Content.Packs.SystemPack.StoresOf(cache), size, size, new BotwProfile());
         var view = new SceneView(gl, pipeline);
         var textures = new ExternalTextures(gl);
         var loader = new ModelLoader(gl, pipeline.Programs, textures) { SharedTextures = new SharedTextures(gl) };
