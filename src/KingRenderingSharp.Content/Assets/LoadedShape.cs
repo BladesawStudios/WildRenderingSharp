@@ -47,10 +47,10 @@ public sealed class LoadedShape
         Demoted = true;
     }
 
-    internal void Rebuilt(uint vertexBuffer, uint indexBuffer, uint gBufferVao, uint zOnlyVao, uint forwardVao, uint passIdVao)
+    internal void Rebuilt(GpuApi gl, uint vertexBuffer, uint indexBuffer, uint gBufferVao, uint zOnlyVao, uint forwardVao, uint passIdVao)
     {
         (_vertexBuffer, _indexBuffer, _gBufferVao, _zOnlyVao, _forwardVao, _passIdVao) = (vertexBuffer, indexBuffer, gBufferVao, zOnlyVao, forwardVao, passIdVao);
-        Gpu.GpuMemory.Shape(Buffers.VertexBytes + Buffers.IndexBytes);
+        gl.Memory.Shape(Buffers.VertexBytes + Buffers.IndexBytes);
     }
 
     // Deletes whatever of the shape's own GL objects exists, without making any of it first.
@@ -63,7 +63,7 @@ public sealed class LoadedShape
         if (_vertexBuffer != 0) gl.DeleteBuffer(_vertexBuffer);
         if (_indexBuffer != 0) gl.DeleteBuffer(_indexBuffer);
         if (_vertexBuffer != 0 && Buffers is not null)
-            Gpu.GpuMemory.Shape(-(Buffers.VertexBytes + Buffers.IndexBytes));
+            gl.Memory.Shape(-(Buffers.VertexBytes + Buffers.IndexBytes));
         (_vertexBuffer, _indexBuffer, _gBufferVao, _zOnlyVao, _forwardVao, _passIdVao) = (0, 0, 0, 0, 0, 0);
     }
 

@@ -25,11 +25,11 @@ internal sealed class GeometryChunk(GpuApi gl, int id, string key, ShapeBuffers 
 
     public uint Ibo { get; } = GLBufferOf(gl, BufferTargetARB.ElementArrayBuffer, (long)indexCapacity * sizeof(uint));
 
-    long Bytes { get; } = Counted((long)vertexCapacity * format.Stride + (long)indexCapacity * sizeof(uint));
+    long Bytes { get; } = Counted(gl, (long)vertexCapacity * format.Stride + (long)indexCapacity * sizeof(uint));
 
-    static long Counted(long bytes)
+    static long Counted(GpuApi gl, long bytes)
     {
-        Gpu.GpuMemory.Merged(bytes);
+        gl.Memory.Merged(bytes);
         return bytes;
     }
 
@@ -44,7 +44,7 @@ internal sealed class GeometryChunk(GpuApi gl, int id, string key, ShapeBuffers 
     {
         gl.DeleteBuffer(Vbo);
         gl.DeleteBuffer(Ibo);
-        Gpu.GpuMemory.Merged(-Bytes);
+        gl.Memory.Merged(-Bytes);
     }
 
     static unsafe uint GLBufferOf(GpuApi gl, BufferTargetARB target, long bytes)
@@ -87,7 +87,7 @@ internal sealed class GeometryArena(GpuApi gl) : IDisposable
 
     public void Release(GeometrySlice slice)
     {
-        Gpu.GpuMemory.MergedUsed(-((long)slice.VertexCount * slice.Chunk.Stride + (long)slice.IndexCount * sizeof(uint)));
+        gl.Memory.MergedUsed(-((long)slice.VertexCount * slice.Chunk.Stride + (long)slice.IndexCount * sizeof(uint)));
         slice.Chunk.Vertices.Free(slice.BaseVertex, slice.VertexCount);
         slice.Chunk.Indices.Free(slice.FirstIndex, slice.IndexCount);
     }
@@ -113,7 +113,7 @@ internal sealed class GeometryArena(GpuApi gl) : IDisposable
 
         Copy(shape.VertexBuffer, BufferTargetARB.ArrayBuffer, chunk.Vbo, (long)baseVertex * chunk.Stride, (long)vertices * chunk.Stride);
         Copy(shape.IndexBuffer, BufferTargetARB.ElementArrayBuffer, chunk.Ibo, (long)firstIndex * sizeof(uint), (long)indices * sizeof(uint));
-        Gpu.GpuMemory.MergedUsed((long)vertices * chunk.Stride + (long)indices * sizeof(uint));
+        gl.Memory.MergedUsed((long)vertices * chunk.Stride + (long)indices * sizeof(uint));
         return new GeometrySlice(chunk, baseVertex, firstIndex, vertices, indices);
     }
 

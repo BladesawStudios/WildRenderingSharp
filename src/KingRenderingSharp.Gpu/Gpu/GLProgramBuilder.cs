@@ -17,7 +17,7 @@ internal static class GLProgramBuilder
     }
 
     // Keeps compiled programs in the directory for this context, unless it already has one.
-    public static void UseBinaryCache(GpuApi gl, string directory) => ContextState<BinaryCache>.For(gl).Directory ??= directory;
+    public static void UseBinaryCache(GpuApi gl, string directory) => gl.State<BinaryCache>().Directory ??= directory;
 
     /// <summary>
     /// A program kept under a name, so that a program already built needs none of the work of making its source: no reading it, no cleaning it, no patching it and no hashing it.
@@ -82,7 +82,7 @@ internal static class GLProgramBuilder
 
     static string? NamedPath(GpuApi gl, string identity)
     {
-        var cache = ContextState<BinaryCache>.For(gl);
+        var cache = gl.State<BinaryCache>();
         if (cache.Directory is not { } directory)
             return null;
         cache.DriverIdentity ??= gl.GetInteger(GetPName.NumProgramBinaryFormats) > 0
@@ -169,7 +169,7 @@ internal static class GLProgramBuilder
 
     static string? BinaryCachePath(GpuApi gl, string vertexSource, string fragmentSource)
     {
-        var cache = ContextState<BinaryCache>.For(gl);
+        var cache = gl.State<BinaryCache>();
         if (cache.Directory is not { } directory)
             return null;
 

@@ -17,15 +17,13 @@ internal static class SkeletonPose
     // A bone's resolved local transform for one frame - the inputs World composes.
     public readonly record struct BoneLocal(Vector3 Scale, Matrix4x4 Rotation, Vector3 Translation);
 
-    static readonly ConditionalWeakTable<SkeletonManifest, Matrix4x4[]> BindPoses = new();
-
     // TODO: Why would this be world space, wouldn't it make more sense to compute
     // the model space bind pose? From a glance at the code, it seems to me like
     // that's already happening, but the naming says otherwise.
     // Please investigate this further. -- torf
     
     // The bind pose of a skeleton, worked out once and shared: callers must not change it. BindPoseWorldMatrices gives a copy to pose.
-    public static Matrix4x4[] SharedBindPoseWorld(SkeletonManifest skel) => BindPoses.GetValue(skel, BindPoseWorldMatrices);
+    public static Matrix4x4[] SharedBindPoseWorld(SkeletonManifest skel) => skel.SharedBindPose ??= BindPoseWorldMatrices(skel);
 
     public static Matrix4x4[] BindPoseWorldMatrices(SkeletonManifest skel)
     {

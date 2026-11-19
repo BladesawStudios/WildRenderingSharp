@@ -8,7 +8,8 @@ namespace KingRenderingSharp.Content.Rendering;
 /// Wrapper class to register OpenGL debug callbacks
 /// </summary>
 public class GLDebug {
-    public static bool showNotificationMessages = false;
+    // The driver's notifications are too verbose for a log unless asked for.
+    static bool ShowNotificationMessages => Environment.GetEnvironmentVariable("KRS_GLDEBUG_NOTIFICATIONS") == "1";
     
     /// <summary>
     /// Register debug callbacks with OpenGL, that output to the current logger
@@ -41,7 +42,7 @@ public class GLDebug {
 
         // These are too verbose (often perf tips), allow filtering them out
         if (severity == GLEnum.DebugSeverityNotification) {
-            showMessage = showNotificationMessages;
+            showMessage = ShowNotificationMessages;
         }
 
         string msg = "";

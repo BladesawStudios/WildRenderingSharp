@@ -80,7 +80,7 @@ static class BotwBench
         byte[] rgba = view.ReadOutputRgba8();
         PngWriter.WriteRgba(outPath, size, size, rgba);
         int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
-        Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, GpuApi errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
+        Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, GL errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
         return distinct < 64 || errors.Count > 0 ? 4 : 0;
     }
 }

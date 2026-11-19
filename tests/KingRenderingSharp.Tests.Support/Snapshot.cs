@@ -9,12 +9,12 @@ namespace KingRenderingSharp.Tests;
 /// </summary>
 static class Snapshot
 {
-    public static void Verify(string name, KingRenderingSharp.Content.Graphics.Ubos.Ubo ubo) => Verify(name, ubo.Bytes.ToArray());
+    public static void Verify(string name, KingRenderingSharp.Content.Graphics.Ubos.Ubo ubo, [System.Runtime.CompilerServices.CallerFilePath] string callerFile = "") => Verify(name, ubo.Bytes.ToArray(), callerFile);
 
-    public static void Verify(string name, byte[] bytes)
+    public static void Verify(string name, byte[] bytes, [System.Runtime.CompilerServices.CallerFilePath] string callerFile = "")
     {
         string actual = Convert.ToHexString(SHA256.HashData(bytes));
-        string recorded = Path.Combine(SourceSnapshotDirectory(), name + ".sha256");
+        string recorded = Path.Combine(SourceSnapshotDirectory(callerFile), name + ".sha256");
 
         if (Environment.GetEnvironmentVariable("KRS_UPDATE_SNAPSHOTS") == "1")
         {
@@ -26,6 +26,6 @@ static class Snapshot
         Assert.Equal(File.ReadAllText(recorded).Trim(), actual);
     }
 
-    static string SourceSnapshotDirectory([System.Runtime.CompilerServices.CallerFilePath] string callerFile = "") =>
+    static string SourceSnapshotDirectory(string callerFile) =>
         Path.Combine(Path.GetDirectoryName(callerFile)!, "Snapshots");
 }

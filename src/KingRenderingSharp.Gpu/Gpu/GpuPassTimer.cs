@@ -28,7 +28,7 @@ public sealed class GpuPassTimer : IDisposable
     }
 
     // The timer marking passes on this context, set while one of its frames is being drawn.
-    internal static GpuPassTimer? On(GpuApi gl) => ContextState<Active>.For(gl).Timer;
+    internal static GpuPassTimer? On(GpuApi gl) => gl.State<Active>().Timer;
 
     public IReadOnlyList<(string Pass, double Ms)> Last { get; private set; } = [];
 
@@ -99,7 +99,7 @@ public sealed class GpuPassTimer : IDisposable
         _cpu.Clear();
         _clock.Restart();
         _lastCpuMark = 0;
-        ContextState<Active>.For(_gl).Timer = this;
+        _gl.State<Active>().Timer = this;
         Mark("start");
     }
 
@@ -111,7 +111,7 @@ public sealed class GpuPassTimer : IDisposable
         _gl.QueryCounter(q, QueryCounterTarget.Timestamp);
         _frames[_slot].Add((pass, q));
         double now = _clock.Elapsed.TotalMilliseconds;
-        long calls = DrawStatistics.Calls;
+        long calls = _gl.Statistics.Calls;
         long made = calls >= _lastCalls ? calls - _lastCalls : calls;
         _lastCalls = calls;
         if (pass != "start")
@@ -132,13 +132,13 @@ public sealed class GpuPassTimer : IDisposable
     {
         Mark(lastPass);
         if (ReferenceEquals(On(_gl), this))
-            ContextState<Active>.For(_gl).Timer = null;
+            _gl.State<Active>().Timer = null;
     }
 
     public void Dispose()
     {
         if (ReferenceEquals(On(_gl), this))
-            ContextState<Active>.For(_gl).Timer = null;
+            _gl.State<Active>().Timer = null;
         foreach (var frame in _frames.Concat(_details))
             foreach (var (_, q) in frame)
                 _gl.DeleteQuery(q);

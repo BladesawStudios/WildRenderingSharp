@@ -13,12 +13,12 @@ internal static class MergedSupport
 
     public static bool Available(GpuApi gl)
     {
-        var state = ContextState<State>.For(gl);
+        var state = gl.State<State>();
         return state.Available ??= Check(gl, state);
     }
 
     public static GpuBindless Bindless(GpuApi gl) =>
-        ContextState<State>.For(gl).Bindless ?? throw new InvalidOperationException("The context has no bindless textures.");
+        gl.State<State>().Bindless ?? throw new InvalidOperationException("The context has no bindless textures.");
 
     static bool Check(GpuApi gl, State state)
     {

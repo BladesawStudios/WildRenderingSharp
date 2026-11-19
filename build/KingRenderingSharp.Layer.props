@@ -20,6 +20,12 @@
     <InternalsVisibleTo Include="KingRenderingSharp.Preparation" />
     <InternalsVisibleTo Include="KingRenderingSharp.Packing" />
     <InternalsVisibleTo Include="KingRenderingSharp.Tests" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Core.Tests" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Content.Tests" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Graph.Tests" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Games.Botw.Tests" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Games.Totk.Tests" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Tests.Support" />
     <InternalsVisibleTo Include="KingRenderingSharp.TestBench" />
     <InternalsVisibleTo Include="KingRenderingSharp.Snapshot" />
   </ItemGroup>

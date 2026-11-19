@@ -69,7 +69,7 @@ public sealed class SharedTextures : IDisposable
         _keyOf.Remove(texture);
         Residency?.Release(_gl, texture.Handle);
         _gl.DeleteTexture(texture.Handle);
-        GpuMemory.Texture(-texture.Bytes);
+        _gl.Memory.Texture(-texture.Bytes);
     }
 
     public void Dispose()
@@ -78,7 +78,7 @@ public sealed class SharedTextures : IDisposable
         {
             Residency?.Release(_gl, texture.Handle);
             _gl.DeleteTexture(texture.Handle);
-            GpuMemory.Texture(-texture.Bytes);
+            _gl.Memory.Texture(-texture.Bytes);
         }
         _byKey.Clear();
         _keyOf.Clear();

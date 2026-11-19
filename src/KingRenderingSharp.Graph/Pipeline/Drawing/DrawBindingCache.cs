@@ -67,7 +67,7 @@ sealed class DrawBindingCache
             gl.ActiveTexture(TextureUnit.Texture0 + unit);
             _activeUnit = unit;
         }
-        DrawStatistics.TextureBind();
+        gl.Statistics.TextureBind();
         gl.BindTexture(target, handle);
         if (tracked)
             _textures[unit] = handle;

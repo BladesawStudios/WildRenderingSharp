@@ -59,7 +59,7 @@ internal sealed unsafe partial class MergedDrawing
         uint ibo = Remake(chunk.Ibo, (long)slice.FirstIndex * sizeof(uint), indexBytes);
         var buffers = shape.Buffers with { Vbo = vbo, Ibo = ibo };
         var arrays = new Content.Assets.Loading.VertexArrays(_gl);
-        shape.Rebuilt(vbo, ibo, arrays.ForProgram(shape.GBufferProgram, buffers),
+        shape.Rebuilt(_gl, vbo, ibo, arrays.ForProgram(shape.GBufferProgram, buffers),
             shape.ZOnlyProgram != 0 ? arrays.ForProgram(shape.ZOnlyProgram, buffers) : 0,
             shape.ForwardProgram != 0 ? arrays.ForProgram(shape.ForwardProgram, buffers) : 0,
             arrays.ForPassId(buffers));

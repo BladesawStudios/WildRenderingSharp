@@ -21,7 +21,7 @@ sealed class TextureUploader(GpuApi gl, int maxSize = 0)
 
         ApplySwizzle(s);
         ApplySampling(s, levels);
-        GpuMemory.Texture(bytes);
+        gl.Memory.Texture(bytes);
         return new LoadedTexture { Handle = handle, Width = width, Height = height, Name = s.Texture, Bytes = bytes };
     }
 

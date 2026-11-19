@@ -74,7 +74,7 @@ sealed class ShapeBuilder(GpuApi gl, ShaderProgramCache programs, string dataDir
         byte[] indexBytes = CacheFiles.ReadAllBytes(Path.Combine(dataDirectory, sh.IndexFile));
         uint vbo = GLBuffer.Create(gl, BufferTargetARB.ArrayBuffer, vertexBytes);
         uint ibo = GLBuffer.Create(gl, BufferTargetARB.ElementArrayBuffer, indexBytes);
-        GpuMemory.Shape(vertexBytes.Length + indexBytes.Length);
+        gl.Memory.Shape(vertexBytes.Length + indexBytes.Length);
         return new ShapeBuffers(layout, stride, vbo, ibo, constantSkin, vertexBytes.Length, indexBytes.Length);
     }
 

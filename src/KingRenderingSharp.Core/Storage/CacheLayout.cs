@@ -9,13 +9,10 @@ public sealed record CacheLayout(string Root)
     // Where Default keeps the cache: set once by an app that wants its own folder, or named by KRS_CACHE; otherwise the library's folder in the user's application data.
     public static string DefaultRoot
     {
-        get => _defaultRoot ??= Environment.GetEnvironmentVariable("KRS_CACHE") is { Length: > 0 } fromEnvironment
+        get => Environment.GetEnvironmentVariable("KRS_CACHE") is { Length: > 0 } fromEnvironment
             ? fromEnvironment
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "KingRenderingSharp", "cache");
-        set => _defaultRoot = value;
     }
-
-    static string? _defaultRoot;
 
     public static CacheLayout Default => new(DefaultRoot);
 

@@ -15,8 +15,6 @@ internal sealed class MaterialBlock : IDisposable
     // a block may be declared at took 64 KiB for each shape of a whole map for a few hundred bytes of block.
     public const int BufferSize = 4096;
 
-    static int _nextId;
-
     readonly GpuApi _gl;
     byte[] _authored;
 
@@ -31,7 +29,7 @@ internal sealed class MaterialBlock : IDisposable
     {
         _gl = gl;
         _authored = authored.ToArray();
-        Id = Interlocked.Increment(ref _nextId);
+        Id = gl.NextId();
     }
 
     /// <summary>Tells blocks apart without making a buffer, for ordering draws.</summary>
@@ -45,7 +43,7 @@ internal sealed class MaterialBlock : IDisposable
             if (_handle == 0)
             {
                 _handle = GLBuffer.Create(_gl, BufferTargetARB.UniformBuffer, Padded(_shown ?? _authored), BufferUsageARB.DynamicDraw);
-                GpuMemory.Material(BufferSize);
+                _gl.Memory.Material(BufferSize);
             }
             return _handle;
         }
@@ -100,7 +98,7 @@ internal sealed class MaterialBlock : IDisposable
         if (_handle != 0)
         {
             _gl.DeleteBuffer(_handle);
-            GpuMemory.Material(-BufferSize);
+            _gl.Memory.Material(-BufferSize);
         }
         _handle = 0;
     }

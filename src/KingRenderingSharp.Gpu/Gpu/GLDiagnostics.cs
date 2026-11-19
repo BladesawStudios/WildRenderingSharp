@@ -5,8 +5,7 @@ namespace KingRenderingSharp.Gpu;
 /// <summary>GL error reporting that says what it actually knows.</summary>
 internal static class GLDiagnostics
 {
-    public static bool VerbosePerPass { get; set; }
-        = Environment.GetEnvironmentVariable("KRS_GL_TRACE") == "1";
+    static readonly bool VerbosePerPass = Environment.GetEnvironmentVariable("KRS_GL_TRACE") == "1";
 
     public static bool CheckPass(GpuApi gl, string context)
     {

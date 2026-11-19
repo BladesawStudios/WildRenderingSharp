@@ -16,6 +16,10 @@ Dependencies point one way: each layer is a project that references only the lay
 
 Each layer project keeps its own shaders under its `Glsl/`, one file each, embedded: `Pipeline/` in Graph, `Totk/` and `Botw/` in their game projects.
 
+## Tests
+
+Each layer has a test project of its own (`Core.Tests`, `Content.Tests`, `Graph.Tests`, `Games.Botw.Tests`, `Games.Totk.Tests`) that references only that layer, so a test cannot lean on a layer above it; `Tests.Support` holds the snapshot helper and the fixed test camera they share. Snapshot hashes sit in the `Snapshots/` folder of the project whose test records them. `KingRenderingSharp.Tests` is what spans layers: the public API, the GLSL embedding, the preparers and the pack parity checks.
+
 ## GL stays in `Gpu`
 
 Only `KingRenderingSharp.Gpu` references Silk.NET.OpenGL (its compile assets do not flow to other projects), so a pass cannot reach the driver any other way than `GpuApi`. `GpuApi` has the GL calls the renderer makes, under the same names, with its own enums (`Gpu/Api/GpuApi.Generated.cs`, `GpuEnums.Generated.cs`). They are generated: when code needs a call or an enum value that is not there, write it, then run `dotnet run --project tools/GpuApiGenerator -- <repo root> src/KingRenderingSharp.Gpu/Gpu/Api`. Calls that take pointers or spans of enums, and the extensions, are written by hand in `GpuApi.cs`.

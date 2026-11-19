@@ -8,9 +8,9 @@ using KingRenderingSharp.Graph.Pipeline.Targets;
 namespace KingRenderingSharp.Hosting.Views;
 
 /// <summary>Describes the exact values of every input the deferred resolve reads, and what it wrote, at the middle of the frame (the same texel in each).</summary>
-static class FrameProbe
+sealed class FrameProbe
 {
-    public static string Describe(GpuApi gl, DeferredPipeline pipeline, RenderTargets targets)
+    public string Describe(GpuApi gl, DeferredPipeline pipeline, RenderTargets targets)
     {
         var text = new StringBuilder();
         DescribeTextures(text, targets);
@@ -19,7 +19,7 @@ static class FrameProbe
         return text.ToString();
     }
 
-    static void DescribeTextures(StringBuilder text, RenderTargets t)
+    void DescribeTextures(StringBuilder text, RenderTargets t)
     {
         int x = t.Width / 2, y = t.Height / 2;
         string Bytes(GpuTexture g) { var v = t.ReadPixel(g, g.Width / 2, g.Height / 2) * 255f; return $"{v.X:F0} {v.Y:F0} {v.Z:F0} {v.W:F0}"; }
@@ -68,7 +68,7 @@ static class FrameProbe
 
     // Finds, with no aiming, the thinnest bright line in a frame - a pixel well above both its neighbours along one axis, the way a rim is - and lists
     // what each buffer held for nine pixels across it. Its place is kept for drawing a marker on the view.
-    static string DescribeBrightestLine(RenderTargets t, GpuTexture source, string frameName, bool mark)
+    string DescribeBrightestLine(RenderTargets t, GpuTexture source, string frameName, bool mark)
     {
         var text = new StringBuilder();
         int width = source.Width, height = source.Height;
@@ -171,15 +171,15 @@ static class FrameProbe
     }
 
     // Where the last scan found its line, in the pixels of the frame it scanned, for the view to mark.
-    public static (int X, int Y, int Width, int Height)? Marker => _marker;
-    static (int X, int Y, int Width, int Height)? _marker;
+    public (int X, int Y, int Width, int Height)? Marker => _marker;
+    (int X, int Y, int Width, int Height)? _marker;
 
     // How much brighter than its brighter neighbour a pixel must be to count as a bright line; a pale blob on a pale surface is not far above it.
     const float BrightRatio = 1.25f;
 
     const int ScanEvery = 30;
-    static int _scanFrames;
-    static string _edge = "", _dark = "";
+    int _scanFrames;
+    string _edge = "", _dark = "";
 
     static void DescribeUniformBlocks(StringBuilder text, GLResourceCache resources)
     {
@@ -196,7 +196,7 @@ static class FrameProbe
     {
         Span<bool> mask = stackalloc bool[4];
         gl.GetBoolean(GetPName.ColorWritemask, mask);
-        text.AppendLine($"GpuApi colour mask {mask[0]} {mask[1]} {mask[2]} {mask[3]}; blend {gl.IsEnabled(EnableCap.Blend)}, " +
+        text.AppendLine($"GL colour mask {mask[0]} {mask[1]} {mask[2]} {mask[3]}; blend {gl.IsEnabled(EnableCap.Blend)}, " +
             $"scissor {gl.IsEnabled(EnableCap.ScissorTest)}, cull {gl.IsEnabled(EnableCap.CullFace)}, depth {gl.IsEnabled(EnableCap.DepthTest)}, stencil {gl.IsEnabled(EnableCap.StencilTest)}");
         Span<bool> indexed = stackalloc bool[4];
         for (uint i = 0; i < 2; i++)

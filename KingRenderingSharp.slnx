@@ -14,6 +14,12 @@
   <Folder Name="/tests/">
     <Project Path="tests/KingRenderingSharp.RenderRegression/KingRenderingSharp.RenderRegression.csproj" />
     <Project Path="tests/KingRenderingSharp.Tests/KingRenderingSharp.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Tests.Support/KingRenderingSharp.Tests.Support.csproj" />
+    <Project Path="tests/KingRenderingSharp.Core.Tests/KingRenderingSharp.Core.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Content.Tests/KingRenderingSharp.Content.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Graph.Tests/KingRenderingSharp.Graph.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Games.Botw.Tests/KingRenderingSharp.Games.Botw.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Games.Totk.Tests/KingRenderingSharp.Games.Totk.Tests.csproj" />
     <Project Path="tests/KingRenderingSharp.TestBench/KingRenderingSharp.TestBench.csproj" />
   </Folder>
   <Folder Name="/vendor/" />

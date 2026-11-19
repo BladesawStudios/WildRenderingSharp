@@ -15,6 +15,7 @@ namespace KingRenderingSharp.Hosting.Views;
 public sealed class SceneView : IDisposable
 {
     readonly GpuApi _gl;
+    readonly FrameProbe _probe = new();
     readonly ScenePresenter _presenter;
     readonly ViewOutput _output;
     readonly RenderTargets? _ownTargets;
@@ -86,7 +87,7 @@ public sealed class SceneView : IDisposable
         _gl.GetInteger(GetPName.Viewport, viewport);
         try
         {
-            string text = FrameProbe.Describe(_gl, Pipeline, Targets);
+            string text = _probe.Describe(_gl, Pipeline, Targets);
             DrawProbeMarker();
             return text;
         }
@@ -101,7 +102,7 @@ public sealed class SceneView : IDisposable
     // A box round the place the probe chose, in the view's own picture, so it can be seen where that is.
     void DrawProbeMarker()
     {
-        if (FrameProbe.Marker is not var (x, y, width, height))
+        if (_probe.Marker is not var (x, y, width, height))
             return;
         int px = (int)((long)x * Width / width), py = Height - 1 - (int)((long)y * Height / height);
         const int Reach = 14, Thick = 2;

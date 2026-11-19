@@ -99,7 +99,7 @@ public sealed class DeferredPipeline : IDisposable
         Timer.BeginFrame();
         Drawer.TakeCounts();
         Drawer.BeginFrame();
-        DrawStatistics.Take();
+        _gl.Statistics.Take();
         ShadowCounts = default;
         PrepareEnvironment(request.Environment);
 
@@ -121,7 +121,7 @@ public sealed class DeferredPipeline : IDisposable
         GBufferCounts = frame.Stats.GBuffer;
         ShadowCounts = frame.Stats.Shadow;
         GloomComposed = frame.Stats.GloomComposed;
-        DrawCounts = DrawStatistics.Take();
+        DrawCounts = _gl.Statistics.Take();
         Timer.Mark("post");
         return frame.Result;
     }

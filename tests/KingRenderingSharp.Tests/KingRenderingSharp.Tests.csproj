@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\KingRenderingSharp\KingRenderingSharp.csproj" />
+    <ProjectReference Include="..\KingRenderingSharp.Tests.Support\KingRenderingSharp.Tests.Support.csproj" />
     <ProjectReference Include="..\KingRenderingSharp.RenderRegression\KingRenderingSharp.RenderRegression.csproj" />
     <ProjectReference Include="..\..\src\KingRenderingSharp.Preparation\KingRenderingSharp.Preparation.csproj" />
     <ProjectReference Include="$(KrsLibRoot)\ShaderLibrary\ShaderLibrary.CompileTool\ShaderLibrary.CompileTool.csproj" />

@@ -11,6 +11,9 @@ namespace KingRenderingSharp.Content.Assets.Manifests;
 /// </summary>
 public sealed class SkeletonManifest
 {
+    // The bind pose worked out once for the skeleton and shared; see SkeletonPose.SharedBindPoseWorld.
+    [JsonIgnore] internal System.Numerics.Matrix4x4[]? SharedBindPose { get; set; }
+
     // How the bones' scales combine down the hierarchy; see SkeletonScalingMode.
     [JsonPropertyName("scaling_mode")] public SkeletonScalingMode ScalingMode { get; set; } = SkeletonScalingMode.Standard;
     // Length of the palette's smooth segment (FSKL[0x3A]), or -1 when the manifest does not carry it; read SmoothCount, which derives it then.

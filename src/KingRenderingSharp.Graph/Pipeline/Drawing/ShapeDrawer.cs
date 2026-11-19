@@ -59,8 +59,8 @@ internal sealed unsafe class ShapeDrawer : IDisposable
             return;
 
         _bound.Invalidate();
-        DrawStatistics.ProgramSwitch();
-        DrawStatistics.Call(1);
+        _gl.Statistics.ProgramSwitch();
+        _gl.Statistics.Call(1);
         _gl.UseProgram(program);
         _gl.BindBufferBase(BufferTargetARB.UniformBuffer, Programs.Bindings.Material, material.Handle);
         for (int i = 0; i < samplers.Count; i++)
@@ -130,7 +130,7 @@ internal sealed unsafe class ShapeDrawer : IDisposable
     {
         if (!_bound.Needs(DrawBindingCache.Slot.Program, program))
             return;
-        DrawStatistics.ProgramSwitch();
+        _gl.Statistics.ProgramSwitch();
         _gl.UseProgram(program);
         if (!_uniforms.TryGetValue(program, out _current))
             _uniforms[program] = _current = InstanceUniforms.Find(_gl, program);

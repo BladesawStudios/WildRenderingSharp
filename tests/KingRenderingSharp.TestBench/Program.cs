@@ -87,7 +87,7 @@ if (options.TryGetValue("bindless-limit", out var limitText))
     }
     for (int i = 0; i < count; i++)
         if (!bindless.IsTextureHandleResident(handles[i])) { notResident++; if (firstFail < 0) firstFail = i; }
-    Console.WriteLine($"bindless handles: {count} made, {notResident} not resident, {glFaults} GpuApi errors, first problem at {firstFail}");
+    Console.WriteLine($"bindless handles: {count} made, {notResident} not resident, {glFaults} GL errors, first problem at {firstFail}");
     return 0;
 }
 
@@ -271,7 +271,7 @@ Console.WriteLine($"actor draws: {draws.Calls} calls with {draws.Commands} comma
 
 int distinct = new HashSet<uint>(Enumerable.Range(0, rgba.Length / 4).Select(i => BitConverter.ToUInt32(rgba, i * 4))).Count;
 double luma = Enumerable.Range(0, rgba.Length / 4).Average(i => (rgba[i * 4] + rgba[i * 4 + 1] + rgba[i * 4 + 2]) / 765.0);
-Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, mean luminance {luma:F3}, GpuApi errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
+Console.WriteLine($"wrote {outPath}: {distinct} distinct colours, mean luminance {luma:F3}, GL errors: {(errors.Count == 0 ? "none" : string.Join(", ", errors))}");
 
 renderer.Dispose();
 window.Dispose();

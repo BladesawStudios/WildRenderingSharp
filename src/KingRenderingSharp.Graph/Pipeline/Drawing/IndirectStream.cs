@@ -44,7 +44,7 @@ sealed unsafe class IndirectStream : IDisposable
     {
         if (commands.Count == 0)
             return;
-        DrawStatistics.Call(commands.Count);
+        _gl.Statistics.Call(commands.Count);
         nint offset = Upload(CollectionsMarshal.AsSpan(commands));
         _gl.MultiDrawElementsIndirect(PrimitiveType.Triangles, DrawElementsType.UnsignedInt, (void*)offset, (uint)commands.Count, (uint)sizeof(DrawCommand));
         commands.Clear();

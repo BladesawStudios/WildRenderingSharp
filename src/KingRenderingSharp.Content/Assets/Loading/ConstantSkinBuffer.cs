@@ -22,7 +22,7 @@ static class ConstantSkinBuffer
 
     public static uint For(GpuApi gl)
     {
-        var holder = ContextState<Holder>.For(gl);
+        var holder = gl.State<Holder>();
         lock (holder)
         {
             if (holder.Buffer == 0)

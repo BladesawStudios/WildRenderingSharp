@@ -17,6 +17,21 @@ public sealed unsafe partial class GpuApi : IDisposable
 
     internal GL Native { get; }
 
+    /// <summary>What this context has put on the card, by kind.</summary>
+    public GpuMemory Memory { get; } = new();
+
+    internal DrawStatistics Statistics { get; } = new();
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, object> _states = new();
+
+    /// <summary>State of type <typeparamref name="T"/> that belongs to this context, created on first use and dropped with the context.</summary>
+    internal T State<T>() where T : class, new() => (T)_states.GetOrAdd(typeof(T), _ => new T());
+
+    private long _lastId;
+
+    /// <summary>A number no other call on this context returned, for naming GPU objects.</summary>
+    internal int NextId() => (int)Interlocked.Increment(ref _lastId);
+
     /// <summary>Loads GL through a window's context.</summary>
     public static GpuApi Create(IGLContext context) => new(GL.GetApi(context));
 

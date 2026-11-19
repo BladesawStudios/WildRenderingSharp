@@ -15,7 +15,7 @@ internal static class UniformLocations
     // The location of the uniform, or -1 when the program has none by that name (which is cached too).
     public static int UniformLocation(this GpuApi gl, uint program, string name)
     {
-        var programs = ContextState<Cache>.For(gl).Programs;
+        var programs = gl.State<Cache>().Programs;
         lock (programs)
         {
             if (!programs.TryGetValue(program, out var names))
@@ -28,7 +28,7 @@ internal static class UniformLocations
 
     public static void ReleaseProgram(this GpuApi gl, uint program)
     {
-        var programs = ContextState<Cache>.For(gl).Programs;
+        var programs = gl.State<Cache>().Programs;
         lock (programs)
             programs.Remove(program);
         gl.DeleteProgram(program);
