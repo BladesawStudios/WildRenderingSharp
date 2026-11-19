@@ -42,5 +42,10 @@ internal sealed class ShapeManifestEntry
 
     [JsonPropertyName("render_state")] public RenderState RenderState { get; set; } = new();
 
+    // The shading model's o_material_behave value and the deferred pass it lights, when the source sets them directly; a prepared folder carries them as extension data.
+    [JsonIgnore] public string? ShadingModel { get; set; }
+    [JsonIgnore] public string? MaterialBehave { get; set; }
+    [JsonIgnore] public string? DeferredPass { get; set; }
+
     [JsonExtensionData] public Dictionary<string, JsonElement> Extensions { get; set; } = [];
 }

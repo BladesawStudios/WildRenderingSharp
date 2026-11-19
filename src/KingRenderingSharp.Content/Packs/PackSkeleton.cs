@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text;
 using BfShaderSharp.Pack.Records;
+using KingRenderingSharp.Content.Assets.Manifests;
 
 namespace KingRenderingSharp.Content.Packs;
 
@@ -60,6 +61,46 @@ static class PackSkeleton
         m.M21 *= iy; m.M22 *= iy; m.M23 *= iy;
         m.M31 *= iz; m.M32 *= iz; m.M33 *= iz;
         return m;
+    }
+
+    /// <summary>The skeleton as the pose code reads it, or null for a skeleton without bones.</summary>
+    public static SkeletonManifest? ToManifest(SkeletonRecord skeleton)
+    {
+        if (skeleton.Bones.Count == 0) return null;
+        var matrixToBone = skeleton.MatrixToBone;
+        var inverse = skeleton.InverseMatrices;
+
+        // A bone carries its own slot number in each segment (-1 for none), so counting them reads the two counts the skeleton stores.
+        int smooth = skeleton.Bones.Count(b => b.Smooth >= 0);
+        int rigid = skeleton.Bones.Count(b => b.Rigid >= 0);
+        if (smooth + rigid != matrixToBone.Count)
+        {
+            if (inverse.Count > 0 && inverse.Count <= matrixToBone.Count) smooth = inverse.Count;
+            smooth = Math.Min(smooth, matrixToBone.Count);
+            rigid = matrixToBone.Count - smooth;
+        }
+
+        SkeletonManifest manifest = new()
+        {
+            ScalingMode = (SkeletonScalingMode)ScalingMode(skeleton),
+            SmoothMatrixCount = smooth,
+            RigidMatrixCount = rigid,
+            MatrixToBoneList = [.. matrixToBone.Select(m => (int)m)],
+        };
+        foreach (BoneRecord b in skeleton.Bones)
+        {
+            manifest.Bones.Add(new BoneManifestEntry
+            {
+                Name = b.Name, ParentIndex = b.Parent, SmoothMatrixIndex = b.Smooth, RigidMatrixIndex = b.Rigid, BillboardIndex = b.Billboard,
+                SegmentScaleCompensate = SegmentScaleCompensate(b), Scale = [.. b.Scale], Rotation = [.. b.Rotation], RotationIsQuaternion = IsQuaternion(b), Position = [.. b.Position],
+            });
+        }
+
+        // One inverse-bind matrix per smooth slot. A skeleton that stores fewer gets the inverse of the bone's own bind-pose world matrix, which is what the stored one undoes.
+        Matrix4x4[]? bindWorld = smooth > inverse.Count ? BoneWorldMatrices(skeleton) : null;
+        for (int i = 0; i < smooth; i++)
+            manifest.InverseModelMatrices.Add(i < inverse.Count ? [.. inverse[i]] : DerivedInverse(bindWorld!, matrixToBone, i));
+        return manifest;
     }
 
     /// <summary>The skeleton's JSON, or null for a skeleton without bones.</summary>

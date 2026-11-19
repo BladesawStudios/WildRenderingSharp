@@ -14,6 +14,9 @@ sealed record ShapeOptions(Dictionary<string, string> Tags, bool HidesNormalPass
     {
         var tags = shape.Extensions.Where(e => e.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number)
             .ToDictionary(e => e.Key, e => e.Value.ToString());
+        if (shape.ShadingModel is not null) tags["shading_model"] = shape.ShadingModel;
+        if (shape.MaterialBehave is not null) tags["o_material_behave"] = shape.MaterialBehave;
+        if (shape.DeferredPass is not null) tags["deferred_pass"] = shape.DeferredPass;
 
         if (source.Options(shape.Name) is not { } text)
             return new ShapeOptions(tags, false);

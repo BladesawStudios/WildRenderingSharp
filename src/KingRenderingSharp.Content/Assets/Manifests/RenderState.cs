@@ -22,7 +22,7 @@ internal sealed class RenderState
     [JsonPropertyName("depth_func")] public string DepthFunc { get; set; } = "lequal";
     [JsonPropertyName("display_face")] public string DisplayFace { get; set; } = "";
 
-    public bool DepthWriteEnabled => DepthWrite == "true";
+    [JsonIgnore] public bool DepthWriteEnabled => DepthWrite == "true";
 
     public readonly record struct BlendFuncs(GLEnum SrcRgb, GLEnum DstRgb, GLEnum SrcAlpha, GLEnum DstAlpha);
     public readonly record struct BlendEquations(GLEnum Rgb, GLEnum Alpha);
@@ -63,7 +63,7 @@ internal sealed class RenderState
     public GLEnum ResolveDepthFunc() => Lookup(DepthFuncsByName, DepthFunc, "lequal");
 
     // The face the material discards: "front" shows only front faces, "back" only back faces, anything else both.
-    public TriangleFace? CulledFace => DisplayFace switch
+    [JsonIgnore] public TriangleFace? CulledFace => DisplayFace switch
     {
         "front" => TriangleFace.Back,
         "back" => TriangleFace.Front,

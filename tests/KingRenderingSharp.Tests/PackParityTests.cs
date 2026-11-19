@@ -42,11 +42,11 @@ public sealed class PackParityTests
             string models = Path.Combine(output, "model"), shaderDir = Path.Combine(output, "shaders");
             try
             {
-                using PackModelExporter exporter = new(pack, name => archives[name]);
-                ExportedModel result = exporter.Export(packModel, Model, models, shaderDir);
-                Assert.True(result.Problems.Count == 0, string.Join(Environment.NewLine, result.Problems.Take(30)));
-                List<string> animProblems = [];
-                PackAnimExporter.Export(pack, [Model, Model + "_Animation"], Model, models, animProblems);
+                PackPrograms programs = new(archives);
+                using PackTextureFiles textures = new(pack);
+                PackModelSource source = new(pack, programs, textures, packModel, Model, [Model, Model + "_Animation"], clampEyes: false);
+                ModelDump.Write(source, programs, models, shaderDir);
+                Assert.True(source.Problems.Count == 0, string.Join(Environment.NewLine, source.Problems.Take(30)));
 
                 List<string> differences = [];
                 new Comparison(Path.Combine(folder, "oracle", Model), Path.Combine(folder, "oracle", "_shaders"), models, shaderDir, Model, differences).Run();
