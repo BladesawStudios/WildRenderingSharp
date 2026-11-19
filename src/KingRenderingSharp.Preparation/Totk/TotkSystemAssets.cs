@@ -19,7 +19,6 @@ public static class TotkSystemAssets
         var failures = new List<string>();
         void Step(string name, Action step) => Run(failures, log, name, step);
         Step("system shaders", () => Once(Path.Combine(cache.Shaders, "agl_hdr_compose.vert"), cache.Shaders, () => TotkAglShaders.HdrCompose(romfs.Base, cache.Shaders)));
-        Step("deferred materials", () => DeferredPasses(romfs, cache));
         Step("gloom shaders", () => Once(Path.Combine(cache.Shaders, "agl_miasma_renderer_compose.frag"), cache.Shaders, () => TotkAglShaders.Gloom(romfs.Base, cache.Shaders)));
         Step("lens flare", () => Once(Path.Combine(cache.Shaders, "agl_flare_filter_flare.frag"), cache.Shaders, () => TotkAglShaders.LensFlare(romfs.Base, cache.Shaders)));
         Step("cloud shader", () => Once(Path.Combine(cache.Shaders, "agl_cloud.frag"), cache.Shaders, () => TotkAglShaders.Cloud(romfs.Base, cache.Shaders)));
@@ -62,37 +61,6 @@ public static class TotkSystemAssets
     {
         if (!TotkShaderExports.IsExported(export, cache.Shaders))
             TotkShaderExports.Export(romfs.Base, export, cache.Shaders);
-    }
-
-    // The G-buffer resolve passes: each pass's material block, then the programs, named for the pass they implement.
-    static void DeferredPasses(TotkRomfs romfs, CacheLayout cache)
-    {
-        bool needsMaterials = !File.Exists(Path.Combine(cache.DeferredMaterials, "chara_skin.gsys_material.bin"));
-        bool needsShaders = !Directory.Exists(cache.Shaders)
-            || !Directory.EnumerateFiles(cache.Shaders, "deferred_chara_skin_prog*_extracted.frag").Any();
-        if (!needsMaterials && !needsShaders)
-            return;
-
-        string systemBfsha = TotkShaderArchives.Extract(romfs.Base, cache, "system");
-        byte[] model = ReadDeferredModel(romfs);
-        if (needsMaterials)
-            BuildMaterialUbo.Run(systemBfsha, model, cache.DeferredMaterials);
-        if (needsShaders)
-        {
-            Directory.CreateDirectory(cache.Shaders);
-            string modelPath = Path.Combine(TotkShaderArchives.Folder(cache), DeferredModel + ".bfres");
-            AtomicFile.WriteAllBytes(modelPath, model);
-            TestSystemShading.Run(systemBfsha, modelPath, cache.Shaders);
-        }
-    }
-
-    static byte[] ReadDeferredModel(TotkRomfs romfs)
-    {
-        if (new TotkAssets(romfs.Base).ReadModel(DeferredModel) is { } compressed)
-            return compressed;
-        return romfs.Base.Exists($"Model/{DeferredModel}.bfres")
-            ? romfs.Base.ReadAllBytesNested($"Model/{DeferredModel}.bfres").ToArray()
-            : throw new FileNotFoundException($"Model/{DeferredModel}.bfres.mc");
     }
 
     static void Run(List<string> failures, Action<string>? log, string name, Action step)

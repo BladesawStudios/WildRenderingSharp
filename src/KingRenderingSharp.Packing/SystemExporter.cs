@@ -50,6 +50,7 @@ internal static class SystemExporter
                 if (GrassExporter.Export(opened, layout) is { } grass) log($"grass programs written to {grass}");
             }
 
+            DeferredExporter.Export(romfs, layout, log);
             log($"{TerrainWaterExporter.Export(opened, romfs, layout, packShaders, log)} terrain water files written to {layout.Shaders}");
             (int emitters, int haze) = EffectExporter.Export(opened, layout, packShaders, log);
             log($"{emitters} effect emitters and {haze} field haze levels written to {layout.Effects}");

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using BfShaderSharp.Assets;
 using BfShaderSharp.Pack;
+using KingRenderingSharp.Content.Packs;
 using KingRenderingSharp.Core.Storage;
 
 namespace KingRenderingSharp.Packing;
@@ -40,13 +41,16 @@ internal static class TerrainWaterExporter
         string work = Path.Combine(Path.GetTempPath(), "krs-water-" + Guid.NewGuid().ToString("N"));
         try
         {
-            PackPreparer.Prepare(romfs, Model, Path.Combine(work, "model"), Path.Combine(work, "shaders"), log, animations: false);
-            string matubo = Path.Combine(work, "model", "matubo");
-            File.Copy(Path.Combine(matubo, $"{Material}.gsys_material.bin"), Path.Combine(layout.Shaders, "terrain_water_material.bin"), true);
+            Directory.CreateDirectory(work);
+            string packPath = Path.Combine(work, "model.bfap"), shaders = Path.Combine(work, "shaders");
+            PackPreparer.Prepare(romfs, Model, packPath, shaders, log, animations: false);
+            using ModelPack opened = new(packPath, shaders, Model);
+            var shape = opened.Source.Manifest.Shapes.FirstOrDefault(s => s.Material == Material) ?? throw new InvalidDataException($"{Model} has no material {Material}");
+            File.WriteAllBytes(Path.Combine(layout.Shaders, "terrain_water_material.bin"), opened.Source.Bytes(shape.MaterialFile));
             written++;
-            if (programs)
+            if (programs && opened.Source.ParamLayout(shape.MaterialFile) is { } layoutJson)
             {
-                File.Copy(Path.Combine(matubo, $"{Material}.params.json"), Path.Combine(layout.Shaders, "terrain_water_material.params.json"), true);
+                File.WriteAllText(Path.Combine(layout.Shaders, "terrain_water_material.params.json"), JsonSerializer.Serialize(layoutJson, new JsonSerializerOptions { WriteIndented = true }));
                 written++;
             }
         }
