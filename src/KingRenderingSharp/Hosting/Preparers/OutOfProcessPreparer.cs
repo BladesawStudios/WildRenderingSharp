@@ -32,9 +32,9 @@ public sealed class OutOfProcessPreparer : IModelPreparer
         return File.Exists(exe) ? exe : Path.Combine(dir, "KingRenderingSharp.Preparation.dll");
     }
 
-    public async Task EnsureSystemAssetsAsync(string romfsRoot, CacheLayout cache, Action<string>? log = null, CancellationToken cancellationToken = default)
+    public async Task EnsureSystemAssetsAsync(string romfsRoot, CacheLayout cache, Action<string>? log = null, CancellationToken cancellationToken = default, string? game = null)
     {
-        await RunForResultAsync(PreparerProtocol.EnsureSystem(romfsRoot, cache.Root), log, cancellationToken).ConfigureAwait(false);
+        await RunForResultAsync(PreparerProtocol.EnsureSystem(romfsRoot, cache.Root, game), log, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<string> PrepareAsync(PrepareRequest request, Action<string>? log = null, CancellationToken cancellationToken = default)

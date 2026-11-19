@@ -9,6 +9,7 @@
     <Project Path="src/KingRenderingSharp/KingRenderingSharp.csproj" />
     <Project Path="src/KingRenderingSharp.Preparation/KingRenderingSharp.Preparation.csproj" />
     <Project Path="src/KingRenderingSharp.Packing/KingRenderingSharp.Packing.csproj" />
+    <Project Path="src/KingRenderingSharp.Snapshot/KingRenderingSharp.Snapshot.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/KingRenderingSharp.RenderRegression/KingRenderingSharp.RenderRegression.csproj" />

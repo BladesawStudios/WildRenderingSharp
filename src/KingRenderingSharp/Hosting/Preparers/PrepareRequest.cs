@@ -9,4 +9,5 @@ public sealed record PrepareRequest(
     CacheLayout Cache,
     IReadOnlyList<string>? ModRomfsLayers = null,
     bool ImportAnimations = true,
-    bool Force = false);
+    bool Force = false,
+    string? Game = null);

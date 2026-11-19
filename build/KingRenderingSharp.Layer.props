@@ -21,6 +21,7 @@
     <InternalsVisibleTo Include="KingRenderingSharp.Packing" />
     <InternalsVisibleTo Include="KingRenderingSharp.Tests" />
     <InternalsVisibleTo Include="KingRenderingSharp.TestBench" />
+    <InternalsVisibleTo Include="KingRenderingSharp.Snapshot" />
   </ItemGroup>
 
 </Project>

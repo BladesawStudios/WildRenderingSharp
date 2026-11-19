@@ -46,7 +46,8 @@ static class Cli
         switch (options.Command)
         {
             case "ensure-system":
-                ModelPreparer.EnsureSystemAssets(romfs, cache, Console.WriteLine);
+                if (options.Game == "botw") BotwSystemAssets.Ensure(BotwRom.Open(romfs), cache, Console.WriteLine);
+                else ModelPreparer.EnsureSystemAssets(romfs, cache, Console.WriteLine);
                 return 0;
             case "prepare":
                 return string.IsNullOrEmpty(options.Actor) ? BadUsage("prepare needs --actor <name>.") : Prepare(options, options.Actor, romfs, cache);
@@ -193,7 +194,7 @@ static class Cli
     {
         Console.WriteLine("KingRenderingSharp.Preparation - unpacks actor assets from romfs to a format convenient for rendering in the cache folder.");
         Console.WriteLine();
-        Console.WriteLine("  ensure-system --romfs <dir> [--cache <dir>]");
+        Console.WriteLine("  ensure-system --romfs <dir> [--game totk|botw] [--cache <dir>]");
         Console.WriteLine("  prepare --romfs <dir> --actor <name> [--game totk|botw] [--cache <dir>] [--mod <romfs dir>]... [--no-anims] [--force]");
         Console.WriteLine("  prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--mod <romfs dir>]... [--no-anims] [--force] [--verbose]");
         Console.WriteLine("  prepare-bake --romfs <dir> [--list <file>] [--cache <dir>] [--jobs <n>] [--force]");

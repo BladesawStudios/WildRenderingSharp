@@ -10,12 +10,23 @@ static class PreparerProtocol
     public const string DonePrefix = "KRS_DONE ";
     public const string FailPrefix = "KRS_FAIL ";
 
-    public static List<string> EnsureSystem(string romfsRoot, string cacheRoot) => ["ensure-system", "--romfs", romfsRoot, "--cache", cacheRoot];
+    public static List<string> EnsureSystem(string romfsRoot, string cacheRoot, string? game = null)
+    {
+        List<string> args = ["ensure-system", "--romfs", romfsRoot, "--cache", cacheRoot];
+        AddGame(args, game);
+        return args;
+    }
+
+    static void AddGame(List<string> args, string? game)
+    {
+        if (!string.IsNullOrEmpty(game)) args.AddRange(["--game", game]);
+    }
 
     public static List<string> Prepare(PrepareRequest request)
     {
         List<string> args = ["prepare", "--romfs", request.RomfsRoot, "--actor", request.ActorOrModelName, "--cache", request.Cache.Root];
         AddShared(args, request.ModRomfsLayers, request.ImportAnimations, request.Force);
+        AddGame(args, request.Game);
         return args;
     }
 

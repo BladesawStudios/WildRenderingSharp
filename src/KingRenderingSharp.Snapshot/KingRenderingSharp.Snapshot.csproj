@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A render server for tools that want pictures of game models without linking the renderer: it prepares a model of a Breath of the Wild or Tears of the Kingdom romfs, draws it
+    offscreen through KingRenderingSharp and answers each request with an RGBA frame over its standard input and output (see Protocol.cs). A process of its own, so its
+    BfShaderSharp and ShaderLibrary assemblies never meet the host's.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Draws Breath of the Wild / Tears of the Kingdom models offscreen and serves the pictures over standard input and output.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
+    <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.23.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KingRenderingSharp\KingRenderingSharp.csproj" />
+  </ItemGroup>
+
+  <!-- Builds krs-prepare (and the pack tool inside it) beside this executable, which the preparation runs through. -->
+  <Import Project="..\..\build\KingRenderingSharp.targets" />
+
+</Project>

@@ -12,12 +12,16 @@ public sealed class InProcessPreparer : IModelPreparer
     // A model without mod layers is prepared by the pack tool when it is built beside this one; the older preparation reads the layered romfs.
     static bool UsesPackTool(PrepareRequest request) => (request.ModRomfsLayers?.Count ?? 0) == 0 && PackTool.Executable() is not null;
 
-    public async Task EnsureSystemAssetsAsync(string romfsRoot, CacheLayout cache, Action<string>? log = null, CancellationToken cancellationToken = default)
+    public async Task EnsureSystemAssetsAsync(string romfsRoot, CacheLayout cache, Action<string>? log = null, CancellationToken cancellationToken = default, string? game = null)
     {
         await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await Task.Run(() => ModelPreparer.EnsureSystemAssets(romfsRoot, cache, log), cancellationToken).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                if (game == "botw") Botw.BotwSystemAssets.Ensure(Core.Rom.Games.BotwRom.Open(romfsRoot), cache, log);
+                else ModelPreparer.EnsureSystemAssets(romfsRoot, cache, log);
+            }, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
