@@ -9,13 +9,13 @@ namespace KingRenderingSharp.Packing;
 /// <remarks>The cloud dome's masks become <c>CloudMask&lt;n&gt;.r8</c> and <c>CloudMask&lt;n&gt;.dims.txt</c> in the system textures folder, as the renderer's loader expects them.</remarks>
 internal static class SystemExporter
 {
-    public static int Export(string romfs, CacheLayout layout, Action<string> log)
+    public static int Export(string romfs, CacheLayout layout, IReadOnlyCollection<string> bakeTiles, int jobs, Action<string> log)
     {
         string pack = Path.Combine(Path.GetTempPath(), $"krs-system-{Guid.NewGuid():N}.bfgd");
         try
         {
             using (FileStream output = File.Create(pack))
-                SystemAssetPreparer.Prepare(romfs, output);
+                SystemAssetPreparer.Prepare(romfs, output, bakeTiles, jobs);
             using AssetPack opened = AssetPack.Open(pack);
             Directory.CreateDirectory(layout.SystemTextures);
             int written = 0;
@@ -28,6 +28,8 @@ internal static class SystemExporter
             }
 
             log($"{written} cloud masks written to {layout.SystemTextures}");
+            int tiles = BakeExporter.Export(opened, layout.Bake);
+            log($"{tiles} bake tiles written to {layout.Bake}");
             return 0;
         }
         finally

@@ -3,7 +3,7 @@ using KingRenderingSharp.Packing;
 
 // [prepare] --romfs <dir> --actor <model> [--anim <pack>]... [--cache <dir>] [--no-anims] [--force]
 // prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--no-anims] [--force]
-// system --romfs <dir> [--cache <dir>] writes the data that belongs to no model (the cloud dome masks).
+// system --romfs <dir> [--cache <dir>] [--list <bake tiles>] writes the data that belongs to no model (the cloud dome masks, the bake index and the listed bake tiles).
 // The first two answer in the protocol the model preparer's host reads: KRS_RESULT, KRS_BEGIN, KRS_DONE and KRS_FAIL lines.
 string command = args.Length > 0 && !args[0].StartsWith("--", StringComparison.Ordinal) ? args[0] : "prepare";
 string? romfs = null, actor = null, cache = null, list = null, modelFile = null;
@@ -42,7 +42,7 @@ switch (command)
     case "prepare" when !string.IsNullOrEmpty(actor):
         return run.One(actor, animationPacks, modelFile);
     case "system":
-        return SystemExporter.Export(romfs, layout, Console.WriteLine);
+        return SystemExporter.Export(romfs, layout, string.IsNullOrEmpty(list) || !File.Exists(list) ? [] : [.. File.ReadAllLines(list).Select(l => l.Trim()).Where(l => l.Length > 0).Distinct()], jobs, Console.WriteLine);
     case "prepare-batch" when !string.IsNullOrEmpty(list) && File.Exists(list):
         return run.Batch(File.ReadAllLines(list), jobs);
     default:
