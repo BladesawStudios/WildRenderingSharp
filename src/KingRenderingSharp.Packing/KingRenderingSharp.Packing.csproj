@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\KingRenderingSharp.Core\KingRenderingSharp.Core.csproj" />
     <ProjectReference Include="..\KingRenderingSharp.Content\KingRenderingSharp.Content.csproj" />
+    <ProjectReference Include="..\KingRenderingSharp.Games.Totk\KingRenderingSharp.Games.Totk.csproj" />
     <ProjectReference Include="..\..\vendor\BfShaderSharp\src\BfShaderSharp.Assets\BfShaderSharp.Assets.csproj" />
     <ProjectReference Include="..\..\vendor\BfShaderSharp\src\BfShaderSharp.Preparation\BfShaderSharp.Preparation.csproj" />
   </ItemGroup>

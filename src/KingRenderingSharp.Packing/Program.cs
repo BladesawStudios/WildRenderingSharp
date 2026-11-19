@@ -3,7 +3,8 @@ using KingRenderingSharp.Packing;
 
 // [prepare] --romfs <dir> --actor <model> [--anim <pack>]... [--cache <dir>] [--no-anims] [--force]
 // prepare-batch --romfs <dir> --list <file> [--cache <dir>] [--jobs <n>] [--no-anims] [--force]
-// Both answer in the protocol the model preparer's host reads: KRS_RESULT, KRS_BEGIN, KRS_DONE and KRS_FAIL lines.
+// system --romfs <dir> [--cache <dir>] writes the data that belongs to no model (the cloud dome masks).
+// The first two answer in the protocol the model preparer's host reads: KRS_RESULT, KRS_BEGIN, KRS_DONE and KRS_FAIL lines.
 string command = args.Length > 0 && !args[0].StartsWith("--", StringComparison.Ordinal) ? args[0] : "prepare";
 string? romfs = null, actor = null, cache = null, list = null, modelFile = null;
 List<string> animationPacks = [];
@@ -40,6 +41,8 @@ switch (command)
 {
     case "prepare" when !string.IsNullOrEmpty(actor):
         return run.One(actor, animationPacks, modelFile);
+    case "system":
+        return SystemExporter.Export(romfs, layout, Console.WriteLine);
     case "prepare-batch" when !string.IsNullOrEmpty(list) && File.Exists(list):
         return run.Batch(File.ReadAllLines(list), jobs);
     default:
