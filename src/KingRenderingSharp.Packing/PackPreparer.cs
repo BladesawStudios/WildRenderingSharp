@@ -5,19 +5,21 @@ using BfShaderSharp.Pack.Records;
 using BfShaderSharp.Prepared;
 using BfShaderSharp.Preparation;
 
-namespace KingRenderingSharp.Content.Packs;
+using KingRenderingSharp.Content.Packs;
+
+namespace KingRenderingSharp.Packing;
 
 /// <summary>Prepares one model of a game's romfs through BfShaderSharp and writes it into a cache folder in the layout the loader reads.</summary>
 /// <remarks>
 /// The model's files are read into an asset pack with linear textures and the programs of its three draw passes, the shader archives it uses are prepared with the
 /// programs' GLSL written under their reflection names, and the pack is exported. The pack and the prepared archives are temporary.
 /// </remarks>
-public static class PackPreparer
+static class PackPreparer
 {
     static readonly string[] Passes = ["gsys_assign_gbuffer", "gsys_assign_zonly", "gsys_assign_material"];
 
     /// <summary>Prepares the model of an actor or model name, which is a file stem or Stem.Model, into <paramref name="modelFolder"/> and <paramref name="shaderFolder"/>; returns what the export wrote.</summary>
-    public static PreparedPackModel Prepare(string romfs, string name, string modelFolder, string shaderFolder, Action<string>? log = null)
+    public static PreparedPackModel Prepare(string romfs, string name, string modelFolder, string shaderFolder, Action<string>? log = null, bool animations = true)
     {
         string stem = name.Contains('.') ? name[..name.IndexOf('.')] : name;
         string work = Path.Combine(Path.GetTempPath(), "krs-pack-" + Guid.NewGuid().ToString("N"));
@@ -25,7 +27,7 @@ public static class PackPreparer
         try
         {
             string packPath = Path.Combine(work, "model.bfap");
-            AssetOptions options = new(romfs, [stem], TextureSelection.Used, Storage: TextureStorage.Linear, AssignTypes: Passes);
+            AssetOptions options = new(romfs, [stem, stem + "_Animation"], TextureSelection.Used, Storage: TextureStorage.Linear, AssignTypes: Passes);
             ProgramUse? use = null;
             AssetResult result;
             using (FileStream output = File.Create(packPath)) result = AssetPreparer.Prepare(options, output, u => use = u);
@@ -55,7 +57,15 @@ public static class PackPreparer
                     ?? throw new FileNotFoundException($"The pack has no model for '{name}'");
                 using PackModelExporter exporter = new(pack, shader => opened[shader]);
                 ExportedModel exported = exporter.Export(packModel, name, modelFolder, shaderFolder);
-                return new PreparedPackModel(name, exported.Shapes, exported.Programs, exported.Textures, exported.Problems);
+                int anims = 0;
+                if (animations)
+                {
+                    List<string> skipped = [];
+                    anims = PackAnimExporter.Export(pack, [stem, stem + "_Animation"], name, modelFolder, skipped);
+                    foreach (string line in skipped.Take(20)) log?.Invoke("animation: " + line);
+                }
+
+                return new PreparedPackModel(name, exported.Shapes, exported.Programs, exported.Textures, exported.Problems, anims);
             }
             finally
             {
@@ -70,4 +80,4 @@ public static class PackPreparer
 }
 
 /// <summary>What preparing a model through a pack wrote: its shape, program and texture counts and the problems met.</summary>
-public sealed record PreparedPackModel(string Name, int Shapes, int Programs, int Textures, IReadOnlyList<string> Problems);
+sealed record PreparedPackModel(string Name, int Shapes, int Programs, int Textures, IReadOnlyList<string> Problems, int Animations = 0);

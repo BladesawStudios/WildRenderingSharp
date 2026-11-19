@@ -1,3 +1,5 @@
+using KingRenderingSharp.Content.Animation.Clips;
+using KingRenderingSharp.Content.Animation.Posing;
 using System.Text.Json;
 using BfShaderSharp.Pack;
 using BfShaderSharp.Prepared;
@@ -43,6 +45,8 @@ public sealed class PackParityTests
                 using PackModelExporter exporter = new(pack, name => archives[name]);
                 ExportedModel result = exporter.Export(packModel, Model, models, shaderDir);
                 Assert.True(result.Problems.Count == 0, string.Join(Environment.NewLine, result.Problems.Take(30)));
+                List<string> animProblems = [];
+                PackAnimExporter.Export(pack, [Model, Model + "_Animation"], Model, models, animProblems);
 
                 List<string> differences = [];
                 new Comparison(Path.Combine(folder, "oracle", Model), Path.Combine(folder, "oracle", "_shaders"), models, shaderDir, Model, differences).Run();
@@ -81,6 +85,7 @@ public sealed class PackParityTests
 
         public void Run()
         {
+            Animations();
             JsonElement oracle = Read(oracleModels, $"{name}.manifest.json"), ours = File.Exists(Path.Combine(models, $"{name}.manifest.json")) ? Read(models, $"{name}.manifest.json") : default;
             JsonElement[] oracleShapes = [.. oracle.GetProperty("shapes").EnumerateArray()], ourShapes = [.. ours.GetProperty("shapes").EnumerateArray()];
             if (oracleShapes.Length != ourShapes.Length) differences.Add($"shape count {ourShapes.Length}, oracle {oracleShapes.Length}");
@@ -118,6 +123,37 @@ public sealed class PackParityTests
             Params($"{shape} params", ubo[..^".gsys_material.bin".Length] + ".params.json");
             foreach (string program in new[] { "gbuffer_shader", "zonly_shader", "material_shader" })
                 Program($"{shape}.{program}", expected.GetProperty(program).GetString()!);
+        }
+
+        // Each oracle animation must be written, with the same bones and curves, and its curves must evaluate to the same values (a compressed curve is written as the cubic it decodes to).
+        void Animations()
+        {
+            foreach (string anim in SkeletalAnimManifest.ListAvailable(oracleModels, name))
+            {
+                string file = $"{name}.{anim}.anim.json";
+                if (!File.Exists(Path.Combine(models, file))) { differences.Add($"animation {anim}: not written"); continue; }
+                SkeletalAnimManifest e = SkeletalAnimManifest.Load(Path.Combine(oracleModels, file)), a = SkeletalAnimManifest.Load(Path.Combine(models, file));
+                if (e.FrameCount != a.FrameCount || e.Loop != a.Loop || e.RotationIsQuaternion != a.RotationIsQuaternion || e.BoneAnims.Count != a.BoneAnims.Count) { differences.Add($"animation {anim}: header {a.FrameCount}/{a.Loop}/{a.RotationIsQuaternion}/{a.BoneAnims.Count} (oracle {e.FrameCount}/{e.Loop}/{e.RotationIsQuaternion}/{e.BoneAnims.Count})"); continue; }
+                for (int b = 0; b < e.BoneAnims.Count; b++)
+                {
+                    BoneAnimManifestEntry x = e.BoneAnims[b], y = a.BoneAnims[b];
+                    string at = $"animation {anim} bone {x.BoneName}";
+                    if (x.BoneName != y.BoneName || x.UseScale != y.UseScale || x.UseRotate != y.UseRotate || x.UseTranslate != y.UseTranslate || x.SegmentScaleCompensate != y.SegmentScaleCompensate) differences.Add($"{at}: flags");
+                    if (!x.BaseScale.SequenceEqual(y.BaseScale) || !x.BaseRotate.SequenceEqual(y.BaseRotate) || !x.BaseTranslate.SequenceEqual(y.BaseTranslate)) differences.Add($"{at}: base values");
+                    if (x.Curves.Count != y.Curves.Count) { differences.Add($"{at}: {y.Curves.Count} curves (oracle {x.Curves.Count})"); continue; }
+                    for (int c = 0; c < x.Curves.Count; c++)
+                    {
+                        AnimCurveManifestEntry p = x.Curves[c], q = y.Curves[c];
+                        if (p.TargetOffset != q.TargetOffset || p.StartFrame != q.StartFrame || p.EndFrame != q.EndFrame) { differences.Add($"{at} curve {c}: target/range"); continue; }
+                        for (int i = 0; i <= 12; i++)
+                        {
+                            float frame = p.StartFrame + (p.EndFrame - p.StartFrame) * i / 12f;
+                            float ve = AnimCurveEval.EvaluateFloat(p.CurveType, p.StartFrame, p.EndFrame, p.Scale, p.Offset, p.Frames, p.Keys, frame), va = AnimCurveEval.EvaluateFloat(q.CurveType, q.StartFrame, q.EndFrame, q.Scale, q.Offset, q.Frames, q.Keys, frame);
+                            if (Math.Abs(ve - va) > 1e-3f * Math.Max(1f, Math.Abs(ve))) { differences.Add($"{at} curve {c} at frame {frame}: {va} (oracle {ve})"); break; }
+                        }
+                    }
+                }
+            }
         }
 
         void Same(string what, JsonElement expected, JsonElement actual)
