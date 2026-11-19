@@ -184,7 +184,8 @@ internal sealed partial class PackModelSource : IModelSource
         };
     }
 
-    static readonly ConcurrentDictionary<string, ProgramLookup> _lookups = new();
+    // Per source: a lookup reads the memory-mapped archive its programs came from, which is unmapped when the pack is disposed, so one cached beyond the pack would read freed memory.
+    readonly ConcurrentDictionary<string, ProgramLookup> _lookups = new();
 
     // The material's own choices with the shape's skin weight count and the pass over them; when no program has every choice, the nearest keeps the draw-time ones first, then the material's, then the o_ options.
     static int Select(ProgramLookup lookup, MaterialRecord material, int skinCount, string pass)
