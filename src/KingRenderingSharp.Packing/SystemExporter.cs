@@ -14,8 +14,11 @@ internal static class SystemExporter
         string pack = Path.Combine(Path.GetTempPath(), $"krs-system-{Guid.NewGuid():N}.bfgd");
         try
         {
+            // The effect file's emitters name their textures by id, so the names are read from the file as the romfs has it before the pack is made.
+            IReadOnlyList<string> effectTextures;
+            using (RomfsFiles files = new(romfs)) effectTextures = EffectExporter.TextureNames(files);
             using (FileStream output = File.Create(pack))
-                SystemAssetPreparer.Prepare(romfs, output, bakeTiles, jobs, []);
+                SystemAssetPreparer.Prepare(romfs, output, bakeTiles, jobs, [], ["static"], effectTextures);
             using AssetPack opened = AssetPack.Open(pack);
             Directory.CreateDirectory(layout.SystemTextures);
             int written = 0;
@@ -43,6 +46,8 @@ internal static class SystemExporter
             }
 
             log($"{TerrainWaterExporter.Export(opened, romfs, layout, packShaders, log)} terrain water files written to {layout.Shaders}");
+            (int emitters, int haze) = EffectExporter.Export(opened, layout, packShaders, log);
+            log($"{emitters} effect emitters and {haze} field haze levels written to {layout.Effects}");
             int tiles = BakeExporter.Export(opened, layout.Bake);
             log($"{tiles} bake tiles written to {layout.Bake}");
             return 0;

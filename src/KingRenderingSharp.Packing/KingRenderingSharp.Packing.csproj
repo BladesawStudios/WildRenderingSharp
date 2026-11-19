@@ -18,4 +18,12 @@
     <ProjectReference Include="..\..\vendor\BfShaderSharp\src\BfShaderSharp.Assets\BfShaderSharp.Assets.csproj" />
     <ProjectReference Include="..\..\vendor\BfShaderSharp\src\BfShaderSharp.Preparation\BfShaderSharp.Preparation.csproj" />
   </ItemGroup>
+
+  <!--
+    The effect files are read with PtclSharp's sources compiled in, not referenced: its project brings its own BymlSharp, ZstdSharp and Yaz0Sharp,
+    and a process holds only one assembly of each name; these are the ones BfShaderSharp's projects bring.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\vendor\PtclSharp\src\PtclSharp\**\*.cs" Exclude="..\..\vendor\PtclSharp\src\PtclSharp\obj\**;..\..\vendor\PtclSharp\src\PtclSharp\bin\**" LinkBase="PtclSharp" />
+  </ItemGroup>
 </Project>
