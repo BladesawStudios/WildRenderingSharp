@@ -34,14 +34,46 @@ static class PackPreparer
     // The cache folder, which holds _packs: what is shared between models lives beside it.
     static string CacheRoot(string shaderFolder) => Path.GetDirectoryName(Path.GetDirectoryName(shaderFolder)!)!;
 
+    // The archives read last stay in memory while the process lives (the snapshot server prepares model after model), so a model that needs a program prepared fresh does not read and parse the
+    // 90 MB archive again. Only the few archives of the models' own shaders are kept, each tied to the file's size and time.
+    static readonly Dictionary<string, (long Length, long Ticks, BfshaFile File)> Archives = new(StringComparer.OrdinalIgnoreCase);
+
+    // The file on disk an archive's path leads to: the archive itself, or for one inside a pack (Breath of the Wild's Bootup_Graphics.pack\Shader\...) the pack file that holds it.
+    // The path is taken from the romfs when it is not rooted. Null when no file is found, so the archive is read each time as before.
+    static FileInfo? RealFile(string romfs, string path)
+    {
+        string current = Path.IsPathRooted(path) ? path : Path.Combine(romfs, path);
+        while (!File.Exists(current) && Path.GetDirectoryName(current) is { Length: > 0 } parent) current = parent;
+        return File.Exists(current) ? new FileInfo(current) : null;
+    }
+
+    static BfshaFile ReadArchive(RomfsFiles files, string romfs, string path)
+    {
+        FileInfo? info = RealFile(romfs, path);
+        if (info is null) return BfshaFile.Read(files.Read(path));
+        lock (Archives)
+        {
+            if (Archives.TryGetValue(path, out var known) && known.Length == info.Length && known.Ticks == info.LastWriteTimeUtc.Ticks) return known.File;
+        }
+
+        BfshaFile archive = BfshaFile.Read(files.Read(path));
+        lock (Archives)
+        {
+            if (Archives.Count >= 3) Archives.Clear();
+            Archives[path] = (info.Length, info.LastWriteTimeUtc.Ticks, archive);
+        }
+
+        return archive;
+    }
+
     // Where the archive prepared for these programs is kept for every model: beside the models' packs, named by the archive file (its name, size and time) and the programs asked of it.
-    static string? SharedProgramFile(string shaderFolder, string archivePath, string archiveName, IReadOnlyDictionary<string, IReadOnlySet<int>> wanted)
+    static string? SharedProgramFile(string romfs, string shaderFolder, string archivePath, string archiveName, IReadOnlyDictionary<string, IReadOnlySet<int>> wanted)
     {
         try
         {
-            FileInfo info = new(archivePath);
+            FileInfo info = RealFile(romfs, archivePath) ?? throw new FileNotFoundException(archivePath);
             StringBuilder key = new();
-            key.Append(SharedFormat).Append('|').Append(info.Name).Append('|').Append(info.Length).Append('|').Append(info.LastWriteTimeUtc.Ticks).Append('|').Append(archiveName);
+            key.Append(SharedFormat).Append('|').Append(Path.GetFileName(archivePath)).Append('|').Append(info.Name).Append('|').Append(info.Length).Append('|').Append(info.LastWriteTimeUtc.Ticks).Append('|').Append(archiveName);
             foreach ((string model, IReadOnlySet<int> programs) in wanted.OrderBy(w => w.Key, StringComparer.Ordinal))
                 key.Append('|').Append(model).Append(':').Append(string.Join(',', programs.Order()));
             string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key.ToString())))[..24];
@@ -92,7 +124,7 @@ static class PackPreparer
                 // An archive is named by the start of its file name (material.Product.110...bfsha.zs is material). When the programs wanted of that name were prepared before, from this same file, the prepared
                 // archive is copied from the shared folder and the 90 MB archive is never read; otherwise it is read and prepared as before, and kept there for the next model that wants the same programs.
                 string guess = Path.GetFileName(path).Split('.')[0];
-                string? shared = use?.Of(guess) is { Count: > 0 } known ? SharedProgramFile(shaderFolder, path, guess, known) : null;
+                string? shared = use?.Of(guess) is { Count: > 0 } known ? SharedProgramFile(romfs, shaderFolder, path, guess, known) : null;
                 if (shared is not null && File.Exists(shared))
                 {
                     File.Copy(shared, Path.Combine(archives, guess + ".bfsp"), true);
@@ -101,7 +133,7 @@ static class PackPreparer
                 }
 
                 System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
-                BfshaFile archive = BfshaFile.Read(files.Read(path));
+                BfshaFile archive = ReadArchive(files, romfs, path);
                 long read = clock.ElapsedMilliseconds;
                 IReadOnlyDictionary<string, IReadOnlySet<int>>? wanted = use?.Of(archive.Name);
                 if (wanted is null || wanted.Count == 0) continue;

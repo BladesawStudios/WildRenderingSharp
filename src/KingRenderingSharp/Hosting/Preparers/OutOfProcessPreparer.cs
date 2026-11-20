@@ -14,10 +14,12 @@ public sealed class OutOfProcessPreparer : IModelPreparer
 
     readonly PreparerProcess _process;
 
-    public OutOfProcessPreparer(string? executablePath = null)
+    /// <param name="executablePath">The pack tool; by default the one beside the host.</param>
+    /// <param name="keepAlive">Keep one preparer process running between calls, so a host that prepares model after model does not start and compile the tool for each. Calls then run one at a time.</param>
+    public OutOfProcessPreparer(string? executablePath = null, bool keepAlive = false)
     {
         ExecutablePath = executablePath ?? DefaultExecutablePath();
-        _process = new PreparerProcess(ExecutablePath);
+        _process = new PreparerProcess(ExecutablePath, keepAlive);
     }
 
     public string ExecutablePath { get; }
