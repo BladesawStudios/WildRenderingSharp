@@ -49,12 +49,15 @@ sealed class Server(Stream input, Stream output) : IDisposable
         return 0;
     }
 
+    // One preparer for the life of the server, so models after the first are not slowed by starting it again.
+    OutOfProcessPreparer? _preparer;
+
     void Open(string[] arguments)
     {
         string game = arguments[0], romfs = arguments[1], actor = arguments[3];
         string? modelFile = arguments.Length > 4 && arguments[4].Length > 0 ? arguments[4] : null;
         CacheLayout cache = new(arguments[2]);
-        OutOfProcessPreparer preparer = new();
+        OutOfProcessPreparer preparer = _preparer ??= new(keepAlive: true);
         if (!preparer.IsAvailable) throw new FileNotFoundException($"The model preparer is not beside the server ({preparer.ExecutablePath}).");
 
         Status("Preparing the shared assets");
