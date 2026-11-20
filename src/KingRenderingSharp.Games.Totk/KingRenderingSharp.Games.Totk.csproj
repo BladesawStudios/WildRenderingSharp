@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="../../build/KingRenderingSharp.Layer.props" />
+
+
+  <PropertyGroup>
+    <Description>The Tears of the Kingdom side of the renderer: its sky, clouds, gloom, deferred resolve, post-processing, terrain and effects, with the uniform blocks and frame graph that run them.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BymlLibrary" Version="2.1.18" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Glsl\**\*" LogicalName="Glsl/%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Shaders\*.cs" LogicalName="Patch/Totk/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KingRenderingSharp.Graph\KingRenderingSharp.Graph.csproj" />
+    <ProjectReference Include="$(KrsLibRoot)\AampSharp\src\AampSharp\AampSharp.csproj" />
+  </ItemGroup>
+</Project>

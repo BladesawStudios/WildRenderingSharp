@@ -1,0 +1,60 @@
+using KingRenderingSharp.Gpu;
+using KingRenderingSharp.Graph.Pipeline.Passes;
+using KingRenderingSharp.Graph.Pipeline.Resources;
+using KingRenderingSharp.Graph.Pipeline.Targets;
+using KingRenderingSharp.Content.Shaders;
+
+namespace KingRenderingSharp.Games.Totk.Deferred.PassIds;
+
+/// <summary>Stamps the pass-ID mask from the material IDs the G-buffer programs wrote, over what <see cref="PassIdMaskPass"/> stamped from each shape's name.</summary>
+internal sealed class MaterialIdPass : IDisposable
+{
+    public const int MaxPasses = 16;
+
+    static readonly string FragmentSource = GlslFiles.Load("Totk/Deferred/MaterialId/Main.frag");
+
+    readonly GpuApi _gl;
+    readonly uint _program;
+
+    public MaterialIdPass(GpuApi gl)
+    {
+        _gl = gl;
+        _program = GLProgramBuilder.Build(gl, FullscreenShaders.Vertex450, FragmentSource, "material_id");
+    }
+
+    public unsafe void Run(GLResourceCache resources, RenderTargets targets, IReadOnlyList<(int Priority, int PassIndex)> passes, bool hostDrew, int freshId, float near, float far)
+    {
+        if (passes.Count == 0)
+            return;
+
+        int count = Math.Min(passes.Count, MaxPasses);
+        int* priorities = stackalloc int[MaxPasses];
+        float* ids = stackalloc float[MaxPasses];
+        for (int i = 0; i < count; i++)
+        {
+            priorities[i] = passes[i].Priority;
+            ids[i] = (passes[i].PassIndex + 1) / 255f;
+        }
+
+        targets.BindPassIdTarget();
+        _gl.Disable(EnableCap.DepthTest);
+        _gl.Disable(EnableCap.Blend);
+        _gl.Disable(EnableCap.CullFace);
+        _gl.DepthMask(false);
+
+        _gl.UseProgram(_program);
+        _gl.BindTextureUniform(_program, "tex_material_id", 0, targets.GBuffer[0].Handle);
+        _gl.BindTextureUniform(_program, "tex_gbuf_depth", 1, targets.GBufferDepth.Handle);
+        _gl.BindTextureUniform(_program, "tex_before_host", 2, hostDrew ? targets.TerrainUnderCopies().Depth.Handle : 0);
+        _gl.SetInt(_program, "uHostDrew", hostDrew ? 1 : 0);
+        _gl.SetInt(_program, "uFreshId", freshId);
+        _gl.SetVec2(_program, "uNearFar", new System.Numerics.Vector2(near, far));
+        _gl.SetInt(_program, "uCount", count);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uPriority"), (uint)count, priorities);
+        _gl.Uniform1(_gl.UniformLocation(_program, "uPassId"), (uint)count, ids);
+        resources.DrawFullscreenTriangle();
+        _gl.DepthMask(true);
+    }
+
+    public void Dispose() => _gl.ReleaseProgram(_program);
+}

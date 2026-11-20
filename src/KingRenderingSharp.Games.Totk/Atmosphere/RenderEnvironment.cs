@@ -1,0 +1,48 @@
+using KingRenderingSharp.Games.Totk.Atmosphere.Clouds;
+using KingRenderingSharp.Games.Totk.Atmosphere.Palettes;
+using KingRenderingSharp.Games.Totk.Gloom;
+using KingRenderingSharp.Games.Totk.Terrain;
+using KingRenderingSharp.Core.Rom;
+
+namespace KingRenderingSharp.Games.Totk.Atmosphere;
+
+/// <summary>
+/// The world data a frame is lit by that comes from the romfs rather than a model: the environment palettes, the sky and cloud
+/// postfx baseline, the final colour grade, and the sky LUT.
+/// </summary>
+public sealed class RenderEnvironment
+{
+    public EnvPaletteLibrary Palettes { get; private set; } = EnvPaletteLibrary.Empty();
+
+    public SkyPostFx SkyPostFx { get; private set; } = SkyPostFx.Default;
+
+    public CloudPostFx CloudPostFx { get; private set; } = CloudPostFx.Default;
+
+    public ColorCorrectionPostFx ColorCorrection { get; private set; } = ColorCorrectionPostFx.Default;
+
+    public CloudWeather CloudWeather { get; private set; } = CloudWeather.Empty;
+
+    public HdrComposeParam HdrCompose { get; private set; } = HdrComposeParam.Default;
+
+    public DungeonEntranceParam DungeonEntrance { get; private set; } = DungeonEntranceParam.Default;
+
+    public void LoadFrom(IRomAccess? rom)
+    {
+        HdrCompose = HdrComposeParam.Load(rom);
+        DungeonEntrance = DungeonEntranceParam.Load(rom);
+        Palettes = EnvPaletteLibrary.Load(rom);
+        (SkyPostFx, CloudPostFx, ColorCorrection) = SkyPostFxLibrary.Load(rom);
+        CloudWeather = CloudWeather.Load(rom);
+    }
+
+    public TotkEnvironment Resolve(TotkSettings settings, ITerrainHost? terrain = null, IGloomSource? gloom = null) =>
+        new(Palettes.Get(settings.PaletteName), SkyPostFx, CloudPostFx, ColorCorrection, terrain, settings, CloudWeather, HdrCompose, DungeonEntrance, gloom);
+
+
+    public static RenderEnvironment Load(IRomAccess? rom)
+    {
+        var environment = new RenderEnvironment();
+        environment.LoadFrom(rom);
+        return environment;
+    }
+}

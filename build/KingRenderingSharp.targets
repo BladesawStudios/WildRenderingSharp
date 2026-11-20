@@ -1,0 +1,86 @@
+<Project>
+
+  <!--
+    Import this from a host project that references src/KingRenderingSharp/KingRenderingSharp.csproj:
+
+      <Import Project="path\to\KingRenderingSharp\build\KingRenderingSharp.targets" />
+
+    The renderer needs one helper that it deliberately does NOT reference:
+
+      krs-pack\  KingRenderingSharp.Packing - the offline preparer, run as a child process by
+                  KingRenderingSharp.Hosting.OutOfProcessPreparer. It carries the BfShaderSharp
+                  libraries and their own builds of the readers a host may also use, which need
+                  not be the ones the host builds itself. Built when KrsOutOfProcessPreparer is
+                  true (the default).
+
+    It lands beside the host's executable on build, and beside the published executable on publish.
+  -->
+
+  <PropertyGroup>
+    <KrsRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</KrsRoot>
+    <KrsPreparationProject>$(KrsRoot)\src\KingRenderingSharp.Packing\KingRenderingSharp.Packing.csproj</KrsPreparationProject>
+    <KrsOutOfProcessPreparer Condition="'$(KrsOutOfProcessPreparer)' == ''">true</KrsOutOfProcessPreparer>
+  </PropertyGroup>
+
+  <!--
+    Built normally (into the helper project's own bin/), then copied - rather than built straight
+    into the host's folder with an OutputPath override. An override is a global property, so it
+    would flow on to every project the helper references and rebuild each of them a second time,
+    into the host's folder, beside the host's own copies of the same assemblies.
+    RemoveProperties keeps the host's own global properties (a RuntimeIdentifier, a publish's
+    SelfContained, ...) from being forced onto projects that were never meant to take them.
+
+    The helpers are not in the host's restore graph (they are deliberately not references), so they
+    are restored here first. The restore runs under an extra global property so it is a separate
+    evaluation from the build that follows - otherwise the build would reuse an evaluation made
+    before restore had written the files it imports, and fail on a fresh clone with
+    "project.assets.json not found".
+  -->
+  <Target Name="KrsBuildHelpers" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="$(KrsPreparationProject)" Targets="Restore" Condition="'$(KrsOutOfProcessPreparer)' == 'true'"
+             Properties="Configuration=$(Configuration);_KrsRestoreEvaluation=true"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing" />
+
+    <MSBuild Projects="$(KrsPreparationProject)" Targets="Build" Condition="'$(KrsOutOfProcessPreparer)' == 'true'"
+             Properties="Configuration=$(Configuration)"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing">
+      <Output TaskParameter="TargetOutputs" ItemName="_KrsPreparationOutput" />
+    </MSBuild>
+
+    <PropertyGroup>
+      <_KrsPreparationDir Condition="'@(_KrsPreparationOutput)' != ''">@(_KrsPreparationOutput->'%(RootDir)%(Directory)')</_KrsPreparationDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_KrsPreparationFiles Include="$(_KrsPreparationDir)**\*" Condition="'$(_KrsPreparationDir)' != ''" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_KrsPreparationFiles)" DestinationFiles="@(_KrsPreparationFiles->'$(TargetDir)krs-pack\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!--
+    On publish. The preparer is a process of its own: beside a framework-dependent host
+    the build output is right, but beside a SELF-CONTAINED host - one handed to people who have no
+    .NET installed - a framework-dependent preparer would not start. So for those it is published
+    self-contained for the host's runtime identifier (not single-file: the native decoders have to sit beside it as plain files).
+  -->
+  <Target Name="KrsPublishHelpers" AfterTargets="Publish" DependsOnTargets="KrsBuildHelpers">
+    <PropertyGroup>
+      <_KrsSelfContainedPreparer Condition="'$(KrsOutOfProcessPreparer)' == 'true' And '$(SelfContained)' == 'true' And '$(RuntimeIdentifier)' != ''">true</_KrsSelfContainedPreparer>
+      <_KrsPreparationPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)krs-pack-publish\$(RuntimeIdentifier)\'))</_KrsPreparationPublishDir>
+    </PropertyGroup>
+
+    <Copy Condition="'$(_KrsSelfContainedPreparer)' != 'true'" SourceFiles="@(_KrsPreparationFiles)" DestinationFiles="@(_KrsPreparationFiles->'$(PublishDir)krs-pack\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+
+    <MSBuild Condition="'$(_KrsSelfContainedPreparer)' == 'true'" Projects="$(KrsPreparationProject)" Targets="Restore"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;_KrsRestoreEvaluation=true"
+             RemoveProperties="PublishSingleFile;PublishDir;OutDir;OutputPath;_IsPublishing" />
+    <MSBuild Condition="'$(_KrsSelfContainedPreparer)' == 'true'" Projects="$(KrsPreparationProject)" Targets="Publish"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;PublishSingleFile=false;PublishDir=$(_KrsPreparationPublishDir)"
+             RemoveProperties="OutDir;OutputPath;_IsPublishing" />
+    <ItemGroup Condition="'$(_KrsSelfContainedPreparer)' == 'true'">
+      <_KrsPreparationPublished Include="$(_KrsPreparationPublishDir)**\*" />
+    </ItemGroup>
+    <Copy Condition="'$(_KrsSelfContainedPreparer)' == 'true'" SourceFiles="@(_KrsPreparationPublished)" DestinationFiles="@(_KrsPreparationPublished->'$(PublishDir)krs-pack\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

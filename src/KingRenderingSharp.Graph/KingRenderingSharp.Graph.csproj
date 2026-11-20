@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="../../build/KingRenderingSharp.Layer.props" />
+
+
+  <PropertyGroup>
+    <Description>The deferred pipeline of KingRenderingSharp: targets, resources, drawing and the passes any game can use.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Glsl\**\*" LogicalName="Glsl/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KingRenderingSharp.Content\KingRenderingSharp.Content.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The offline half of the renderer: reads a game's romfs through BfShaderSharp and writes the cache KingRenderingSharp loads, a system pack for the data that belongs
+    to no model and a pack with its prepared shader archives for each model. A tool of its own, run as a child process by the host, so the libraries it reads the game
+    with never meet the host's.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Prepares Breath of the Wild / Tears of the Kingdom data into a KingRenderingSharp cache through BfShaderSharp's asset packs.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KingRenderingSharp.Core\KingRenderingSharp.Core.csproj" />
+    <ProjectReference Include="..\KingRenderingSharp.Content\KingRenderingSharp.Content.csproj" />
+    <ProjectReference Include="..\KingRenderingSharp.Games.Totk\KingRenderingSharp.Games.Totk.csproj" />
+    <ProjectReference Include="..\..\vendor\BfShaderSharp\src\BfShaderSharp.Assets\BfShaderSharp.Assets.csproj" />
+    <ProjectReference Include="..\..\vendor\BfShaderSharp\src\BfShaderSharp.Preparation\BfShaderSharp.Preparation.csproj" />
+  </ItemGroup>
+
+  <!--
+    The effect files are read with PtclSharp's sources compiled in, not referenced: its project brings its own BymlSharp, ZstdSharp and Yaz0Sharp,
+    and a process holds only one assembly of each name; these are the ones BfShaderSharp's projects bring.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\vendor\PtclSharp\src\PtclSharp\**\*.cs" Exclude="..\..\vendor\PtclSharp\src\PtclSharp\obj\**;..\..\vendor\PtclSharp\src\PtclSharp\bin\**" LinkBase="PtclSharp" />
+  </ItemGroup>
+</Project>

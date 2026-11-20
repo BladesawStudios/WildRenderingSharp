@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="KingRenderingSharp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KingRenderingSharp\KingRenderingSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Built first because the scenes are rendered by running it, but not linked against. -->
+    <ProjectReference Include="..\KingRenderingSharp.TestBench\KingRenderingSharp.TestBench.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,29 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/KingRenderingSharp.Core/KingRenderingSharp.Core.csproj" />
+    <Project Path="src/KingRenderingSharp.Gpu/KingRenderingSharp.Gpu.csproj" />
+    <Project Path="src/KingRenderingSharp.Content/KingRenderingSharp.Content.csproj" />
+    <Project Path="src/KingRenderingSharp.Graph/KingRenderingSharp.Graph.csproj" />
+    <Project Path="src/KingRenderingSharp.Games.Botw/KingRenderingSharp.Games.Botw.csproj" />
+    <Project Path="src/KingRenderingSharp.Games.Totk/KingRenderingSharp.Games.Totk.csproj" />
+    <Project Path="src/KingRenderingSharp/KingRenderingSharp.csproj" />
+    <Project Path="src/KingRenderingSharp.Packing/KingRenderingSharp.Packing.csproj" />
+    <Project Path="src/KingRenderingSharp.Snapshot/KingRenderingSharp.Snapshot.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/KingRenderingSharp.RenderRegression/KingRenderingSharp.RenderRegression.csproj" />
+    <Project Path="tests/KingRenderingSharp.Tests/KingRenderingSharp.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Tests.Support/KingRenderingSharp.Tests.Support.csproj" />
+    <Project Path="tests/KingRenderingSharp.Core.Tests/KingRenderingSharp.Core.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Content.Tests/KingRenderingSharp.Content.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Graph.Tests/KingRenderingSharp.Graph.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Games.Botw.Tests/KingRenderingSharp.Games.Botw.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.Games.Totk.Tests/KingRenderingSharp.Games.Totk.Tests.csproj" />
+    <Project Path="tests/KingRenderingSharp.TestBench/KingRenderingSharp.TestBench.csproj" />
+  </Folder>
+  <Folder Name="/vendor/" />
+  <Folder Name="/vendor/AampSharp/" />
+  <Folder Name="/vendor/AampSharp/src/">
+    <Project Path="vendor/AampSharp/src/AampSharp/AampSharp.csproj" />
+  </Folder>
+</Solution>
